@@ -4,7 +4,6 @@
 
 layout: default
 title: Informativa sulla privacy di PlumePilot
-permalink: /privacy/
 
 ---
 
