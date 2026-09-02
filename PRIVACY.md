@@ -1,7 +1,5 @@
 # Informativa sulla privacy di PlumePilot
 
-> **Versione pre-pubblicazione.** Il contenuto è pronto per la pubblicazione; prima dell'invio agli store questa pagina dovrà essere resa disponibile a un URL HTTPS stabile e accessibile senza autenticazione.
-
 Ultimo aggiornamento: 2 settembre 2026.
 
 ## 1. Titolare e contatti
