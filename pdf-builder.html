@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creazione PDF UniPegaso</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="pdf-builder.css">
+</head>
+<body>
+  <main class="builder-card">
+    <div class="brand">PlumePilot</div>
+    <h1 id="courseTitle">Preparazione del PDF del corso…</h1>
+    <p id="status" class="status" aria-live="polite">Caricamento dei capitoli raccolti…</p>
+
+    <div class="progress-track" aria-hidden="true">
+      <div id="progressBar" class="progress-bar"></div>
+    </div>
+
+    <p id="details" class="details"></p>
+    <ul id="failures" class="failures"></ul>
+
+    <button id="downloadAgain" class="download-button" type="button" hidden>
+      Scarica nuovamente il PDF
+    </button>
+  </main>
+
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script src="pdf-core.js"></script>
+  <script src="pdf-builder.js"></script>
+</body>
+</html>

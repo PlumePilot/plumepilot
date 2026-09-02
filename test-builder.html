@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlumePilot – Raccolta test</title>
+  <link rel="stylesheet" href="test-builder.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">PLUMEPILOT · TEST DI AUTOVALUTAZIONE</div>
+      <h1 id="courseTitle">Preparazione della raccolta…</h1>
+      <p id="summary" class="summary"></p>
+    </header>
+    <section class="card">
+      <h2>Scegli il formato</h2>
+      <div class="actions">
+        <button id="downloadPdf" type="button">Scarica PDF navigabile</button>
+        <button id="downloadHtml" type="button">Scarica quiz HTML interattivo</button>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+      <p id="status" role="status" aria-live="polite">Caricamento dei test raccolti…</p>
+    </section>
+    <section id="missingCard" class="card warning" hidden>
+      <h2>Test non inclusi</h2>
+      <p>La raccolta resta utilizzabile; questi capitoli non hanno fornito domande valide.</p>
+      <ul id="missingList"></ul>
+    </section>
+  </main>
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script src="vendor/fontkit.umd.min.js"></script>
+  <script src="theme.js"></script>
+  <script src="test-builder.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: Segnala un problema
+description: Segnala un comportamento errato o inatteso di PlumePilot
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Non inserire password, token, matricola, dati degli esami o screenshot non oscurati.
+  - type: input
+    id: version
+    attributes:
+      label: Versione di PlumePilot
+      placeholder: "2.32.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Chrome, Firefox, Edge]
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrizione
+      description: Spiega cosa è successo e cosa ti aspettavi.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passaggi per riprodurre il problema
+      placeholder: "1. Apri…\n2. Seleziona…\n3. Osserva…"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contesto aggiuntivo
+      description: Aggiungi log già ripuliti o screenshot completamente oscurati, se utili.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Controllo privacy
+      options:
+        - label: Ho rimosso credenziali, token e dati personali dalla segnalazione.
+          required: true

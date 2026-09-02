@@ -1,0 +1,23 @@
+name: Proponi una funzionalità
+description: Suggerisci un miglioramento per PlumePilot
+title: "[Funzionalità]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Esigenza
+      description: Quale problema o attività vorresti semplificare?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Soluzione proposta
+      description: Descrivi il risultato desiderato senza includere dati personali o materiali riservati.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative considerate

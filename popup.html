@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlumePilot – Assistente per Pegaso</title>
+  <script src="theme.js"></script>
+  <script src="commission-state.js"></script>
+  <script src="achievements.js"></script>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="container">
+    <div id="achievementToast" class="achievement-toast" role="status" aria-live="polite" hidden></div>
+    <div class="popup-sticky-header">
+      <header class="brand-header">
+        <span class="brand-logo-frame" aria-hidden="true">
+          <img class="brand-logo-standard" src="icons/icon-48.png" width="40" height="40" alt="">
+          <span class="brand-logo-gaming"></span>
+        </span>
+        <div class="brand-copy">
+          <h1>PlumePilot</h1>
+          <p>Assistente per la piattaforma Pegaso</p>
+        </div>
+        <button id="status" class="status" type="button" aria-live="polite" aria-pressed="true"></button>
+      </header>
+
+      <nav class="popup-tabs" role="tablist" aria-label="Sezioni di PlumePilot">
+        <button id="courseTab" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="coursePanel" tabindex="0">Corso</button>
+        <button id="activitiesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="activitiesPanel" tabindex="-1"><span>Attività</span><span id="commissionTabBadge" class="tab-badge" hidden>!</span></button>
+        <button id="achievementsTab" class="tab-button achievements-only" type="button" role="tab" aria-selected="false" aria-controls="achievementsPanel" tabindex="-1">Traguardi</button>
+        <button id="preferencesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="preferencesPanel" tabindex="-1">Preferenze</button>
+      </nav>
+    </div>
+
+    <button id="activeOperationBanner" class="operation-banner" type="button" hidden></button>
+
+    <div id="coursePanel" class="tab-panel" role="tabpanel" aria-labelledby="courseTab">
+      <section class="course-progress-section" aria-labelledby="courseProgressTitle">
+        <div class="course-progress-heading">
+          <span id="courseProgressTitle">Progresso del corso</span>
+          <strong id="courseProgressValue">—</strong>
+        </div>
+        <div id="courseProgressBar" class="course-progress-track" role="progressbar" aria-labelledby="courseProgressTitle" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Progresso non disponibile">
+          <span class="course-progress-inner"><span id="courseProgressFill" class="course-progress-fill"></span></span>
+          <span id="courseProgressThresholdMarker" class="course-progress-threshold-marker" title="Soglia del 70%" hidden></span>
+        </div>
+        <div id="courseProgressMessage" class="course-progress-message" aria-live="polite">Apri un corso per visualizzare il progresso.</div>
+        <details class="course-progress-options-menu">
+          <summary>
+            <span>Opzioni progresso</span>
+            <small id="courseProgressOptionsSummary">Disattivate</small>
+            <span class="course-progress-options-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="course-progress-options">
+            <label class="toggle-row" for="courseProgressOverlayEnabled">
+              <span>Mostra progresso sullo schermo</span>
+              <input id="courseProgressOverlayEnabled" type="checkbox">
+            </label>
+            <fieldset id="courseProgressPositionFieldset" class="course-progress-position" aria-labelledby="courseProgressPositionTitle">
+              <legend id="courseProgressPositionTitle">Posizione della barra</legend>
+              <div class="course-progress-position-list">
+                <label><input type="radio" name="courseProgressOverlayPosition" value="top"> <span>Sopra</span></label>
+                <label><input type="radio" name="courseProgressOverlayPosition" value="bottom"> <span>Sotto</span></label>
+                <label><input type="radio" name="courseProgressOverlayPosition" value="left"> <span>Sinistra</span></label>
+                <label><input type="radio" name="courseProgressOverlayPosition" value="right"> <span>Destra</span></label>
+              </div>
+            </fieldset>
+            <label class="toggle-row" for="courseProgressThresholdEnabled">
+              <span>Avvisami al raggiungimento del 70%</span>
+              <input id="courseProgressThresholdEnabled" type="checkbox">
+            </label>
+            <div class="course-progress-option-hint">L’avviso funziona anche quando la barra sullo schermo è nascosta.</div>
+          </div>
+        </details>
+      </section>
+
+      <section class="autoplay-section" aria-labelledby="autoplaySectionTitle">
+        <div id="autoplaySectionTitle" class="section-title">Autoplay</div>
+
+        <label class="toggle-row autoplay-master gaming-control-row" for="enabled">
+          <span>Avanzamento automatico</span>
+          <span id="autoplayControlSprite" class="gaming-control-sprite autoplay-control-sprite" aria-hidden="true"></span>
+          <input id="enabled" type="checkbox">
+        </label>
+
+        <details class="autoplay-options-menu">
+          <summary>
+            <span>Opzioni autoplay</span>
+            <small id="autoplayOptionsSummary">Test ignorati</small>
+            <span class="autoplay-menu-chevron" aria-hidden="true"></span>
+          </summary>
+        <div id="autoplayOptions" class="autoplay-options" aria-label="Opzioni autoplay">
+          <div class="setting-block first-incomplete-setting">
+            <div class="action-row">
+              <button id="findFirstIncomplete" class="secondary-button" type="button">Trova prima attività incompleta</button>
+              <button class="expand-button" type="button" aria-label="Mostra informazioni sulla ricerca della prima attività incompleta" aria-controls="firstIncompleteInfo" aria-expanded="false"></button>
+            </div>
+            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare e la apre come un segnalibro. La ricerca parte solo quando premi il pulsante e non modifica il punto ripristinato normalmente da Pegaso. Il video viene selezionato senza forzarne la riproduzione.</div>
+            <div id="firstIncompleteStatus" class="action-status" aria-live="polite"></div>
+          </div>
+
+          <fieldset class="test-behavior" aria-labelledby="testBehaviorTitle">
+            <div class="test-behavior-heading">
+              <span id="testBehaviorTitle">Quando raggiunge un test</span>
+              <button class="expand-button" type="button" aria-label="Mostra informazioni sul comportamento ai test" aria-controls="testBehaviorInfo" aria-expanded="false"></button>
+            </div>
+            <div class="test-choice-list">
+              <label><input type="radio" name="testBehavior" value="ignore"> <span>Ignora e continua</span></label>
+              <label><input type="radio" name="testBehavior" value="stop"> <span>Fermati</span></label>
+              <label><input type="radio" name="testBehavior" value="complete"> <span>Completa automaticamente</span></label>
+            </div>
+            <div id="testBehaviorInfo" class="info-panel" hidden>Puoi ignorare i test, fermare l’avanzamento quando li raggiungi oppure completarli automaticamente e proseguire. I test già completati non vengono ripetuti. Se il completamento diretto non riesce, PlumePilot prova il metodo alternativo con risposta A. Anche la ricerca manuale della prima attività incompleta rispetta questa scelta.</div>
+          </fieldset>
+
+          <details class="chapter-limit-menu">
+            <summary>
+              <span id="chapterLimitTitle">Limite sessione autoplay</span>
+              <small id="chapterLimitOptionsSummary">Disattivato</small>
+              <span class="autoplay-menu-chevron" aria-hidden="true"></span>
+            </summary>
+            <section class="chapter-limit-setting" aria-labelledby="chapterLimitTitle">
+              <label class="toggle-row" for="chapterLimitEnabled">
+                <span>Attiva limite</span>
+                <input id="chapterLimitEnabled" type="checkbox">
+              </label>
+              <div id="chapterLimitControls" class="chapter-limit-controls">
+                <span>Capitoli</span>
+                <div class="chapter-limit-stepper">
+                  <button id="chapterLimitMinus" type="button" aria-label="Riduci il limite">−</button>
+                  <output id="chapterLimitValue">1</output>
+                  <button id="chapterLimitPlus" type="button" aria-label="Aumenta il limite">+</button>
+                </div>
+              </div>
+              <div id="chapterLimitProgress" class="action-status" aria-live="polite">Apri un corso per calcolare il limite.</div>
+              <button id="chapterLimitResume" class="secondary-button" type="button" hidden>Riprendi per altri capitoli</button>
+              <div class="setting-hint">PlumePilot si ferma prima del capitolo successivo. Con il limite attivo, “Fermati” viene temporaneamente trattato come “Ignora e continua”.</div>
+            </section>
+          </details>
+        </div>
+        </details>
+      </section>
+
+      <div class="actions-title">Dispense del corso</div>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="exportCourseMaterials" class="primary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="materialsSprite" class="gaming-action-sprite materials-sprite" aria-hidden="true"></span>
+            <span id="materialsButtonLabel" class="gaming-action-label">Esporta dispense del corso</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sull’esportazione delle dispense" aria-controls="materialsInfo" aria-expanded="false"></button>
+        </div>
+        <div id="materialsInfo" class="info-panel" hidden>Raccoglie una sola volta le dispense e apre una schermata dalla quale puoi scaricare sia un PDF con indice navigabile sia un EPUB ottimizzato per smartphone, tablet ed e-reader. I due file vengono creati uno alla volta e solo quando li richiedi.</div>
+        <div id="materialsStatus" class="action-status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div id="activitiesPanel" class="tab-panel" role="tabpanel" aria-labelledby="activitiesTab" hidden>
+      <div class="actions-title panel-first-title">Completamento</div>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="turboTests" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="turboTestsSprite" class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span>
+            <span id="turboTestsButtonLabel" class="gaming-action-label">Completa tutti i test</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sui test automatici" aria-controls="turboInfo" aria-expanded="false"></button>
+        </div>
+        <div id="turboInfo" class="info-panel" hidden>Turbo test! Completa in sequenza tutti i test di autovalutazione ancora da svolgere. I test già completati non vengono ripetuti. Durante l’operazione mantieni aperta la scheda del corso.</div>
+        <div id="turboTestsStatus" class="action-status" aria-live="polite"></div>
+      </section>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="completeObjectives" class="secondary-button gaming-action-button has-gaming-art" type="button">
+            <span id="objectivesSprite" class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span>
+            <span id="objectivesButtonLabel" class="gaming-action-label">Completa tutti gli Obiettivi</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sul completamento degli Obiettivi" aria-controls="objectivesInfo" aria-expanded="false"></button>
+        </div>
+        <div id="objectivesInfo" class="info-panel" hidden>Completa in sequenza gli Obiettivi ancora da svolgere. Quelli già completati non vengono ripetuti e le informazioni già raccolte vengono riutilizzate anche per test e dispense. Durante l’operazione mantieni aperta la scheda del corso.</div>
+        <div id="objectivesStatus" class="action-status" aria-live="polite"></div>
+      </section>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
+            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
+        </div>
+        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
+        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
+      </section>
+
+      <section class="commission-section" aria-labelledby="commissionSectionTitle">
+        <div id="commissionSectionTitle" class="section-title">Esami online</div>
+        <div class="setting-row commission-toggle-row gaming-control-row">
+          <label for="commissionCheckEnabled">Controlla stato commissione</label>
+          <span id="commissionControlSprite" class="gaming-control-sprite commission-control-sprite" aria-hidden="true"></span>
+          <div class="setting-controls">
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sul controllo commissione" aria-controls="commissionInfo" aria-expanded="false"></button>
+            <input id="commissionCheckEnabled" type="checkbox">
+          </div>
+        </div>
+        <div id="commissionInfo" class="info-panel" hidden>Controlla automaticamente gli aggiornamenti della Commissione per gli esami online. “Accettato” indica che la verifica della prova non ha rilevato anomalie rispetto alle modalità previste, ad esempio persone non autorizzate o strumenti non consentiti. Riguarda quindi la regolarità dello svolgimento, non il voto o il superamento dell’esame, mostrati separatamente. Gli esami ancora in valutazione restano nell’elenco principale; quando Pegaso carica l’esito ufficiale, vengono raccolti nel sottomenù e separati tra superati e non superati.</div>
+
+        <div id="commissionUpdates" class="commission-updates" hidden>
+          <div class="commission-updates-heading">
+            <div>
+              <div id="commissionUpdatesTitle" class="commission-updates-title">Stato della commissione</div>
+              <div id="commissionLastCheck" class="commission-last-check"></div>
+            </div>
+            <button id="markCommissionSeen" class="mark-seen-button" type="button" hidden>Segna come letti</button>
+          </div>
+          <div id="commissionExamList" class="commission-exam-list"></div>
+          <div id="commissionExamEmpty" class="commission-exam-empty"></div>
+          <button id="confirmedExamsToggle" class="confirmed-exams-toggle" type="button" aria-expanded="false" aria-controls="confirmedExamsPanel" hidden>
+            <span id="confirmedExamsLabel">Esiti caricati</span>
+            <span class="confirmed-exams-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="confirmedExamsPanel" class="confirmed-exams-panel" hidden>
+            <section id="loadedPassedGroup" class="loaded-outcome-group" hidden>
+              <h3 class="loaded-outcome-heading">Superati <span id="loadedPassedCount"></span></h3>
+              <div id="loadedPassedExamList" class="commission-exam-list confirmed-exam-list"></div>
+            </section>
+            <section id="loadedFailedGroup" class="loaded-outcome-group" hidden>
+              <h3 class="loaded-outcome-heading">Non superati <span id="loadedFailedCount"></span></h3>
+              <div id="loadedFailedExamList" class="commission-exam-list confirmed-exam-list"></div>
+            </section>
+            <section id="loadedOtherGroup" class="loaded-outcome-group" hidden>
+              <h3 class="loaded-outcome-heading">Altri esiti <span id="loadedOtherCount"></span></h3>
+              <div id="loadedOtherExamList" class="commission-exam-list confirmed-exam-list"></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="commission-data-row">
+          <button id="clearCommissionData" class="data-button" type="button">Cancella dati degli esami</button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla cancellazione dei dati degli esami" aria-controls="clearCommissionDataInfo" aria-expanded="false"></button>
+        </div>
+        <div id="clearCommissionDataInfo" class="info-panel" hidden>Elimina dal browser gli esami memorizzati, lo storico delle novità e anche la cache temporanea presente nelle schede Pegaso aperte. Non elimina dati dalla piattaforma e non modifica la preferenza del controllo commissione. Al controllo successivo verrà creata una nuova situazione iniziale usando dati appena richiesti.</div>
+        <div id="clearCommissionDataStatus" class="action-status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div id="achievementsPanel" class="tab-panel achievements-panel achievements-only" role="tabpanel" aria-labelledby="achievementsTab" hidden>
+      <header class="achievements-header">
+        <span class="achievements-mascot" aria-hidden="true"></span>
+        <div><strong id="achievementLevel">Livello 1</strong><small id="achievementTotal">0 EXP totali</small></div>
+        <strong id="achievementProgressText" class="achievement-progress-text">0 / 100 EXP</strong>
+      </header>
+      <div class="achievements-scroll">
+        <section aria-labelledby="primaryAchievementsTitle"><h2 id="primaryAchievementsTitle" class="section-title">Funzioni principali</h2><div id="primaryAchievements" class="achievement-list"></div></section>
+        <section aria-labelledby="secondaryAchievementsTitle"><h2 id="secondaryAchievementsTitle" class="section-title">Scopri PlumePilot</h2><div id="secondaryAchievements" class="achievement-list"></div></section>
+        <details class="rewards-menu">
+          <summary><span>Ricompense</span><small id="rewardsSummary">2 di 12 sbloccate</small><span class="course-progress-options-chevron" aria-hidden="true"></span></summary>
+          <div class="reward-groups">
+            <section aria-labelledby="barRewardsTitle"><h2 id="barRewardsTitle" class="section-title">Stili barra</h2><div id="barRewards" class="reward-list"></div></section>
+            <section aria-labelledby="launcherRewardsTitle"><h2 id="launcherRewardsTitle" class="section-title">Stili launcher</h2><div id="launcherRewards" class="reward-list"></div></section>
+          </div>
+        </details>
+        <p class="achievement-video-note">EXP, Traguardi e ricompense sono motivazionali, locali al browser e indipendenti dal progresso ufficiale Pegaso. Completare i video ancora incompiuti di un capitolo assegna 1 EXP per ogni video presente; i capitoli già completi al primo rilevamento non assegnano EXP retroattiva.</p>
+      </div>
+      <footer class="achievement-footer">
+        <div id="achievementProgress" class="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="achievementProgressFill" class="achievement-progress-fill"></span><span class="achievement-mid-marker" title="Premio stile barra">◆</span><span class="achievement-end-marker" title="Premio stile launcher">★</span>
+        </div>
+        <button id="resetAchievements" class="data-button" type="button">Reimposta Traguardi ed EXP</button>
+        <div id="achievementFeedback" class="action-status" aria-live="polite"></div>
+      </footer>
+    </div>
+
+    <div id="preferencesPanel" class="tab-panel" role="tabpanel" aria-labelledby="preferencesTab" hidden>
+      <section class="preferences-section" aria-labelledby="interfaceSectionTitle">
+        <div id="interfaceSectionTitle" class="section-title">Interfaccia</div>
+        <div class="setting-block floating-menu-setting">
+          <div class="setting-row gaming-control-row">
+            <label for="floatingMenuEnabled">Mostra il menu fluttuante</label>
+            <span id="floatingMenuControlSprite" class="gaming-control-sprite floating-menu-control-sprite" aria-hidden="true"></span>
+            <div class="setting-controls">
+              <button class="expand-button" type="button" aria-label="Mostra informazioni sul menu fluttuante" aria-controls="floatingMenuInfo" aria-expanded="false"></button>
+              <input id="floatingMenuEnabled" type="checkbox">
+            </div>
+          </div>
+          <div id="floatingMenuInfo" class="info-panel" hidden>Mostra i controlli principali di PlumePilot direttamente nella pagina del corso. Il menu compare solo nella pagina che contiene l’elenco delle lezioni. Puoi trascinare l’icona lungo il bordo della finestra per scegliere la posizione.</div>
+        </div>
+
+        <fieldset class="preference-choice visual-style-choice" aria-labelledby="visualStyleTitle">
+          <div class="preference-choice-heading">
+            <span id="visualStyleTitle">Stile visivo</span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sullo stile visivo di PlumePilot" aria-controls="visualStyleInfo" aria-expanded="false"></button>
+          </div>
+          <div class="preference-choice-list visual-style-choice-list">
+            <label><input type="radio" name="visualStyle" value="standard"> <span>Standard</span></label>
+            <label><input type="radio" name="visualStyle" value="gaming"> <span>Gaming</span></label>
+          </div>
+          <div id="visualStyleInfo" class="info-panel" hidden>Lo stile Gaming modifica solo l’aspetto delle interfacce di PlumePilot e può essere combinato con Tema Sistema, Chiaro o Scuro. Non cambia le funzioni automatiche né l’aspetto delle pagine Pegaso.</div>
+        </fieldset>
+
+        <fieldset class="preference-choice theme-choice" aria-labelledby="themePreferenceTitle">
+          <div class="preference-choice-heading">
+            <span id="themePreferenceTitle">Tema</span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sul tema di PlumePilot" aria-controls="themePreferenceInfo" aria-expanded="false"></button>
+          </div>
+          <div class="preference-choice-list theme-choice-list">
+            <label><input type="radio" name="themePreference" value="system"> <span>Sistema</span></label>
+            <label><input type="radio" name="themePreference" value="light"> <span>Chiaro</span></label>
+            <label><input type="radio" name="themePreference" value="dark"> <span>Scuro</span></label>
+          </div>
+          <div id="themePreferenceInfo" class="info-panel" hidden>“Sistema” segue automaticamente il tema chiaro o scuro indicato dal browser e si aggiorna quando cambia. La scelta si applica al popup, al menu fluttuante e agli strumenti di creazione PDF, EPUB e raccolta test, senza modificare l’aspetto di Pegaso.</div>
+        </fieldset>
+
+        <fieldset class="preference-choice menu-size-choice" aria-labelledby="menuSizeTitle">
+          <div class="preference-choice-heading">
+            <span id="menuSizeTitle">Dimensione menu</span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sulla dimensione dei menu" aria-controls="menuSizeInfo" aria-expanded="false"></button>
+          </div>
+          <div class="preference-choice-list menu-size-choice-list">
+            <label><input type="radio" name="menuSize" value="small"> <span>Piccolo</span></label>
+            <label><input type="radio" name="menuSize" value="medium"> <span>Medio</span></label>
+            <label><input type="radio" name="menuSize" value="large"> <span>Grande</span></label>
+          </div>
+          <div id="menuSizeInfo" class="info-panel" hidden>Regola insieme la larghezza e la leggibilità del popup e del menu fluttuante. Il contenuto continua ad adattarsi allo spazio disponibile sullo schermo.</div>
+        </fieldset>
+      </section>
+
+      <section class="preferences-section" aria-labelledby="behaviorSectionTitle">
+        <div id="behaviorSectionTitle" class="section-title">Comportamento</div>
+        <fieldset class="preference-choice" aria-labelledby="playbackErrorRecoveryTitle">
+          <div class="preference-choice-heading gaming-control-row">
+            <span id="playbackErrorRecoveryTitle">Errori di riproduzione</span>
+            <span id="playbackRecoveryControlSprite" class="gaming-control-sprite playback-recovery-control-sprite" aria-hidden="true"></span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sulla gestione degli errori di riproduzione" aria-controls="playbackErrorRecoveryInfo" aria-expanded="false"></button>
+          </div>
+          <div class="preference-choice-list">
+            <label><input type="radio" name="playbackErrorRecovery" value="automatic"> <span>Tenta il ripristino automatico</span></label>
+            <label><input type="radio" name="playbackErrorRecovery" value="manual"> <span>Lascia aperto l’avviso</span></label>
+          </div>
+          <div id="playbackErrorRecoveryInfo" class="info-panel" hidden>Quando riconosce un errore di riproduzione noto, PlumePilot può confermare l’avviso e tentare il ripristino una sola volta. Con “Lascia aperto l’avviso” PlumePilot non preme OK e attende la tua scelta. Se lo stesso errore ricompare, l’avviso resta sempre aperto per evitare ricaricamenti continui. Gli altri avvisi di Pegaso non vengono chiusi automaticamente.</div>
+        </fieldset>
+      </section>
+
+      <section class="about-section">
+        <div class="about-row">
+          <button class="about-link" type="button" aria-label="Mostra informazioni su PlumePilot" aria-controls="aboutInfo" aria-expanded="false">Informazioni</button>
+        </div>
+        <div id="aboutInfo" class="info-panel about-info" hidden>
+          <strong>PlumePilot <span id="extensionVersion"></span></strong>
+          <span>Creato e sviluppato da Fabio Floris per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
+          <span>Nato inizialmente come strumento personale, PlumePilot è pensato per gli studenti che desiderano organizzare meglio la fruizione dei corsi e utilizzare strumenti aggiuntivi per lo studio.</span>
+          <span>Progetto indipendente, non affiliato, approvato o distribuito da Università Telematica Pegaso o Multiversity.</span>
+          <span>PlumePilot non invia alcun dato allo sviluppatore.</span>
+          <span class="about-links"><a href="https://github.com/PlumePilot/plumepilot/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a></span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

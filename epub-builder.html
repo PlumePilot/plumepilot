@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creazione EPUB UniPegaso</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="epub-builder.css">
+</head>
+<body>
+  <main class="builder-card">
+    <div class="brand">PlumePilot</div>
+    <h1 id="courseTitle">Preparazione dell’EPUB del corso…</h1>
+    <p id="status" class="status" aria-live="polite">Caricamento dei capitoli raccolti…</p>
+    <div class="progress-track" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+    <p id="details" class="details"></p>
+    <ul id="failures" class="failures"></ul>
+    <div class="builder-actions">
+      <button id="cancelBuild" class="cancel-button" type="button">Annulla creazione</button>
+      <button id="downloadAgain" class="download-button" type="button" hidden>Scarica nuovamente l’EPUB</button>
+    </div>
+  </main>
+  <script src="vendor/jszip.min.js"></script>
+  <script type="module" src="epub-builder.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlumePilot – Dispense del corso</title>
+  <link rel="stylesheet" href="test-builder.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="eyebrow">PLUMEPILOT · DISPENSE DEL CORSO</div>
+      <h1 id="courseTitle">Preparazione delle dispense…</h1>
+      <p id="summary" class="summary"></p>
+    </header>
+    <section class="card">
+      <h2>Scegli il formato</h2>
+      <div class="actions">
+        <button id="downloadPdf" type="button" disabled>Scarica PDF navigabile</button>
+        <button id="downloadEpub" type="button" disabled>Scarica EPUB</button>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+      <p id="status" role="status" aria-live="polite">Caricamento delle dispense raccolte…</p>
+      <button id="cancelBuild" class="secondary-action" type="button" hidden>Annulla creazione EPUB</button>
+    </section>
+    <section id="missingCard" class="card warning" hidden>
+      <h2>Dispense non incluse</h2>
+      <p>Puoi comunque esportare il materiale disponibile. Le voci non recuperate sono elencate qui.</p>
+      <ul id="missingList"></ul>
+    </section>
+  </main>
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script src="pdf-core.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="theme.js"></script>
+  <script type="module" src="materials-builder.js"></script>
+</body>
+</html>

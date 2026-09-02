@@ -1,0 +1,16 @@
+# Release artifacts
+release/
+*.zip
+
+# Dependencies and local tooling
+node_modules/
+.env
+.env.*
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

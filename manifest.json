@@ -1,0 +1,126 @@
+{
+  "manifest_version": 3,
+  "name": "PlumePilot – Assistente per Pegaso",
+  "short_name": "PlumePilot",
+  "version": "2.32.1",
+  "description": "Assistente per Pegaso: automatizza lezioni e attività, crea materiali di studio e controlla lo stato degli esami online.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "plumepilot@fabiofloris",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "authenticationInfo",
+          "websiteContent",
+          "websiteActivity"
+        ]
+      }
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.cloudfront.net/*",
+    "https://ita01.s3.eu-west-1.amazonaws.com/*"
+  ],
+  "background": {
+    "scripts": [
+      "achievements.js",
+      "background.js"
+    ],
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "PlumePilot – Assistente per Pegaso",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon-48.png",
+        "assets/gaming/mascot-logo-light.png",
+        "assets/gaming/mascot-logo-dark.png",
+        "assets/gaming/mascot-idle-light.png",
+        "assets/gaming/mascot-idle-dark.png",
+        "assets/gaming/action-objectives.png",
+        "assets/gaming/action-auto-tests.png",
+        "assets/gaming/action-test-collection.png",
+        "assets/gaming/action-study-materials.png",
+        "assets/gaming/action-autoplay.png",
+        "assets/gaming/action-playback-recovery.png",
+        "assets/gaming/action-commission-check.png",
+        "assets/gaming/notification-alert.png",
+        "assets/fonts/pixelify-sans-latin.ttf",
+        "assets/gaming/progress-arcane-frame-left.png",
+        "assets/gaming/progress-arcane-frame-center.png",
+        "assets/gaming/progress-arcane-frame-right.png",
+        "assets/gaming/progress-arcane-fill.png",
+        "assets/gaming/rewards/*.png"
+      ],
+      "matches": [
+        "*://*.pegaso.multiversity.click/*"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.pegaso.multiversity.click/*"
+      ],
+      "js": [
+        "commission-interceptor.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.pegaso.multiversity.click/*"
+      ],
+      "js": [
+        "commission-state.js",
+        "bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://*.pegaso.multiversity.click/*"
+      ],
+      "js": [
+        "notification-manager.js",
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.pegaso.multiversity.click/*"
+      ],
+      "js": [
+        "commission-state.js",
+        "achievements.js",
+        "floating-menu.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
