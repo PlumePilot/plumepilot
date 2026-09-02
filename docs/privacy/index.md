@@ -1,11 +1,9 @@
-# Informativa sulla privacy di PlumePilot
-
 ---
-
 layout: default
-title: Informativa sulla privacy di PlumePilot
-
+title: "Informativa sulla privacy di PlumePilot"
 ---
+
+# Informativa sulla privacy di PlumePilot
 
 Ultimo aggiornamento: 2 settembre 2026.
 
