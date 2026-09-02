@@ -4,6 +4,19 @@ PlumePilot è un assistente locale e open source per la fruizione, l'organizzazi
 
 Il progetto è indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
 
+## Perché PlumePilot
+
+PlumePilot è nato inizialmente come strumento personale, dalla necessità di rendere più pratica la fruizione quotidiana dei corsi e di aggiungere alcune funzionalità che ritengo necessarie.
+
+Lavorare e studiare contemporaneamente non è facile. Molti studenti che frequentano l’Università Telematica Pegaso sono anche lavoratori, e riuscire a studiare durante il tragitto casa-lavoro diventa quasi obbligatorio per prepararsi a un esame. Scaricare una dispensa alla volta è estremamente tedioso e il formato PDF non si adatta bene allo schermo di tablet e telefoni. La funzionalità che consente di scaricare un’unica dispensa, sia in formato PDF sia in EPUB, è pensata proprio per questo.
+
+Questo è solo un esempio, ma penso che racconti perfettamente lo spirito che ha portato alla creazione di questo strumento, che spero possa essere utile anche ad altri e che, grazie alle vostre esperienze, potremo migliorare ulteriormente.
+
+Scoprirete che PlumePilot offre anche una modalità particolare, che forse alcuni di voi gradiranno più di altri: la modalità **Gaming**! A cosa serve? Non aggiunge alcuna funzione extra, se non quel tono giocoso che personalmente apprezzo. Il nostro percorso richiede impegno, ma un po’ di leggerezza non guasta.
+
+Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissuta come un gioco».
+
+
 ## Funzionalità principali
 
 - avanzamento automatico tra video, capitoli e sezioni;
