@@ -110,3 +110,7 @@ PlumePilot limita i permessi e i domini accessibili a quelli necessari, usa conn
 Questa informativa verrà aggiornata quando cambieranno in modo sostanziale le funzionalità o le modalità di trattamento. La data dell'ultimo aggiornamento sarà sempre indicata all'inizio della pagina.
 
 Per domande sulla presente informativa o sul trattamento locale dei dati è possibile scrivere a [plumepilot@gmail.com](mailto:plumepilot@gmail.com).
+
+## Hosting della documentazione
+
+La documentazione e l’informativa sulla privacy di PlumePilot sono ospitate tramite GitHub Pages. Durante la visita di queste pagine, GitHub può trattare informazioni tecniche, come l’indirizzo IP, secondo la propria informativa sulla privacy e per finalità di sicurezza. Questo trattamento è indipendente dal funzionamento dell’estensione PlumePilot.
