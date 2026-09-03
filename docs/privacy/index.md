@@ -74,12 +74,15 @@ Lo storage locale del browser può contenere:
 
 Questi dati rimangono nel profilo del browser finché l'utente non li cancella o disinstalla PlumePilot.
 
+Durante la preparazione delle esportazioni, dati relativi ai materiali o ai test possono essere conservati temporaneamente nello storage locale dell’estensione.
+Questi dati temporanei vengono rimossi al termine o all’annullamento dell’operazione.
+
 ## 8. Destinatari e servizi esterni
 
 PlumePilot comunica soltanto con i servizi necessari alle funzioni dichiarate:
 
-- domini Pegaso/Multiversity per corsi, attività ed esami;
-- CloudFront e il bucket Amazon S3 utilizzato dalla piattaforma per dispense e immagini.
+- servizi Pegaso e Multiversity ospitati sui domini `*.pegaso.multiversity.click`, utilizzati per corsi, attività ed esami;
+- risorse CloudFront e Amazon S3 autorizzate nel pacchetto dell’estensione, utilizzate dalla piattaforma per fornire dispense e immagini.
 
 Non esistono server PlumePilot. Lo sviluppatore non riceve i dati trattati dall'estensione.
 
@@ -102,7 +105,7 @@ L'utente può:
 
 - usare **Cancella dati degli esami** per rimuovere informazioni e cache della commissione;
 - usare il reset dei Traguardi per rimuovere Traguardi, EXP e ricompense;
-- disinstallare PlumePilot per rimuovere lo storage locale associato all'estensione.
+- disinstallare PlumePilot per richiedere al browser la rimozione dello storage locale associato all’estensione.
 
 La cancellazione locale non modifica i dati conservati da Pegaso.
 
@@ -124,4 +127,4 @@ La documentazione e l’informativa sulla privacy di PlumePilot sono ospitate tr
 
 PlumePilot utilizza le informazioni trattate esclusivamente per fornire le funzionalità visibili e richieste dall’utente, in conformità alla Chrome Web Store User Data Policy, inclusi i requisiti di uso limitato (Limited Use).
 
-I dati non vengono utilizzati o trasferiti per pubblicità personalizzata, profilazione, valutazioni creditizie o vendita a terzi e non vengono resi accessibili a persone. PlumePilot non invia alcun dato allo sviluppatore.
+I dati non vengono utilizzati o trasferiti per pubblicità personalizzata, profilazione, valutazioni creditizie o vendita a terzi. Lo sviluppatore non riceve e non può leggere i dati trattati dall’estensione. PlumePilot non li trasferisce a soggetti estranei ai servizi tecnicamente necessari per fornire le funzionalità richieste.
