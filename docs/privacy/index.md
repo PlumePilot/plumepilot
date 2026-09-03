@@ -5,7 +5,7 @@ title: "Informativa sulla privacy di PlumePilot"
 
 # Informativa sulla privacy di PlumePilot
 
-Ultimo aggiornamento: 2 settembre 2026.
+Ultimo aggiornamento: 3 settembre 2026.
 
 ## 1. Titolare e contatti
 
@@ -119,3 +119,9 @@ Per domande sulla presente informativa o sul trattamento locale dei dati è poss
 ## Hosting della documentazione
 
 La documentazione e l’informativa sulla privacy di PlumePilot sono ospitate tramite GitHub Pages. Durante la visita di queste pagine, GitHub può trattare informazioni tecniche, come l’indirizzo IP, secondo la propria informativa sulla privacy e per finalità di sicurezza. Questo trattamento è indipendente dal funzionamento dell’estensione PlumePilot.
+
+## Conformità all’uso limitato dei dati
+
+PlumePilot utilizza le informazioni trattate esclusivamente per fornire le funzionalità visibili e richieste dall’utente, in conformità alla Chrome Web Store User Data Policy, inclusi i requisiti di uso limitato (Limited Use).
+
+I dati non vengono utilizzati o trasferiti per pubblicità personalizzata, profilazione, valutazioni creditizie o vendita a terzi e non vengono resi accessibili a persone. PlumePilot non invia alcun dato allo sviluppatore.
