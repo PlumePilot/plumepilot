@@ -1,5 +1,32 @@
 # PlumePilot — Changelog
 
+## Improved in 2.32.5: aligned Gaming preference cards
+
+- Replaces floating-menu fieldset legends with accessible headings placed fully inside each preference card.
+- Matches the main menu's purple card border and gold left accent without an opaque label mask in dark mode.
+- Keeps Pixelify Sans for Gaming headings and choices while retaining the more readable system font for explanatory copy.
+- Preserves compact menu sizing, responsive behavior and control semantics.
+
+## Fixed in 2.32.4: readable floating-menu preference legends
+
+- Masks the Gaming fieldset's inner pixel line behind preference titles in the floating menu.
+- Prevents the titles from appearing struck through, especially in the light theme.
+- Preserves fieldset semantics, menu dimensions, theme behavior and the existing pixel frame.
+
+## Fixed in 2.32.3: consistent action-button hover
+
+- Gives the course-materials action the same secondary-button treatment as the other completion and export actions in the main menu.
+- Makes test collection and course-material export change both background and text color on hover in the floating menu.
+- Uses the same high-contrast dark-purple gradient in light and dark themes, while preserving the additional gold Gaming border feedback.
+- Leaves extension behavior, permissions and supported domains unchanged.
+
+## Changed in 2.32.2: canonical privacy publication links
+
+- Points the in-extension Privacy link and the README to the canonical GitHub Pages policy.
+- Aligns the repository and GitHub Pages privacy copies, including temporary export storage, exact service categories, browser-managed deletion wording and the Chrome Web Store Limited Use statement.
+- Removes an accidentally appended obsolete privacy copy from the repository document.
+- Leaves application behavior, permissions and supported Pegaso domains unchanged.
+
 ## Fixed in 2.32.1: reward markers in the floating menu
 
 - Adds the missing 50/100-EXP reward markers to the Gaming progress bar in the floating menu.

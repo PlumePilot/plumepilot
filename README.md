@@ -46,7 +46,7 @@ PlumePilot opera sulle pagine e sui servizi Pegaso necessari alle funzionalità 
 
 Il token di sessione già utilizzato dalla piattaforma può essere letto temporaneamente in memoria per effettuare richieste HTTPS verso i servizi Pegaso. Non viene salvato nello storage, inserito nei log o trasmesso allo sviluppatore.
 
-Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vendita di dati. Consulta [PRIVACY.md](PRIVACY.md) per l'informativa completa.
+Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vendita di dati. Consulta l’[informativa sulla privacy](https://plumepilot.github.io/plumepilot/privacy/) completa.
 
 ## Permessi
 

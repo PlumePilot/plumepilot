@@ -2162,7 +2162,7 @@
         :host([data-visual-style="gaming"]) .commission-heading,
         :host([data-visual-style="gaming"]) .loaded-outcome-heading,
         :host([data-visual-style="gaming"]) .preferences-heading,
-        :host([data-visual-style="gaming"]) .preference-group legend,
+        :host([data-visual-style="gaming"]) .preference-group-heading,
         :host([data-visual-style="gaming"]) .setting,
         :host([data-visual-style="gaming"]) .autoplay-options-toggle,
         :host([data-visual-style="gaming"]) .test-choice-list label,
@@ -2376,11 +2376,12 @@
           border-radius: 8px;
           background: var(--sw-elevated);
         }
-        .preference-group legend {
-          padding: 0 4px;
+        .preference-group-heading {
+          margin-bottom: 7px;
           color: var(--sw-heading);
           font-size: 10px;
           font-weight: 750;
+          line-height: 1.3;
         }
         .preference-options {
           display: grid;
@@ -2414,9 +2415,9 @@
           font-size: 9px;
           line-height: 1.35;
         }
-        :host([data-menu-size="medium"]) .preference-group legend,
+        :host([data-menu-size="medium"]) .preference-group-heading,
         :host([data-menu-size="medium"]) .preference-options label { font-size: 11px; }
-        :host([data-menu-size="large"]) .preference-group legend,
+        :host([data-menu-size="large"]) .preference-group-heading,
         :host([data-menu-size="large"]) .preference-options label { font-size: 12px; }
         :host([data-menu-size="medium"]) .preference-hint { font-size: 10px; }
         :host([data-menu-size="large"]) .preference-hint { font-size: 11px; }
@@ -3018,7 +3019,12 @@
           background: var(--sw-accent-soft);
         }
         .action.turbo:hover,
-        .action.objectives:hover { color: var(--sw-on-accent); background: var(--sw-accent-strong); }
+        .action.objectives:hover,
+        .action.test-collection:hover,
+        .action.materials:hover {
+          color: var(--sw-on-accent);
+          background: linear-gradient(135deg, var(--sw-action-hover-start), var(--sw-action-hover-end));
+        }
         .action.turbo[data-running="true"],
         .action.objectives[data-running="true"] {
           border-color: var(--sw-stop);
@@ -3269,7 +3275,6 @@
         }
         :host([data-visual-style="gaming"]) .menu-tabs,
         :host([data-visual-style="gaming"]) .course-progress,
-        :host([data-visual-style="gaming"]) .preference-group,
         :host([data-visual-style="gaming"]) .exam-card,
         :host([data-visual-style="gaming"]) .last-notification {
           border: 2px solid var(--sw-pixel-outline);
@@ -3277,6 +3282,13 @@
           box-shadow:
             inset 0 0 0 1px var(--sw-pixel-edge),
             2px 2px 0 var(--sw-pixel-shadow);
+        }
+        :host([data-visual-style="gaming"]) .preference-group {
+          border: 1px solid var(--sw-pixel-edge);
+          border-left: 3px solid var(--sw-gold-border);
+          border-radius: 0;
+          background: var(--sw-elevated);
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sw-pixel-highlight) 32%, transparent);
         }
         :host([data-visual-style="gaming"]) .last-notification[data-level="success"] { border-left-color: var(--sw-success-text); }
         :host([data-visual-style="gaming"]) .last-notification[data-level="warning"] { border-left-color: var(--sw-warning-text); }
@@ -3474,16 +3486,16 @@
           <div id="studywing-preferences-panel" class="menu-tab-panel preferences-panel" data-role="preferences-panel" role="tabpanel" aria-labelledby="studywing-preferences-tab" hidden>
             <section class="preferences-section" aria-labelledby="studywing-interface-preferences-heading">
               <h2 id="studywing-interface-preferences-heading" class="preferences-heading">Interfaccia</h2>
-              <fieldset class="preference-group">
-                <legend>Stile visivo</legend>
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-visual-style-heading">
+                <div id="studywing-floating-visual-style-heading" class="preference-group-heading">Stile visivo</div>
                 <div class="preference-options" data-columns="2">
                   <label><input type="radio" name="studywing-visual-style" value="standard"> <span>Standard</span></label>
                   <label><input type="radio" name="studywing-visual-style" value="gaming"> <span>Gaming</span></label>
                 </div>
                 <p class="preference-hint">Lo stile Gaming è solo estetico e può essere combinato con ogni tema.</p>
               </fieldset>
-              <fieldset class="preference-group">
-                <legend>Tema</legend>
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-theme-heading">
+                <div id="studywing-floating-theme-heading" class="preference-group-heading">Tema</div>
                 <div class="preference-options" data-columns="3">
                   <label><input type="radio" name="studywing-theme-preference" value="system"> <span>Sistema</span></label>
                   <label><input type="radio" name="studywing-theme-preference" value="light"> <span>Chiaro</span></label>
@@ -3491,8 +3503,8 @@
                 </div>
                 <p class="preference-hint">“Sistema” segue il tema indicato dal browser.</p>
               </fieldset>
-              <fieldset class="preference-group">
-                <legend>Dimensione menu</legend>
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-menu-size-heading">
+                <div id="studywing-floating-menu-size-heading" class="preference-group-heading">Dimensione menu</div>
                 <div class="preference-options" data-columns="3">
                   <label><input type="radio" name="studywing-menu-size" value="small"> <span>Piccolo</span></label>
                   <label><input type="radio" name="studywing-menu-size" value="medium"> <span>Medio</span></label>
@@ -3503,8 +3515,8 @@
             </section>
             <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
               <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
-              <fieldset class="preference-group">
-                <legend><span class="gaming-control-row playback-recovery-legend"><span>Errori di riproduzione</span><span class="gaming-control-sprite playback-recovery-control-sprite" data-role="playback-recovery-control-sprite" aria-hidden="true"></span></span></legend>
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-playback-recovery-heading">
+                <div id="studywing-floating-playback-recovery-heading" class="preference-group-heading gaming-control-row playback-recovery-legend"><span>Errori di riproduzione</span><span class="gaming-control-sprite playback-recovery-control-sprite" data-role="playback-recovery-control-sprite" aria-hidden="true"></span></div>
                 <div class="preference-options">
                   <label><input type="radio" name="studywing-playback-error-recovery" value="automatic"> <span>Tenta il ripristino automatico</span></label>
                   <label><input type="radio" name="studywing-playback-error-recovery" value="manual"> <span>Lascia aperto l’avviso</span></label>

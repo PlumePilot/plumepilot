@@ -23,7 +23,7 @@ const excludedFiles = new Set([
   "vendor/fontkit-README.md",
   "icons/icon-512.png",
 ]);
-const excludedDirectories = new Set([".git", "release", "scripts", "test", "tests"]);
+const excludedDirectories = new Set([".git", "docs", "release", "scripts", "test", "tests"]);
 
 async function collectFiles(directory = root, relativeDirectory = "") {
   const files = [];

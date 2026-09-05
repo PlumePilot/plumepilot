@@ -27,7 +27,7 @@ function referencedManifestFiles(manifest) {
 }
 
 function validateBrowserManifest(manifest, browser) {
-  if (manifest.version !== "2.32.1") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
+  if (manifest.version !== "2.32.5") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
     const gecko = manifest.browser_specific_settings?.gecko;
@@ -44,12 +44,12 @@ function validateBrowserManifest(manifest, browser) {
 }
 
 for (const browser of expectedBrowsers) {
-  const filename = `plumepilot-v2.32.1-${browser}.zip`;
+  const filename = `plumepilot-v2.32.5-${browser}.zip`;
   const bytes = await readFile(path.join(releaseDirectory, filename));
   const zip = await JSZip.loadAsync(bytes);
   const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
   if (!zip.file("manifest.json")) throw new Error(`${browser}: manifest.json non è alla radice.`);
-  if (names.some((name) => name.startsWith("plumepilot-v") || name.startsWith("studywing-v") || name.startsWith("scripts/") || name.startsWith("release/"))) {
+  if (names.some((name) => name.startsWith("plumepilot-v") || name.startsWith("studywing-v") || name.startsWith("docs/") || name.startsWith("scripts/") || name.startsWith("release/"))) {
     throw new Error(`${browser}: struttura o file di sviluppo inattesi.`);
   }
   for (const forbidden of ["README.md", "CHANGELOG.md", "PRIVACY.md", "icons/icon-512.png", "vendor/fontkit-README.md"]) {
@@ -71,5 +71,5 @@ for (const browser of expectedBrowsers) {
   console.log(`${filename}: OK (${names.length} file, manifest alla radice)`);
 }
 
-const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.1-${browser}.zip`));
+const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.5-${browser}.zip`));
 if (unexpectedArchives.length) throw new Error(`Archivi inattesi: ${unexpectedArchives.join(", ")}`);
