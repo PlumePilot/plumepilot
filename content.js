@@ -2603,155 +2603,73 @@
     return routes;
   }
 
-  function canonicalTestOutline(outline, courseIndex) {
-    const routeByOutlineNumber = courseIndexRouteMap(courseIndex, outline);
-    const canonical = [];
-    const usedDisplayOrders = new Set();
-
-    for (const entry of outline || []) {
-      const route = routeByOutlineNumber.get(entry.lessonNumber);
-      const displayOrder = Number(route?.displayOrder);
-      if (
-        !Number.isInteger(displayOrder) ||
-        displayOrder < 1 ||
-        usedDisplayOrders.has(displayOrder)
-      ) {
-        continue;
-      }
-      usedDisplayOrders.add(displayOrder);
-      canonical.push({
-        ...entry,
-        lessonNumber: displayOrder,
-        order: displayOrder - 1,
-      });
-    }
-
-    return canonical.sort(
-      (first, second) => first.lessonNumber - second.lessonNumber,
-    );
+  // Display numbers are local labels, never chapter identities.
+  function testRouteKey(route) {
+    return [route.folderId, route.lpId, route.id].join(":");
   }
 
-  function inferredRecoveredSection(displayOrder, recovered, initialSections) {
-    const known = [...recovered.values()].sort(
-      (first, second) => first.lessonNumber - second.lessonNumber,
-    );
-    const previous = known.filter(
-      (entry) => entry.lessonNumber < displayOrder,
-    ).at(-1);
-    const next = known.find((entry) => entry.lessonNumber > displayOrder);
-
-    if (previous?.identity?.sectionText && next?.identity?.sectionText) {
-      if (previous.identity.sectionText === next.identity.sectionText) {
-        return previous.identity.sectionText;
+  async function recoverCourseTestOutline(initialSections, initialOutline, courseIndex, operationId) {
+    if (!courseIndex?.length) throw new Error("Indice master dei test non disponibile");
+    const routes = [...courseIndex].sort((a, b) => a.masterOrder - b.masterOrder);
+    const seen = new Set();
+    for (const route of routes) {
+      if (![route.lpId, route.id, route.folderId].every(value => Number.isInteger(value) && value > 0) ||
+          !Number.isInteger(route.masterOrder) || seen.has(testRouteKey(route))) {
+        throw new Error("Identità dei capitoli ambigua nell’indice master");
       }
-      const previousDistance = displayOrder - previous.lessonNumber;
-      const nextDistance = next.lessonNumber - displayOrder;
-      return previousDistance <= nextDistance
-        ? previous.identity.sectionText
-        : next.identity.sectionText;
+      seen.add(testRouteKey(route));
     }
-
-    return previous?.identity?.sectionText ||
-      next?.identity?.sectionText ||
-      initialSections[0] ||
-      "Capitoli recuperati";
-  }
-
-  async function recoverCourseTestOutline(
-    initialSections,
-    initialOutline,
-    courseIndex,
-    operationId,
-  ) {
-    if (!Array.isArray(courseIndex) || !courseIndex.length) {
-      return initialOutline;
+    const titleKey = value => normalizedText(value).replace(/^\d+\s*-\s+/, "").toLocaleLowerCase("it");
+    const folderSections = new Map();
+    // Only unambiguous title matches establish folder-to-section membership.
+    for (const entry of initialOutline) {
+      const matches = routes.filter(route => titleKey(route.title) === titleKey(entry.identity.chapterText));
+      if (matches.length !== 1) continue;
+      const folder = matches[0].folderId;
+      if (!folderSections.has(folder)) folderSections.set(folder, new Set());
+      folderSections.get(folder).add(entry.identity.sectionText);
     }
-
-    if (courseIndex.length < initialOutline.length) {
-      log(
-        "Course test outline recovery skipped because the master index is shorter than the rendered outline.",
-        { rendered: initialOutline.length, master: courseIndex.length },
-      );
-      return initialOutline;
-    }
-
-    const recovered = new Map();
-    const rememberOutline = (outline) => {
-      for (const entry of canonicalTestOutline(outline, courseIndex)) {
-        if (!recovered.has(entry.lessonNumber)) {
-          recovered.set(entry.lessonNumber, entry);
-        }
-      }
-    };
-    rememberOutline(initialOutline);
-
-    for (
-      let attempt = 0;
-      attempt < COURSE_INDEX_RETRY_DELAYS_MS.length &&
-      recovered.size < courseIndex.length;
-      attempt++
-    ) {
-      ensureExportNotCancelled(operationId);
-      setExportCollectionStatus(
-        `Struttura test incompleta (${recovered.size}/${courseIndex.length}). ` +
-          `Recupero capitoli ${attempt + 1}/${COURSE_INDEX_RETRY_DELAYS_MS.length}…`,
-        false,
-        operationId,
-      );
-      await exportSleep(COURSE_INDEX_RETRY_DELAYS_MS[attempt], operationId);
-      const retryOutline = await apiCourseOutline(
-        initialSections,
-        null,
-        operationId,
-      );
-      if (retryOutline?.length) rememberOutline(retryOutline);
-    }
-
-    const synthesized = [];
-    for (const route of courseIndex) {
-      const displayOrder = Number(route?.displayOrder);
-      if (
-        !Number.isInteger(displayOrder) ||
-        displayOrder < 1 ||
-        recovered.has(displayOrder)
-      ) {
-        continue;
-      }
-      const routeTitle = normalizedText(route.title) || `Capitolo ${displayOrder}`;
-      const chapterText = /^\d+\s*-\s+/.test(routeTitle)
-        ? routeTitle
-        : `${displayOrder} - ${routeTitle}`;
-      const entry = {
+    return routes.map((route, order) => {
+      const sections = folderSections.get(route.folderId);
+      const section = sections?.size === 1 ? [...sections][0] : null;
+      const matches = initialOutline.filter(entry =>
+        section && entry.identity.sectionText === section &&
+        titleKey(entry.identity.chapterText) === titleKey(route.title));
+      const entry = matches.length === 1 ? matches[0] : null;
+      return {
         identity: {
-          sectionText: inferredRecoveredSection(
-            displayOrder,
-            recovered,
-            initialSections,
-          ),
-          chapterText,
+          sectionText: section || `Modulo ${route.folderId}`,
+          chapterText: entry?.identity.chapterText ||
+            `${route.displayOrder} - ${normalizedText(route.title) || "Capitolo"}`,
         },
-        sectionIndex: null,
-        sectionCount: initialSections.length,
-        chapterIndex: null,
-        chapterCount: null,
-        order: displayOrder - 1,
-        lessonNumber: displayOrder,
-        recoveredFromCourseIndex: true,
+        route,
+        chapterKey: testRouteKey(route),
+        order,
+        lessonNumber: order + 1,
       };
-      recovered.set(displayOrder, entry);
-      synthesized.push(displayOrder);
-    }
-
-    const result = [...recovered.values()].sort(
-      (first, second) => first.lessonNumber - second.lessonNumber,
-    );
-    log("Course test outline reconciled with the master index.", {
-      rendered: initialOutline.length,
-      master: courseIndex.length,
-      ready: result.length,
-      synthesized,
     });
-    return result.length ? result : initialOutline;
+  }
+
+  async function requestExportTestLesson(courseCode, entry, operationId) {
+    let response;
+    // Read fresh metadata: the playback cache is keyed by display number,
+    // which can collide between folders.
+    for (let attempt = 0; attempt <= API_LESSON_RETRY_DELAYS_MS.length; attempt++) {
+      ensureExportNotCancelled(operationId);
+      response = await turboApiRequest("lesson", {
+        courseCode, lessonNumber: entry.lessonNumber,
+        lpId: entry.route.lpId, paragraphId: entry.route.id,
+      });
+      ensureExportNotCancelled(operationId);
+      if (response.ok && response.data?.test &&
+          Number(response.data.test.lp_id) === entry.route.lpId) return response;
+      if (response.error === "AUTH_UNAVAILABLE") return response;
+      if (attempt < API_LESSON_RETRY_DELAYS_MS.length) {
+        setExportCollectionStatus(`Recupero test: ${entry.identity.chapterText}…`, false, operationId);
+        await exportSleep(API_LESSON_RETRY_DELAYS_MS[attempt], operationId);
+      }
+    }
+    return { ok: false, error: response?.error || "LESSON_DATA_INCOMPLETE" };
   }
 
   async function collectCourseMaterialsViaApi(
@@ -3408,22 +3326,19 @@
         materialOutlineCache.set(courseCode, { sectionSignature, outline });
       }
 
-      const courseIndex = await getPlaybackCourseIndex(courseCode, {
-        allowCollection: true,
-        ignoreEnabled: true,
-      });
+      const masterResponse = await turboApiRequest("outline", { courseCode });
+      ensureExportNotCancelled(operationId);
+      const courseIndex = masterResponse.ok ? masterResponse.data?.entries : null;
       outline = await recoverCourseTestOutline(
         initialSections,
         outline,
         courseIndex,
         operationId,
       );
-      const routeByLessonNumber = courseIndexRouteMap(courseIndex, outline);
-
       for (let index = 0; index < outline.length; index++) {
         ensureExportNotCancelled(operationId);
         const entry = outline[index];
-        const route = routeByLessonNumber.get(entry.lessonNumber);
+        const route = entry.route;
         const qualifiedChapter = `${entry.identity.sectionText} — ${entry.identity.chapterText}`;
         setExportCollectionStatus(
           `Raccolta test ${index + 1}/${outline.length}: ${entry.identity.chapterText}`,
@@ -3431,16 +3346,7 @@
           operationId,
         );
 
-        const lesson = await requestLessonWithRetry(
-          courseCode,
-          entry.lessonNumber,
-          "data",
-          null,
-          operationId,
-          route?.lpId || entry.lessonNumber,
-          true,
-          route?.id || entry.lessonNumber,
-        );
+        const lesson = await requestExportTestLesson(courseCode, entry, operationId);
         if (!lesson.ok) {
           missing.push({ chapter: qualifiedChapter, reason: lesson.error || "Dati del capitolo non disponibili" });
           continue;
@@ -3456,8 +3362,12 @@
           continue;
         }
 
-        const cacheKey = testSourceCacheKey(courseCode, entry.lessonNumber, test.id);
+        const cacheKey = `${courseCode}:${entry.chapterKey}:${test.id}`;
         let source = testSourceCache.get(cacheKey)?.source || null;
+        if (source && !testSourceMatchesChapter(source, entry.identity.chapterText)) {
+          testSourceCache.delete(cacheKey);
+          source = null;
+        }
         if (!source) {
           const response = await requestTestSourceWithRetry(
             courseCode,
