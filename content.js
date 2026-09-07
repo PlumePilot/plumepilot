@@ -2572,18 +2572,25 @@
     const routes = new Map();
 
     for (const outlineEntry of outline || []) {
-      const expectedTitle = normalizedText(
-        outlineEntry?.identity?.chapterText,
-      ).toLocaleLowerCase("it");
+      const chapterLabel = normalizedText(outlineEntry?.identity?.chapterText);
+      const expectedTitle = chapterLabel
+        .replace(/^\d+\s*-\s+/, "")
+        .toLocaleLowerCase("it");
       const titleMatches = [...availableIndexes].filter((index) =>
         expectedTitle &&
-        normalizedText(entries[index]?.title).toLocaleLowerCase("it") === expectedTitle,
+        normalizedText(entries[index]?.title)
+          .replace(/^\d+\s*-\s+/, "")
+          .toLocaleLowerCase("it") === expectedTitle,
       );
       let selectedIndex = titleMatches.length === 1 ? titleMatches[0] : null;
 
       if (selectedIndex === null) {
+        const labelNumber = Number(chapterLabel.match(/^(\d+)\s*-\s+/)?.[1]);
+        const expectedOrder = Number.isInteger(labelNumber) && labelNumber > 0
+          ? labelNumber
+          : outlineEntry.lessonNumber;
         const orderMatches = [...availableIndexes].filter(
-          (index) => entries[index]?.displayOrder === outlineEntry.lessonNumber,
+          (index) => entries[index]?.displayOrder === expectedOrder,
         );
         if (orderMatches.length === 1) selectedIndex = orderMatches[0];
       }
@@ -2594,6 +2601,157 @@
     }
 
     return routes;
+  }
+
+  function canonicalTestOutline(outline, courseIndex) {
+    const routeByOutlineNumber = courseIndexRouteMap(courseIndex, outline);
+    const canonical = [];
+    const usedDisplayOrders = new Set();
+
+    for (const entry of outline || []) {
+      const route = routeByOutlineNumber.get(entry.lessonNumber);
+      const displayOrder = Number(route?.displayOrder);
+      if (
+        !Number.isInteger(displayOrder) ||
+        displayOrder < 1 ||
+        usedDisplayOrders.has(displayOrder)
+      ) {
+        continue;
+      }
+      usedDisplayOrders.add(displayOrder);
+      canonical.push({
+        ...entry,
+        lessonNumber: displayOrder,
+        order: displayOrder - 1,
+      });
+    }
+
+    return canonical.sort(
+      (first, second) => first.lessonNumber - second.lessonNumber,
+    );
+  }
+
+  function inferredRecoveredSection(displayOrder, recovered, initialSections) {
+    const known = [...recovered.values()].sort(
+      (first, second) => first.lessonNumber - second.lessonNumber,
+    );
+    const previous = known.filter(
+      (entry) => entry.lessonNumber < displayOrder,
+    ).at(-1);
+    const next = known.find((entry) => entry.lessonNumber > displayOrder);
+
+    if (previous?.identity?.sectionText && next?.identity?.sectionText) {
+      if (previous.identity.sectionText === next.identity.sectionText) {
+        return previous.identity.sectionText;
+      }
+      const previousDistance = displayOrder - previous.lessonNumber;
+      const nextDistance = next.lessonNumber - displayOrder;
+      return previousDistance <= nextDistance
+        ? previous.identity.sectionText
+        : next.identity.sectionText;
+    }
+
+    return previous?.identity?.sectionText ||
+      next?.identity?.sectionText ||
+      initialSections[0] ||
+      "Capitoli recuperati";
+  }
+
+  async function recoverCourseTestOutline(
+    initialSections,
+    initialOutline,
+    courseIndex,
+    operationId,
+  ) {
+    if (!Array.isArray(courseIndex) || !courseIndex.length) {
+      return initialOutline;
+    }
+
+    if (courseIndex.length < initialOutline.length) {
+      log(
+        "Course test outline recovery skipped because the master index is shorter than the rendered outline.",
+        { rendered: initialOutline.length, master: courseIndex.length },
+      );
+      return initialOutline;
+    }
+
+    const recovered = new Map();
+    const rememberOutline = (outline) => {
+      for (const entry of canonicalTestOutline(outline, courseIndex)) {
+        if (!recovered.has(entry.lessonNumber)) {
+          recovered.set(entry.lessonNumber, entry);
+        }
+      }
+    };
+    rememberOutline(initialOutline);
+
+    for (
+      let attempt = 0;
+      attempt < COURSE_INDEX_RETRY_DELAYS_MS.length &&
+      recovered.size < courseIndex.length;
+      attempt++
+    ) {
+      ensureExportNotCancelled(operationId);
+      setExportCollectionStatus(
+        `Struttura test incompleta (${recovered.size}/${courseIndex.length}). ` +
+          `Recupero capitoli ${attempt + 1}/${COURSE_INDEX_RETRY_DELAYS_MS.length}…`,
+        false,
+        operationId,
+      );
+      await exportSleep(COURSE_INDEX_RETRY_DELAYS_MS[attempt], operationId);
+      const retryOutline = await apiCourseOutline(
+        initialSections,
+        null,
+        operationId,
+      );
+      if (retryOutline?.length) rememberOutline(retryOutline);
+    }
+
+    const synthesized = [];
+    for (const route of courseIndex) {
+      const displayOrder = Number(route?.displayOrder);
+      if (
+        !Number.isInteger(displayOrder) ||
+        displayOrder < 1 ||
+        recovered.has(displayOrder)
+      ) {
+        continue;
+      }
+      const routeTitle = normalizedText(route.title) || `Capitolo ${displayOrder}`;
+      const chapterText = /^\d+\s*-\s+/.test(routeTitle)
+        ? routeTitle
+        : `${displayOrder} - ${routeTitle}`;
+      const entry = {
+        identity: {
+          sectionText: inferredRecoveredSection(
+            displayOrder,
+            recovered,
+            initialSections,
+          ),
+          chapterText,
+        },
+        sectionIndex: null,
+        sectionCount: initialSections.length,
+        chapterIndex: null,
+        chapterCount: null,
+        order: displayOrder - 1,
+        lessonNumber: displayOrder,
+        recoveredFromCourseIndex: true,
+      };
+      recovered.set(displayOrder, entry);
+      synthesized.push(displayOrder);
+    }
+
+    const result = [...recovered.values()].sort(
+      (first, second) => first.lessonNumber - second.lessonNumber,
+    );
+    log("Course test outline reconciled with the master index.", {
+      rendered: initialOutline.length,
+      master: courseIndex.length,
+      ready: result.length,
+      synthesized,
+    });
+    return result.length ? result : initialOutline;
   }
 
   async function collectCourseMaterialsViaApi(
@@ -3150,7 +3308,28 @@
     return `${courseCode}:${Number(lessonNumber)}:${Number(testId)}`;
   }
 
-  async function requestTestSourceWithRetry(courseCode, test, operationId, onRetry) {
+  function testSourceMatchesChapter(source, chapterTitle) {
+    const expectedTitle = normalizedText(chapterTitle)
+      .replace(/^\d+\s*-\s+/, "")
+      .toLocaleLowerCase("it");
+    const sourceTitles = [...new Set(
+      (source?.questions || [])
+        .map((question) => normalizedText(question?.lessonTitle)
+          .replace(/^\d+\s*-\s+/, "")
+          .toLocaleLowerCase("it"))
+        .filter(Boolean),
+    )];
+    return !expectedTitle || !sourceTitles.length ||
+      (sourceTitles.length === 1 && sourceTitles[0] === expectedTitle);
+  }
+
+  async function requestTestSourceWithRetry(
+    courseCode,
+    test,
+    operationId,
+    onRetry,
+    expectedChapterTitle,
+  ) {
     let response = null;
     for (let attempt = 0; attempt <= API_LESSON_RETRY_DELAYS_MS.length; attempt++) {
       ensureExportNotCancelled(operationId);
@@ -3161,7 +3340,16 @@
         testImported: test.testImported,
       });
       ensureExportNotCancelled(operationId);
-      if (response.ok && response.data?.questions?.length) return response;
+      if (response.ok && response.data?.questions?.length) {
+        if (testSourceMatchesChapter(response.data, expectedChapterTitle)) {
+          return response;
+        }
+        response = {
+          ok: false,
+          error: "TEST_SOURCE_CHAPTER_MISMATCH",
+          data: response.data,
+        };
+      }
       if (response.ok && Number(response.data?.testEmpty) === 1) return response;
       if (response.error === "AUTH_UNAVAILABLE" || attempt === API_LESSON_RETRY_DELAYS_MS.length) break;
       const delay = API_LESSON_RETRY_DELAYS_MS[attempt];
@@ -3203,7 +3391,7 @@
     try {
       const sectionSignature = initialSections.join("\u001f");
       const cachedOutline = materialOutlineCache.get(courseCode);
-      const outline = cachedOutline?.sectionSignature === sectionSignature
+      let outline = cachedOutline?.sectionSignature === sectionSignature
         ? cachedOutline.outline
         : await apiCourseOutline(
             initialSections,
@@ -3224,6 +3412,12 @@
         allowCollection: true,
         ignoreEnabled: true,
       });
+      outline = await recoverCourseTestOutline(
+        initialSections,
+        outline,
+        courseIndex,
+        operationId,
+      );
       const routeByLessonNumber = courseIndexRouteMap(courseIndex, outline);
 
       for (let index = 0; index < outline.length; index++) {
@@ -3274,12 +3468,15 @@
               false,
               operationId,
             ),
+            entry.identity.chapterText,
           );
           ensureExportNotCancelled(operationId);
           if (!response.ok || !response.data?.questions?.length) {
             missing.push({
               chapter: qualifiedChapter,
-              reason: response.error || "Domande del test non disponibili",
+              reason: response.error === "TEST_SOURCE_CHAPTER_MISMATCH"
+                ? "Le domande ricevute appartengono a un altro capitolo"
+                : response.error || "Domande del test non disponibili",
             });
             continue;
           }
