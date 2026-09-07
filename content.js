@@ -2572,18 +2572,25 @@
     const routes = new Map();
 
     for (const outlineEntry of outline || []) {
-      const expectedTitle = normalizedText(
-        outlineEntry?.identity?.chapterText,
-      ).toLocaleLowerCase("it");
+      const chapterLabel = normalizedText(outlineEntry?.identity?.chapterText);
+      const expectedTitle = chapterLabel
+        .replace(/^\d+\s*-\s+/, "")
+        .toLocaleLowerCase("it");
       const titleMatches = [...availableIndexes].filter((index) =>
         expectedTitle &&
-        normalizedText(entries[index]?.title).toLocaleLowerCase("it") === expectedTitle,
+        normalizedText(entries[index]?.title)
+          .replace(/^\d+\s*-\s+/, "")
+          .toLocaleLowerCase("it") === expectedTitle,
       );
       let selectedIndex = titleMatches.length === 1 ? titleMatches[0] : null;
 
       if (selectedIndex === null) {
+        const labelNumber = Number(chapterLabel.match(/^(\d+)\s*-\s+/)?.[1]);
+        const expectedOrder = Number.isInteger(labelNumber) && labelNumber > 0
+          ? labelNumber
+          : outlineEntry.lessonNumber;
         const orderMatches = [...availableIndexes].filter(
-          (index) => entries[index]?.displayOrder === outlineEntry.lessonNumber,
+          (index) => entries[index]?.displayOrder === expectedOrder,
         );
         if (orderMatches.length === 1) selectedIndex = orderMatches[0];
       }
@@ -2594,6 +2601,75 @@
     }
 
     return routes;
+  }
+
+  // Display numbers are local labels, never chapter identities.
+  function testRouteKey(route) {
+    return [route.folderId, route.lpId, route.id].join(":");
+  }
+
+  async function recoverCourseTestOutline(initialSections, initialOutline, courseIndex, operationId) {
+    if (!courseIndex?.length) throw new Error("Indice master dei test non disponibile");
+    const routes = [...courseIndex].sort((a, b) => a.masterOrder - b.masterOrder);
+    const seen = new Set();
+    for (const route of routes) {
+      if (![route.lpId, route.id, route.folderId].every(value => Number.isInteger(value) && value > 0) ||
+          !Number.isInteger(route.masterOrder) || seen.has(testRouteKey(route))) {
+        throw new Error("Identità dei capitoli ambigua nell’indice master");
+      }
+      seen.add(testRouteKey(route));
+    }
+    const titleKey = value => normalizedText(value).replace(/^\d+\s*-\s+/, "").toLocaleLowerCase("it");
+    const folderSections = new Map();
+    // Only unambiguous title matches establish folder-to-section membership.
+    for (const entry of initialOutline) {
+      const matches = routes.filter(route => titleKey(route.title) === titleKey(entry.identity.chapterText));
+      if (matches.length !== 1) continue;
+      const folder = matches[0].folderId;
+      if (!folderSections.has(folder)) folderSections.set(folder, new Set());
+      folderSections.get(folder).add(entry.identity.sectionText);
+    }
+    return routes.map((route, order) => {
+      const sections = folderSections.get(route.folderId);
+      const section = sections?.size === 1 ? [...sections][0] : null;
+      const matches = initialOutline.filter(entry =>
+        section && entry.identity.sectionText === section &&
+        titleKey(entry.identity.chapterText) === titleKey(route.title));
+      const entry = matches.length === 1 ? matches[0] : null;
+      return {
+        identity: {
+          sectionText: section || `Modulo ${route.folderId}`,
+          chapterText: entry?.identity.chapterText ||
+            `${route.displayOrder} - ${normalizedText(route.title) || "Capitolo"}`,
+        },
+        route,
+        chapterKey: testRouteKey(route),
+        order,
+        lessonNumber: order + 1,
+      };
+    });
+  }
+
+  async function requestExportTestLesson(courseCode, entry, operationId) {
+    let response;
+    // Read fresh metadata: the playback cache is keyed by display number,
+    // which can collide between folders.
+    for (let attempt = 0; attempt <= API_LESSON_RETRY_DELAYS_MS.length; attempt++) {
+      ensureExportNotCancelled(operationId);
+      response = await turboApiRequest("lesson", {
+        courseCode, lessonNumber: entry.lessonNumber,
+        lpId: entry.route.lpId, paragraphId: entry.route.id,
+      });
+      ensureExportNotCancelled(operationId);
+      if (response.ok && response.data?.test &&
+          Number(response.data.test.lp_id) === entry.route.lpId) return response;
+      if (response.error === "AUTH_UNAVAILABLE") return response;
+      if (attempt < API_LESSON_RETRY_DELAYS_MS.length) {
+        setExportCollectionStatus(`Recupero test: ${entry.identity.chapterText}…`, false, operationId);
+        await exportSleep(API_LESSON_RETRY_DELAYS_MS[attempt], operationId);
+      }
+    }
+    return { ok: false, error: response?.error || "LESSON_DATA_INCOMPLETE" };
   }
 
   async function collectCourseMaterialsViaApi(
@@ -3150,7 +3226,28 @@
     return `${courseCode}:${Number(lessonNumber)}:${Number(testId)}`;
   }
 
-  async function requestTestSourceWithRetry(courseCode, test, operationId, onRetry) {
+  function testSourceMatchesChapter(source, chapterTitle) {
+    const expectedTitle = normalizedText(chapterTitle)
+      .replace(/^\d+\s*-\s+/, "")
+      .toLocaleLowerCase("it");
+    const sourceTitles = [...new Set(
+      (source?.questions || [])
+        .map((question) => normalizedText(question?.lessonTitle)
+          .replace(/^\d+\s*-\s+/, "")
+          .toLocaleLowerCase("it"))
+        .filter(Boolean),
+    )];
+    return !expectedTitle || !sourceTitles.length ||
+      (sourceTitles.length === 1 && sourceTitles[0] === expectedTitle);
+  }
+
+  async function requestTestSourceWithRetry(
+    courseCode,
+    test,
+    operationId,
+    onRetry,
+    expectedChapterTitle,
+  ) {
     let response = null;
     for (let attempt = 0; attempt <= API_LESSON_RETRY_DELAYS_MS.length; attempt++) {
       ensureExportNotCancelled(operationId);
@@ -3161,7 +3258,16 @@
         testImported: test.testImported,
       });
       ensureExportNotCancelled(operationId);
-      if (response.ok && response.data?.questions?.length) return response;
+      if (response.ok && response.data?.questions?.length) {
+        if (testSourceMatchesChapter(response.data, expectedChapterTitle)) {
+          return response;
+        }
+        response = {
+          ok: false,
+          error: "TEST_SOURCE_CHAPTER_MISMATCH",
+          data: response.data,
+        };
+      }
       if (response.ok && Number(response.data?.testEmpty) === 1) return response;
       if (response.error === "AUTH_UNAVAILABLE" || attempt === API_LESSON_RETRY_DELAYS_MS.length) break;
       const delay = API_LESSON_RETRY_DELAYS_MS[attempt];
@@ -3203,7 +3309,7 @@
     try {
       const sectionSignature = initialSections.join("\u001f");
       const cachedOutline = materialOutlineCache.get(courseCode);
-      const outline = cachedOutline?.sectionSignature === sectionSignature
+      let outline = cachedOutline?.sectionSignature === sectionSignature
         ? cachedOutline.outline
         : await apiCourseOutline(
             initialSections,
@@ -3220,16 +3326,19 @@
         materialOutlineCache.set(courseCode, { sectionSignature, outline });
       }
 
-      const courseIndex = await getPlaybackCourseIndex(courseCode, {
-        allowCollection: true,
-        ignoreEnabled: true,
-      });
-      const routeByLessonNumber = courseIndexRouteMap(courseIndex, outline);
-
+      const masterResponse = await turboApiRequest("outline", { courseCode });
+      ensureExportNotCancelled(operationId);
+      const courseIndex = masterResponse.ok ? masterResponse.data?.entries : null;
+      outline = await recoverCourseTestOutline(
+        initialSections,
+        outline,
+        courseIndex,
+        operationId,
+      );
       for (let index = 0; index < outline.length; index++) {
         ensureExportNotCancelled(operationId);
         const entry = outline[index];
-        const route = routeByLessonNumber.get(entry.lessonNumber);
+        const route = entry.route;
         const qualifiedChapter = `${entry.identity.sectionText} — ${entry.identity.chapterText}`;
         setExportCollectionStatus(
           `Raccolta test ${index + 1}/${outline.length}: ${entry.identity.chapterText}`,
@@ -3237,16 +3346,7 @@
           operationId,
         );
 
-        const lesson = await requestLessonWithRetry(
-          courseCode,
-          entry.lessonNumber,
-          "data",
-          null,
-          operationId,
-          route?.lpId || entry.lessonNumber,
-          true,
-          route?.id || entry.lessonNumber,
-        );
+        const lesson = await requestExportTestLesson(courseCode, entry, operationId);
         if (!lesson.ok) {
           missing.push({ chapter: qualifiedChapter, reason: lesson.error || "Dati del capitolo non disponibili" });
           continue;
@@ -3262,8 +3362,12 @@
           continue;
         }
 
-        const cacheKey = testSourceCacheKey(courseCode, entry.lessonNumber, test.id);
+        const cacheKey = `${courseCode}:${entry.chapterKey}:${test.id}`;
         let source = testSourceCache.get(cacheKey)?.source || null;
+        if (source && !testSourceMatchesChapter(source, entry.identity.chapterText)) {
+          testSourceCache.delete(cacheKey);
+          source = null;
+        }
         if (!source) {
           const response = await requestTestSourceWithRetry(
             courseCode,
@@ -3274,12 +3378,15 @@
               false,
               operationId,
             ),
+            entry.identity.chapterText,
           );
           ensureExportNotCancelled(operationId);
           if (!response.ok || !response.data?.questions?.length) {
             missing.push({
               chapter: qualifiedChapter,
-              reason: response.error || "Domande del test non disponibili",
+              reason: response.error === "TEST_SOURCE_CHAPTER_MISMATCH"
+                ? "Le domande ricevute appartengono a un altro capitolo"
+                : response.error || "Domande del test non disponibili",
             });
             continue;
           }

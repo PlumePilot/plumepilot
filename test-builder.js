@@ -36,6 +36,15 @@
     status.textContent = message; progress.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   };
 
+  function displayChapterNumber(test) {
+    const titleMatch = String(test?.chapterTitle || "").match(/^\s*(\d+)\s*-\s+/);
+    const titleNumber = Number(titleMatch?.[1]);
+    if (Number.isInteger(titleNumber) && titleNumber > 0) return titleNumber;
+
+    const lessonNumber = Number(test?.lessonNumber);
+    return Number.isInteger(lessonNumber) && lessonNumber > 0 ? lessonNumber : "?";
+  }
+
   function imageLabel(image) {
     if (image?.title) return image.title;
     try {
@@ -261,7 +270,7 @@
 
     for (let testIndex = 0; testIndex < job.tests.length; testIndex++) {
       const test = job.tests[testIndex];
-      const firstPage = chapterStart(test, `DOMANDE · CAPITOLO ${test.lessonNumber}`);
+      const firstPage = chapterStart(test, `DOMANDE · CAPITOLO ${displayChapterNumber(test)}`);
       questionEntries.push({ ...test, page:firstPage });
       for (let questionIndex = 0; questionIndex < test.questions.length; questionIndex++) {
         const question = test.questions[questionIndex];
@@ -283,7 +292,7 @@
 
     for (let testIndex = 0; testIndex < job.tests.length; testIndex++) {
       const test = job.tests[testIndex];
-      const firstPage = chapterStart(test, `SOLUZIONI · CAPITOLO ${test.lessonNumber}`);
+      const firstPage = chapterStart(test, `SOLUZIONI · CAPITOLO ${displayChapterNumber(test)}`);
       solutionEntries.push({ ...test, page:firstPage });
       for (let questionIndex = 0; questionIndex < test.questions.length; questionIndex++) {
         const question = test.questions[questionIndex];
@@ -323,6 +332,7 @@
     }));
     const tests = await Promise.all(job.tests.map(async (test) => ({
       ...test,
+      displayLessonNumber:displayChapterNumber(test),
       questions:await Promise.all(test.questions.map(async (question) => ({
         ...question,
         images:await offlineImages(question.images),
@@ -340,7 +350,7 @@
     const DATA=${payload};let current=0;const results=new Map();const byId=(id)=>document.getElementById(id);const shuffled=(items)=>{const copy=[...items];for(let i=copy.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[copy[i],copy[j]]=[copy[j],copy[i]]}return copy};
     function chapterScore(){const output=byId('chapterScore');const result=results.get(current);if(!result){output.hidden=true;output.textContent='';return}const questions=Number(result.questions)||DATA.tests[current].questions.length;output.textContent='Risultato capitolo: '+result.right+' / '+questions;output.hidden=false}
     function score(){let right=0,total=0;for(const value of results.values()){right+=value.right;total+=value.total}byId('score').textContent=total?right+' / '+total+' risposte corrette verificate':'Nessun capitolo verificato';chapterScore()}
-    function nav(){byId('title').textContent=DATA.courseTitle;byId('nav').replaceChildren(...DATA.tests.map((test,index)=>{const b=document.createElement('button');b.className='chapter'+(index===current?' active':'');b.textContent=test.lessonNumber+' · '+test.chapterTitle;b.onclick=()=>{current=index;render()};return b}))}
+    function nav(){byId('title').textContent=DATA.courseTitle;byId('nav').replaceChildren(...DATA.tests.map((test,index)=>{const b=document.createElement('button');b.className='chapter'+(index===current?' active':'');b.textContent=test.displayLessonNumber+' · '+test.chapterTitle;b.onclick=()=>{current=index;render()};return b}))}
     function appendImages(parent,images,className){(images||[]).forEach(image=>{if(image.dataUrl){const element=document.createElement('img');element.className=className;element.src=image.dataUrl;element.alt=image.title||'Immagine del test';parent.appendChild(element)}else{const missing=document.createElement('div');missing.className='image-missing';missing.textContent='Immagine non disponibile: '+(image.title||'immagine del test');parent.appendChild(missing)}})}
     function render(){nav();const test=DATA.tests[current];byId('chapterTitle').textContent=test.section+' — '+test.chapterTitle;const questions=byId('shuffleQuestions').checked?shuffled(test.questions):[...test.questions];const container=byId('questions');container.replaceChildren();questions.forEach((question,qIndex)=>{const card=document.createElement('section');card.className='question';card.dataset.correct=question.correctPosition;const h=document.createElement('h3');h.textContent=(qIndex+1)+'. '+(question.question||'Domanda in immagine');card.appendChild(h);appendImages(card,question.images,'prompt-image');const answers=question.answers.map((answer,index)=>({answer,position:index+1}));(byId('shuffleAnswers').checked?shuffled(answers):answers).forEach(({answer,position},displayIndex)=>{const label=document.createElement('label');label.className='answer';label.dataset.position=position;const radio=document.createElement('input');radio.type='radio';radio.name='q'+qIndex;radio.value=position;const text=document.createElement('span');const answerText=document.createElement('span');answerText.textContent=String.fromCharCode(65+displayIndex)+'. '+(answer.answer||'Risposta in immagine');text.appendChild(answerText);appendImages(text,answer.images,'answer-image');label.append(radio,text);card.appendChild(label)});const feedback=document.createElement('div');feedback.className='feedback';card.appendChild(feedback);container.appendChild(card)});if(byId('showSolutions').checked)reveal(false);score()}
     function reveal(record=true){let right=0,total=0,questions=0;document.querySelectorAll('.question').forEach(card=>{questions++;const correct=Number(card.dataset.correct);const selected=Number(card.querySelector('input:checked')?.value);card.querySelectorAll('.answer').forEach(label=>{const value=Number(label.dataset.position);label.classList.toggle('correct',value===correct);label.classList.toggle('wrong',Boolean(selected)&&value===selected&&value!==correct)});const feedback=card.querySelector('.feedback');if(selected){total++;if(selected===correct){right++;feedback.textContent='Risposta corretta'}else feedback.textContent='Risposta errata'}else feedback.textContent=byId('showSolutions').checked?'Soluzione mostrata':'Nessuna risposta selezionata'});if(record){results.set(current,{right,total,questions});score()}}

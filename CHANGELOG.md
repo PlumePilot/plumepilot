@@ -1,5 +1,13 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.32.6: complete and correctly aligned test exports
+
+- Identifies each chapter by its module, learning-path entry and chapter ID instead of treating the visible number as globally unique.
+- Preserves the authoritative master-index order even when module numbering restarts or uses sparse, non-sequential values.
+- Recovers chapters missing from a transient page outline and keeps their question groups aligned with the correct chapter.
+- Validates the lesson title returned by the detailed API before accepting questions, preventing cached or mismatched responses from shifting later groups.
+- Retains module boundaries without guessing a neighbouring module when metadata is incomplete.
+
 ## Improved in 2.32.5: aligned Gaming preference cards
 
 - Replaces floating-menu fieldset legends with accessible headings placed fully inside each preference card.
