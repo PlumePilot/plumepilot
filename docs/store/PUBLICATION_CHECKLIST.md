@@ -4,20 +4,20 @@ Aggiornata il 7 settembre 2026. Questa checklist prepara la prima pubblicazione 
 
 ## Stato e criterio di rilascio
 
-- [x] Baseline stabile: `v2.32.5` su `main`.
+- [x] Baseline stabile: `v2.32.6` su `main`.
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
-- [ ] Conferma sul caso reale della correzione in `fix/test-export-chapter-numbering`.
+- [x] Correzione della numerazione e del recupero capitoli confermata sul caso reale.
 - [ ] Decisione e test sul feedback EXP quando la modalità Gaming è disattivata.
-- [ ] Merge dei soli fix approvati in `main`.
-- [ ] Version bump e aggiornamento coerente di manifest, changelog e validatore.
+- [x] PR della correzione integrata in `main`.
+- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.6`.
 - [ ] Congelamento della release candidate finale.
 
-Non creare né caricare pacchetti definitivi finché i due punti funzionali aperti non sono stati risolti. Le bozze degli store, i testi e gli asset possono essere preparati nel frattempo.
+Non caricare i pacchetti negli store finché il punto funzionale EXP e lo smoke test finale non sono stati chiusi. Le bozze, i testi e gli asset possono essere completati nel frattempo.
 
 ## Strategia Git
 
-- `fix/test-export-chapter-numbering`: contiene esclusivamente il fix della numerazione.
+- `fix/test-export-chapter-numbering`: integrato con la PR #1 nella patch `v2.32.6`.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -71,15 +71,20 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 
 ## Verifica della release candidate
 
-- [ ] Aggiornare la versione in `manifest.json`.
-- [ ] Aggiornare il controllo versione in `scripts/validate-release.mjs`.
-- [ ] Aggiungere al `CHANGELOG.md` soltanto fix confermati.
-- [ ] Eseguire `node scripts/build-release.mjs`.
-- [ ] Eseguire `node scripts/validate-release.mjs`.
-- [ ] Conservare nome, dimensione e SHA-256 dei tre ZIP.
-- [ ] Verificare che Chrome ed Edge siano identici oppure documentare la differenza attesa.
+- [x] Aggiornare la versione in `manifest.json`.
+- [x] Aggiornare il controllo versione in `scripts/validate-release.mjs`.
+- [x] Aggiungere al `CHANGELOG.md` soltanto fix confermati.
+- [x] Eseguire `node scripts/build-release.mjs`.
+- [x] Eseguire `node scripts/validate-release.mjs`.
+- [x] Conservare nome, dimensione e SHA-256 dei tre ZIP.
+- [x] Verificare che Chrome ed Edge siano identici oppure documentare la differenza attesa.
 - [ ] Installare da zero gli stessi ZIP destinati agli store.
 - [ ] Controllare assenza di errori o log sensibili nelle console.
+
+Build candidata `v2.32.6` verificata:
+
+- Chrome/Edge: 1.944.788 byte, SHA-256 `e124a6df4b52bd9dfbd2188a7564dabf026e6c19207afb898bf1ab1e0d5086b7`;
+- Firefox: 1.944.917 byte, SHA-256 `f1290b376e7c355fb41f07401ac748caa91db5936ddcd726c625efe223cfcf61`.
 
 ## Smoke test comune
 
