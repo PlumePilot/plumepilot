@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 50952)
-Total output lines: 6638
-
 (() => {
   "use strict";
 
@@ -3274,7 +3271,102 @@ Total output lines: 6638
       }
       if (response.ok && Number(response.data?.testEmpty) === 1) return response;
       if (response.error === "AUTH_UNAVAILABLE" || attempt === API_LESSON_RETRY_DELAYS_MS.length) break;
-      co…952 tokens truncated…te(cacheKey);
+      const delay = API_LESSON_RETRY_DELAYS_MS[attempt];
+      onRetry?.(attempt + 1, API_LESSON_RETRY_DELAYS_MS.length);
+      await exportSleep(delay, operationId);
+    }
+    return response || { ok:false, error:"TEST_SOURCE_UNAVAILABLE" };
+  }
+
+  async function collectCourseTests(operationId) {
+    if (collectingCourseMaterials || courseBatchRunning() || window !== window.top) {
+      setExportCollectionStatus(
+        "Un’altra operazione del corso è già in esecuzione.",
+        true,
+        operationId,
+      );
+      window.postMessage({ type: "PEGASO_EXPORT_COLLECTION_FAILED", operationId }, "*");
+      return;
+    }
+
+    const courseCode = courseCodeFromUrl();
+    const initialSections = sections().map((section) => section.text);
+    if (!courseCode || !initialSections.length) {
+      setExportCollectionStatus(
+        "Apri prima la pagina dei contenuti di un corso.",
+        true,
+        operationId,
+      );
+      window.postMessage({ type: "PEGASO_EXPORT_COLLECTION_FAILED", operationId }, "*");
+      return;
+    }
+
+    collectingCourseMaterials = true;
+    exportCancelRequested = false;
+    activeExportOperationId = operationId;
+    const collected = [];
+    const missing = [];
+
+    try {
+      const sectionSignature = initialSections.join("\u001f");
+      const cachedOutline = materialOutlineCache.get(courseCode);
+      let outline = cachedOutline?.sectionSignature === sectionSignature
+        ? cachedOutline.outline
+        : await apiCourseOutline(
+            initialSections,
+            (sectionText, sectionIndex, sectionCount) =>
+              setExportCollectionStatus(
+                `Preparazione test: sezione ${sectionIndex + 1}/${sectionCount}: ${sectionText}`,
+                false,
+                operationId,
+              ),
+            operationId,
+          );
+      if (!outline?.length) throw new Error("Struttura del corso non disponibile");
+      if (!cachedOutline || cachedOutline.sectionSignature !== sectionSignature) {
+        materialOutlineCache.set(courseCode, { sectionSignature, outline });
+      }
+
+      const masterResponse = await turboApiRequest("outline", { courseCode });
+      ensureExportNotCancelled(operationId);
+      const courseIndex = masterResponse.ok ? masterResponse.data?.entries : null;
+      outline = await recoverCourseTestOutline(
+        initialSections,
+        outline,
+        courseIndex,
+        operationId,
+      );
+      for (let index = 0; index < outline.length; index++) {
+        ensureExportNotCancelled(operationId);
+        const entry = outline[index];
+        const route = entry.route;
+        const qualifiedChapter = `${entry.identity.sectionText} — ${entry.identity.chapterText}`;
+        setExportCollectionStatus(
+          `Raccolta test ${index + 1}/${outline.length}: ${entry.identity.chapterText}`,
+          false,
+          operationId,
+        );
+
+        const lesson = await requestExportTestLesson(courseCode, entry, operationId);
+        if (!lesson.ok) {
+          missing.push({ chapter: qualifiedChapter, reason: lesson.error || "Dati del capitolo non disponibili" });
+          continue;
+        }
+
+        const test = lesson.data?.test;
+        if (!Number.isInteger(Number(test?.id)) || Number(test.id) < 1) {
+          missing.push({ chapter: qualifiedChapter, reason: "Test di autovalutazione non disponibile" });
+          continue;
+        }
+        if (Number(test.testEmpty) === 1) {
+          missing.push({ chapter: qualifiedChapter, reason: "Test privo di domande" });
+          continue;
+        }
+
+        const cacheKey = `${courseCode}:${entry.chapterKey}:${test.id}`;
+        let source = testSourceCache.get(cacheKey)?.source || null;
+        if (source && !testSourceMatchesChapter(source, entry.identity.chapterText)) {
+          testSourceCache.delete(cacheKey);
           source = null;
         }
         if (!source) {
