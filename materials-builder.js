@@ -85,7 +85,7 @@ function download(bytes, filename, mime) {
 
 function claimExportAchievement() {
   chrome.runtime.sendMessage({ type: "STUDYWING_ACHIEVEMENT_CLAIM", achievementId: "export-materials" }, (result) => {
-    if (!chrome.runtime.lastError && result?.accepted) {
+    if (!chrome.runtime.lastError && result?.accepted && document.documentElement.dataset.visualStyle === "gaming") {
       statusElement.textContent += ` Traguardo completato: +${result.awardedExp} EXP.`;
     }
   });

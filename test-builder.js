@@ -29,7 +29,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
   const claimCollectionAchievement = () => chrome.runtime.sendMessage({ type:"STUDYWING_ACHIEVEMENT_CLAIM", achievementId:"create-test-collection" }, (result) => {
-    if (!chrome.runtime.lastError && result?.accepted) setBusy(false, `Raccolta creata · Traguardo completato: +${result.awardedExp} EXP.`, 100);
+    if (!chrome.runtime.lastError && result?.accepted && document.documentElement.dataset.visualStyle === "gaming") setBusy(false, `Raccolta creata · Traguardo completato: +${result.awardedExp} EXP.`, 100);
   });
   const setBusy = (busy, message, percent = 0) => {
     pdfButton.disabled = busy; htmlButton.disabled = busy;

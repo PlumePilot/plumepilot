@@ -1,5 +1,13 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.32.7: Gaming-only EXP feedback and fixed floating tabs
+
+- Rejects every generic Traguardo claim centrally while the visual style is Standard, preventing EXP, completion state and Gaming-only messages from leaking into Standard mode.
+- Keeps chapter-video observations resolved in Standard without awarding or recovering EXP later, preserving the existing non-retroactive rule.
+- Rechecks the active visual style before rendering asynchronous Traguardi feedback in the popup, floating menu, course page and export builders.
+- Moves the floating menu tabs outside its scrollable body so the header and primary navigation remain visible while only the selected content scrolls.
+- Preserves the existing Small, Medium and Large dimensions, dynamic tab count, keyboard navigation and Standard/Gaming styling.
+
 ## Fixed in 2.32.6: complete and correctly aligned test exports
 
 - Identifies each chapter by its module, learning-path entry and chapter ID instead of treating the visible number as globally unique.

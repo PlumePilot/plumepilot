@@ -35,7 +35,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
       const api = globalThis.StudyWingAchievements;
       const definition = api.CATALOGUE.find((item) => item.id === achievementId);
       if (!definition) return { accepted: false, reason: "unknown-achievement" };
-      if (achievementId === "complete-lesson" && await storageGet("visualStyle") !== "gaming") {
+      if (await storageGet("visualStyle") !== "gaming") {
         return { accepted: false, reason: "gaming-inactive" };
       }
       const stored = await storageGet(api.STATE_KEY);
