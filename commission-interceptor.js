@@ -80,6 +80,11 @@
     return Number.isInteger(Number(value)) && Number(value) > 0;
   }
 
+  function validNonNegativeInteger(value) {
+    return value !== null && value !== "" && typeof value !== "boolean" &&
+      Number.isInteger(Number(value)) && Number(value) >= 0;
+  }
+
   function normalizeCourseOutline(body) {
     if (!Array.isArray(body?.data)) return [];
     return body.data
@@ -91,7 +96,7 @@
         return {
           displayOrder,
           masterOrder,
-          folderId: validPositiveInteger(entry?.folder_id) ? Number(entry.folder_id) : null,
+          folderId: validNonNegativeInteger(entry?.folder_id) ? Number(entry.folder_id) : null,
           id: validPositiveInteger(entry?.id) ? Number(entry.id) : null,
           lpId: validPositiveInteger(entry?.lp_id) ? Number(entry.lp_id) : null,
           title: safeString(entry?.title || entry?.name, 300),

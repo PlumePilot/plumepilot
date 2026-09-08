@@ -7,6 +7,7 @@ const interceptor = readFileSync(new URL("../commission-interceptor.js", import.
 const context = vm.createContext({
   normalizedText: value => String(value || "").trim().replace(/\\'/g, "'").replace(/[’‘]/g, "'").replace(/\s+/g, " "),
   validPositiveInteger: value => Number.isInteger(Number(value)) && Number(value) > 0,
+  validNonNegativeInteger: value => value !== null && value !== "" && typeof value !== "boolean" && Number.isInteger(Number(value)) && Number(value) >= 0,
   safeString: value => typeof value === "string" ? value : null,
   ensureExportNotCancelled() {},
   setExportCollectionStatus() {},
@@ -41,6 +42,40 @@ for (const visible of [outline, outline.filter((_, i) => i !== 3 && i !== 22), o
 }
 const duplicateTitles = rows.map(row => ({...row, title: "Same title"}));
 assert.equal((await context.recoverCourseTestOutline([], [], context.normalizeCourseOutline({data:duplicateTitles}), "test")).length, 29);
+
+// Same shape as the reported single-module probability course: folder_id=0 is
+// an explicit, valid no-folder identity and IDs do not determine output order.
+const singleModuleIds = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+  25, 21, 22, 23, 24, 26, 27, 28, 29, 30,
+];
+const singleModuleRows = singleModuleIds.map((id, index) => ({
+  id,
+  lp_id: id,
+  folder_id: 0,
+  display_order: index + 1,
+  title: `Probability title ${index + 1}`,
+}));
+const singleModuleMaster = context.normalizeCourseOutline({data: singleModuleRows});
+const singleModuleResult = await context.recoverCourseTestOutline([], [], singleModuleMaster, "test");
+assert.equal(singleModuleResult.length, 30);
+assert.deepEqual(Array.from(singleModuleResult, row => row.route.id), singleModuleIds);
+assert.equal(new Set(singleModuleResult.map(row => row.chapterKey)).size, 30);
+assert.equal(singleModuleResult[0].chapterKey, "0:1:1");
+assert.ok(singleModuleResult.every(row => row.route.folderId === 0));
+assert.ok(singleModuleResult.every(row => row.identity.sectionText === "Lezioni"));
+
+for (const folder_id of [undefined, null, "", -1]) {
+  const missingFolderMaster = context.normalizeCourseOutline({data: [{
+    id: 1, lp_id: 1, folder_id, display_order: 1, title: "Invalid folder",
+  }]});
+  await assert.rejects(
+    context.recoverCourseTestOutline([], [], missingFolderMaster, "test"),
+    /Identità dei capitoli ambigua/,
+  );
+}
+
 let requests = 0;
 context.turboApiRequest = async () => ++requests < 3
   ? {ok:true, data:{}}
@@ -49,4 +84,4 @@ assert.equal((await context.requestExportTestLesson("course", {lessonNumber:5, r
 assert.equal(requests, 3);
 context.ensureExportNotCancelled = () => { throw new Error("cancelled"); };
 await assert.rejects(context.requestExportTestLesson("course", {}, "test"), /cancelled/);
-console.log("PASS: 29 chapters; 10/10/9 folders; missing DOM chapters/module; duplicate titles; metadata retry; cancellation");
+console.log("PASS: 29 chapters in 10/10/9 folders; 30 chapters with folder_id=0; missing DOM chapters/module; duplicate titles; metadata retry; cancellation");

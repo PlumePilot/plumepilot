@@ -2614,7 +2614,8 @@
     const routes = [...courseIndex].sort((a, b) => a.masterOrder - b.masterOrder);
     const seen = new Set();
     for (const route of routes) {
-      if (![route.lpId, route.id, route.folderId].every(value => Number.isInteger(value) && value > 0) ||
+      if (![route.lpId, route.id].every(value => Number.isInteger(value) && value > 0) ||
+          !Number.isInteger(route.folderId) || route.folderId < 0 ||
           !Number.isInteger(route.masterOrder) || seen.has(testRouteKey(route))) {
         throw new Error("Identità dei capitoli ambigua nell’indice master");
       }
@@ -2639,7 +2640,7 @@
       const entry = matches.length === 1 ? matches[0] : null;
       return {
         identity: {
-          sectionText: section || `Modulo ${route.folderId}`,
+          sectionText: section || (route.folderId > 0 ? `Modulo ${route.folderId}` : "Lezioni"),
           chapterText: entry?.identity.chapterText ||
             `${route.displayOrder} - ${normalizedText(route.title) || "Capitolo"}`,
         },
