@@ -8,6 +8,7 @@ Aggiornata il 9 settembre 2026. Questa checklist prepara la prima pubblicazione 
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
 - [x] Correzione della numerazione e del recupero capitoli confermata sui test locali e su più corsi reali.
+- [x] Response delle domande associata tramite `testId`, senza scartare titoli video abbreviati rispetto al capitolo.
 - [ ] Conferma esterna finale sul corso da 29 capitoli organizzato `20 + 9`.
 - [x] Feedback EXP verificato: nessun claim o messaggio in Standard; assegnazione regolare in Gaming.
 - [x] Menu fluttuante verificato: header e tab fissi, solo il contenuto scorre.
@@ -87,12 +88,15 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 - [x] Audit statico: debug disattivato e nessun log esplicito di token, header Authorization o payload API.
 - [ ] Controllare assenza di errori runtime nelle console durante lo smoke test.
 
-Build candidata corretta `v2.32.7` verificata:
+Build candidata corrente `v2.32.7` verificata:
 
-- Chrome/Edge: 1.945.033 byte, SHA-256 `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa`;
-- Firefox: 1.945.163 byte, SHA-256 `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`.
+- Chrome/Edge: 1.945.130 byte, SHA-256 `258e7696065db720cbedbd28739e60c556459835517c1494ed3f3614cb561417`;
+- Firefox: 1.945.260 byte, SHA-256 `9b3cdcb6f263c10d43806c168a405df253abff8fe283876cf480a9e9fec491ca`.
 
-L'archivio Chrome con SHA-256 `45b621e75e9dc0d9bbb14e0583fab63bd7f6129bfe3142d073c54fea71ec76b0` è una candidata precedente priva della gestione di `folder_id: 0` e non deve essere installato né caricato negli store.
+Le candidate precedenti non devono essere installate né caricate negli store:
+
+- Chrome `45b621e75e9dc0d9bbb14e0583fab63bd7f6129bfe3142d073c54fea71ec76b0`: priva della gestione di `folder_id: 0`;
+- Chrome/Edge `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa` e Firefox `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`: gestiscono `folder_id: 0`, ma possono scartare domande valide quando Pegaso abbrevia `titolo_videolezione`.
 
 Conferme manuali già ricevute sulla candidata corretta:
 

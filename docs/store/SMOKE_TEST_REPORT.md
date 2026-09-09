@@ -34,6 +34,8 @@ Usare `PASS`, `FAIL`, `N/A` o `BLOCCATO`. Annotare ogni anomalia con browser, pa
 | Completamento Test e Obiettivi |  |  |  |  |
 | Raccolta test PDF e HTML |  |  |  |  |
 | Capitolo/test non recuperabile senza disallineamento |  |  |  |  |
+| Titolo video abbreviato con `testId` corretto |  |  |  |  |
+| `testId` ricevuto differente: response respinta |  |  |  |  |
 | Caso reale 29 capitoli `20 + 9` |  |  |  |  |
 | Generazione PDF/EPUB e annullamento |  |  |  |  |
 | Progressione e avviso 70% |  |  |  |  |
