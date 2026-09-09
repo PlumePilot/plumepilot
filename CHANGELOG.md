@@ -1,6 +1,6 @@
 # PlumePilot — Changelog
 
-## Fixed in 2.32.7: Gaming-only EXP feedback and fixed floating tabs
+## Fixed in 2.32.7: reliable test exports and consistent interface feedback
 
 - Accepts test-source responses by their matching test ID even when Pegaso reports a shortened video title instead of the full chapter title, while still rejecting responses with a different test ID.
 - Accepts Pegaso master indexes that explicitly use `folder_id: 0` for an ungrouped lesson, while still rejecting missing, negative or duplicate composite chapter identities.
@@ -8,7 +8,10 @@
 - Keeps chapter-video observations resolved in Standard without awarding or recovering EXP later, preserving the existing non-retroactive rule.
 - Rechecks the active visual style before rendering asynchronous Traguardi feedback in the popup, floating menu, course page and export builders.
 - Moves the floating menu tabs outside its scrollable body so the header and primary navigation remain visible while only the selected content scrolls.
+- Keeps the popup logo and name at the same distance from the upper edge before and after its header becomes sticky, including the Gaming frame offset.
 - Preserves the existing Small, Medium and Large dimensions, dynamic tab count, keyboard navigation and Standard/Gaming styling.
+- Adds the voluntary Ko-fi support link to **Preferenze → Informazioni**, without gating features or changing permissions and data handling.
+- Prevents release builds from reusing a directory that already contains archives and verifies the generated `SHA256SUMS.txt`.
 
 ## Fixed in 2.32.6: complete and correctly aligned test exports
 
