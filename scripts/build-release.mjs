@@ -10,6 +10,7 @@ const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
 const outputArgument = process.argv.find((argument) => argument.startsWith("--output-dir="));
 const outputDirectory = path.resolve(root, outputArgument?.slice("--output-dir=".length) || "release");
 const fixedZipDate = new Date("2026-01-01T00:00:00.000Z");
+const browsers = ["chrome", "firefox", "edge"];
 
 const excludedFiles = new Set([
   "manifest.json",
@@ -78,8 +79,17 @@ function validateManifest(manifest, browser) {
 const baseManifest = JSON.parse(await readFile(path.join(root, "manifest.json"), "utf8"));
 const sourceFiles = await collectFiles();
 await mkdir(outputDirectory, { recursive: true });
+const existingReleaseArtifacts = (await readdir(outputDirectory))
+  .filter((name) => name.endsWith(".zip") || name === "SHA256SUMS.txt");
+if (existingReleaseArtifacts.length) {
+  throw new Error(
+    `La directory di output contiene già artefatti di release: ${existingReleaseArtifacts.join(", ")}. ` +
+    "Usare una directory vuota per evitare di confondere o sovrascrivere build precedenti.",
+  );
+}
 
-for (const browser of ["chrome", "firefox", "edge"]) {
+const checksumLines = [];
+for (const browser of browsers) {
   const manifest = manifestFor(baseManifest, browser);
   validateManifest(manifest, browser);
   const zip = new JSZip();
@@ -104,5 +114,13 @@ for (const browser of ["chrome", "firefox", "edge"]) {
   const destination = path.join(outputDirectory, filename);
   await writeFile(destination, bytes);
   const checksum = createHash("sha256").update(bytes).digest("hex");
+  checksumLines.push(`${checksum}  ${filename}`);
   console.log(`${filename}\t${bytes.length} byte\tsha256 ${checksum}`);
 }
+
+await writeFile(
+  path.join(outputDirectory, "SHA256SUMS.txt"),
+  `${checksumLines.join("\n")}\n`,
+  "utf8",
+);
+console.log("SHA256SUMS.txt\tcreato");
