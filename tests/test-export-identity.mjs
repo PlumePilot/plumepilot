@@ -18,6 +18,8 @@ vm.runInContext(interceptor.slice(interceptor.indexOf("  function normalizeCours
   interceptor.indexOf("  function detailedLessonRoute(")), context);
 vm.runInContext(source.slice(source.indexOf("  function testRouteKey("),
   source.indexOf("  async function collectCourseMaterialsViaApi(")), context);
+vm.runInContext(source.slice(source.indexOf("  function testSourceCacheKey("),
+  source.indexOf("  async function collectCourseTests(")), context);
 
 // Same folder/order/ID shape as the reported 29-chapter master, synthetic titles.
 const groups = [
@@ -76,6 +78,47 @@ for (const folder_id of [undefined, null, "", -1]) {
   );
 }
 
+const shortenedLessonTitleSource = {
+  testId: 66116,
+  questions: [{lessonTitle: "Trust framework"}],
+};
+assert.equal(
+  context.testSourceMatchesExpectedTest(
+    shortenedLessonTitleSource,
+    {id: 66116},
+    "8 - Trust framework per il controllo degli accessi",
+  ),
+  true,
+);
+assert.equal(
+  context.testSourceMatchesExpectedTest(
+    {testId: 99999, questions: [{lessonTitle: "Trust framework per il controllo degli accessi"}]},
+    {id: 66116},
+    "8 - Trust framework per il controllo degli accessi",
+  ),
+  false,
+);
+assert.equal(
+  context.testSourceMatchesExpectedTest(
+    {testId: null, questions: [{lessonTitle: "Trust framework per il controllo degli accessi"}]},
+    {id: 66116},
+    "8 - Trust framework per il controllo degli accessi",
+  ),
+  true,
+);
+
+context.turboApiRequest = async () => ({ok: true, data: shortenedLessonTitleSource});
+assert.equal(
+  (await context.requestTestSourceWithRetry(
+    "0312509INF01IIINM",
+    {id: 66116, lp_id: 8, testImported: 0},
+    "test",
+    null,
+    "8 - Trust framework per il controllo degli accessi",
+  )).ok,
+  true,
+);
+
 let requests = 0;
 context.turboApiRequest = async () => ++requests < 3
   ? {ok:true, data:{}}
@@ -84,4 +127,4 @@ assert.equal((await context.requestExportTestLesson("course", {lessonNumber:5, r
 assert.equal(requests, 3);
 context.ensureExportNotCancelled = () => { throw new Error("cancelled"); };
 await assert.rejects(context.requestExportTestLesson("course", {}, "test"), /cancelled/);
-console.log("PASS: 29 chapters in 10/10/9 folders; 30 chapters with folder_id=0; missing DOM chapters/module; duplicate titles; metadata retry; cancellation");
+console.log("PASS: chapter identities; folder_id=0; shortened source titles by testId; mismatched testId; metadata retry; cancellation");

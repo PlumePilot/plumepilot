@@ -2,6 +2,7 @@
 
 ## Fixed in 2.32.7: Gaming-only EXP feedback and fixed floating tabs
 
+- Accepts test-source responses by their matching test ID even when Pegaso reports a shortened video title instead of the full chapter title, while still rejecting responses with a different test ID.
 - Accepts Pegaso master indexes that explicitly use `folder_id: 0` for an ungrouped lesson, while still rejecting missing, negative or duplicate composite chapter identities.
 - Rejects every generic Traguardo claim centrally while the visual style is Standard, preventing EXP, completion state and Gaming-only messages from leaking into Standard mode.
 - Keeps chapter-video observations resolved in Standard without awarding or recovering EXP later, preserving the existing non-retroactive rule.
