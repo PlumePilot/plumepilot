@@ -25,6 +25,8 @@ Gli archivi vengono creati in `release/`. Il file destinato ad AMO è:
 release/plumepilot-vX.Y.Z-firefox.zip
 ```
 
+La directory di output deve essere priva di ZIP e di un precedente `SHA256SUMS.txt`. Il builder interrompe l'operazione prima di scrivere se trova artefatti di release esistenti, così una build precedente non può essere sovrascritta o confusa con quella corrente.
+
 Per usare una directory diversa:
 
 ```bash
@@ -40,6 +42,8 @@ node scripts/validate-release.mjs
 ```
 
 Il validatore controlla i tre manifest, la struttura degli ZIP, i riferimenti ai file, l'assenza di codice dinamico o script remoti e la presenza delle licenze.
+
+Il builder crea inoltre `SHA256SUMS.txt` nella directory di output. Il validatore ricalcola gli hash dei tre archivi e richiede che coincidano esattamente con questo file.
 
 Per confrontare la build con il pacchetto caricato su AMO:
 

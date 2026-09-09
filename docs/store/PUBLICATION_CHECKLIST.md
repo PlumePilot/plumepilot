@@ -1,23 +1,26 @@
 # PlumePilot — checklist di pubblicazione
 
-Aggiornata il 7 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
+Aggiornata il 9 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
 
 ## Stato e criterio di rilascio
 
 - [x] Baseline stabile: `v2.32.6` su `main`.
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
-- [x] Correzione della numerazione e del recupero capitoli confermata sul caso reale.
-- [ ] Decisione e test sul feedback EXP quando la modalità Gaming è disattivata.
-- [x] PR della correzione integrata in `main`.
-- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.6`.
+- [x] Correzione della numerazione e del recupero capitoli confermata sui test locali e su più corsi reali.
+- [ ] Conferma esterna finale sul corso da 29 capitoli organizzato `20 + 9`.
+- [x] Feedback EXP verificato: nessun claim o messaggio in Standard; assegnazione regolare in Gaming.
+- [x] Menu fluttuante verificato: header e tab fissi, solo il contenuto scorre.
+- [ ] PR #3 della candidata `v2.32.7` integrata in `main`.
+- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.7`.
 - [ ] Congelamento della release candidate finale.
 
-Non caricare i pacchetti negli store finché il punto funzionale EXP e lo smoke test finale non sono stati chiusi. Le bozze, i testi e gli asset possono essere completati nel frattempo.
+Non caricare i pacchetti negli store finché la conferma esterna `20 + 9` e lo smoke test finale non sono stati chiusi. Le bozze, i testi e gli asset possono essere completati nel frattempo.
 
 ## Strategia Git
 
 - `fix/test-export-chapter-numbering`: integrato con la PR #1 nella patch `v2.32.6`.
+- `fix/standard-exp-floating-tabs`: PR #3 in bozza; contiene la candidata `v2.32.7`, il recupero dinamico dell'indice master, il gate EXP e le tab fisse.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -78,13 +81,25 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 - [x] Eseguire `node scripts/validate-release.mjs`.
 - [x] Conservare nome, dimensione e SHA-256 dei tre ZIP.
 - [x] Verificare che Chrome ed Edge siano identici oppure documentare la differenza attesa.
+- [ ] Costruire in una directory vuota e conservare il `SHA256SUMS.txt` generato dal builder.
+- [ ] Verificare che gli hash del file scaricato, del verbale e del portale coincidano prima di ogni installazione o upload.
 - [ ] Installare da zero gli stessi ZIP destinati agli store.
-- [ ] Controllare assenza di errori o log sensibili nelle console.
+- [x] Audit statico: debug disattivato e nessun log esplicito di token, header Authorization o payload API.
+- [ ] Controllare assenza di errori runtime nelle console durante lo smoke test.
 
-Build candidata `v2.32.6` verificata:
+Build candidata corretta `v2.32.7` verificata:
 
-- Chrome/Edge: 1.944.788 byte, SHA-256 `e124a6df4b52bd9dfbd2188a7564dabf026e6c19207afb898bf1ab1e0d5086b7`;
-- Firefox: 1.944.917 byte, SHA-256 `f1290b376e7c355fb41f07401ac748caa91db5936ddcd726c625efe223cfcf61`.
+- Chrome/Edge: 1.945.033 byte, SHA-256 `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa`;
+- Firefox: 1.945.163 byte, SHA-256 `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`.
+
+L'archivio Chrome con SHA-256 `45b621e75e9dc0d9bbb14e0583fab63bd7f6129bfe3142d073c54fea71ec76b0` è una candidata precedente priva della gestione di `folder_id: 0` e non deve essere installato né caricato negli store.
+
+Conferme manuali già ricevute sulla candidata corretta:
+
+- raccolta test e allineamento capitoli positivi su più corsi;
+- EXP e relativi messaggi corretti in Standard e Gaming;
+- tab del menu fluttuante correttamente fisse;
+- possibili test isolati non recuperabili vengono elencati come non inclusi senza disallineare la raccolta.
 
 ## Smoke test comune
 
@@ -102,6 +117,8 @@ Build candidata `v2.32.6` verificata:
 - [ ] Ricaricamento pagina, nuova scheda e riavvio browser.
 
 Ripetere lo smoke test almeno su Chrome Stable, Edge Stable e Firefox 140 o successivo. Annotare sistema operativo e versioni browser nel verbale di test.
+
+Usare `SMOKE_TEST_REPORT.md` come verbale e `SCREENSHOT_CAPTURE_GUIDE.md` per le immagini delle schede store.
 
 ## Preparazione delle bozze
 

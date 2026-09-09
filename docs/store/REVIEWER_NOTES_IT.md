@@ -30,6 +30,8 @@ Le credenziali devono essere inserite esclusivamente nei campi riservati ai revi
 
 Le funzioni di completamento automatico di Test e Obiettivi sono disattivate per impostazione iniziale e vengono eseguite soltanto dopo una scelta esplicita dell'utente.
 
+Se uno o più test non sono disponibili dopo i tentativi automatici, la raccolta resta utilizzabile e li elenca nella sezione **Test non inclusi**. Questo comportamento evita che un fallimento isolato sposti o rinumeri le domande dei capitoli successivi.
+
 ## Comportamento di rete e dati
 
 - Il permesso `storage` conserva esclusivamente dati locali necessari all'interfaccia e alle funzioni scelte.
