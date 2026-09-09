@@ -5,6 +5,7 @@ import vm from "node:vm";
 const achievementsSource = readFileSync(new URL("../achievements.js", import.meta.url), "utf8");
 const backgroundSource = readFileSync(new URL("../background.js", import.meta.url), "utf8");
 const floatingMenuSource = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
+const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
 const themeSource = readFileSync(new URL("../theme.js", import.meta.url), "utf8");
 
 const stored = { visualStyle: "standard" };
@@ -42,7 +43,10 @@ assert.ok(tabsStart > headerStart && tabsStart < bodyStart, "tabs must sit outsi
 assert.match(floatingMenuSource, /\.panel\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*overflow:\s*hidden;/s);
 assert.match(floatingMenuSource, /\.body\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*auto;/s);
 assert.match(floatingMenuSource, /\.menu-tabs\s*\{[^}]*flex:\s*0 0 auto;/s);
+assert.match(popupCssSource, /\.container\s*\{[^}]*padding:\s*0 18px 14px 14px;/s);
+assert.match(popupCssSource, /\.popup-sticky-header\s*\{[^}]*top:\s*0;[^}]*padding:\s*14px 0 4px;/s);
+assert.match(popupCssSource, /html\[data-visual-style="gaming"\] \.popup-sticky-header\s*\{[^}]*top:\s*8px;[^}]*padding-top:\s*6px;/s);
 assert.match(themeSource, /const VISUAL_STYLE_KEY = "visualStyle";/);
 assert.match(themeSource, /document\.documentElement\.dataset\.visualStyle = visualStyle;/);
 
-console.log("PASS: Standard rejects EXP claims; Gaming accepts them; floating tabs remain outside the scrolling body");
+console.log("PASS: EXP modes, floating tabs and popup sticky-header spacing are consistent");
