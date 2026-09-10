@@ -5,6 +5,7 @@ import vm from "node:vm";
 const achievementsSource = readFileSync(new URL("../achievements.js", import.meta.url), "utf8");
 const backgroundSource = readFileSync(new URL("../background.js", import.meta.url), "utf8");
 const floatingMenuSource = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
+const popupSource = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
 const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
 const themeSource = readFileSync(new URL("../theme.js", import.meta.url), "utf8");
 
@@ -48,5 +49,14 @@ assert.match(popupCssSource, /\.popup-sticky-header\s*\{[^}]*top:\s*0;[^}]*paddi
 assert.match(popupCssSource, /html\[data-visual-style="gaming"\] \.popup-sticky-header\s*\{[^}]*top:\s*8px;[^}]*padding-top:\s*6px;/s);
 assert.match(themeSource, /const VISUAL_STYLE_KEY = "visualStyle";/);
 assert.match(themeSource, /document\.documentElement\.dataset\.visualStyle = visualStyle;/);
+assert.match(popupSource, /turboTestsStatus\.textContent = turbo \?[^;]+: "";/s);
+assert.match(popupSource, /objectivesStatus\.textContent = objectives[^;]+: "";/s);
+assert.match(popupSource, /testCollectionStatus\.textContent = operation\?\.kind === "tests"[^;]+: "";/s);
+assert.match(popupSource, /materialsStatus\.textContent = operation\?\.kind === "materials"[^;]+: "";/s);
+assert.match(popupCssSource, /html\[data-menu-size="medium"\]\s*\{[^}]+--sw-action-font-size:\s*14px;[^}]+--sw-control-font-size:\s*12px;[^}]+--sw-secondary-font-size:\s*11px;/s);
+assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*10px;/s);
+assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);
+assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*11px;/s);
+assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.action\s*\{\s*font-size:\s*12px;/s);
 
-console.log("PASS: EXP modes, floating tabs and popup sticky-header spacing are consistent");
+console.log("PASS: EXP modes, floating tabs, popup operation status and responsive text are consistent");

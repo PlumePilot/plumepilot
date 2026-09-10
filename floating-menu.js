@@ -2551,7 +2551,7 @@
           gap: 5px;
           padding: 6px 0 3px;
           color: var(--sw-heading);
-          font-size: 9px;
+          font-size: 11px;
           font-weight: 700;
           cursor: pointer;
           list-style: none;
@@ -2560,7 +2560,7 @@
         .course-progress-options-menu summary small {
           overflow: hidden;
           color: var(--sw-muted);
-          font-size: 8px;
+          font-size: 9px;
           font-weight: 500;
           text-align: right;
           text-overflow: ellipsis;
@@ -2823,7 +2823,6 @@
         :host([data-menu-size="medium"]) .course-progress-setting,
         :host([data-menu-size="medium"]) .course-progress-position-title,
         :host([data-menu-size="medium"]) .course-progress-position-list label,
-        :host([data-menu-size="medium"]) .autoplay-options-summary,
         :host([data-menu-size="medium"]) .chapter-limit-progress,
         :host([data-menu-size="medium"]) .bookmark-action,
         :host([data-menu-size="medium"]) .test-choice-heading,
@@ -2835,16 +2834,20 @@
         :host([data-menu-size="large"]) .course-progress-setting,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label,
-        :host([data-menu-size="large"]) .autoplay-options-summary,
         :host([data-menu-size="large"]) .chapter-limit-progress,
         :host([data-menu-size="large"]) .bookmark-action,
         :host([data-menu-size="large"]) .test-choice-heading,
         :host([data-menu-size="large"]) .test-choice-list label { font-size: 11px; }
         :host([data-menu-size="large"]) .course-progress-options-menu summary,
+        :host([data-menu-size="large"]) .autoplay-options-title,
         :host([data-menu-size="large"]) .course-progress-setting,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label { font-size: 12px; }
-        :host([data-menu-size="large"]) .course-progress-options-menu summary small { font-size: 10px; }
+        :host([data-menu-size="medium"]) .course-progress-options-menu summary small,
+        :host([data-menu-size="medium"]) .autoplay-options-summary,
+        :host([data-menu-size="medium"]) .course-progress-hint { font-size: 10px; }
+        :host([data-menu-size="large"]) .course-progress-options-menu summary small,
+        :host([data-menu-size="large"]) .autoplay-options-summary,
         :host([data-menu-size="large"]) .course-progress-hint { font-size: 11px; }
         .commission-section {
           padding-top: 1px;
@@ -3031,6 +3034,7 @@
           background: var(--sw-disabled-bg);
           cursor: wait;
         }
+        :host([data-menu-size="large"]) .action { font-size: 12px; }
         .gaming-action-label { position: relative; z-index: 1; }
         .gaming-action-sprite { display: none; }
         .gaming-control-sprite { display: none; }

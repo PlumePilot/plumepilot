@@ -657,7 +657,7 @@ html[data-visual-style="gaming"] .course-progress-heading strong {
   gap: 7px;
   padding: 8px 0 5px;
   color: var(--brand-purple-dark);
-  font-size: 11px;
+  font-size: var(--sw-control-font-size);
   font-weight: 700;
   cursor: pointer;
   list-style: none;
@@ -670,7 +670,7 @@ html[data-visual-style="gaming"] .course-progress-heading strong {
 .course-progress-options-menu summary small {
   overflow: hidden;
   color: var(--sw-text-muted);
-  font-size: 9px;
+  font-size: var(--sw-secondary-font-size);
   font-weight: 500;
   text-align: right;
   text-overflow: ellipsis;
@@ -744,7 +744,7 @@ html[data-visual-style="gaming"] .course-progress-heading strong {
 
 .course-progress-option-hint {
   color: var(--sw-text-muted);
-  font-size: 9px;
+  font-size: var(--sw-secondary-font-size);
   line-height: 1.35;
 }
 
@@ -773,7 +773,7 @@ html[data-visual-style="gaming"] .course-progress-heading strong {
   gap: 7px;
   padding: 8px 0 6px;
   color: var(--brand-purple-dark);
-  font-size: 12px;
+  font-size: var(--sw-control-font-size);
   font-weight: 700;
   cursor: pointer;
   list-style: none;
@@ -788,7 +788,7 @@ html[data-visual-style="gaming"] .course-progress-heading strong {
 .chapter-limit-menu > summary small {
   overflow: hidden;
   color: var(--sw-text-muted);
-  font-size: 9px;
+  font-size: var(--sw-secondary-font-size);
   font-weight: 500;
   text-align: right;
   text-overflow: ellipsis;
@@ -1705,6 +1705,7 @@ html[data-menu-size="small"] {
   --sw-achievement-copy-font-size: 10px;
   --sw-achievement-exp-font-size: 11px;
   --sw-section-font-size: 11px;
+  --sw-secondary-font-size: 10px;
 }
 html[data-menu-size="medium"] {
   --sw-popup-width: 430px;
@@ -1714,6 +1715,7 @@ html[data-menu-size="medium"] {
   --sw-achievement-copy-font-size: 11px;
   --sw-achievement-exp-font-size: 12px;
   --sw-section-font-size: 12px;
+  --sw-secondary-font-size: 11px;
 }
 html[data-menu-size="large"] {
   --sw-popup-width: 480px;
@@ -1723,19 +1725,15 @@ html[data-menu-size="large"] {
   --sw-achievement-copy-font-size: 12px;
   --sw-achievement-exp-font-size: 13px;
   --sw-section-font-size: 13px;
+  --sw-secondary-font-size: 12px;
 }
 
 .menu-size-choice { margin-top: 7px; padding-top: 9px; border-top: 1px solid var(--sw-border-section); }
 .menu-size-choice-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Keep compact UI text readable without enlarging badges or decorative labels. */
-.course-progress-options-menu summary,
-.course-progress-options-menu summary small,
 .course-progress-position legend,
 .course-progress-position-list label,
-.course-progress-option-hint,
-.autoplay-options-menu > summary small,
-.chapter-limit-menu > summary small,
 .setting-hint,
 .commission-last-check {
   font-size: 11px;
