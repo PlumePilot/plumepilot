@@ -29,7 +29,7 @@ function referencedManifestFiles(manifest) {
 }
 
 function validateBrowserManifest(manifest, browser) {
-  if (manifest.version !== "2.32.7") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
+  if (manifest.version !== "2.32.8") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
     const gecko = manifest.browser_specific_settings?.gecko;
@@ -46,7 +46,7 @@ function validateBrowserManifest(manifest, browser) {
 }
 
 for (const browser of expectedBrowsers) {
-  const filename = `plumepilot-v2.32.7-${browser}.zip`;
+  const filename = `plumepilot-v2.32.8-${browser}.zip`;
   const bytes = await readFile(path.join(releaseDirectory, filename));
   generatedChecksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${filename}`);
   const zip = await JSZip.loadAsync(bytes);
@@ -74,7 +74,7 @@ for (const browser of expectedBrowsers) {
   console.log(`${filename}: OK (${names.length} file, manifest alla radice)`);
 }
 
-const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.7-${browser}.zip`));
+const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.8-${browser}.zip`));
 if (unexpectedArchives.length) throw new Error(`Archivi inattesi: ${unexpectedArchives.join(", ")}`);
 
 const checksumManifest = await readFile(path.join(releaseDirectory, "SHA256SUMS.txt"), "utf8");
