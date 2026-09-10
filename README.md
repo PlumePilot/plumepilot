@@ -95,11 +95,15 @@ Per la regressione finale testa gli stessi ZIP che saranno inviati agli store.
 
 Non includere mai token, matricola, dati degli esami o schermate non oscurate nelle segnalazioni pubbliche.
 
+## Sostieni il progetto
+
+PlumePilot è gratuito e open source. Se vuoi sostenere lo sviluppo, puoi [offrirmi un caffè su Ko-fi](https://ko-fi.com/flo_).
+
+Le donazioni sono facoltative e non sbloccano funzionalità né modificano il trattamento dei dati.
+
 ## Licenza
 
 Il codice di PlumePilot è distribuito secondo la **GNU General Public License v3.0 only** (`GPL-3.0-only`). Le librerie, i font e gli altri componenti di terze parti conservano le rispettive licenze, elencate in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-PlumePilot rimarrà gratuito. Eventuali donazioni saranno sempre volontarie e non necessarie per sbloccare funzionalità.
 
 Consulta [CHANGELOG.md](CHANGELOG.md) per la cronologia completa delle versioni.
 
