@@ -2,6 +2,10 @@
 
 Questa guida definisce il set iniziale di immagini per Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons. Catturare le schermate soltanto dalla build congelata e verificata nel verbale di smoke test.
 
+## Stato del set finale
+
+Il set `v2.32.8` è completo: cinque immagini PNG `1280×800` per Firefox, Chrome ed Edge. Le immagini sono opache, prive di metadati e verificate anche alla resa ridotta `640×400`. Nome, matricola, avatar e barra del browser non sono visibili. Gli asset finali restano esterni alla repository e non devono essere committati.
+
 ## Preparazione
 
 - Usare un profilo browser pulito e la release candidate installata dal pacchetto destinato allo store.

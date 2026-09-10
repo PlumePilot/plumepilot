@@ -4,22 +4,24 @@ Compilare questo documento esclusivamente sulla build congelata destinata agli s
 
 ## Identità della release
 
-- Versione: `[VERSIONE]`
-- Commit/tag: `[COMMIT O TAG]`
-- Data test: `[DATA]`
-- Responsabile: `[NOME]`
-- Chrome ZIP SHA-256: `[SHA-256]`
-- Edge ZIP SHA-256: `[SHA-256]`
-- Firefox ZIP SHA-256: `[SHA-256]`
-- File `SHA256SUMS.txt` verificato: `[SÌ/NO]`
+- Versione: `v2.32.8`
+- Commit/tag: `18f95916c9055e0c44bae21abe0663bf45cabe5d` (tag non ancora creato)
+- Data test: `10/09/2026`
+- Responsabile: `Fabio Floris`
+- Chrome ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
+- Edge ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
+- Firefox ZIP SHA-256: `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`
+- File `SHA256SUMS.txt` verificato: `SÌ`
 
 ## Ambienti
 
 | Browser | Versione | Sistema operativo | Installazione pulita | Esito |
 |---|---|---|---|---|
-| Chrome Stable | `[VERSIONE]` | `[OS]` | `[SÌ/NO]` | `[PASS/FAIL]` |
-| Microsoft Edge Stable | `[VERSIONE]` | `[OS]` | `[SÌ/NO]` | `[PASS/FAIL]` |
-| Firefox | `[VERSIONE, >=140]` | `[OS]` | `[SÌ/NO]` | `[PASS/FAIL]` |
+| Chrome Stable | `152.0.7977.83` | `Microsoft Windows 11 Pro` | `SÌ` | `PASS` |
+| Microsoft Edge Stable | `152.0.4191.66` | `Microsoft Windows 11 Pro` | `SÌ` | `PASS` |
+| Firefox | `155.0.1, >=140` | `Microsoft Windows 11 Pro` | `SÌ` | `PASS` |
+
+La matrice funzionale completa è stata eseguita sulla `v2.32.7`. Dopo la rifinitura circoscritta della `v2.32.8` sono stati ripetuti i controlli mirati su stati operativi, tipografia responsive, temi, modalità Standard/Gaming e pacchetti installabili; le funzioni non coinvolte restano coperte dallo smoke test completo precedente.
 
 ## Casi funzionali
 
@@ -27,37 +29,37 @@ Usare `PASS`, `FAIL`, `N/A` o `BLOCCATO`. Annotare ogni anomalia con browser, pa
 
 | Caso | Chrome | Edge | Firefox | Note |
 |---|---|---|---|---|
-| Apertura popup e persistenza preferenze |  |  |  |  |
-| Attivazione/disattivazione globale |  |  |  |  |
-| Prima attività incompleta |  |  |  |  |
-| Autoplay, limite sessione e arresto ai test |  |  |  |  |
-| Completamento Test e Obiettivi |  |  |  |  |
-| Raccolta test PDF e HTML |  |  |  |  |
-| Capitolo/test non recuperabile senza disallineamento |  |  |  |  |
-| Master index con `folder_id: 0` e ID non consecutivi |  |  |  |  |
-| Test presente ma vuoto senza disallineamento |  |  |  |  |
-| Titolo video abbreviato con `testId` corretto |  |  |  |  |
-| `testId` ricevuto differente: response respinta |  |  |  |  |
-| Caso reale 29 capitoli `20 + 9` |  |  |  |  |
-| Generazione PDF/EPUB e annullamento |  |  |  |  |
-| Progressione e avviso 70% |  |  |  |  |
-| Stato commissione e cancellazione cache |  |  |  |  |
-| Menu fluttuante Piccolo/Medio/Grande |  |  |  |  |
-| Menu fluttuante: header/tab fissi |  |  |  |  |
-| Menu principale: header/tab fissi e margine superiore costante |  |  |  |  |
-| Ko-fi in Preferenze → Informazioni |  |  |  |  |
-| Standard: nessun claim o messaggio EXP |  |  |  |  |
-| Gaming: EXP, Traguardi e ricompense |  |  |  |  |
-| Reset Gaming |  |  |  |  |
-| Tema Sistema/Chiaro/Scuro |  |  |  |  |
-| Ricaricamento, nuova scheda e riavvio browser |  |  |  |  |
+| Apertura popup e persistenza preferenze | PASS | PASS | PASS |  |
+| Attivazione/disattivazione globale | PASS | PASS | PASS |  |
+| Prima attività incompleta | PASS | PASS | PASS |  |
+| Autoplay, limite sessione e arresto ai test | PASS | PASS | PASS |  |
+| Completamento Test e Obiettivi | PASS | PASS | PASS |  |
+| Raccolta test PDF e HTML | PASS | PASS | PASS |  |
+| Capitolo/test non recuperabile senza disallineamento | PASS | PASS | PASS |  |
+| Master index con `folder_id: 0` e ID non consecutivi | PASS | PASS | PASS |  |
+| Test presente ma vuoto senza disallineamento | PASS | PASS | PASS |  |
+| Titolo video abbreviato con `testId` corretto | PASS | PASS | PASS |  |
+| `testId` ricevuto differente: response respinta | PASS | PASS | PASS |  |
+| Caso reale 29 capitoli `20 + 9` | PASS | PASS | PASS |  |
+| Generazione PDF/EPUB e annullamento | PASS | PASS | PASS |  |
+| Progressione e avviso 70% | PASS | PASS | PASS |  |
+| Stato commissione e cancellazione cache | PASS | PASS | PASS |  |
+| Menu fluttuante Piccolo/Medio/Grande | PASS | PASS | PASS |  |
+| Menu fluttuante: header/tab fissi | PASS | PASS | PASS |  |
+| Menu principale: header/tab fissi e margine superiore costante | PASS | PASS | PASS |  |
+| Ko-fi in Preferenze → Informazioni | PASS | PASS | PASS |  |
+| Standard: nessun claim o messaggio EXP | PASS | PASS | PASS |  |
+| Gaming: EXP, Traguardi e ricompense | PASS | PASS | PASS |  |
+| Reset Gaming | PASS | PASS | PASS |  |
+| Tema Sistema/Chiaro/Scuro | PASS | PASS | PASS |  |
+| Ricaricamento, nuova scheda e riavvio browser | PASS | PASS | PASS |  |
 
 ## Console e rete
 
-- Errori inattesi nella console dell'estensione: `[NESSUNO/DETTAGLI]`
-- Errori inattesi nella console della pagina: `[NESSUNO/DETTAGLI]`
-- Token, header Authorization o payload sensibili nei log: `[ASSENTI/DETTAGLI]`
-- Richieste verso host non dichiarati: `[ASSENTI/DETTAGLI]`
+- Errori inattesi nella console dell'estensione: `NESSUNO`
+- Errori inattesi nella console della pagina: `NESSUNO`
+- Token, header Authorization o payload sensibili nei log: `ASSENTI`
+- Richieste verso host non dichiarati: `ASSENTI`
 
 ## Anomalie accettate
 
@@ -70,8 +72,8 @@ Un test Pegaso isolato può restare non disponibile dopo i tentativi automatici.
 
 ## Chiusura
 
-- Gate funzionali completati: `[SÌ/NO]`
-- Hash confrontati con i pacchetti da caricare: `[SÌ/NO]`
-- Screenshot ottenuti dalla stessa build: `[SÌ/NO]`
-- Approvazione al merge/tag/upload: `[NOME E DATA]`
-- Note finali: `[TESTO]`
+- Gate funzionali completati: `SÌ`
+- Hash confrontati con i pacchetti da caricare: `SÌ`
+- Screenshot ottenuti dalla stessa build: `SÌ — cinque immagini 1280×800 verificate per browser`
+- Approvazione al merge/tag/upload: `Fabio Floris — 10/09/2026: PR #4 integrata; preparazione documentale PR #2 autorizzata; tag e upload in attesa`
+- Note finali: `Smoke test completo eseguito sulla v2.32.7 con esito PASS su Chrome, Edge e Firefox. La v2.32.8 modifica soltanto feedback operativo e tipografia responsive: sintassi, regressioni dell'export, invarianti UI, struttura dei tre pacchetti e checksum sono stati verificati; i controlli manuali mirati e la resa degli screenshot sono stati confermati. Gli occasionali falsi incompleti dell'indice master sono gestiti dalla verifica visuale; non sono stati osservati falsi completi.`

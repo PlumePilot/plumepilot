@@ -435,7 +435,7 @@ function renderOperation(operation) {
   turboTestsButton.dataset.running = String(turbo);
   turboTestsButtonLabel.textContent = turbo ? (stopping ? "Interruzione dei test…" : "Interrompi i test automatici") : "Completa tutti i test";
   turboTestsButton.disabled = busy && !turbo || stopping;
-  turboTestsStatus.textContent = turbo ? operation.message || "Test automatici in esecuzione…" : busy ? operationLabel(operation) : "";
+  turboTestsStatus.textContent = turbo ? operation.message || "Test automatici in esecuzione…" : "";
   objectivesButton.dataset.running = String(objectives);
   objectivesButtonLabel.textContent = objectives
     ? (stopping ? "Interruzione Obiettivi…" : "Interrompi Obiettivi")
@@ -443,17 +443,17 @@ function renderOperation(operation) {
   objectivesButton.disabled = (busy && !objectives) || stopping;
   objectivesStatus.textContent = objectives
     ? operation.message || "Completamento degli Obiettivi in esecuzione…"
-    : busy ? operationLabel(operation) : "";
+    : "";
   testCollectionButtonLabel.textContent = collectingTests
     ? (stopping ? "Interruzione raccolta test…" : "Interrompi raccolta test")
     : "Crea raccolta test del corso";
   createTestCollectionButton.disabled = (busy && !collectingTests) || (collectingTests && stopping);
   testCollectionStatus.textContent = operation?.kind === "tests"
     ? operation.message || "Raccolta dei test in corso…"
-    : busy ? operationLabel(operation) : "";
+    : "";
   materialsStatus.textContent = operation?.kind === "materials"
     ? operation.message || "Raccolta delle dispense in corso…"
-    : busy ? operationLabel(operation) : "";
+    : "";
   activeOperationBanner.hidden = !busy;
   activeOperationBanner.textContent = busy ? operation.message || operationLabel(operation) : "";
   updateAutoplayControls();

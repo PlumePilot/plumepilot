@@ -1,5 +1,12 @@
 # PlumePilot — Changelog
 
+## Improved in 2.32.8: clearer operation feedback and readable progress options
+
+- Shows the active operation message only beside its matching action instead of repeating the same explanation beneath every disabled action.
+- Preserves the shared active-operation banner and the existing stop control, so the running task remains visible and reachable.
+- Restores the same typography hierarchy in the popup and floating menu: progress and autoplay titles match within each size, secondary summaries remain smaller than action labels, and explanatory hints stay readable in Medium and Large.
+- Leaves operation ownership, cancellation, Small-menu density, panel dimensions, permissions and data handling unchanged.
+
 ## Fixed in 2.32.7: reliable test exports and consistent interface feedback
 
 - Accepts test-source responses by their matching test ID even when Pegaso reports a shortened video title instead of the full chapter title, while still rejecting responses with a different test ID.

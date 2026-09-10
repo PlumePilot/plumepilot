@@ -4,7 +4,7 @@ Aggiornata il 10 settembre 2026. Questa checklist prepara la prima pubblicazione
 
 ## Stato e criterio di rilascio
 
-- [x] Baseline stabile: `v2.32.7` su `main` al commit `65ca3ad71f65a05b5372bbe5d6e9554d5b6e930d`.
+- [x] Baseline stabile: `v2.32.8` su `main` al commit `18f95916c9055e0c44bae21abe0663bf45cabe5d`.
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
 - [x] Correzione della numerazione e del recupero capitoli confermata sui test locali e su più corsi reali.
@@ -13,15 +13,19 @@ Aggiornata il 10 settembre 2026. Questa checklist prepara la prima pubblicazione
 - [x] Feedback EXP verificato: nessun claim o messaggio in Standard; assegnazione regolare in Gaming.
 - [x] Menu fluttuante verificato: header e tab fissi, solo il contenuto scorre.
 - [x] PR #3 della candidata `v2.32.7` integrata in `main`.
-- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.7`.
+- [x] PR #4 della candidata `v2.32.8` integrata in `main`.
+- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.8`.
+- [x] Messaggi delle operazioni mostrati soltanto accanto all'azione pertinente, senza duplicazioni.
+- [x] Gerarchia tipografica di popup e menu fluttuante verificata nei formati Piccolo/Medio/Grande.
 - [x] Congelamento della release candidate finale.
 
-Non caricare i pacchetti negli store finché lo smoke test finale non è stato chiuso. Le bozze, i testi e gli asset possono essere completati nel frattempo.
+Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI della `v2.32.8` sono chiusi. Usare esclusivamente i pacchetti `v2.32.8` identificati dagli hash riportati in questa checklist.
 
 ## Strategia Git
 
 - `fix/test-export-chapter-numbering`: integrato con la PR #1 nella patch `v2.32.6`.
 - `fix/standard-exp-floating-tabs`: integrato con la PR #3 in `v2.32.7`; contiene il recupero dinamico dell'indice master, l'associazione tramite `testId`, il gate EXP, Ko-fi e le correzioni sticky.
+- `fix/pre-store-ui-polish`: integrato con la PR #4 in `v2.32.8`; elimina gli stati operativi duplicati e riallinea la tipografia responsive.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -58,10 +62,10 @@ Prima del merge verificare che ogni PR sia aggiornata rispetto a `main` e che no
 
 | Asset | Chrome | Edge | Stato |
 |---|---:|---:|---|
-| Icona | 128×128 PNG nel pacchetto | 300×300 consigliata, minimo 128×128 | 128×128 e 512×512 esistenti; verifica visiva da fare |
-| Screenshot principali | 1280×800, da 1 a 5 | 1280×800 o 640×480, fino a 6 | da produrre |
-| Tile piccola | 440×280 | 440×280 facoltativa | da produrre |
-| Tile grande | 1400×560 facoltativa | 1400×560 facoltativa | da produrre dopo la prima submission |
+| Icona | 128×128 PNG nel pacchetto | 300×300 consigliata, minimo 128×128 | pronta e verificata |
+| Screenshot principali | 1280×800, da 1 a 5 | 1280×800 o 640×480, fino a 6 | 5 per browser, pronti e verificati |
+| Tile piccola | 440×280 | 440×280 facoltativa | pronta |
+| Tile grande | 1400×560 facoltativa | 1400×560 facoltativa | pronta, uso facoltativo |
 | Video YouTube | facoltativo | facoltativo, senza pubblicità | utile per revisori; da registrare con DEMO fresca |
 
 Set screenshot consigliato, tutto in italiano e senza dati personali:
@@ -85,15 +89,15 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 - [x] Verificare che Chrome ed Edge siano identici oppure documentare la differenza attesa.
 - [x] Costruire in una directory vuota e conservare il `SHA256SUMS.txt` generato dal builder.
 - [ ] Verificare che gli hash del file scaricato, del verbale e del portale coincidano prima di ogni installazione o upload.
-- [ ] Installare da zero gli stessi ZIP destinati agli store.
+- [x] Installare e verificare gli ZIP destinati agli store sui tre browser.
 - [x] Audit statico: debug disattivato e nessun log esplicito di token, header Authorization o payload API.
-- [ ] Controllare assenza di errori runtime nelle console durante lo smoke test.
+- [x] Controllare assenza di errori runtime nelle console durante lo smoke test.
 
-Build candidata corrente `v2.32.7` verificata:
+Build candidata corrente `v2.32.8` verificata:
 
-- Chrome/Edge: 1.945.159 byte, SHA-256 `c1cf8187738a20c277154d04cd68f3c727d5b7b5b17c51f571cedef09e81071f`;
-- Firefox: 1.945.289 byte, SHA-256 `74a7a8066e9b7be1970726c41992b7fa46d862947197685ac2e323e7444a7a26`;
-- sorgente: 2.268.002 byte, SHA-256 `4ce1779b497fbd882c277490b46b83e0c6a661f2c4b90e8ddaf3b0d3739e8d86`.
+- Chrome/Edge: 1.945.165 byte, SHA-256 `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`;
+- Firefox: 1.945.294 byte, SHA-256 `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`;
+- sorgente: 2.276.612 byte, SHA-256 `7c37e9328208ce850c243d335a3b937e176b44de1503e76c5e724f1744a72ac2`.
 
 Le candidate precedenti non devono essere installate né caricate negli store:
 
@@ -101,6 +105,7 @@ Le candidate precedenti non devono essere installate né caricate negli store:
 - Chrome/Edge `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa` e Firefox `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`: gestiscono `folder_id: 0`, ma possono scartare domande valide quando Pegaso abbrevia `titolo_videolezione`.
 - Chrome/Edge `258e7696065db720cbedbd28739e60c556459835517c1494ed3f3614cb561417` e Firefox `9b3cdcb6f263c10d43806c168a405df253abff8fe283876cf480a9e9fec491ca`: precedono Ko-fi e la correzione della spaziatura sticky.
 - Chrome/Edge `90f2409a40b4e81e828aa1cf2a050202f4be4e2c96de73866ca99000d39bcb35` e Firefox `44c4a144627f6a395b039a7ed802cd338505721d7a57e3c9dbdbbead7bceba00`: includono Ko-fi ma precedono la correzione della spaziatura sticky.
+- Chrome/Edge `c1cf8187738a20c277154d04cd68f3c727d5b7b5b17c51f571cedef09e81071f` e Firefox `74a7a8066e9b7be1970726c41992b7fa46d862947197685ac2e323e7444a7a26`: build stabile `v2.32.7`, precedente alla rifinitura UI pre-store.
 
 Conferme manuali già ricevute sulla candidata corretta:
 
@@ -113,23 +118,26 @@ Conferme manuali già ricevute sulla candidata corretta:
 - header del menu principale correttamente distanziato durante lo scorrimento;
 - collegamento Ko-fi verificato;
 - possibili test isolati non recuperabili vengono elencati come non inclusi senza disallineare la raccolta.
+- stati operativi non duplicati sotto le azioni disabilitate nella `v2.32.8`;
+- titoli, riepiloghi, note e pulsanti coerenti tra popup e menu fluttuante nella `v2.32.8`;
+- set finale di cinque screenshot `1280×800` verificato per Firefox, Chrome ed Edge, senza dati identificativi.
 
 ## Smoke test comune
 
-- [ ] Apertura popup e salvataggio preferenze.
-- [ ] Attivazione/disattivazione globale dell'estensione.
-- [ ] Autoplay e ricerca della prima attività incompleta.
-- [ ] Limite sessione e arresto ai test.
-- [ ] Completamento facoltativo di Test e Obiettivi.
-- [ ] Raccolta test PDF e HTML, incluso un capitolo mancante o non leggibile.
-- [ ] PDF ed EPUB: avvio, completamento e annullamento.
-- [ ] Barra di progressione e avviso 70%.
-- [ ] Stato commissione e cancellazione cache.
-- [ ] Menu fluttuante nei tre formati e nei temi chiaro/scuro.
-- [ ] Menu principale: header/tab fissi e spaziatura superiore costante durante lo scorrimento.
-- [ ] Collegamento Ko-fi in **Preferenze → Informazioni**.
-- [ ] Modalità Gaming, assegnazione EXP, reset e assenza di UI Gaming in Standard.
-- [ ] Ricaricamento pagina, nuova scheda e riavvio browser.
+- [x] Apertura popup e salvataggio preferenze.
+- [x] Attivazione/disattivazione globale dell'estensione.
+- [x] Autoplay e ricerca della prima attività incompleta.
+- [x] Limite sessione e arresto ai test.
+- [x] Completamento facoltativo di Test e Obiettivi.
+- [x] Raccolta test PDF e HTML, incluso un capitolo mancante o non leggibile.
+- [x] PDF ed EPUB: avvio, completamento e annullamento.
+- [x] Barra di progressione e avviso 70%.
+- [x] Stato commissione e cancellazione cache.
+- [x] Menu fluttuante nei tre formati e nei temi chiaro/scuro.
+- [x] Menu principale: header/tab fissi e spaziatura superiore costante durante lo scorrimento.
+- [x] Collegamento Ko-fi in **Preferenze → Informazioni**.
+- [x] Modalità Gaming, assegnazione EXP, reset e assenza di UI Gaming in Standard.
+- [x] Ricaricamento pagina, nuova scheda e riavvio browser.
 
 Ripetere lo smoke test almeno su Chrome Stable, Edge Stable e Firefox 140 o successivo. Annotare sistema operativo e versioni browser nel verbale di test.
 
