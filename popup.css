@@ -102,14 +102,14 @@ html {
 }
 
 .container {
-  padding: 14px 18px 14px 14px;
+  padding: 0 18px 14px 14px;
 }
 
 .popup-sticky-header {
   position: sticky;
   z-index: 12;
   top: 0;
-  padding-bottom: 4px;
+  padding: 14px 0 4px;
   background: var(--sw-background);
 }
 
@@ -1811,6 +1811,7 @@ html[data-visual-style="gaming"] .container {
 
 html[data-visual-style="gaming"] .popup-sticky-header {
   top: 8px;
+  padding-top: 6px;
 }
 
 html[data-visual-style="gaming"] body::after {

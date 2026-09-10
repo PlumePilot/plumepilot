@@ -803,7 +803,10 @@
     if (normalizeVisualStyle(settings.visualStyle) !== "gaming") return;
     runtimeMessage({ type: "STUDYWING_ACHIEVEMENT_CLAIM", achievementId }).then(
       (result) => {
-        if (result?.accepted)
+        if (
+          result?.accepted &&
+          normalizeVisualStyle(settings.visualStyle) === "gaming"
+        )
           setFeedback(
             `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP`,
           );
@@ -1574,17 +1577,7 @@
         : "Apri PlumePilot; trascina per spostare l’icona lungo il bordo",
     );
     if (opening) {
-      if (normalizeVisualStyle(settings.visualStyle) === "gaming") {
-        runtimeMessage({
-          type: "STUDYWING_ACHIEVEMENT_CLAIM",
-          achievementId: "open-floating-menu",
-        }).then((result) => {
-          if (result?.accepted)
-            setFeedback(
-              `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP`,
-            );
-        });
-      }
+      claimFloatingAchievement("open-floating-menu");
       requestChapterLimitStatus();
       requestCourseProgressStatus();
       placePanel();
@@ -2274,7 +2267,7 @@
         }
         .body {
           min-height: 0;
-          padding: 9px 12px 12px;
+          padding: 10px 12px 12px;
           overflow: auto;
           scrollbar-gutter: stable;
         }
@@ -2283,9 +2276,10 @@
         }
         .menu-tabs {
           display: grid;
+          flex: 0 0 auto;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 4px;
-          margin-bottom: 10px;
+          margin: 9px 12px 0;
           padding: 3px;
           border: 1px solid var(--sw-divider);
           border-radius: 9px;
@@ -3372,15 +3366,15 @@
           </div>
           <button class="close" type="button" aria-label="Riduci il menu" title="Riduci">−</button>
         </div>
+        <nav class="menu-tabs" data-count="4" role="tablist" aria-label="Sezioni del menu PlumePilot">
+          <button id="studywing-course-tab" class="menu-tab" data-tab="course" type="button" role="tab" aria-selected="true" aria-controls="studywing-course-panel">Corso</button>
+          <button id="studywing-exams-tab" class="menu-tab" data-tab="exams" type="button" role="tab" aria-selected="false" aria-controls="studywing-exams-panel" tabindex="-1">
+            <span>Esami</span><span class="menu-tab-badge" data-role="exams-tab-badge" hidden>!</span>
+          </button>
+          <button id="studywing-achievements-tab" class="menu-tab" data-tab="achievements" type="button" role="tab" aria-selected="false" aria-controls="studywing-achievements-panel" tabindex="-1">Traguardi</button>
+          <button id="studywing-preferences-tab" class="menu-tab" data-tab="preferences" type="button" role="tab" aria-selected="false" aria-controls="studywing-preferences-panel" tabindex="-1">Preferenze</button>
+        </nav>
         <div class="body">
-          <nav class="menu-tabs" data-count="4" role="tablist" aria-label="Sezioni del menu PlumePilot">
-            <button id="studywing-course-tab" class="menu-tab" data-tab="course" type="button" role="tab" aria-selected="true" aria-controls="studywing-course-panel">Corso</button>
-            <button id="studywing-exams-tab" class="menu-tab" data-tab="exams" type="button" role="tab" aria-selected="false" aria-controls="studywing-exams-panel" tabindex="-1">
-              <span>Esami</span><span class="menu-tab-badge" data-role="exams-tab-badge" hidden>!</span>
-            </button>
-            <button id="studywing-achievements-tab" class="menu-tab" data-tab="achievements" type="button" role="tab" aria-selected="false" aria-controls="studywing-achievements-panel" tabindex="-1">Traguardi</button>
-            <button id="studywing-preferences-tab" class="menu-tab" data-tab="preferences" type="button" role="tab" aria-selected="false" aria-controls="studywing-preferences-panel" tabindex="-1">Preferenze</button>
-          </nav>
           <section class="last-notification" data-role="last-notification" data-expanded="false" aria-label="Ultimo messaggio di PlumePilot" hidden>
             <div class="last-notification-heading"><span>Ultimo messaggio</span><time class="last-notification-time" data-role="last-notification-time"></time></div>
             <p class="last-notification-text" data-role="last-notification-text" tabindex="0" role="button" aria-label="Mostra o nascondi il messaggio completo"></p>

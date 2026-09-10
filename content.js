@@ -138,7 +138,7 @@
   }
 
   function showAchievementNotifications(results) {
-    if (!results.length) return;
+    if (!results.length || visualStyle !== "gaming") return;
     const unlock = achievementUnlockSuffix(results);
     const message = results.length === 1
       ? (results[0].achievement.id === "chapter-video-completion"
@@ -158,6 +158,7 @@
   }
 
   function queueAchievementNotification(result) {
+    if (visualStyle !== "gaming") return;
     const progress = courseProgressVisiblePercent();
     const shouldWaitForExpAnimation =
       visualStyle === "gaming" &&
@@ -2613,7 +2614,8 @@
     const routes = [...courseIndex].sort((a, b) => a.masterOrder - b.masterOrder);
     const seen = new Set();
     for (const route of routes) {
-      if (![route.lpId, route.id, route.folderId].every(value => Number.isInteger(value) && value > 0) ||
+      if (![route.lpId, route.id].every(value => Number.isInteger(value) && value > 0) ||
+          !Number.isInteger(route.folderId) || route.folderId < 0 ||
           !Number.isInteger(route.masterOrder) || seen.has(testRouteKey(route))) {
         throw new Error("Identità dei capitoli ambigua nell’indice master");
       }
@@ -2638,7 +2640,7 @@
       const entry = matches.length === 1 ? matches[0] : null;
       return {
         identity: {
-          sectionText: section || `Modulo ${route.folderId}`,
+          sectionText: section || (route.folderId > 0 ? `Modulo ${route.folderId}` : "Lezioni"),
           chapterText: entry?.identity.chapterText ||
             `${route.displayOrder} - ${normalizedText(route.title) || "Capitolo"}`,
         },
@@ -3241,6 +3243,18 @@
       (sourceTitles.length === 1 && sourceTitles[0] === expectedTitle);
   }
 
+  function testSourceMatchesExpectedTest(source, test, chapterTitle) {
+    const expectedTestId = Number(test?.id);
+    const receivedTestId = Number(source?.testId);
+    if (
+      Number.isInteger(expectedTestId) && expectedTestId > 0 &&
+      Number.isInteger(receivedTestId) && receivedTestId > 0
+    ) {
+      return receivedTestId === expectedTestId;
+    }
+    return testSourceMatchesChapter(source, chapterTitle);
+  }
+
   async function requestTestSourceWithRetry(
     courseCode,
     test,
@@ -3259,12 +3273,12 @@
       });
       ensureExportNotCancelled(operationId);
       if (response.ok && response.data?.questions?.length) {
-        if (testSourceMatchesChapter(response.data, expectedChapterTitle)) {
+        if (testSourceMatchesExpectedTest(response.data, test, expectedChapterTitle)) {
           return response;
         }
         response = {
           ok: false,
-          error: "TEST_SOURCE_CHAPTER_MISMATCH",
+          error: "TEST_SOURCE_IDENTITY_MISMATCH",
           data: response.data,
         };
       }
@@ -3364,7 +3378,7 @@
 
         const cacheKey = `${courseCode}:${entry.chapterKey}:${test.id}`;
         let source = testSourceCache.get(cacheKey)?.source || null;
-        if (source && !testSourceMatchesChapter(source, entry.identity.chapterText)) {
+        if (source && !testSourceMatchesExpectedTest(source, test, entry.identity.chapterText)) {
           testSourceCache.delete(cacheKey);
           source = null;
         }
@@ -3384,8 +3398,8 @@
           if (!response.ok || !response.data?.questions?.length) {
             missing.push({
               chapter: qualifiedChapter,
-              reason: response.error === "TEST_SOURCE_CHAPTER_MISMATCH"
-                ? "Le domande ricevute appartengono a un altro capitolo"
+              reason: response.error === "TEST_SOURCE_IDENTITY_MISMATCH"
+                ? "Le domande ricevute non corrispondono al test richiesto"
                 : response.error || "Domande del test non disponibili",
             });
             continue;

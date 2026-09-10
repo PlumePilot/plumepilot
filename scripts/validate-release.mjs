@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -8,6 +9,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
 const releaseDirectory = path.resolve(root, process.argv[2] || "release");
 const expectedBrowsers = ["chrome", "firefox", "edge"];
+const generatedChecksums = [];
 
 function referencedManifestFiles(manifest) {
   const references = new Set();
@@ -27,7 +29,7 @@ function referencedManifestFiles(manifest) {
 }
 
 function validateBrowserManifest(manifest, browser) {
-  if (manifest.version !== "2.32.6") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
+  if (manifest.version !== "2.32.7") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
     const gecko = manifest.browser_specific_settings?.gecko;
@@ -44,8 +46,9 @@ function validateBrowserManifest(manifest, browser) {
 }
 
 for (const browser of expectedBrowsers) {
-  const filename = `plumepilot-v2.32.6-${browser}.zip`;
+  const filename = `plumepilot-v2.32.7-${browser}.zip`;
   const bytes = await readFile(path.join(releaseDirectory, filename));
+  generatedChecksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${filename}`);
   const zip = await JSZip.loadAsync(bytes);
   const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
   if (!zip.file("manifest.json")) throw new Error(`${browser}: manifest.json non è alla radice.`);
@@ -71,5 +74,11 @@ for (const browser of expectedBrowsers) {
   console.log(`${filename}: OK (${names.length} file, manifest alla radice)`);
 }
 
-const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.6-${browser}.zip`));
+const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.7-${browser}.zip`));
 if (unexpectedArchives.length) throw new Error(`Archivi inattesi: ${unexpectedArchives.join(", ")}`);
+
+const checksumManifest = await readFile(path.join(releaseDirectory, "SHA256SUMS.txt"), "utf8");
+if (checksumManifest !== `${generatedChecksums.join("\n")}\n`) {
+  throw new Error("SHA256SUMS.txt non coincide con gli archivi validati.");
+}
+console.log("SHA256SUMS.txt: OK");
