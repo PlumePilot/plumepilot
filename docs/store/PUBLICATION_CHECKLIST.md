@@ -1,27 +1,27 @@
 # PlumePilot — checklist di pubblicazione
 
-Aggiornata il 9 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
+Aggiornata il 10 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
 
 ## Stato e criterio di rilascio
 
-- [x] Baseline stabile: `v2.32.6` su `main`.
+- [x] Baseline stabile: `v2.32.7` su `main` al commit `65ca3ad71f65a05b5372bbe5d6e9554d5b6e930d`.
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
 - [x] Correzione della numerazione e del recupero capitoli confermata sui test locali e su più corsi reali.
 - [x] Response delle domande associata tramite `testId`, senza scartare titoli video abbreviati rispetto al capitolo.
-- [ ] Conferma esterna finale sul corso da 29 capitoli organizzato `20 + 9`.
+- [x] Conferma esterna finale sul corso da 29 capitoli organizzato `20 + 9`.
 - [x] Feedback EXP verificato: nessun claim o messaggio in Standard; assegnazione regolare in Gaming.
 - [x] Menu fluttuante verificato: header e tab fissi, solo il contenuto scorre.
-- [ ] PR #3 della candidata `v2.32.7` integrata in `main`.
+- [x] PR #3 della candidata `v2.32.7` integrata in `main`.
 - [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.7`.
-- [ ] Congelamento della release candidate finale.
+- [x] Congelamento della release candidate finale.
 
-Non caricare i pacchetti negli store finché la conferma esterna `20 + 9` e lo smoke test finale non sono stati chiusi. Le bozze, i testi e gli asset possono essere completati nel frattempo.
+Non caricare i pacchetti negli store finché lo smoke test finale non è stato chiuso. Le bozze, i testi e gli asset possono essere completati nel frattempo.
 
 ## Strategia Git
 
 - `fix/test-export-chapter-numbering`: integrato con la PR #1 nella patch `v2.32.6`.
-- `fix/standard-exp-floating-tabs`: PR #3 in bozza; contiene la candidata `v2.32.7`, il recupero dinamico dell'indice master, il gate EXP e le tab fisse.
+- `fix/standard-exp-floating-tabs`: integrato con la PR #3 in `v2.32.7`; contiene il recupero dinamico dell'indice master, l'associazione tramite `testId`, il gate EXP, Ko-fi e le correzioni sticky.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -37,6 +37,7 @@ Prima del merge verificare che ogni PR sia aggiornata rispetto a `main` e che no
 - [x] Privacy policy: <https://plumepilot.github.io/plumepilot/privacy/>.
 - [x] Homepage: <https://plumepilot.github.io/plumepilot/>.
 - [x] Supporto: <https://github.com/PlumePilot/plumepilot/issues>.
+- [x] Sostegno volontario: <https://ko-fi.com/flo_> in homepage, README e **Preferenze → Informazioni**.
 - [x] Contatto privato: `plumepilot@gmail.com`.
 - [x] Licenza: GPL-3.0-only.
 - [ ] Confermare la categoria più vicina disponibile: **Produttività**; su AMO aggiungere **Istruzione** se presente.
@@ -82,7 +83,7 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 - [x] Eseguire `node scripts/validate-release.mjs`.
 - [x] Conservare nome, dimensione e SHA-256 dei tre ZIP.
 - [x] Verificare che Chrome ed Edge siano identici oppure documentare la differenza attesa.
-- [ ] Costruire in una directory vuota e conservare il `SHA256SUMS.txt` generato dal builder.
+- [x] Costruire in una directory vuota e conservare il `SHA256SUMS.txt` generato dal builder.
 - [ ] Verificare che gli hash del file scaricato, del verbale e del portale coincidano prima di ogni installazione o upload.
 - [ ] Installare da zero gli stessi ZIP destinati agli store.
 - [x] Audit statico: debug disattivato e nessun log esplicito di token, header Authorization o payload API.
@@ -90,19 +91,27 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 
 Build candidata corrente `v2.32.7` verificata:
 
-- Chrome/Edge: 1.945.130 byte, SHA-256 `258e7696065db720cbedbd28739e60c556459835517c1494ed3f3614cb561417`;
-- Firefox: 1.945.260 byte, SHA-256 `9b3cdcb6f263c10d43806c168a405df253abff8fe283876cf480a9e9fec491ca`.
+- Chrome/Edge: 1.945.159 byte, SHA-256 `c1cf8187738a20c277154d04cd68f3c727d5b7b5b17c51f571cedef09e81071f`;
+- Firefox: 1.945.289 byte, SHA-256 `74a7a8066e9b7be1970726c41992b7fa46d862947197685ac2e323e7444a7a26`;
+- sorgente: 2.268.002 byte, SHA-256 `4ce1779b497fbd882c277490b46b83e0c6a661f2c4b90e8ddaf3b0d3739e8d86`.
 
 Le candidate precedenti non devono essere installate né caricate negli store:
 
 - Chrome `45b621e75e9dc0d9bbb14e0583fab63bd7f6129bfe3142d073c54fea71ec76b0`: priva della gestione di `folder_id: 0`;
 - Chrome/Edge `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa` e Firefox `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`: gestiscono `folder_id: 0`, ma possono scartare domande valide quando Pegaso abbrevia `titolo_videolezione`.
+- Chrome/Edge `258e7696065db720cbedbd28739e60c556459835517c1494ed3f3614cb561417` e Firefox `9b3cdcb6f263c10d43806c168a405df253abff8fe283876cf480a9e9fec491ca`: precedono Ko-fi e la correzione della spaziatura sticky.
+- Chrome/Edge `90f2409a40b4e81e828aa1cf2a050202f4be4e2c96de73866ca99000d39bcb35` e Firefox `44c4a144627f6a395b039a7ed802cd338505721d7a57e3c9dbdbbead7bceba00`: includono Ko-fi ma precedono la correzione della spaziatura sticky.
 
 Conferme manuali già ricevute sulla candidata corretta:
 
 - raccolta test e allineamento capitoli positivi su più corsi;
+- test `66116` incluso correttamente anche con `titolo_videolezione` abbreviato;
+- corso con ID non consecutivi, test mancanti e test presenti ma vuoti gestito senza disallineamenti;
+- corso da 29 capitoli `20 + 9` confermato esternamente;
 - EXP e relativi messaggi corretti in Standard e Gaming;
 - tab del menu fluttuante correttamente fisse;
+- header del menu principale correttamente distanziato durante lo scorrimento;
+- collegamento Ko-fi verificato;
 - possibili test isolati non recuperabili vengono elencati come non inclusi senza disallineare la raccolta.
 
 ## Smoke test comune
@@ -117,6 +126,8 @@ Conferme manuali già ricevute sulla candidata corretta:
 - [ ] Barra di progressione e avviso 70%.
 - [ ] Stato commissione e cancellazione cache.
 - [ ] Menu fluttuante nei tre formati e nei temi chiaro/scuro.
+- [ ] Menu principale: header/tab fissi e spaziatura superiore costante durante lo scorrimento.
+- [ ] Collegamento Ko-fi in **Preferenze → Informazioni**.
 - [ ] Modalità Gaming, assegnazione EXP, reset e assenza di UI Gaming in Standard.
 - [ ] Ricaricamento pagina, nuova scheda e riavvio browser.
 

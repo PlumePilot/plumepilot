@@ -202,7 +202,7 @@ function applyReward(kind, style) {
 async function claimAchievement(id) {
   if (document.documentElement.dataset.visualStyle !== "gaming") return { accepted: false };
   const result = await runtimeMessage({ type: "STUDYWING_ACHIEVEMENT_CLAIM", achievementId: id });
-  if (result?.accepted) {
+  if (result?.accepted && document.documentElement.dataset.visualStyle === "gaming") {
     const rewards = Array.isArray(result.newUnlockIds) ? result.newUnlockIds.length : 0;
     const suffix = `${rewards ? ` · ${rewards === 1 ? "Nuova ricompensa disponibile" : `${rewards} nuove ricompense disponibili`}` : ""}${result.levelUp ? ` · Livello ${result.level} raggiunto!` : ""}`;
     achievementFeedback.textContent = `${result.achievement.title}: +${result.awardedExp} EXP${suffix}`;
@@ -793,8 +793,9 @@ for (const radio of visualStyleRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;
   const visualStyle = selectedVisualStyle();
   renderVisualStyle(visualStyle);
-  chrome.storage.local.set({ visualStyle });
-  claimEnabledGamingAchievements();
+  chrome.storage.local.set({ visualStyle }, () => {
+    if (!chrome.runtime.lastError) claimEnabledGamingAchievements();
+  });
 });
 for (const radio of themePreferenceRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;

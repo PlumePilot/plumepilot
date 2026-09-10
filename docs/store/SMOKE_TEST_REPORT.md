@@ -34,6 +34,8 @@ Usare `PASS`, `FAIL`, `N/A` o `BLOCCATO`. Annotare ogni anomalia con browser, pa
 | Completamento Test e Obiettivi |  |  |  |  |
 | Raccolta test PDF e HTML |  |  |  |  |
 | Capitolo/test non recuperabile senza disallineamento |  |  |  |  |
+| Master index con `folder_id: 0` e ID non consecutivi |  |  |  |  |
+| Test presente ma vuoto senza disallineamento |  |  |  |  |
 | Titolo video abbreviato con `testId` corretto |  |  |  |  |
 | `testId` ricevuto differente: response respinta |  |  |  |  |
 | Caso reale 29 capitoli `20 + 9` |  |  |  |  |
@@ -42,6 +44,8 @@ Usare `PASS`, `FAIL`, `N/A` o `BLOCCATO`. Annotare ogni anomalia con browser, pa
 | Stato commissione e cancellazione cache |  |  |  |  |
 | Menu fluttuante Piccolo/Medio/Grande |  |  |  |  |
 | Menu fluttuante: header/tab fissi |  |  |  |  |
+| Menu principale: header/tab fissi e margine superiore costante |  |  |  |  |
+| Ko-fi in Preferenze → Informazioni |  |  |  |  |
 | Standard: nessun claim o messaggio EXP |  |  |  |  |
 | Gaming: EXP, Traguardi e ricompense |  |  |  |  |
 | Reset Gaming |  |  |  |  |

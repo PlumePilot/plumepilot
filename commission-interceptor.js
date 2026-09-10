@@ -80,16 +80,23 @@
     return Number.isInteger(Number(value)) && Number(value) > 0;
   }
 
+  function validNonNegativeInteger(value) {
+    return value !== null && value !== "" && typeof value !== "boolean" &&
+      Number.isInteger(Number(value)) && Number(value) >= 0;
+  }
+
   function normalizeCourseOutline(body) {
     if (!Array.isArray(body?.data)) return [];
     return body.data
       .slice(0, 1000)
-      .map((entry) => {
+      .map((entry, masterOrder) => {
         const displayOrder = Number(entry?.display_order);
         const percentage = Number(entry?.percentage);
         if (!Number.isInteger(displayOrder) || displayOrder < 1) return null;
         return {
           displayOrder,
+          masterOrder,
+          folderId: validNonNegativeInteger(entry?.folder_id) ? Number(entry.folder_id) : null,
           id: validPositiveInteger(entry?.id) ? Number(entry.id) : null,
           lpId: validPositiveInteger(entry?.lp_id) ? Number(entry.lp_id) : null,
           title: safeString(entry?.title || entry?.name, 300),
