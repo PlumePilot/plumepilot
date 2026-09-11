@@ -22,6 +22,7 @@ I checksum si riferiscono ai file inclusi nella release PlumePilot 2.32.9. Prima
 - Progetto: <https://github.com/Hopding/fontkit>
 - Pacchetto ufficiale: <https://www.npmjs.com/package/@pdf-lib/fontkit/v/1.1.1>
 - Archivio npm ufficiale: <https://registry.npmjs.org/@pdf-lib/fontkit/-/fontkit-1.1.1.tgz> (`dist/fontkit.umd.min.js`).
+- Sorgente leggibile della versione: cartelle `es/` e `lib/` nello stesso archivio npm 1.1.1.
 - File: `vendor/fontkit.umd.min.js`.
 - SHA-256: `d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6`.
 - Testo della licenza: `vendor/fontkit-LICENSE.txt`.

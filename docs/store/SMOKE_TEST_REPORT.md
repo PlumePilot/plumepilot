@@ -8,10 +8,10 @@ Compilare questo documento esclusivamente sulla build congelata destinata agli s
 - Commit/tag: `chore/amo-submission-2.32.9` (commit definitivo e tag non ancora creati)
 - Data test: `11/09/2026`
 - Responsabile: `Fabio Floris`
-- Chrome ZIP SHA-256: `5f04f8e8eb980d32d43732c91fe165a740116986235a73d61fe6cbb8652ff062`
-- Edge ZIP SHA-256: `5f04f8e8eb980d32d43732c91fe165a740116986235a73d61fe6cbb8652ff062`
-- Firefox ZIP SHA-256: `22b0cd7e281bec6395e742b6cef570e8d48a03da6b6d85c8a3f38f35eed2e97f`
-- Source ZIP SHA-256: `c052c95e01d9192ffa5a8c69df2a09096457d2a91a8b038715d306950a797b84`
+- Chrome ZIP SHA-256: `c7aaefbf1351f9e2ab22a96122a359b1b2542f2ae1f8addc23d082ba0be2cd4c`
+- Edge ZIP SHA-256: `c7aaefbf1351f9e2ab22a96122a359b1b2542f2ae1f8addc23d082ba0be2cd4c`
+- Firefox ZIP SHA-256: `87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213`
+- Source ZIP SHA-256: `49bb6284b6ec1d027832ed72f318b8366bd820504d040407e3ea770ad1193b03`
 - File `SHA256SUMS.txt` verificato: `SÌ`
 
 ## Ambienti

@@ -29,7 +29,7 @@ release/plumepilot-v2.32.9-firefox.zip
 Expected SHA-256:
 
 ```text
-22b0cd7e281bec6395e742b6cef570e8d48a03da6b6d85c8a3f38f35eed2e97f
+87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -62,7 +62,7 @@ The minified files in `vendor/` are unmodified copies from official npm releases
 
 - name and exact version;
 - exact file path inside the official npm archive;
-- official npm archive and readable tagged source links;
+- official npm archive and readable tagged source links, or readable versioned source included in the exact npm archive;
 - license and local license file;
 - SHA-256 of the bundled file.
 

@@ -48,14 +48,14 @@ node scripts/build-release.mjs
 node scripts/validate-release.mjs
 ```
 
-Expected Firefox package SHA-256: `22b0cd7e281bec6395e742b6cef570e8d48a03da6b6d85c8a3f38f35eed2e97f`
+Expected Firefox package SHA-256: `87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213`
 
 ## Third-party libraries
 
 The runtime package contains these unmodified official releases:
 
 - pdf-lib 1.17.1 — <https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz> — readable source: <https://github.com/Hopding/pdf-lib/tree/v1.17.1>
-- @pdf-lib/fontkit 1.1.1 — <https://registry.npmjs.org/@pdf-lib/fontkit/-/fontkit-1.1.1.tgz> — readable source: <https://github.com/Hopding/fontkit>
+- @pdf-lib/fontkit 1.1.1 — <https://registry.npmjs.org/@pdf-lib/fontkit/-/fontkit-1.1.1.tgz> — readable versioned source is included in the archive under `es/` and `lib/`; project repository: <https://github.com/Hopding/fontkit>
 - PDF.js 5.6.205 — <https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz> — readable source: <https://github.com/mozilla/pdf.js/tree/v5.6.205>
 - JSZip 3.10.1 — <https://registry.npmjs.org/jszip/-/jszip-3.10.1.tgz> — readable source: <https://github.com/Stuk/jszip/tree/v3.10.1>
 
