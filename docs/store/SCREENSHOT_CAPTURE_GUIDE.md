@@ -4,7 +4,7 @@ Questa guida definisce il set iniziale di immagini per Chrome Web Store, Microso
 
 ## Stato del set finale
 
-Il set `v2.32.8` è completo: cinque immagini PNG `1280×800` per Firefox, Chrome ed Edge. Le immagini sono opache, prive di metadati e verificate anche alla resa ridotta `640×400`. Nome, matricola, avatar e barra del browser non sono visibili. Gli asset finali restano esterni alla repository e non devono essere committati.
+Il set creato sulla `v2.32.8` resta valido per la `v2.32.9`: la patch AMO modifica soltanto metadati Firefox, packaging sorgente e decodifica interna delle entità HTML, senza cambiamenti visivi. Le cinque immagini PNG `1280×800` per Firefox, Chrome ed Edge sono opache, prive di metadati e verificate anche alla resa ridotta `640×400`. Nome, matricola, avatar e barra del browser non sono visibili. Gli asset finali restano esterni alla repository e non devono essere committati.
 
 ## Preparazione
 

@@ -1,10 +1,10 @@
 # PlumePilot — checklist di pubblicazione
 
-Aggiornata il 10 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
+Aggiornata l'11 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
 
 ## Stato e criterio di rilascio
 
-- [x] Baseline stabile: `v2.32.8` su `main` al commit `18f95916c9055e0c44bae21abe0663bf45cabe5d`.
+- [ ] Baseline candidata AMO: `v2.32.9` sul branch `chore/amo-submission-2.32.9`; merge e commit definitivo su `main` ancora da registrare.
 - [x] Build riproducibile separata per Chrome, Edge e Firefox.
 - [x] Manifest V3, licenze, privacy, supporto e Firefox ID definitivo presenti.
 - [x] Correzione della numerazione e del recupero capitoli confermata sui test locali e su più corsi reali.
@@ -14,18 +14,22 @@ Aggiornata il 10 settembre 2026. Questa checklist prepara la prima pubblicazione
 - [x] Menu fluttuante verificato: header e tab fissi, solo il contenuto scorre.
 - [x] PR #3 della candidata `v2.32.7` integrata in `main`.
 - [x] PR #4 della candidata `v2.32.8` integrata in `main`.
-- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.8`.
+- [x] Version bump e aggiornamento coerente di manifest, changelog e validatore a `2.32.9`.
+- [x] Manifest Firefox completato con `gecko_android.strict_min_version: 142.0`, mantenendo la distribuzione AMO solo Desktop.
+- [x] Pacchetto sorgente AMO e checksum generati dallo stesso builder dei pacchetti browser.
+- [x] Note inglesi per i revisori e README sorgente inglese aggiunti.
 - [x] Messaggi delle operazioni mostrati soltanto accanto all'azione pertinente, senza duplicazioni.
 - [x] Gerarchia tipografica di popup e menu fluttuante verificata nei formati Piccolo/Medio/Grande.
 - [x] Congelamento della release candidate finale.
 
-Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI della `v2.32.8` sono chiusi. Usare esclusivamente i pacchetti `v2.32.8` identificati dagli hash riportati in questa checklist.
+Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI della `v2.32.8` sono chiusi. I test automatici, la build e il lint AMO locale della `v2.32.9` sono chiusi; prima dell'upload resta una verifica manuale mirata del pacchetto Firefox definitivo. Usare esclusivamente i pacchetti `v2.32.9` identificati dagli hash riportati in questa checklist.
 
 ## Strategia Git
 
 - `fix/test-export-chapter-numbering`: integrato con la PR #1 nella patch `v2.32.6`.
 - `fix/standard-exp-floating-tabs`: integrato con la PR #3 in `v2.32.7`; contiene il recupero dinamico dell'indice master, l'associazione tramite `testId`, il gate EXP, Ko-fi e le correzioni sticky.
 - `fix/pre-store-ui-polish`: integrato con la PR #4 in `v2.32.8`; elimina gli stati operativi duplicati e riallinea la tipografia responsive.
+- `chore/amo-submission-2.32.9`: candidata AMO; aggiorna il manifest Firefox, il decoder delle entità, la build del sorgente e la documentazione per i revisori.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -57,6 +61,7 @@ Prima del merge verificare che ogni PR sia aggiornata rispetto a `main` e che no
 - [ ] Riportare nei moduli Chrome ed Edge le categorie conservative indicate nella matrice di `SUBMISSION_COPY_IT.md`.
 - [ ] Controllare che le dichiarazioni mostrate dai portali coincidano con manifest e privacy policy prima dell'invio.
 - [x] Firefox: mantenere `authenticationInfo`, `websiteContent` e `websiteActivity` come dati richiesti.
+- [x] Firefox: `web-ext lint 10.6.0` completato con 0 errori, 0 notice e 14 warning documentati nelle note per i revisori.
 
 ## Asset
 
@@ -93,13 +98,15 @@ La schermata della commissione è facoltativa: inserirla soltanto con dati inter
 - [x] Audit statico: debug disattivato e nessun log esplicito di token, header Authorization o payload API.
 - [x] Controllare assenza di errori runtime nelle console durante lo smoke test.
 
-Build candidata corrente `v2.32.8` verificata:
+Build candidata corrente `v2.32.9` verificata:
 
-- Chrome/Edge: 1.945.165 byte, SHA-256 `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`;
-- Firefox: 1.945.294 byte, SHA-256 `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`;
-- sorgente: 2.276.612 byte, SHA-256 `7c37e9328208ce850c243d335a3b937e176b44de1503e76c5e724f1744a72ac2`.
+- Chrome/Edge: 1.945.380 byte, SHA-256 `5f04f8e8eb980d32d43732c91fe165a740116986235a73d61fe6cbb8652ff062`;
+- Firefox: 1.945.525 byte, SHA-256 `22b0cd7e281bec6395e742b6cef570e8d48a03da6b6d85c8a3f38f35eed2e97f`;
+- sorgente: 2.249.810 byte, SHA-256 `c052c95e01d9192ffa5a8c69df2a09096457d2a91a8b038715d306950a797b84`.
 
 Le candidate precedenti non devono essere installate né caricate negli store:
+
+- Chrome/Edge `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880` e Firefox `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`: build `v2.32.8`, precedente alla preparazione AMO definitiva;
 
 - Chrome `45b621e75e9dc0d9bbb14e0583fab63bd7f6129bfe3142d073c54fea71ec76b0`: priva della gestione di `folder_id: 0`;
 - Chrome/Edge `ee24d29a4f4fd126db0ec1dcf5a1632e511a4400f644c1f8d98361c00b9e60fa` e Firefox `d9257e6a5c8c8f54bd5d048e50e722f0bf60d281b53a36baeffc03a073655fa4`: gestiscono `folder_id: 0`, ma possono scartare domande valide quando Pegaso abbrevia `titolo_videolezione`.
@@ -163,10 +170,12 @@ Usare `SMOKE_TEST_REPORT.md` come verbale e `SCREENSHOT_CAPTURE_GUIDE.md` per le
 ### Firefox Add-ons
 
 - [ ] Caricare il pacchetto Firefox con ID `plumepilot@fabiofloris`.
-- [ ] Risolvere errori e warning del validatore AMO prima dell'invio.
+- [x] Eliminare i warning AMO first-party correggibili senza rifattorizzazioni rischiose; restano 12 warning vendor e 2 template Shadow DOM statici, tutti documentati.
+- [ ] Confermare sul validatore AMO della dashboard lo stesso risultato del lint locale: 0 errori e soli warning già documentati.
 - [ ] Selezionare solo Firefox Desktop, salvo futuri test Android.
-- [ ] Allegare il pacchetto sorgente e le istruzioni di `FIREFOX_SOURCE_SUBMISSION.md`.
-- [ ] Riportare in Notes for Reviewers librerie vendor, versioni e collegamenti indicati in `THIRD_PARTY_NOTICES.md`.
+- [x] Preparare il pacchetto sorgente con `AMO_SOURCE_README.md` e le istruzioni estese di `FIREFOX_SOURCE_SUBMISSION.md`.
+- [x] Preparare le Notes for Reviewers inglesi con librerie vendor, versioni, collegamenti e spiegazione dei warning.
+- [ ] Inserire credenziali DEMO, scadenza, corso, video e hash finali nei segnaposto privati immediatamente prima dell'invio.
 
 ## Accesso per i revisori
 

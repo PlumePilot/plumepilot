@@ -4,13 +4,14 @@ Compilare questo documento esclusivamente sulla build congelata destinata agli s
 
 ## Identità della release
 
-- Versione: `v2.32.8`
-- Commit/tag: `18f95916c9055e0c44bae21abe0663bf45cabe5d` (tag non ancora creato)
-- Data test: `10/09/2026`
+- Versione: `v2.32.9`
+- Commit/tag: `chore/amo-submission-2.32.9` (commit definitivo e tag non ancora creati)
+- Data test: `11/09/2026`
 - Responsabile: `Fabio Floris`
-- Chrome ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
-- Edge ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
-- Firefox ZIP SHA-256: `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`
+- Chrome ZIP SHA-256: `5f04f8e8eb980d32d43732c91fe165a740116986235a73d61fe6cbb8652ff062`
+- Edge ZIP SHA-256: `5f04f8e8eb980d32d43732c91fe165a740116986235a73d61fe6cbb8652ff062`
+- Firefox ZIP SHA-256: `22b0cd7e281bec6395e742b6cef570e8d48a03da6b6d85c8a3f38f35eed2e97f`
+- Source ZIP SHA-256: `c052c95e01d9192ffa5a8c69df2a09096457d2a91a8b038715d306950a797b84`
 - File `SHA256SUMS.txt` verificato: `SÌ`
 
 ## Ambienti
@@ -21,7 +22,16 @@ Compilare questo documento esclusivamente sulla build congelata destinata agli s
 | Microsoft Edge Stable | `152.0.4191.66` | `Microsoft Windows 11 Pro` | `SÌ` | `PASS` |
 | Firefox | `155.0.1, >=140` | `Microsoft Windows 11 Pro` | `SÌ` | `PASS` |
 
-La matrice funzionale completa è stata eseguita sulla `v2.32.7`. Dopo la rifinitura circoscritta della `v2.32.8` sono stati ripetuti i controlli mirati su stati operativi, tipografia responsive, temi, modalità Standard/Gaming e pacchetti installabili; le funzioni non coinvolte restano coperte dallo smoke test completo precedente.
+La matrice funzionale completa è stata eseguita sulla `v2.32.7`. Dopo la rifinitura circoscritta della `v2.32.8` sono stati ripetuti i controlli mirati su stati operativi, tipografia responsive, temi, modalità Standard/Gaming e pacchetti installabili. La `v2.32.9` modifica soltanto metadati Firefox, decodifica inerte delle entità HTML, build del sorgente e documentazione: test automatici, sintassi, build, validatore interno e lint AMO locale sono PASS; resta da eseguire una verifica manuale mirata del pacchetto Firefox definitivo.
+
+## Controlli specifici v2.32.9
+
+- Test automatici Node: `PASS` — 2/2.
+- Build deterministica dei tre browser e del sorgente: `PASS`.
+- Validatore release interno: `PASS`.
+- `web-ext lint 10.6.0`: `PASS` — 0 errori, 0 notice, 14 warning documentati.
+- Confronto vendor con pacchetti npm ufficiali tramite `npm pack` e `cmp`: `PASS` — 5/5 file.
+- Installazione pulita e prova raccolta test su Firefox: `DA RIPETERE` sul pacchetto definitivo dopo il merge.
 
 ## Casi funzionali
 
@@ -72,8 +82,8 @@ Un test Pegaso isolato può restare non disponibile dopo i tentativi automatici.
 
 ## Chiusura
 
-- Gate funzionali completati: `SÌ`
-- Hash confrontati con i pacchetti da caricare: `SÌ`
-- Screenshot ottenuti dalla stessa build: `SÌ — cinque immagini 1280×800 verificate per browser`
-- Approvazione al merge/tag/upload: `Fabio Floris — 10/09/2026: PR #4 integrata; preparazione documentale PR #2 autorizzata; tag e upload in attesa`
-- Note finali: `Smoke test completo eseguito sulla v2.32.7 con esito PASS su Chrome, Edge e Firefox. La v2.32.8 modifica soltanto feedback operativo e tipografia responsive: sintassi, regressioni dell'export, invarianti UI, struttura dei tre pacchetti e checksum sono stati verificati; i controlli manuali mirati e la resa degli screenshot sono stati confermati. Gli occasionali falsi incompleti dell'indice master sono gestiti dalla verifica visuale; non sono stati osservati falsi completi.`
+- Gate funzionali completati: `IN ATTESA DELLA VERIFICA MANUALE MIRATA FIREFOX 2.32.9`
+- Hash confrontati con i pacchetti da caricare: `SÌ PER LA BUILD CANDIDATA; DA RIPETERE DOPO IL MERGE`
+- Screenshot: `SÌ — cinque immagini 1280×800 della v2.32.8, ancora rappresentative perché la v2.32.9 non modifica la UI`
+- Approvazione al merge/tag/upload: `in attesa della revisione della PR v2.32.9 e della prova manuale Firefox`
+- Note finali: `Smoke test completo eseguito sulla v2.32.7 con esito PASS su Chrome, Edge e Firefox; verifiche UI mirate della v2.32.8 completate. La v2.32.9 ha superato test automatici, build, validazione interna e lint AMO locale. Gli occasionali falsi incompleti dell'indice master sono gestiti dalla verifica visuale; non sono stati osservati falsi completi.`
