@@ -2,7 +2,7 @@
 
 PlumePilot è distribuito sotto GPL-3.0-only. I componenti elencati in questo documento rimangono soggetti alle rispettive licenze.
 
-I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32.1.
+I checksum si riferiscono ai file inclusi nella release PlumePilot 2.32.9. Prima della release sono stati confrontati byte per byte con i file estratti dai pacchetti npm ufficiali indicati sotto.
 
 ## pdf-lib 1.17.1
 
@@ -10,6 +10,7 @@ I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32
 - Licenza: MIT.
 - Progetto e release: <https://github.com/Hopding/pdf-lib/tree/v1.17.1>
 - Pacchetto ufficiale: <https://www.npmjs.com/package/pdf-lib/v/1.17.1>
+- Archivio npm ufficiale: <https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz> (`dist/pdf-lib.min.js`).
 - File: `vendor/pdf-lib.min.js`.
 - SHA-256: `0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f`.
 - Testo della licenza: `vendor/pdf-lib-LICENSE.md`.
@@ -20,6 +21,8 @@ I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32
 - Licenza: MIT.
 - Progetto: <https://github.com/Hopding/fontkit>
 - Pacchetto ufficiale: <https://www.npmjs.com/package/@pdf-lib/fontkit/v/1.1.1>
+- Archivio npm ufficiale: <https://registry.npmjs.org/@pdf-lib/fontkit/-/fontkit-1.1.1.tgz> (`dist/fontkit.umd.min.js`).
+- Sorgente leggibile della versione: cartelle `es/` e `lib/` nello stesso archivio npm 1.1.1.
 - File: `vendor/fontkit.umd.min.js`.
 - SHA-256: `d8df561b9fba98e24f2e5130e40948809281bbbc55a20c412359f1a0a5eb35a6`.
 - Testo della licenza: `vendor/fontkit-LICENSE.txt`.
@@ -31,6 +34,7 @@ I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32
 - Licenza: Apache License 2.0.
 - Progetto e tag: <https://github.com/mozilla/pdf.js/tree/v5.6.205>
 - Pacchetto ufficiale: <https://www.npmjs.com/package/pdfjs-dist/v/5.6.205>
+- Archivio npm ufficiale: <https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz> (`legacy/build/pdf.min.mjs` e `legacy/build/pdf.worker.min.mjs`).
 - File API: `vendor/pdf.min.mjs`.
 - SHA-256 API: `0d29c4871eff0b72f3896825f2673ddf7dfbccf815a7095a5d14f5aa68fab0e5`.
 - File worker: `vendor/pdf.worker.min.mjs`.
@@ -43,6 +47,7 @@ I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32
 - Licenza: MIT oppure GPL-3.0.
 - Progetto e tag: <https://github.com/Stuk/jszip/tree/v3.10.1>
 - Pacchetto ufficiale: <https://www.npmjs.com/package/jszip/v/3.10.1>
+- Archivio npm ufficiale: <https://registry.npmjs.org/jszip/-/jszip-3.10.1.tgz> (`dist/jszip.min.js`).
 - File: `vendor/jszip.min.js`.
 - SHA-256: `acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e`.
 - Avvisi di licenza: `vendor/jszip-LICENSE.md`.
@@ -66,4 +71,4 @@ I font nella cartella `vendor/standard_fonts/` provengono dalla distribuzione `p
 
 ## Verifica per la revisione AMO
 
-Prima di ogni invio a Firefox Add-ons occorre verificare che le copie incluse siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**.
+Prima di ogni invio a Firefox Add-ons occorre verificare che le copie incluse siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**. Le copie di PlumePilot 2.32.9 sono state verificate con `npm pack` e `cmp` contro i percorsi elencati: tutti i confronti hanno restituito `MATCH`.

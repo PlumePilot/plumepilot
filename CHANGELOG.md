@@ -1,5 +1,14 @@
 # PlumePilot — Changelog
 
+## Improved in 2.32.9: Firefox review readiness
+
+- Declares Firefox for Android 142 as the minimum Android version for the built-in data collection consent manifest key while keeping the AMO release limited to Firefox Desktop.
+- Replaces the only first-party dynamic `innerHTML` assignment used to decode entities with inert `DOMParser` text extraction.
+- Generates the Firefox source submission archive together with the browser packages and includes it in `SHA256SUMS.txt`.
+- Validates the source archive, reviewer build instructions and Firefox-specific minimum versions before release.
+- Adds English AMO reviewer notes and a root-level source-build README, and documents exact official package sources for every bundled vendor library.
+- Leaves extension permissions, supported domains, user-facing behavior and data handling unchanged.
+
 ## Improved in 2.32.8: clearer operation feedback and readable progress options
 
 - Shows the active operation message only beside its matching action instead of repeating the same explanation beneath every disabled action.
