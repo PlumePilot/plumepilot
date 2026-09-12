@@ -9,7 +9,7 @@ const popupSource = readFileSync(new URL("../popup.js", import.meta.url), "utf8"
 const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
 const popupHtmlSource = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
 const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
-const flameSprite = readFileSync(new URL("../assets/gaming/flame-levels.png", import.meta.url));
+const flameSprite = readFileSync(new URL("../assets/gaming/chapter-limit-flame-levels.png", import.meta.url));
 const themeSource = readFileSync(new URL("../theme.js", import.meta.url), "utf8");
 
 const stored = { visualStyle: "standard" };
@@ -67,8 +67,8 @@ assert.match(floatingMenuSource, /data-role="chapter-limit-value" type="number"[
 assert.match(floatingMenuSource, /data-role="chapter-limit-slider" type="range"[^>]+min="1"[^>]+step="1"/);
 assert.match(popupSource, /chapterLimitSlider\.addEventListener\("change", \(\) => updateChapterLimitValue/);
 assert.match(floatingMenuSource, /chapterLimitSlider\.addEventListener\("change", \(\) => setLimit/);
-assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/flame-levels.png")));
-assert.equal(flameSprite.readUInt32BE(16), 120, "flame sprite must retain five 24px columns");
-assert.equal(flameSprite.readUInt32BE(20), 24, "flame sprite height must fit the slider thumb");
+assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/chapter-limit-flame-levels.png")));
+assert.equal(flameSprite.readUInt32BE(16), 160, "flame sprite must retain five 32px columns");
+assert.equal(flameSprite.readUInt32BE(20), 32, "flame sprite height must fit the slider thumb");
 
 console.log("PASS: EXP modes, navigation, responsive text and chapter-limit selectors are consistent");
