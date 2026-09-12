@@ -7,6 +7,9 @@ const backgroundSource = readFileSync(new URL("../background.js", import.meta.ur
 const floatingMenuSource = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
 const popupSource = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
 const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
+const popupHtmlSource = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
+const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+const flameSprite = readFileSync(new URL("../assets/gaming/flame-levels.png", import.meta.url));
 const themeSource = readFileSync(new URL("../theme.js", import.meta.url), "utf8");
 
 const stored = { visualStyle: "standard" };
@@ -58,5 +61,14 @@ assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*11px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.action\s*\{\s*font-size:\s*12px;/s);
+assert.match(popupHtmlSource, /id="chapterLimitValue" type="number"[^>]+min="1"[^>]+step="1"/);
+assert.match(popupHtmlSource, /id="chapterLimitSlider"[^>]+type="range"[^>]+min="1"[^>]+step="1"/);
+assert.match(floatingMenuSource, /data-role="chapter-limit-value" type="number"[^>]+min="1"[^>]+step="1"/);
+assert.match(floatingMenuSource, /data-role="chapter-limit-slider" type="range"[^>]+min="1"[^>]+step="1"/);
+assert.match(popupSource, /chapterLimitSlider\.addEventListener\("change", \(\) => updateChapterLimitValue/);
+assert.match(floatingMenuSource, /chapterLimitSlider\.addEventListener\("change", \(\) => setLimit/);
+assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/flame-levels.png")));
+assert.equal(flameSprite.readUInt32BE(16), 120, "flame sprite must retain five 24px columns");
+assert.equal(flameSprite.readUInt32BE(20), 24, "flame sprite height must fit the slider thumb");
 
-console.log("PASS: EXP modes, floating tabs, popup operation status and responsive text are consistent");
+console.log("PASS: EXP modes, navigation, responsive text and chapter-limit selectors are consistent");

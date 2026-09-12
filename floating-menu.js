@@ -977,6 +977,14 @@
     );
   }
 
+  function flameLevelForLimit(value, maximum) {
+    if (maximum <= 1) return 5;
+    return Math.max(
+      1,
+      Math.min(5, Math.ceil(((value - 1) / (maximum - 1)) * 5)),
+    );
+  }
+
   function renderSettings() {
     if (!ui) return;
     const autoplayDisabled = settings.enabled === false;
@@ -1016,9 +1024,15 @@
     ui.chapterLimitEnabled.checked =
       settings.autoplayChapterLimitEnabled === true;
     ui.chapterLimitEnabled.disabled = !limitReady;
-    ui.chapterLimitValue.textContent = String(limit);
+    ui.chapterLimitValue.value = String(limit);
+    ui.chapterLimitValue.max = String(maximum);
+    ui.chapterLimitSlider.value = String(limit);
+    ui.chapterLimitSlider.max = String(maximum);
+    ui.chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(limit, maximum));
     ui.chapterLimitMinus.disabled = !limitReady || limit <= 1;
     ui.chapterLimitPlus.disabled = !limitReady || limit >= maximum;
+    ui.chapterLimitValue.disabled = !limitReady;
+    ui.chapterLimitSlider.disabled = !limitReady;
     ui.chapterLimitProgress.textContent = !limitReady
       ? "Limite disponibile dopo il caricamento del corso."
       : limitStatus.reached
@@ -2716,9 +2730,23 @@
         .autoplay-options-content.disabled input { cursor: not-allowed; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
         .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 36px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
+        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
         .chapter-limit-stepper button { border: 0; min-height: 28px; color: var(--sw-heading); background: var(--sw-surface-elevated); }
-        .chapter-limit-stepper output { text-align: center; font-weight: 750; }
+        .chapter-limit-stepper input { width: 100%; min-width: 0; min-height: 28px; padding: 0 2px; border: 0; border-inline: 1px solid var(--sw-border); color: var(--sw-heading); background: var(--sw-surface); font: inherit; font-weight: 750; text-align: center; -moz-appearance: textfield; }
+        .chapter-limit-stepper input::-webkit-inner-spin-button,
+        .chapter-limit-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+        .chapter-limit-slider { width: 100%; height: 24px; margin: 7px 0 0; accent-color: var(--sw-accent); cursor: pointer; }
+        .chapter-limit-slider:disabled { cursor: not-allowed; opacity: .55; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider { appearance: none; height: 24px; background: transparent; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-track { height: 4px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -10px; border: 0; background: url("${chrome.runtime.getURL("assets/gaming/flame-levels.png")}") var(--sw-flame-x, 0) 0 / 120px 24px no-repeat; appearance: none; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 0; background: url("${chrome.runtime.getURL("assets/gaming/flame-levels.png")}") var(--sw-flame-x, 0) 0 / 120px 24px no-repeat; image-rendering: pixelated; }
+        .chapter-limit-slider[data-flame-level="1"] { --sw-flame-x: 0; }
+        .chapter-limit-slider[data-flame-level="2"] { --sw-flame-x: -24px; }
+        .chapter-limit-slider[data-flame-level="3"] { --sw-flame-x: -48px; }
+        .chapter-limit-slider[data-flame-level="4"] { --sw-flame-x: -72px; }
+        .chapter-limit-slider[data-flame-level="5"] { --sw-flame-x: -96px; }
         .chapter-limit-progress { margin: 6px 0 0; color: var(--sw-text-muted); font-size: 10px; line-height: 1.35; }
         .bookmark-action {
           width: 100%;
@@ -3430,9 +3458,10 @@
                     <label class="chapter-limit-row"><span>Limite sessione autoplay</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
                     <div class="chapter-limit-stepper">
                       <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
-                      <output data-role="chapter-limit-value">1</output>
+                      <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
                       <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
                     </div>
+                    <input class="chapter-limit-slider" data-role="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
                     <p class="chapter-limit-progress" data-role="chapter-limit-progress"></p>
                     <button class="bookmark-action" data-action="chapter-limit-resume" type="button" hidden>Riprendi sessione</button>
                   </div>
@@ -3663,6 +3692,9 @@
       chapterLimitValue: shadow.querySelector(
         '[data-role="chapter-limit-value"]',
       ),
+      chapterLimitSlider: shadow.querySelector(
+        '[data-role="chapter-limit-slider"]',
+      ),
       chapterLimitProgress: shadow.querySelector(
         '[data-role="chapter-limit-progress"]',
       ),
@@ -3883,20 +3915,42 @@
       if (ui.courseProgressThresholdEnabled.checked)
         claimFloatingAchievement("enable-70-advice");
     });
-    const changeLimit = (delta) => {
+    const setLimit = (nextValue) => {
       const currentCode = currentCourseCode();
       const status =
         settings.autoplayChapterLimitStatuses?.[currentCode] || null;
       if (!status?.courseCode) return;
+      const numericValue = Number(nextValue);
+      if (!Number.isFinite(numericValue)) return;
       const limits = { ...(settings.autoplayChapterLimits || {}) };
       limits[status.courseCode] = Math.max(
         1,
-        Math.min(status.maximum, (Number(status.limit) || 1) + delta),
+        Math.min(status.maximum, Math.round(numericValue)),
       );
       chrome.storage.local.set({ autoplayChapterLimits: limits });
     };
-    ui.chapterLimitMinus.addEventListener("click", () => changeLimit(-1));
-    ui.chapterLimitPlus.addEventListener("click", () => changeLimit(1));
+    const commitLimitInput = () => {
+      if (ui.chapterLimitValue.value === "") {
+        renderSettings();
+        return;
+      }
+      setLimit(ui.chapterLimitValue.value);
+    };
+    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) - 1));
+    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) + 1));
+    ui.chapterLimitValue.addEventListener("change", commitLimitInput);
+    ui.chapterLimitValue.addEventListener("blur", commitLimitInput);
+    ui.chapterLimitValue.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        commitLimitInput();
+        ui.chapterLimitValue.blur();
+      }
+    });
+    ui.chapterLimitSlider.addEventListener("input", () => {
+      ui.chapterLimitValue.value = ui.chapterLimitSlider.value;
+      ui.chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(Number(ui.chapterLimitSlider.value), Number(ui.chapterLimitSlider.max)));
+    });
+    ui.chapterLimitSlider.addEventListener("change", () => setLimit(ui.chapterLimitSlider.value));
     ui.chapterLimitResume.addEventListener("click", () => {
       const currentCode = currentCourseCode();
       const status =
