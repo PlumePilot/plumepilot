@@ -240,6 +240,8 @@
     autoplayChapterLimits,
     autoplayChapterLimitSessions,
     courseProgressOverlayEnabled,
+    autoplayStopAt70Enabled,
+    autoplayStopAt70BypassedCourses,
     visualStyle,
     initialSync = false,
   ) {
@@ -253,6 +255,8 @@
       autoplayChapterLimits,
       autoplayChapterLimitSessions,
       courseProgressOverlayEnabled,
+      autoplayStopAt70Enabled,
+      autoplayStopAt70BypassedCourses,
       visualStyle,
       initialSync,
       extensionVersion,
@@ -270,6 +274,8 @@
         autoplayChapterLimits: {},
         autoplayChapterLimitSessions: {},
         courseProgressOverlayEnabled: false,
+        autoplayStopAt70Enabled: false,
+        autoplayStopAt70BypassedCourses: {},
         visualStyle: "standard",
       },
       (result) => {
@@ -288,6 +294,8 @@
           result.autoplayChapterLimits || {},
           result.autoplayChapterLimitSessions || {},
           result.courseProgressOverlayEnabled === true,
+          result.autoplayStopAt70Enabled === true,
+          result.autoplayStopAt70BypassedCourses || {},
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
         );
@@ -640,6 +648,8 @@
       changes.autoplayChapterLimitSessions ||
       changes.playbackErrorRecovery ||
       changes.courseProgressOverlayEnabled ||
+      changes.autoplayStopAt70Enabled ||
+      changes.autoplayStopAt70BypassedCourses ||
       changes.visualStyle
     ) {
       readAndSendState(false);

@@ -38,6 +38,8 @@
     courseProgressOverlayEnabled: false,
     courseProgressOverlayPosition: "bottom",
     courseProgressThresholdEnabled: false,
+    autoplayStopAt70Enabled: false,
+    autoplayStopAt70BypassedCourses: {},
     courseProgressThresholdNotified: {},
     playbackErrorRecovery: "automatic",
     visualStyle: "standard",
@@ -1044,6 +1046,14 @@
     );
     ui.courseProgressThresholdEnabled.checked =
       settings.courseProgressThresholdEnabled === true;
+    ui.autoplayStopAt70Enabled.checked = settings.autoplayStopAt70Enabled === true;
+    const thresholdReached =
+      courseProgressStatus?.available === true &&
+      Number(courseProgressStatus.percent) >= 70;
+    ui.autoplayStopAt70Resume.hidden =
+      settings.autoplayStopAt70Enabled !== true ||
+      !thresholdReached ||
+      settings.autoplayStopAt70BypassedCourses?.[currentCode] === true;
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
@@ -1056,6 +1066,8 @@
     }
     if (settings.courseProgressThresholdEnabled === true)
       progressSummary.push("avviso 70%");
+    if (settings.autoplayStopAt70Enabled === true)
+      progressSummary.push("stop 70%");
     ui.courseProgressOptionsSummary.textContent = progressSummary.length
       ? progressSummary.join(" · ")
       : "Disattivate";
@@ -3404,7 +3416,9 @@
                     </div>
                   </div>
                   <label class="course-progress-setting"><span>Avvisami al 70%</span><input data-setting="course-progress-threshold-enabled" type="checkbox"></label>
-                  <p class="course-progress-hint">L’avviso funziona anche senza la barra sullo schermo.</p>
+                  <label class="course-progress-setting"><span>Ferma autoplay al 70%</span><input data-setting="autoplay-stop-at-70-enabled" type="checkbox"></label>
+                  <button class="bookmark-action" data-action="autoplay-stop-at-70-resume" type="button" hidden>Continua oltre il 70%</button>
+                  <p class="course-progress-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare oltre la soglia.</p>
                 </div>
               </details>
             </section>
@@ -3621,6 +3635,12 @@
       ],
       courseProgressThresholdEnabled: shadow.querySelector(
         '[data-setting="course-progress-threshold-enabled"]',
+      ),
+      autoplayStopAt70Enabled: shadow.querySelector(
+        '[data-setting="autoplay-stop-at-70-enabled"]',
+      ),
+      autoplayStopAt70Resume: shadow.querySelector(
+        '[data-action="autoplay-stop-at-70-resume"]',
       ),
       courseProgressOptionsSummary: shadow.querySelector(
         '[data-role="course-progress-options-summary"]',
@@ -3883,6 +3903,23 @@
       if (ui.courseProgressThresholdEnabled.checked)
         claimFloatingAchievement("enable-70-advice");
     });
+    const resetThresholdBypassForCurrentCourse = (bypassed) => {
+      const currentCode = currentCourseCode();
+      if (!currentCode) return;
+      const next = { ...(settings.autoplayStopAt70BypassedCourses || {}) };
+      if (bypassed) next[currentCode] = true;
+      else delete next[currentCode];
+      chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
+    };
+    ui.autoplayStopAt70Enabled.addEventListener("change", () => {
+      chrome.storage.local.set({
+        autoplayStopAt70Enabled: ui.autoplayStopAt70Enabled.checked,
+        autoplayStopAt70BypassedCourses: {},
+      });
+    });
+    ui.autoplayStopAt70Resume.addEventListener("click", () => {
+      resetThresholdBypassForCurrentCourse(true);
+    });
     const changeLimit = (delta) => {
       const currentCode = currentCourseCode();
       const status =
@@ -4020,6 +4057,7 @@
       const status = event.data.status || null;
       if (String(status?.courseCode || "") !== currentCourseCode()) return;
       courseProgressStatus = status;
+      renderSettings();
       renderCourseProgress();
       return;
     }
@@ -4089,6 +4127,8 @@
       changes.courseProgressOverlayEnabled ||
       changes.courseProgressOverlayPosition ||
       changes.courseProgressThresholdEnabled
+      || changes.autoplayStopAt70Enabled
+      || changes.autoplayStopAt70BypassedCourses
     ) {
       if (
         !thresholdWasEnabled &&
