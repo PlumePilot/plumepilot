@@ -2740,8 +2740,8 @@
         :host([data-visual-style="gaming"]) .chapter-limit-slider { appearance: none; height: 32px; background: transparent; }
         :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
         :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-track { height: 4px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
-        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -14px; border: 0; background: url("${chrome.runtime.getURL("assets/gaming/chapter-limit-flame-levels.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; appearance: none; image-rendering: pixelated; }
-        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 32px; height: 32px; border: 0; border-radius: 0; background: url("${chrome.runtime.getURL("assets/gaming/chapter-limit-flame-levels.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -14px; border: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; appearance: none; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 32px; height: 32px; border: 0; border-radius: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; image-rendering: pixelated; }
         .chapter-limit-slider[data-flame-level="1"] { --sw-flame-x: 0; }
         .chapter-limit-slider[data-flame-level="2"] { --sw-flame-x: -32px; }
         .chapter-limit-slider[data-flame-level="3"] { --sw-flame-x: -64px; }
