@@ -86,6 +86,8 @@
   let courseProgressState = null;
   let courseProgressInitTimer = null;
   let courseProgressOverlayEnabled = false;
+  let autoplayStopAt70Enabled = false;
+  let autoplayStopAt70Bypassed = false;
   let visualStyle = "standard";
   let autoRecoverPlaybackErrors = true;
   let settingsInitialized = false;
@@ -414,12 +416,15 @@
     autoCompleteTests = event.data.autoCompleteTests === true;
     chapterLimitEnabled = event.data.autoplayChapterLimitEnabled === true;
     courseProgressOverlayEnabled = event.data.courseProgressOverlayEnabled === true;
+    autoplayStopAt70Enabled = event.data.autoplayStopAt70Enabled === true;
     visualStyle = event.data.visualStyle === "gaming" ? "gaming" : "standard";
     const limitCourseCode = courseCodeFromUrl();
     const storedLimits = event.data.autoplayChapterLimits || {};
     const storedSessions = event.data.autoplayChapterLimitSessions || {};
+    const thresholdBypasses = event.data.autoplayStopAt70BypassedCourses || {};
     chapterLimit = Math.max(1, Math.floor(Number(storedLimits[limitCourseCode]) || 1));
     chapterLimitSession = storedSessions[limitCourseCode] || null;
+    autoplayStopAt70Bypassed = thresholdBypasses[limitCourseCode] === true;
     stopAtTests = event.data.stopAtTests !== false && !autoCompleteTests && !chapterLimitEnabled;
     autoRecoverPlaybackErrors = event.data.playbackErrorRecovery !== "manual";
 
@@ -4136,12 +4141,23 @@
   }
 
   function courseProgressVisiblePercent(state = courseProgressState) {
+    const value = courseProgressComputedPercent(state);
+    return value === null ? null : Math.floor(value + 1e-7);
+  }
+
+  function courseProgressComputedPercent(state = courseProgressState) {
     if (!state || state.baselinePercent === null) return null;
     const exactAvailable = state.exactPercent !== null && Number.isFinite(Number(state.exactPercent));
     const value = exactAvailable
       ? Number(state.exactPercent)
       : state.baselinePercent + Math.max(0, Number(state.sessionDelta) || 0);
-    return Math.max(0, Math.min(100, Math.floor(value + 1e-7)));
+    return Math.max(0, Math.min(100, value));
+  }
+
+  function autoplayThresholdReached() {
+    if (!autoplayStopAt70Enabled || autoplayStopAt70Bypassed) return false;
+    const percent = courseProgressComputedPercent(ensureCourseProgressState());
+    return percent !== null && percent >= 70;
   }
 
   function publishCourseProgressStatus() {
@@ -6371,7 +6387,24 @@
 
       log("End of chapter reached. Moving to next chapter.");
 
-      if (chapterLimitReached(chapterIdentity(chapter))) {
+      if (autoplayStopAt70Enabled) {
+        recordKnownVideoProgress(cur, getProgress(cur));
+      }
+
+      const sessionLimitReached = chapterLimitReached(chapterIdentity(chapter));
+      if (autoplayThresholdReached()) {
+        log("Autoplay stopped after reaching 70% course progress.");
+        setResumeDiscoveryStatus(
+          sessionLimitReached
+            ? "Soglia del 70% e limite della sessione raggiunti."
+            : "Soglia del 70% raggiunta: autoplay interrotto.",
+          "success",
+        );
+        publishCourseProgressStatus();
+        return;
+      }
+
+      if (sessionLimitReached) {
         const activeLimit = Math.min(chapterLimit, chapterLimitMaximum);
         log(`Autoplay session limit reached after ${activeLimit} chapters.`);
         setResumeDiscoveryStatus(
