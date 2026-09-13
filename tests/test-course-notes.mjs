@@ -36,10 +36,15 @@ context.PDFLib=require('../vendor/pdf-lib.min.js');context.fontkit=require('../v
 vm.runInThisContext(await readFile(new URL('notes-document.js',root),'utf8'));
 const job={courseTitle:'Statistica α e β',missing:[{chapter:'Capitolo 2',reason:'Appunti non recuperati'}],videos:[{section:'Modulo 1',chapterTitle:'1 - Anova',videoTitle:'Statistica test',notes:[{id:1,trackingTime:1,blocks:[{list:true,runs:[{text:'Appunto con α ≤ β e accenti: perché',bold:true,italic:false}]},{list:false,runs:[{text:'<script>alert(1)</script> & osservazioni',bold:false,italic:true}]}]}]},{section:'Modulo 2',chapterTitle:'1 - Altro capitolo',videoTitle:'Titolo diverso',notes:[{id:2,blocks:[{list:false,runs:[{text:'Nota lunga '.repeat(2000)}]}]}]}]};
 const html=context.PlumePilotNotesDocument.html(job);
-assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
+assert(!html.includes('<script>alert(1)</script>'));
+assert(html.includes('\\u003cscript\\u003ealert(1)\\u003c/script\\u003e'));
 assert.equal([...html.matchAll(/<script>/g)].length,1);
 assert(html.includes('Raccolta parziale'));
-assert(html.includes('textContent=field.value'));
+assert(html.includes('PLUMEPILOT · APPUNTI OFFLINE'));
+assert(html.includes('Integrazione all’appunto'));
+assert(html.includes("const symbols=['α','β','γ','Δ','π','√','∞','≤','≥','≠','±','×','÷','∫','∑','²']"));
+assert(html.includes('id="notes-data"'));
+assert(html.includes('video:0:note:1'));
 assert(html.includes('beforeunload'));
 new Function(html.match(/<script>([\s\S]*)<\/script>/)[1]);
 const fonts=await Promise.all(['Regular','Bold','Italic'].map(s=>readFile(new URL(`vendor/standard_fonts/LiberationSans-${s}.ttf`,root))));

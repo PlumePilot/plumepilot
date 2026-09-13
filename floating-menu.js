@@ -133,6 +133,7 @@
           ui.turboSprite,
           ui.objectivesSprite,
           ui.testCollectionSprite,
+          ui.notesSprite,
           ui.materialsSprite,
         ]
       : [];
@@ -1146,6 +1147,9 @@
     const collectingTests =
       operation?.kind === "tests" &&
       ["collecting", "stopping"].includes(operation.phase);
+    const collectingNotes =
+      operation?.kind === "notes" &&
+      ["collecting", "stopping"].includes(operation.phase);
 
     ui.turbo.dataset.running = String(turbo);
     ui.turboLabel.textContent = turbo
@@ -1175,9 +1179,13 @@
       : "Crea raccolta test";
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
-    const notesCollecting = operation?.kind === "notes" && operation.phase === "collecting";
-    ui.notes.disabled = busy && !notesCollecting;
-    ui.notes.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti";
+    ui.notesLabel.textContent = collectingNotes
+      ? stopping
+        ? "Interruzione appunti…"
+        : "Interrompi raccolta appunti"
+      : "Crea raccolta appunti";
+    ui.notes.disabled =
+      (busy && !collectingNotes) || (collectingNotes && stopping);
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
 
     if (operation) {
@@ -1773,6 +1781,8 @@
           true,
         );
       }
+    } else {
+      playActionAnimation(ui.notesSprite);
     }
   }
 
@@ -1858,6 +1868,9 @@
     );
     const actionTestCollectionUrl = chrome.runtime.getURL(
       "assets/gaming/action-test-collection.png",
+    );
+    const actionCourseNotesUrl = chrome.runtime.getURL(
+      "assets/gaming/action-course-notes.png",
     );
     const actionStudyMaterialsUrl = chrome.runtime.getURL(
       "assets/gaming/action-study-materials.png",
@@ -3176,6 +3189,7 @@
         }
         :host([data-visual-style="gaming"]) .turbo-tests-sprite { background-image: url("${actionAutoTestsUrl}"); }
         :host([data-visual-style="gaming"]) .test-collection-sprite { background-image: url("${actionTestCollectionUrl}"); }
+        :host([data-visual-style="gaming"]) .notes-collection-sprite { background-image: url("${actionCourseNotesUrl}"); }
         :host([data-visual-style="gaming"]) .materials-sprite { background-image: url("${actionStudyMaterialsUrl}"); }
         @media (hover: hover) {
           :host([data-visual-style="gaming"]) .action:not(:disabled):not([data-running="true"]):hover .objectives-sprite:not(.is-playing) {
@@ -3185,6 +3199,7 @@
             animation: auto-tests-hover-preview 1500ms steps(5, end) infinite both;
           }
           :host([data-visual-style="gaming"]) .action:not(:disabled):hover .test-collection-sprite:not(.is-playing),
+          :host([data-visual-style="gaming"]) .action:not(:disabled):hover .notes-collection-sprite:not(.is-playing),
           :host([data-visual-style="gaming"]) .action:not(:disabled):hover .materials-sprite:not(.is-playing) {
             animation: action-hover-preview 1700ms steps(5, end) infinite both;
           }
@@ -3196,6 +3211,7 @@
           animation: auto-tests-hover-preview 1500ms steps(5, end) infinite both;
         }
         :host([data-visual-style="gaming"]) .action:not(:disabled):focus-visible .test-collection-sprite:not(.is-playing),
+        :host([data-visual-style="gaming"]) .action:not(:disabled):focus-visible .notes-collection-sprite:not(.is-playing),
         :host([data-visual-style="gaming"]) .action:not(:disabled):focus-visible .materials-sprite:not(.is-playing) {
           animation: action-hover-preview 1700ms steps(5, end) infinite both;
         }
@@ -3206,6 +3222,7 @@
           animation: action-six-frames 1000ms steps(5, end) 1 both;
         }
         :host([data-visual-style="gaming"]) .test-collection-sprite.is-playing,
+        :host([data-visual-style="gaming"]) .notes-collection-sprite.is-playing,
         :host([data-visual-style="gaming"]) .materials-sprite.is-playing {
           animation: action-six-frames 1200ms steps(5, end) 1 both;
         }
@@ -3519,7 +3536,7 @@
             <div class="actions">
               <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
               <button class="action objectives has-gaming-art" data-action="objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
-              <button class="action" data-action="notes-collection" type="button">Crea raccolta appunti</button>
+              <button class="action notes-collection has-gaming-art gaming-art-compact" data-action="notes-collection" type="button"><span class="gaming-action-sprite notes-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="notes-collection-label">Crea raccolta appunti</span></button>
               <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
               <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
             </div>
@@ -3797,6 +3814,8 @@
       objectivesLabel: shadow.querySelector('[data-role="objectives-label"]'),
       objectivesSprite: shadow.querySelector(".objectives-sprite"),
       notes: shadow.querySelector('[data-action="notes-collection"]'),
+      notesLabel: shadow.querySelector('[data-role="notes-collection-label"]'),
+      notesSprite: shadow.querySelector(".notes-collection-sprite"),
       testCollection: shadow.querySelector('[data-action="test-collection"]'),
       testCollectionLabel: shadow.querySelector(
         '[data-role="test-collection-label"]',

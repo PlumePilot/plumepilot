@@ -76,6 +76,10 @@ const createTestCollectionButton = document.getElementById("createTestCollection
 const testCollectionButtonLabel = document.getElementById("testCollectionButtonLabel");
 const testCollectionSprite = document.getElementById("testCollectionSprite");
 const testCollectionStatus = document.getElementById("testCollectionStatus");
+const createNotesCollectionButton = document.getElementById("createNotesCollection");
+const notesCollectionButtonLabel = document.getElementById("notesCollectionButtonLabel");
+const notesCollectionSprite = document.getElementById("notesCollectionSprite");
+const notesCollectionStatus = document.getElementById("notesCollectionStatus");
 const exportCourseMaterialsButton = document.getElementById("exportCourseMaterials");
 const materialsButtonLabel = document.getElementById("materialsButtonLabel");
 const materialsSprite = document.getElementById("materialsSprite");
@@ -418,7 +422,7 @@ function renderVisualStyle(value) {
   document.documentElement.dataset.visualStyle = normalized;
   if (normalized !== "gaming" && document.getElementById("achievementsTab")?.getAttribute("aria-selected") === "true") selectPopupTab("courseTab");
   if (normalized !== "gaming") {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -468,12 +472,11 @@ function operationLabel(operation) {
 }
 function renderOperation(operation) {
   activeOperation = operation || null;
-  const notesButton = document.getElementById("createNotesCollection");
   const notesActive = operation?.kind === "notes";
   const notesCollecting = notesActive && operation.phase === "collecting";
-  notesButton.disabled = Boolean(operation) && !notesCollecting;
-  notesButton.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti del corso";
-  document.getElementById("notesCollectionStatus").textContent = notesActive ? operation.message : "";
+  createNotesCollectionButton.disabled = Boolean(operation) && !notesCollecting;
+  notesCollectionButtonLabel.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti del corso";
+  notesCollectionStatus.textContent = notesActive ? operation.message : "";
   const busy = Boolean(operation);
   const turbo = operation?.kind === "turbo";
   const objectives = operation?.kind === "objectives";
@@ -1094,12 +1097,12 @@ objectivesButton.addEventListener("click", () => {
   });
 });
 
-for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
   sprite.addEventListener("animationend", () => sprite.classList.remove("is-playing"));
 }
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -1170,17 +1173,17 @@ createTestCollectionButton.addEventListener("click", () => {
   });
 });
 
-document.getElementById("createNotesCollection").addEventListener("click", () => {
+createNotesCollectionButton.addEventListener("click", () => {
   const collecting = activeOperation?.kind === "notes" && activeOperation?.phase === "collecting";
   if (collecting) {
-    document.getElementById("notesCollectionStatus").textContent = "Interruzione della raccolta degli appunti…";
+    notesCollectionStatus.textContent = "Interruzione della raccolta degli appunti…";
     runtimeMessage({ type: "PEGASO_CANCEL_EXPORT", operationId: activeOperation.id });
     return;
   }
-  document.getElementById("notesCollectionStatus").textContent = "Avvio della raccolta degli appunti…";
+  notesCollectionStatus.textContent = "Avvio della raccolta degli appunti…";
   withActiveCourseTab(async (tabId) => {
     if (!tabId) {
-      document.getElementById("notesCollectionStatus").textContent = "Apri prima la pagina di un corso UniPegaso.";
+      notesCollectionStatus.textContent = "Apri prima la pagina di un corso UniPegaso.";
       return;
     }
     const response = await runtimeMessage({
@@ -1189,9 +1192,9 @@ document.getElementById("createNotesCollection").addEventListener("click", () =>
       requestSource: "toolbar-popup",
     });
     if (!response?.accepted) {
-      document.getElementById("notesCollectionStatus").textContent = response?.operation
+      notesCollectionStatus.textContent = response?.operation
         ? operationLabel(response.operation)
         : response?.reason || "Impossibile avviare la raccolta.";
-    }
+    } else playActionAnimation(notesCollectionSprite);
   });
 });
