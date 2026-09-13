@@ -227,7 +227,7 @@ function claimEnabledGamingAchievements() {
 }
 
 function operationTabId(operation) {
-  return ["turbo", "objectives", "tests"].includes(operation?.kind)
+  return ["turbo", "objectives", "tests", "notes"].includes(operation?.kind)
     ? "activitiesTab"
     : "courseTab";
 }
@@ -459,6 +459,7 @@ function updateAutoplayControls() {
 }
 function operationLabel(operation) {
   if (!operation) return "";
+  if (operation.kind === "notes") return "È in corso la raccolta degli appunti del corso.";
   if (operation.kind === "turbo") return "I test automatici sono in esecuzione.";
   if (operation.kind === "objectives") return "Il completamento degli Obiettivi è in esecuzione.";
   if (operation.kind === "tests") return "È in corso la raccolta dei test del corso.";
@@ -467,6 +468,12 @@ function operationLabel(operation) {
 }
 function renderOperation(operation) {
   activeOperation = operation || null;
+  const notesButton = document.getElementById("createNotesCollection");
+  const notesActive = operation?.kind === "notes";
+  const notesCollecting = notesActive && operation.phase === "collecting";
+  notesButton.disabled = Boolean(operation) && !notesCollecting;
+  notesButton.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti del corso";
+  document.getElementById("notesCollectionStatus").textContent = notesActive ? operation.message : "";
   const busy = Boolean(operation);
   const turbo = operation?.kind === "turbo";
   const objectives = operation?.kind === "objectives";
@@ -1159,6 +1166,32 @@ createTestCollectionButton.addEventListener("click", () => {
         : response?.reason || "Impossibile avviare la raccolta.";
     } else {
       playActionAnimation(testCollectionSprite);
+    }
+  });
+});
+
+document.getElementById("createNotesCollection").addEventListener("click", () => {
+  const collecting = activeOperation?.kind === "notes" && activeOperation?.phase === "collecting";
+  if (collecting) {
+    document.getElementById("notesCollectionStatus").textContent = "Interruzione della raccolta degli appunti…";
+    runtimeMessage({ type: "PEGASO_CANCEL_EXPORT", operationId: activeOperation.id });
+    return;
+  }
+  document.getElementById("notesCollectionStatus").textContent = "Avvio della raccolta degli appunti…";
+  withActiveCourseTab(async (tabId) => {
+    if (!tabId) {
+      document.getElementById("notesCollectionStatus").textContent = "Apri prima la pagina di un corso UniPegaso.";
+      return;
+    }
+    const response = await runtimeMessage({
+      type: "PEGASO_START_NOTES_EXPORT",
+      sourceTabId: tabId,
+      requestSource: "toolbar-popup",
+    });
+    if (!response?.accepted) {
+      document.getElementById("notesCollectionStatus").textContent = response?.operation
+        ? operationLabel(response.operation)
+        : response?.reason || "Impossibile avviare la raccolta.";
     }
   });
 });

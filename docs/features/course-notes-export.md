@@ -2,7 +2,13 @@
 
 ## Status and baseline
 
-Implementation pending. This branch starts from integration/next-release at 79ee491252355a6b7cf6c5b9088b99b428d97706. The user confirmed the integration tests in the current conversation; individual browsers were not restated in that confirmation. Main remains frozen during publication. This document does not declare a new stable release.
+Implementation available for manual testing. This branch starts from integration/next-release at 79ee491252355a6b7cf6c5b9088b99b428d97706. The user confirmed the integration tests in the current conversation; individual browsers were not restated in that confirmation. Main remains frozen during publication. This document does not declare a new stable release.
+
+Automated checks cover API field minimization and rich-text normalization (using a text-only DOMParser double), collector route identity, empty-note handling, cancellation, generated HTML escaping/syntax, PDF generation and index links. Existing regression suites pass. PDF cover/content pages were rendered and inspected. A real browser engine was unavailable locally and its download timed out; browser interaction checks are not claimed.
+
+The HTML keeps the formatted original as a reference and offers a plain-text editable copy plus an additional-notes field. Download/reopen and unsaved-change prompts require browser smoke testing. Raw tracking_time is preserved in HTML metadata, not displayed with an unverified unit. Remote note images become explicit placeholders. Unsupported PDF glyphs cause a visible error suggesting the lossless HTML format rather than silently replacing content.
+
+The Gaming achievement is `export-course-notes`, “Pensieri in viaggio”, 25 EXP. Existing EXP and the 500 cap remain unchanged. The audio/menu achievement allocations are deferred to their own features.
 
 Work order: course notes export, notification sounds, customizable floating menu. Each feature has its own draft PR targeting integration/next-release. Simulation export is dropped; other universities are deferred.
 
@@ -42,7 +48,7 @@ Provide an explicit explanation that edits in exported HTML do not synchronize t
 
 Add one course-notes collection action in both activity interfaces, with start/cancel/status behavior and no duplicated state ownership. Reuse existing notification and builder conventions. Keep cancellation reachable irrespective of selected tab. Integrate Standard/Gaming, Light/Dark/System and S/M/L layouts.
 
-Add a one-time Gaming achievement after the first nonempty usable output is successfully generated, through the serialized background claim path. Proposed ID: export-course-notes. EXP value remains to be selected together with the other two planned achievements before implementation is finalized; preserve existing balances and the 500 EXP cap. Failed, empty or cancelled runs award nothing.
+Add a one-time Gaming achievement after the first nonempty usable output is successfully generated, through the serialized background claim path. ID: export-course-notes; 25 EXP. Preserve existing balances and the 500 EXP cap. Failed, empty or cancelled runs award nothing.
 
 ## Acceptance gates
 

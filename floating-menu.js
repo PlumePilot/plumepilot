@@ -931,6 +931,7 @@
 
   function operationLabel(operation) {
     if (!operation) return "";
+    if (operation.kind === "notes") return operation.message || "Raccolta degli appunti del corso…";
     if (operation.kind === "turbo")
       return operation.message || "Test automatici in esecuzione…";
     if (operation.kind === "objectives")
@@ -1174,6 +1175,9 @@
       : "Crea raccolta test";
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
+    const notesCollecting = operation?.kind === "notes" && operation.phase === "collecting";
+    ui.notes.disabled = busy && !notesCollecting;
+    ui.notes.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti";
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
 
     if (operation) {
@@ -1739,6 +1743,36 @@
       }
     } else {
       playActionAnimation(ui.testCollectionSprite);
+    }
+  }
+
+  async function toggleNotesExport() {
+    const operation = settings.pegasoActiveOperation;
+    const collecting =
+      operation?.kind === "notes" && operation.phase === "collecting";
+    if (collecting) {
+      setFeedback("Interruzione della raccolta degli appunti…");
+      await runtimeMessage({
+        type: "PEGASO_CANCEL_EXPORT",
+        operationId: operation.id,
+      });
+      return;
+    }
+    setFeedback("Avvio della raccolta degli appunti…");
+    const response = await runtimeMessage({
+      type: "PEGASO_START_NOTES_EXPORT",
+      requestSource: "floating-menu",
+    });
+    if (!response?.accepted) {
+      if (response?.operation) {
+        settings.pegasoActiveOperation = response.operation;
+        renderOperation();
+      } else {
+        setFeedback(
+          response?.reason || "Impossibile avviare la raccolta degli appunti.",
+          true,
+        );
+      }
     }
   }
 
@@ -3485,6 +3519,7 @@
             <div class="actions">
               <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
               <button class="action objectives has-gaming-art" data-action="objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
+              <button class="action" data-action="notes-collection" type="button">Crea raccolta appunti</button>
               <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
               <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
             </div>
@@ -3761,6 +3796,7 @@
       objectives: shadow.querySelector('[data-action="objectives"]'),
       objectivesLabel: shadow.querySelector('[data-role="objectives-label"]'),
       objectivesSprite: shadow.querySelector(".objectives-sprite"),
+      notes: shadow.querySelector('[data-action="notes-collection"]'),
       testCollection: shadow.querySelector('[data-action="test-collection"]'),
       testCollectionLabel: shadow.querySelector(
         '[data-role="test-collection-label"]',
@@ -4007,6 +4043,7 @@
     });
     ui.turbo.addEventListener("click", toggleTurboTests);
     ui.objectives.addEventListener("click", toggleObjectives);
+    ui.notes.addEventListener("click", toggleNotesExport);
     ui.testCollection.addEventListener("click", toggleTestExport);
     ui.materials.addEventListener("click", toggleMaterialsExport);
     ui.hide.addEventListener("click", () =>

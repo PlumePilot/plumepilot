@@ -1,5 +1,14 @@
 # PlumePilot — Changelog
 
+## Unreleased — course notes export (PR #11, integration testing only)
+
+- Adds explicit, cancellable collection of the current course's video notes from `getNotes`, preserving section/chapter/video identity and reporting unavailable items separately from empty notes.
+- Adds a navigable Unicode PDF and an offline HTML with original formatted notes, editable plain-text copies, additional notes and Automatic/Light/Dark themes. Updated copies preserve edits; nothing is written back to Pegaso.
+- Reuses recent complete chapter snapshots only when the full route identity matches; reads notes fresh for each export, with bounded retries and pacing.
+- Drops personal identifiers and active markup before the bridge; uses existing permissions and temporary export-job cleanup.
+- Adds the one-time Gaming achievement “Pensieri in viaggio” (25 EXP), preserving existing balances and the 500 EXP cap.
+- Real-account and manual three-browser testing remain required. No store release/version change is implied.
+
 ## Improved in 2.32.8: clearer operation feedback and readable progress options
 
 - Shows the active operation message only beside its matching action instead of repeating the same explanation beneath every disabled action.

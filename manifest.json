@@ -82,6 +82,7 @@
         "*://*.pegaso.multiversity.click/*"
       ],
       "js": [
+        "notes-core.js",
         "commission-interceptor.js"
       ],
       "run_at": "document_start",

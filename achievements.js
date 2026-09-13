@@ -12,6 +12,7 @@
     { id: "demon", name: "Sigillo Demoniaco", barThreshold: 450, launcherThreshold: 500 },
   ]);
   const CATALOGUE = Object.freeze([
+    { id: "export-course-notes", title: "Pensieri in viaggio", description: "Genera una raccolta dei tuoi appunti.", exp: 25, group: "primary" },
     { id: "discover-autoplay", title: "Pronti, si vola!", description: "Prova l’avanzamento automatico.", exp: 30, group: "primary" },
     { id: "complete-objectives", title: "Obiettivo centrato!", description: "Concludi il completamento automatico degli Obiettivi.", exp: 40, group: "primary" },
     { id: "complete-tests", title: "Maestro dei quiz", description: "Concludi una sessione di test automatici.", exp: 35, group: "primary" },

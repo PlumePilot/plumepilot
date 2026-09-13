@@ -283,6 +283,17 @@
       return;
     }
 
+    if (event.data.type === "PEGASO_COLLECT_COURSE_NOTES_REQUEST") {
+      const operationId =
+        typeof event.data.operationId === "string"
+          ? event.data.operationId.trim()
+          : "";
+      if (!operationId || handledExportOperationIds.has(operationId)) return;
+      rememberHandledExportOperation(operationId);
+      void collectCourseNotes(operationId);
+      return;
+    }
+
     if (event.data.type === "PEGASO_CANCEL_EXPORT_COLLECTION") {
       const operationId =
         typeof event.data.operationId === "string"
@@ -3226,6 +3237,88 @@
       if (enabled) {
         resumeIfVideoAlreadyEnded();
       }
+    }
+  }
+
+  async function collectCourseNotes(operationId) {
+    if (collectingCourseMaterials || courseBatchRunning() || window !== window.top) {
+      window.postMessage({ type: "PEGASO_EXPORT_COLLECTION_FAILED", operationId }, "*");
+      return;
+    }
+    collectingCourseMaterials = true;
+    exportCancelRequested = false;
+    activeExportOperationId = operationId;
+    const videos = []; const missing = []; let checked = 0; let bytes = 0;
+    async function request(action, fields) {
+      let response;
+      for (let attempt = 0; attempt <= API_LESSON_RETRY_DELAYS_MS.length; attempt++) {
+        ensureExportNotCancelled(operationId);
+        response = await turboApiRequest(action, fields);
+        ensureExportNotCancelled(operationId);
+        if (response.ok && (action !== "lesson" || response.data?.progressDataComplete)) break;
+        if (response.error === "AUTH_UNAVAILABLE") break;
+        if (attempt < API_LESSON_RETRY_DELAYS_MS.length) await exportSleep(API_LESSON_RETRY_DELAYS_MS[attempt], operationId);
+      }
+      return response;
+    }
+    try {
+      const courseCode = courseCodeFromUrl();
+      const initialSections = sections().map(section => section.text);
+      if (!courseCode || !initialSections.length) throw new Error("Apri prima i contenuti di un corso");
+      setExportCollectionStatus("Preparazione della raccolta appunti…", false, operationId);
+      const cachedOutline = materialOutlineCache.get(courseCode);
+      const outline = cachedOutline?.sectionSignature === initialSections.join("\u001f")
+        ? cachedOutline.outline
+        : await apiCourseOutline(initialSections, () => {}, operationId);
+      const master = await request("outline", { courseCode });
+      if (!master.ok) throw new Error("Indice completo del corso non disponibile");
+      const entries = await recoverCourseTestOutline(initialSections, outline || [], master.data?.entries, operationId);
+      if (!entries.length) throw new Error("Struttura del corso non disponibile");
+      for (const entry of entries) {
+        ensureExportNotCancelled(operationId);
+        const chapter = `${entry.identity.sectionText} — ${entry.identity.chapterText}`;
+        const routeKey = `${courseCode}:route:${entry.route.lpId}:${entry.route.id}`;
+        const cached = [...lessonApiCache.values()].find(value => value.routeKey === routeKey && value.progressDataComplete && value.playbackDataComplete && Date.now() - value.fetchedAt <= API_LESSON_CACHE_FRESH_MS);
+        const lesson = cached
+          ? { ok: true, data: { progressDataComplete: true, playbackItems: cached.videos } }
+          : await request("lesson", { courseCode, lessonNumber: entry.lessonNumber, lpId: entry.route.lpId, paragraphId: entry.route.id });
+        if (!lesson.ok || !lesson.data?.progressDataComplete) {
+          missing.push({ chapter, reason: "Elenco video non disponibile o incompleto" });
+          await exportSleep(TURBO_API_PACING_MS, operationId); continue;
+        }
+        const items = lesson.data.playbackItems.filter(item => item.contentType === "video");
+        if (items.some(item => !Number.isSafeInteger(item.lp_item_id) || item.lp_item_id <= 0 || item.lp_id !== entry.route.lpId) || new Set(items.map(item => item.lp_item_id)).size !== items.length) {
+          missing.push({ chapter, reason: "Identità dei video non valida" });
+          continue;
+        }
+        for (const video of items) {
+          setExportCollectionStatus(`Appunti · ${entry.identity.chapterText} · video ${++checked}: ${video.title}`, false, operationId);
+          const result = await request("notes", { courseCode, lpItemId: video.lp_item_id });
+          if (!result.ok) missing.push({ chapter: `${chapter} — ${video.title}`, reason: "Appunti non recuperati" });
+          else if (result.data.notes.length) {
+            const record = { section: entry.identity.sectionText, chapterTitle: entry.identity.chapterText, chapterKey: entry.chapterKey, videoId: video.lp_item_id, videoTitle: video.title, notes: result.data.notes };
+            bytes += new TextEncoder().encode(JSON.stringify(record)).length;
+            if (bytes > 4 * 1024 * 1024) throw new Error("Raccolta troppo grande: limite di 4 MB raggiunto");
+            videos.push(record);
+          }
+          await exportSleep(TURBO_API_PACING_MS, operationId);
+        }
+      }
+      ensureExportNotCancelled(operationId);
+      if (!videos.length) throw new Error(missing.length ? "Recupero incompleto: nessun appunto disponibile per l’esportazione" : "Nessun appunto presente nei video del corso");
+      window.postMessage({ type: "PEGASO_COURSE_NOTES_COLLECTED", operationId, payload: { courseTitle: courseTitle(), videos, missing } }, "*");
+      const message = `Appunti raccolti da ${videos.length} video${missing.length ? ` · ${missing.length} elementi non recuperati` : ""}. Apertura esportazione…`;
+      setExportCollectionStatus(message, false, operationId);
+      removeExportCollectionToastAfter(message, 5000);
+    } catch (error) {
+      const cancelled = error?.name === "AbortError";
+      const message = cancelled ? "Raccolta appunti annullata." : `Raccolta appunti: ${error.message}`;
+      setExportCollectionStatus(message, !cancelled, operationId);
+      window.postMessage({ type: "PEGASO_EXPORT_COLLECTION_FAILED", operationId }, "*");
+      removeExportCollectionToastAfter(message, cancelled ? 5000 : 15000);
+    } finally {
+      collectingCourseMaterials = false; exportCancelRequested = false; activeExportOperationId = null;
+      if (enabled) resumeIfVideoAlreadyEnded();
     }
   }
 

@@ -1,6 +1,6 @@
 # Informativa sulla privacy di PlumePilot
 
-Ultimo aggiornamento: 3 settembre 2026.
+Ultimo aggiornamento della versione di sviluppo: 13 settembre 2026.
 
 ## 1. Titolare e contatti
 
@@ -20,6 +20,7 @@ Quando necessario per le funzioni scelte dall'utente, PlumePilot può leggere ed
 
 - struttura dei corsi, lezioni, capitoli, percentuali e stato delle attività;
 - domande, risposte e stato dei test di autovalutazione e degli Obiettivi;
+- appunti personali associati ai video del corso, quando l'utente ne richiede la raccolta;
 - collegamenti alle dispense, immagini e altri materiali già disponibili all'utente;
 - informazioni mostrate nella sezione degli esami online, come corso, data, voto, esito, stato della commissione ed eventuale motivazione comunicata dalla piattaforma;
 - preferenze e interazioni con i controlli dell'estensione;
@@ -56,6 +57,8 @@ Quando l'utente avvia un'esportazione, PlumePilot scarica soltanto materiali e i
 
 PlumePilot non carica i documenti generati su server propri o di terze parti.
 
+La raccolta appunti legge le note del corso selezionato solo su richiesta. Conserva il testo e i riferimenti necessari a ordinarlo per capitolo e video, escludendo gli identificativi personali non necessari. I file PDF e HTML vengono generati nel browser. Le modifiche nella copia HTML non vengono sincronizzate con Pegaso: l'utente deve scaricare una nuova copia per conservarle.
+
 ## 7. Dati conservati localmente
 
 Lo storage locale del browser può contenere:
@@ -69,7 +72,7 @@ Lo storage locale del browser può contenere:
 
 Questi dati rimangono nel profilo del browser finché l'utente non li cancella o disinstalla PlumePilot.
 
-Durante la preparazione delle esportazioni, dati relativi ai materiali o ai test possono essere conservati temporaneamente nello storage locale dell’estensione.
+Durante la preparazione delle esportazioni, dati relativi ai materiali, ai test o agli appunti possono essere conservati temporaneamente nello storage locale dell’estensione.
 Questi dati temporanei vengono rimossi al termine o all’annullamento dell’operazione.
 
 ## 8. Destinatari e servizi esterni

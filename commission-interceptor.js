@@ -456,6 +456,10 @@
           lp_id: Number(message.lpId),
         }),
       };
+    } else if (message.action === "notes") {
+      if (!validPositiveInteger(message.lpItemId)) throw new Error("INVALID_VIDEO_ID");
+      url = `${API_ORIGIN}/student/video-lessons/getNotes`;
+      options = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ course_code: courseCode, lp_item_id: Number(message.lpItemId) }) };
     } else if (message.action === "test-source") {
       if (!validPositiveInteger(message.testId) || !validPositiveInteger(message.lpId)) {
         throw new Error("INVALID_TEST_SOURCE_IDENTIFIERS");
@@ -498,6 +502,7 @@
       if (message.action === "lesson") {
         return normalizedLessonData(body);
       }
+      if (message.action === "notes") return globalThis.PlumePilotNotes.normalize(body, courseCode, message.lpItemId);
       if (message.action === "test-source") {
         return normalizedTestSource(body);
       }
