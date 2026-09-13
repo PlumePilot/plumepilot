@@ -17,7 +17,12 @@ if(!html.includes('Spiegazione e osservazioni'))throw new Error('missing note UI
 if(!html.includes("details.open=false"))throw new Error('notes must start closed');
 if(!html.includes("indicator.textContent='Appunti presenti'"))throw new Error('missing saved-note indicator');
 if(!html.includes("details.dataset.hasNotes=String(saveNote"))throw new Error('saved-note indicator must update while editing');
+if(!html.includes('--note-border:#4f8a68'))throw new Error('missing sage-green saved-note style');
+if(!html.includes('data-theme="auto"'))throw new Error('automatic theme must be the default');
+if(!html.includes("['auto','Automatico'],['light','Chiaro'],['dark','Scuro']"))throw new Error('missing theme choices');
+if(!html.includes('@media(prefers-color-scheme:dark)'))throw new Error('automatic theme must follow the system');
+if(!html.includes('document.documentElement.dataset.theme=value'))throw new Error('selected theme must be stored in the downloaded HTML');
 if(!html.includes('Quanto vale α ≤ β?'))throw new Error('unicode lost');
 const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
 new Function(scripts.at(-1));
-console.log('PASS: generated offline HTML keeps Unicode notes closed and visibly marks saved content');
+console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');
