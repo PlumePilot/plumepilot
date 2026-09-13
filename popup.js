@@ -8,6 +8,7 @@ const chapterLimitEnabledCheckbox = document.getElementById("chapterLimitEnabled
 const chapterLimitMinus = document.getElementById("chapterLimitMinus");
 const chapterLimitPlus = document.getElementById("chapterLimitPlus");
 const chapterLimitValue = document.getElementById("chapterLimitValue");
+const chapterLimitSlider = document.getElementById("chapterLimitSlider");
 const chapterLimitProgress = document.getElementById("chapterLimitProgress");
 const chapterLimitResume = document.getElementById("chapterLimitResume");
 const chapterLimitOptionsSummary = document.getElementById("chapterLimitOptionsSummary");
@@ -20,9 +21,13 @@ const courseProgressOverlayEnabledCheckbox = document.getElementById("courseProg
 const courseProgressPositionFieldset = document.getElementById("courseProgressPositionFieldset");
 const courseProgressPositionRadios = [...document.querySelectorAll('input[name="courseProgressOverlayPosition"]')];
 const courseProgressThresholdEnabledCheckbox = document.getElementById("courseProgressThresholdEnabled");
+const autoplayStopAt70EnabledCheckbox = document.getElementById("autoplayStopAt70Enabled");
+const autoplayStopAt70Resume = document.getElementById("autoplayStopAt70Resume");
 const courseProgressOptionsSummary = document.getElementById("courseProgressOptionsSummary");
 let chapterLimitStatus = null;
 let courseProgressStatus = null;
+let autoplayStopAt70Enabled = false;
+let autoplayStopAt70BypassedCourses = {};
 let activeCourseTabId = null;
 let chapterLimitMaps = { limits: {}, sessions: {} };
 let chapterLimitStatuses = {};
@@ -290,11 +295,17 @@ function renderChapterLimit() {
   const ready = Boolean(statusValue?.courseCode);
   const limit = Math.max(1, Number(statusValue?.limit) || 1);
   const maximum = Math.max(1, Number(statusValue?.maximum) || 1);
-  chapterLimitValue.textContent = String(limit);
+  chapterLimitValue.value = String(limit);
+  chapterLimitValue.max = String(maximum);
+  chapterLimitSlider.value = String(limit);
+  chapterLimitSlider.max = String(maximum);
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(limit, maximum));
   chapterLimitEnabledCheckbox.checked = statusValue?.enabled === true;
   chapterLimitEnabledCheckbox.disabled = !ready;
   chapterLimitMinus.disabled = !ready || limit <= 1;
   chapterLimitPlus.disabled = !ready || limit >= maximum;
+  chapterLimitValue.disabled = !ready;
+  chapterLimitSlider.disabled = !ready;
   chapterLimitProgress.textContent = !ready
     ? "Apri un corso per calcolare il limite."
     : statusValue.reached
@@ -324,11 +335,13 @@ function renderCourseProgress(nextStatus = courseProgressStatus) {
   courseProgressMessage.textContent = ready
     ? courseProgressStatus.message || "Sincronizzato con Pegaso."
     : "Apri un corso per visualizzare il progresso.";
+  renderAutoplayStopAt70();
 }
 function normalizedCourseProgressPosition(value) {
   return ["top", "bottom", "left", "right"].includes(value) ? value : "bottom";
 }
-function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnabled) {
+function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnabled, stopAt70Enabled = autoplayStopAt70Enabled) {
+  autoplayStopAt70Enabled = stopAt70Enabled === true;
   courseProgressOverlayEnabledCheckbox.checked = overlayEnabled === true;
   courseProgressPositionFieldset.disabled = overlayEnabled !== true;
   const normalizedPosition = normalizedCourseProgressPosition(position);
@@ -336,18 +349,50 @@ function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnab
     radio.checked = radio.value === normalizedPosition;
   }
   courseProgressThresholdEnabledCheckbox.checked = thresholdEnabled === true;
+  autoplayStopAt70EnabledCheckbox.checked = autoplayStopAt70Enabled;
   courseProgressThresholdMarker.hidden = thresholdEnabled !== true;
   const positionLabels = { top: "sopra", bottom: "sotto", left: "a sinistra", right: "a destra" };
   const summary = [];
   if (overlayEnabled === true) summary.push(`Barra ${positionLabels[normalizedPosition]}`);
   if (thresholdEnabled === true) summary.push("avviso 70%");
+  if (autoplayStopAt70Enabled) summary.push("stop 70%");
   courseProgressOptionsSummary.textContent = summary.length ? summary.join(" · ") : "Disattivate";
+  renderAutoplayStopAt70();
+}
+function renderAutoplayStopAt70() {
+  const courseCode = courseProgressStatus?.courseCode || "";
+  const percent = Number(courseProgressStatus?.percent);
+  const reached = courseProgressStatus?.available === true && Number.isFinite(percent) && percent >= 70;
+  autoplayStopAt70Resume.hidden = !autoplayStopAt70Enabled || !courseCode || !reached || autoplayStopAt70BypassedCourses[courseCode] === true;
+}
+function updateAutoplayStopAt70Bypass(bypassed) {
+  const courseCode = courseProgressStatus?.courseCode;
+  if (!courseCode) return;
+  const next = { ...autoplayStopAt70BypassedCourses };
+  if (bypassed) next[courseCode] = true;
+  else delete next[courseCode];
+  autoplayStopAt70BypassedCourses = next;
+  chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
+  renderAutoplayStopAt70();
 }
 function updateChapterLimitValue(nextValue) {
   if (!chapterLimitStatus?.courseCode) return;
-  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, nextValue));
+  const numericValue = Number(nextValue);
+  if (!Number.isFinite(numericValue)) return;
+  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, Math.round(numericValue)));
   chapterLimitMaps.limits[chapterLimitStatus.courseCode] = value;
   chrome.storage.local.set({ autoplayChapterLimits: chapterLimitMaps.limits });
+}
+function flameLevelForLimit(value, maximum) {
+  if (maximum <= 1) return 5;
+  return Math.max(1, Math.min(5, Math.ceil(((value - 1) / (maximum - 1)) * 5)));
+}
+function commitChapterLimitInput() {
+  if (chapterLimitValue.value === "") {
+    renderChapterLimit();
+    return;
+  }
+  updateChapterLimitValue(chapterLimitValue.value);
 }
 function selectedPlaybackErrorRecovery() {
   return playbackErrorRecoveryRadios.find((radio) => radio.checked)?.value || "automatic";
@@ -634,12 +679,13 @@ function runtimeMessage(message) {
   return new Promise((resolve) => chrome.runtime.sendMessage(message, (response) => resolve(chrome.runtime.lastError ? { accepted: false, reason: chrome.runtime.lastError.message } : response)));
 }
 
-chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" } }, (result) => {
+chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" } }, (result) => {
   checkbox.checked = result.enabled;
   renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
   chapterLimitMaps = { limits: result.autoplayChapterLimits || {}, sessions: result.autoplayChapterLimitSessions || {} };
   chapterLimitStatuses = result.autoplayChapterLimitStatuses || {};
-  renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled);
+  autoplayStopAt70BypassedCourses = result.autoplayStopAt70BypassedCourses || {};
+  renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled, result.autoplayStopAt70Enabled);
   renderPlaybackErrorRecovery(result.playbackErrorRecovery);
   renderVisualStyle(result.visualStyle);
   renderThemePreference(result.themePreference);
@@ -696,9 +742,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
       renderChapterLimit();
     });
   }
-  if (changes.courseProgressOverlayEnabled || changes.courseProgressOverlayPosition || changes.courseProgressThresholdEnabled) {
-    chrome.storage.local.get({ courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false }, (result) =>
-      renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled));
+  if (changes.courseProgressOverlayEnabled || changes.courseProgressOverlayPosition || changes.courseProgressThresholdEnabled || changes.autoplayStopAt70Enabled || changes.autoplayStopAt70BypassedCourses) {
+    chrome.storage.local.get({ courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {} }, (result) => {
+      autoplayStopAt70BypassedCourses = result.autoplayStopAt70BypassedCourses || {};
+      renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled, result.autoplayStopAt70Enabled);
+    });
   }
   if (changes.playbackErrorRecovery) renderPlaybackErrorRecovery(changes.playbackErrorRecovery.newValue);
   if (changes.visualStyle) renderVisualStyle(changes.visualStyle.newValue);
@@ -762,6 +810,19 @@ chapterLimitEnabledCheckbox.addEventListener("change", () => {
 });
 chapterLimitMinus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) - 1));
 chapterLimitPlus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) + 1));
+chapterLimitValue.addEventListener("change", commitChapterLimitInput);
+chapterLimitValue.addEventListener("blur", commitChapterLimitInput);
+chapterLimitValue.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    commitChapterLimitInput();
+    chapterLimitValue.blur();
+  }
+});
+chapterLimitSlider.addEventListener("input", () => {
+  chapterLimitValue.value = chapterLimitSlider.value;
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(Number(chapterLimitSlider.value), Number(chapterLimitSlider.max)));
+});
+chapterLimitSlider.addEventListener("change", () => updateChapterLimitValue(chapterLimitSlider.value));
 chapterLimitResume.addEventListener("click", () => {
   if (!chapterLimitStatus?.courseCode) return;
   chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
@@ -784,6 +845,14 @@ courseProgressThresholdEnabledCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ courseProgressThresholdEnabled: courseProgressThresholdEnabledCheckbox.checked });
   if (courseProgressThresholdEnabledCheckbox.checked) claimAchievement("enable-70-advice");
 });
+autoplayStopAt70EnabledCheckbox.addEventListener("change", () => {
+  autoplayStopAt70BypassedCourses = {};
+  chrome.storage.local.set({
+    autoplayStopAt70Enabled: autoplayStopAt70EnabledCheckbox.checked,
+    autoplayStopAt70BypassedCourses: {},
+  });
+});
+autoplayStopAt70Resume.addEventListener("click", () => updateAutoplayStopAt70Bypass(true));
 for (const radio of playbackErrorRecoveryRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;
   chrome.storage.local.set({ playbackErrorRecovery: selectedPlaybackErrorRecovery() });
