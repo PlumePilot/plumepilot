@@ -1,0 +1,28 @@
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+const listeners=new Map();let capturedBlob=null;
+class Element {constructor(id=''){this.id=id;this.style={};this.dataset={};this.hidden=false;this.disabled=false;this.textContent='';}addEventListener(type,fn){listeners.set(this.id+':'+type,fn)}appendChild(){}append(){}remove(){}click(){}replaceChildren(){}}
+const elements=new Map(['courseTitle','summary','status','progressBar','downloadPdf','downloadHtml','missingCard','missingList'].map(id=>[id,new Element(id)]));
+const document={getElementById:id=>elements.get(id)||new Element(id),createElement:()=>new Element(),body:new Element('body'),documentElement:new Element('root'),title:''};
+const job={courseTitle:'Analisi matematica',operationId:'op',missing:[],tests:[{section:'Modulo 1',chapterTitle:'1 - Insiemi',lessonNumber:1,order:1,testId:42,questions:[{question:'Quanto vale α ≤ β?',correctPosition:1,images:[],answers:[{answer:'Sì',images:[]},{answer:'No',images:[]}]}]}]};
+const NativeURL=URL;NativeURL.createObjectURL=blob=>{capturedBlob=blob;return 'blob:test'};NativeURL.revokeObjectURL=()=>{};
+const chrome={runtime:{lastError:null,getManifest:()=>({version:'test'}),sendMessage:()=>{}},storage:{local:{get:(key,cb)=>cb({[key]:job}),remove:(key,cb)=>cb()}}};
+const context=vm.createContext({document,chrome,location:{search:'?job=test'},URL:NativeURL,URLSearchParams,Blob,setTimeout:fn=>0,clearTimeout,console,fetch,Uint8Array,ArrayBuffer,btoa,TextEncoder,TextDecoder});
+vm.runInContext(await readFile(new URL('../test-builder.js', import.meta.url),'utf8'),context);
+await new Promise(resolve=>setImmediate(resolve));
+await listeners.get('downloadHtml:click')();
+const html=await capturedBlob.text();
+if(!html.includes('noteKey'))throw new Error('missing stable note key');
+if(!html.includes('Spiegazione e osservazioni'))throw new Error('missing note UI');
+if(!html.includes("details.open=false"))throw new Error('notes must start closed');
+if(!html.includes("indicator.textContent='Appunti presenti'"))throw new Error('missing saved-note indicator');
+if(!html.includes("details.dataset.hasNotes=String(saveNote"))throw new Error('saved-note indicator must update while editing');
+if(!html.includes('--note-border:#4f8a68'))throw new Error('missing sage-green saved-note style');
+if(!html.includes('data-theme="auto"'))throw new Error('automatic theme must be the default');
+if(!html.includes("['auto','Automatico'],['light','Chiaro'],['dark','Scuro']"))throw new Error('missing theme choices');
+if(!html.includes('@media(prefers-color-scheme:dark)'))throw new Error('automatic theme must follow the system');
+if(!html.includes('document.documentElement.dataset.theme=value'))throw new Error('selected theme must be stored in the downloaded HTML');
+if(!html.includes('Quanto vale α ≤ β?'))throw new Error('unicode lost');
+const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
+new Function(scripts.at(-1));
+console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');
