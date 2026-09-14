@@ -4,6 +4,8 @@ import vm from "node:vm";
 
 const achievementsSource = readFileSync(new URL("../achievements.js", import.meta.url), "utf8");
 const backgroundSource = readFileSync(new URL("../background.js", import.meta.url), "utf8");
+const bridgeSource = readFileSync(new URL("../bridge.js", import.meta.url), "utf8");
+const contentSource = readFileSync(new URL("../content.js", import.meta.url), "utf8");
 const floatingMenuSource = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
 const popupSource = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
 const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
@@ -58,5 +60,15 @@ assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*11px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.action\s*\{\s*font-size:\s*12px;/s);
+assert.match(popupSource, /autoplayStopAt70Enabled:\s*false/);
+assert.match(floatingMenuSource, /autoplayStopAt70Enabled:\s*false/);
+assert.match(floatingMenuSource, /data-setting="autoplay-stop-at-70-enabled"/);
+assert.match(floatingMenuSource, /autoplayStopAt70BypassedCourses:\s*\{\}/);
+assert.match(popupSource, /autoplayStopAt70BypassedCourses:\s*\{\}/);
+assert.match(bridgeSource, /changes\.autoplayStopAt70Enabled/);
+assert.match(bridgeSource, /changes\.autoplayStopAt70BypassedCourses/);
+assert.match(contentSource, /function courseProgressComputedPercent\([\s\S]+return Math\.max\(0, Math\.min\(100, value\)\);/);
+assert.match(contentSource, /function autoplayThresholdReached\(\)[\s\S]+percent !== null && percent >= 70;/);
+assert.match(contentSource, /recordKnownVideoProgress\(cur, getProgress\(cur\)\);[\s\S]+const sessionLimitReached = chapterLimitReached/);
 
-console.log("PASS: EXP modes, floating tabs, popup operation status and responsive text are consistent");
+console.log("PASS: EXP modes, navigation, responsive text and optional 70% autoplay stop are consistent");

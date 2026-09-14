@@ -70,7 +70,12 @@
               <span>Avvisami al raggiungimento del 70%</span>
               <input id="courseProgressThresholdEnabled" type="checkbox">
             </label>
-            <div class="course-progress-option-hint">L’avviso funziona anche quando la barra sullo schermo è nascosta.</div>
+            <label class="toggle-row" for="autoplayStopAt70Enabled">
+              <span>Ferma autoplay al 70%</span>
+              <input id="autoplayStopAt70Enabled" type="checkbox">
+            </label>
+            <button id="autoplayStopAt70Resume" class="secondary-button" type="button" hidden>Continua oltre il 70%</button>
+            <div class="course-progress-option-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare esplicitamente oltre la soglia.</div>
           </div>
         </details>
       </section>
