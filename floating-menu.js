@@ -764,7 +764,7 @@
   ) {
     if (!ui) return;
     const courseAvailable = !isCommissionOnlyPage();
-    const examsAvailable = settings.commissionCheckEnabled === true;
+    const examsAvailable = true;
     const achievementsAvailable =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     const selectedTab =
@@ -795,7 +795,12 @@
       if (selected && focus) tab.focus();
     }
 
-    if (selectedTab === "exams" && acknowledge && !ui.panel.hidden)
+    if (
+      selectedTab === "exams" &&
+      settings.commissionCheckEnabled === true &&
+      acknowledge &&
+      !ui.panel.hidden
+    )
       markCommissionNotificationsSeen();
     setTimeout(placePanel, 0);
   }
@@ -1302,15 +1307,17 @@
     const achievementsEnabled =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     ui.courseTab.hidden = commissionOnlyPage;
-    ui.examsTab.hidden = !enabled;
+    ui.examsTab.hidden = false;
     ui.achievementsTab.hidden = !achievementsEnabled;
     ui.tabList.dataset.count = String(
-      1 +
+      2 +
         Number(!commissionOnlyPage) +
-        Number(enabled) +
         Number(achievementsEnabled),
     );
-    ui.commissionSection.hidden = !enabled;
+    ui.commissionSection.hidden = false;
+    ui.commissionEnabled.checked = enabled;
+    ui.commissionDisabled.hidden = enabled;
+    ui.commissionContent.hidden = !enabled;
     ui.hide.textContent = commissionOnlyPage
       ? "Disattiva il controllo commissione"
       : "Nascondi il menu dalla pagina";
@@ -1318,11 +1325,10 @@
     if (
       !activeMenuTab ||
       (activeMenuTab === "course" && commissionOnlyPage) ||
-      (activeMenuTab === "exams" && !enabled) ||
       (activeMenuTab === "achievements" && !achievementsEnabled)
     ) {
       selectMenuTab(
-        commissionOnlyPage ? (enabled ? "exams" : "preferences") : "course",
+        commissionOnlyPage ? "exams" : "course",
         { acknowledge: false },
       );
     }
@@ -2410,8 +2416,11 @@
           gap: 10px;
         }
         .preferences-section {
-          display: grid;
-          gap: 8px;
+          min-width: 0;
+          padding: 9px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          background: var(--sw-elevated);
         }
         .preferences-heading {
           margin: 0;
@@ -2421,6 +2430,18 @@
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
+        .preference-macro > summary { list-style: none; cursor: pointer; user-select: none; }
+        .preference-macro > summary::-webkit-details-marker { display: none; }
+        .preference-macro-summary,
+        .preference-subsection-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .preference-macro-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-subsection { min-width: 0; padding: 8px; border: 1px solid var(--sw-border); border-radius: 8px; background: var(--sw-surface); }
+        .preference-subsection-summary { color: var(--sw-heading); font-size: 10px; font-weight: 750; line-height: 1.3; }
+        .preference-subsection-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-disclosure-chevron { width: 7px; height: 7px; flex: 0 0 auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 140ms ease; }
+        details[open] > summary > .preference-disclosure-chevron { transform: rotate(225deg); }
+        .preference-macro > summary:focus-visible { outline: 2px solid var(--sw-gold); outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { .preference-disclosure-chevron { transition: none; } }
         .preference-group {
           min-width: 0;
           margin: 0;
@@ -2943,6 +2964,25 @@
         .commission-section {
           padding-top: 1px;
         }
+        .commission-toggle {
+          margin-bottom: 4px;
+          padding: 0 2px 6px;
+          border-bottom: 1px solid var(--sw-divider-soft);
+          font-weight: 750;
+        }
+        .commission-disabled {
+          margin: 9px 0 0;
+          padding: 10px;
+          border-radius: 7px;
+          color: var(--sw-muted);
+          background: var(--sw-empty-bg);
+          font-size: 10px;
+          line-height: 1.4;
+          text-align: center;
+        }
+        .commission-disabled[hidden],
+        .commission-content[hidden] { display: none; }
+        .commission-content { padding-top: 7px; }
         .commission-heading {
           margin: 0 0 3px;
           color: var(--sw-heading);
@@ -3544,8 +3584,11 @@
             </div>
           </div>
           <div id="studywing-exams-panel" class="menu-tab-panel" data-role="exams-panel" role="tabpanel" aria-labelledby="studywing-exams-tab" hidden>
-            <section class="commission-section" data-role="commission-section" hidden>
-              <div class="commission-heading-row gaming-control-row"><h2 class="commission-heading">Stato della commissione</h2><span class="gaming-control-sprite commission-control-sprite" data-role="commission-control-sprite" aria-hidden="true"></span></div>
+            <section class="commission-section" data-role="commission-section">
+              <label class="setting commission-toggle gaming-control-row"><span>Controlla stato commissione</span><span class="gaming-control-sprite commission-control-sprite" data-role="commission-control-sprite" aria-hidden="true"></span><input data-setting="commission-check-enabled" type="checkbox"></label>
+              <p class="commission-disabled" data-role="commission-disabled">Il controllo automatico della commissione è disattivato.</p>
+              <div class="commission-content" data-role="commission-content" hidden>
+              <h2 class="commission-heading">Stato della commissione</h2>
               <p class="commission-intro">Controllo automatico ogni 10 minuti mentre una pagina Pegaso è visibile. Gli esami restano qui durante la valutazione; gli esiti caricati da Pegaso sono raccolti nel sottomenù.</p>
               <div class="commission-empty" data-role="commission-empty">Nessun esame da mostrare. Il controllo partirà quando l’autenticazione della pagina Pegaso sarà disponibile.</div>
               <div class="commission-list" data-role="commission-list"></div>
@@ -3568,6 +3611,7 @@
                 </section>
               </div>
               <p class="commission-note">L’elenco principale mostra gli esami il cui esito non è ancora stato caricato da Pegaso.</p>
+              </div>
             </section>
           </div>
           <div id="studywing-achievements-panel" class="menu-tab-panel achievements-panel" data-role="achievements-panel" role="tabpanel" aria-labelledby="studywing-achievements-tab" hidden>
@@ -3577,8 +3621,12 @@
             <div class="achievement-footer"><div class="achievement-progress" data-role="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="achievement-progress-fill" data-role="achievement-progress-fill"></span><span class="achievement-mid-marker" data-role="achievement-mid-marker" title="Premio stile barra"></span><span class="achievement-end-marker" data-role="achievement-end-marker" title="Premio stile launcher"></span></div></div>
           </div>
           <div id="studywing-preferences-panel" class="menu-tab-panel preferences-panel" data-role="preferences-panel" role="tabpanel" aria-labelledby="studywing-preferences-tab" hidden>
-            <section class="preferences-section" aria-labelledby="studywing-interface-preferences-heading">
-              <h2 id="studywing-interface-preferences-heading" class="preferences-heading">Interfaccia</h2>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
+              <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
+              <div class="preference-subsection style-theme-container">
+                <div class="preference-subsection-summary">Stile e tema</div>
+                <div class="preference-subsection-content">
               <fieldset class="preference-group" aria-labelledby="studywing-floating-visual-style-heading">
                 <div id="studywing-floating-visual-style-heading" class="preference-group-heading">Stile visivo</div>
                 <div class="preference-options" data-columns="2">
@@ -3605,9 +3653,13 @@
                 </div>
                 <p class="preference-hint">Regola larghezza e leggibilità di entrambi i menu.</p>
               </fieldset>
-            </section>
-            <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
-              <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
+                </div>
+              </div>
+              </div>
+            </details>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-behavior-preferences-heading">
+              <summary id="studywing-behavior-preferences-heading" class="preferences-heading preference-macro-summary"><span>Comportamento</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
               <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
                 <label id="studywing-floating-sound-heading" class="preference-group-heading gaming-control-row sound-heading"><span>Notifiche sonore</span><span class="gaming-control-sprite sound-notification-control-sprite" data-role="sound-notification-control-sprite" aria-hidden="true"></span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
                 <div class="preference-options sound-options" data-role="sound-controls">
@@ -3624,7 +3676,8 @@
                   <label><input type="radio" name="studywing-playback-error-recovery" value="manual"> <span>Lascia aperto l’avviso</span></label>
                 </div>
               </fieldset>
-            </section>
+              </div>
+            </details>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
@@ -3793,6 +3846,15 @@
       commissionSection: shadow.querySelector(
         '[data-role="commission-section"]',
       ),
+      commissionEnabled: shadow.querySelector(
+        '[data-setting="commission-check-enabled"]',
+      ),
+      commissionDisabled: shadow.querySelector(
+        '[data-role="commission-disabled"]',
+      ),
+      commissionContent: shadow.querySelector(
+        '[data-role="commission-content"]',
+      ),
       commissionEmpty: shadow.querySelector('[data-role="commission-empty"]'),
       commissionList: shadow.querySelector('[data-role="commission-list"]'),
       confirmedToggle: shadow.querySelector('[data-action="toggle-confirmed"]'),
@@ -3916,6 +3978,12 @@
         ui.confirmedToggle.getAttribute("aria-expanded") !== "true";
       ui.confirmedToggle.setAttribute("aria-expanded", String(expanded));
       ui.confirmedPanel.hidden = !expanded;
+    });
+    ui.commissionEnabled.addEventListener("change", () => {
+      writeSetting("commissionCheckEnabled", ui.commissionEnabled.checked);
+      if (!ui.commissionEnabled.checked) return;
+      playActionAnimation(ui.commissionControlSprite);
+      claimFloatingAchievement("enable-commission-check");
     });
     for (const radio of ui.visualStyleRadios)
       radio.addEventListener("change", () => {
