@@ -681,7 +681,10 @@
       settings.courseProgressThresholdEnabled === true
     ) {
       showCourseThresholdToast();
-      void runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
+      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
+      if (soundResult?.achievement?.accepted) {
+        window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
+      }
     }
   }
 

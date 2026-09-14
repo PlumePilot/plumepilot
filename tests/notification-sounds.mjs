@@ -29,6 +29,9 @@ const sprite = readFileSync(new URL("../assets/gaming/action-notification-sound.
 assert.match(achievements, /title: "Orecchie tese!"[^\n]+exp: 20/);
 assert.match(background, /serializedSound\(\(\) => playSoundEvent/);
 assert.match(background, /claimAchievement\("receive-sound-notification"\)/);
+assert.equal((bridge.match(/result\?\.achievement\?\.accepted/g) || []).length, 2);
+assert.match(bridge, /STUDYWING_ACHIEVEMENT_AWARDED[^\n]+result\.achievement/);
+assert.match(floating, /soundResult\?\.achievement\?\.accepted[\s\S]+STUDYWING_ACHIEVEMENT_AWARDED/);
 assert.match(bridge, /previousSnapshot\?\.state === commissionStates\.STATES\.PENDING/);
 assert.match(content, /thresholdReached \|\| sessionLimitReached/);
 assert.match(content, /`course-threshold:\$\{courseCode\}`/);

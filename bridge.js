@@ -247,7 +247,11 @@
             chrome.runtime.sendMessage({
               type: "STUDYWING_SOUND_EVENT",
               eventId: `commission:${Number(payload.capturedAt) || Date.now()}:${soundChanges.sort().join(".")}`,
-            }, () => void chrome.runtime.lastError);
+            }, (result) => {
+              if (!chrome.runtime.lastError && result?.achievement?.accepted) {
+                window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
+              }
+            });
           }
         }
         releaseCommissionLease(!storageFailed, Number(payload.capturedAt) || Date.now());
@@ -458,7 +462,14 @@
   window.addEventListener("message", (event) => {
     if (event.source !== window || !event.data) return;
     if (event.data.type === "STUDYWING_SOUND_EVENT") {
-      chrome.runtime.sendMessage({ type: "STUDYWING_SOUND_EVENT", eventId: safeText(event.data.eventId, 180) }, () => void chrome.runtime.lastError);
+      chrome.runtime.sendMessage(
+        { type: "STUDYWING_SOUND_EVENT", eventId: safeText(event.data.eventId, 180) },
+        (result) => {
+          if (!chrome.runtime.lastError && result?.achievement?.accepted) {
+            window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
+          }
+        },
+      );
       return;
     }
     if (event.data.type === "STUDYWING_NOTIFICATION_UPDATED") {
