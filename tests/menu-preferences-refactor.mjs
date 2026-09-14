@@ -14,6 +14,15 @@ assert.equal((popup.match(/class="preferences-section preference-macro"/g)||[]).
 assert.equal((popup.match(/class="preference-subsection style-theme-container"/g)||[]).length,1);
 assert.equal((floating.match(/class="preferences-section preference-macro"/g)||[]).length,2);
 assert.equal((floating.match(/class="preference-subsection style-theme-container"/g)||[]).length,1);
+assert.match(popup,/<details class="preference-subsection style-theme-container">/);
+assert.match(floating,/<div class="preference-subsection style-theme-container">/);
+assert.doesNotMatch(floating,/<details class="preference-subsection style-theme-container">/);
 assert.doesNotMatch(popup,/class="preferences-section preference-macro"[^>]+ open/);
 assert.doesNotMatch(floating,/class="preferences-section preference-macro"[^>]+ open/);
-console.log("PASS: course collections and collapsible preferences are consistent");
+assert.match(floating,/data-setting="commission-check-enabled"/);
+assert.match(floating,/Il controllo automatico della commissione è disattivato\./);
+assert.match(floating,/ui\.examsTab\.hidden = false/);
+assert.match(floating,/ui\.commissionContent\.hidden = !enabled/);
+assert.match(floating,/claimFloatingAchievement\("enable-commission-check"\)/);
+assert.match(floating,/settings\.commissionCheckEnabled === true\s*&&\s*acknowledge/);
+console.log("PASS: course collections, compact preferences and commission controls are consistent");
