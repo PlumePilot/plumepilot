@@ -76,6 +76,10 @@ const createTestCollectionButton = document.getElementById("createTestCollection
 const testCollectionButtonLabel = document.getElementById("testCollectionButtonLabel");
 const testCollectionSprite = document.getElementById("testCollectionSprite");
 const testCollectionStatus = document.getElementById("testCollectionStatus");
+const createNotesCollectionButton = document.getElementById("createNotesCollection");
+const notesCollectionButtonLabel = document.getElementById("notesCollectionButtonLabel");
+const notesCollectionSprite = document.getElementById("notesCollectionSprite");
+const notesCollectionStatus = document.getElementById("notesCollectionStatus");
 const exportCourseMaterialsButton = document.getElementById("exportCourseMaterials");
 const materialsButtonLabel = document.getElementById("materialsButtonLabel");
 const materialsSprite = document.getElementById("materialsSprite");
@@ -227,7 +231,7 @@ function claimEnabledGamingAchievements() {
 }
 
 function operationTabId(operation) {
-  return ["turbo", "objectives", "tests"].includes(operation?.kind)
+  return ["turbo", "objectives", "tests", "notes"].includes(operation?.kind)
     ? "activitiesTab"
     : "courseTab";
 }
@@ -418,7 +422,7 @@ function renderVisualStyle(value) {
   document.documentElement.dataset.visualStyle = normalized;
   if (normalized !== "gaming" && document.getElementById("achievementsTab")?.getAttribute("aria-selected") === "true") selectPopupTab("courseTab");
   if (normalized !== "gaming") {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -459,6 +463,7 @@ function updateAutoplayControls() {
 }
 function operationLabel(operation) {
   if (!operation) return "";
+  if (operation.kind === "notes") return "È in corso la raccolta degli appunti del corso.";
   if (operation.kind === "turbo") return "I test automatici sono in esecuzione.";
   if (operation.kind === "objectives") return "Il completamento degli Obiettivi è in esecuzione.";
   if (operation.kind === "tests") return "È in corso la raccolta dei test del corso.";
@@ -467,6 +472,11 @@ function operationLabel(operation) {
 }
 function renderOperation(operation) {
   activeOperation = operation || null;
+  const notesActive = operation?.kind === "notes";
+  const notesCollecting = notesActive && operation.phase === "collecting";
+  createNotesCollectionButton.disabled = Boolean(operation) && !notesCollecting;
+  notesCollectionButtonLabel.textContent = notesCollecting ? "Interrompi raccolta appunti" : "Crea raccolta appunti del corso";
+  notesCollectionStatus.textContent = notesActive ? operation.message : "";
   const busy = Boolean(operation);
   const turbo = operation?.kind === "turbo";
   const objectives = operation?.kind === "objectives";
@@ -935,66 +945,12 @@ clearCommissionDataButton.addEventListener("click", () => {
   });
 });
 
-const panelAnimations = new WeakMap();
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-function stopPanelAnimation(panel) {
-  const animation = panelAnimations.get(panel);
-  if (animation) animation.cancel();
-  panelAnimations.delete(panel);
-  panel.classList.remove("is-expanding", "is-collapsing");
-}
-
 function closeInfoPanel(panel) {
-  if (!panel || panel.hidden) return Promise.resolve();
-
-  stopPanelAnimation(panel);
-  const startHeight = panel.getBoundingClientRect().height;
-  panel.classList.add("is-collapsing");
-  const animation = panel.animate(
-    [
-      { height: `${startHeight}px`, opacity: 1 },
-      { height: "0px", opacity: 0 },
-    ],
-    { duration: reduceMotion.matches ? 0 : 200, easing: "ease", fill: "forwards" },
-  );
-  panelAnimations.set(panel, animation);
-
-  return animation.finished.catch(() => {}).then(() => {
-    if (panelAnimations.get(panel) !== animation) return;
-    panel.hidden = true;
-    panel.style.height = "";
-    panel.style.opacity = "";
-    stopPanelAnimation(panel);
-  });
+  if (panel) panel.hidden = true;
 }
 
 function openInfoPanel(panel) {
-  if (!panel) return;
-
-  stopPanelAnimation(panel);
-  panel.hidden = false;
-  panel.classList.add("is-expanding");
-  const targetHeight = panel.scrollHeight;
-  const animation = panel.animate(
-    [
-      { height: "0px", opacity: 0 },
-      { height: `${targetHeight}px`, opacity: 1 },
-    ],
-    { duration: reduceMotion.matches ? 0 : 220, easing: "ease", fill: "forwards" },
-  );
-  panelAnimations.set(panel, animation);
-
-  animation.finished.catch(() => {}).then(() => {
-    if (panelAnimations.get(panel) !== animation) return;
-    panel.style.height = "";
-    panel.style.opacity = "";
-    stopPanelAnimation(panel);
-    panel.scrollIntoView({
-      behavior: reduceMotion.matches ? "auto" : "smooth",
-      block: "nearest",
-    });
-  });
+  if (panel) panel.hidden = false;
 }
 
 const infoToggleButtons = document.querySelectorAll(".expand-button, .about-link");
@@ -1087,12 +1043,12 @@ objectivesButton.addEventListener("click", () => {
   });
 });
 
-for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
   sprite.addEventListener("animationend", () => sprite.classList.remove("is-playing"));
 }
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, notesCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -1160,5 +1116,31 @@ createTestCollectionButton.addEventListener("click", () => {
     } else {
       playActionAnimation(testCollectionSprite);
     }
+  });
+});
+
+createNotesCollectionButton.addEventListener("click", () => {
+  const collecting = activeOperation?.kind === "notes" && activeOperation?.phase === "collecting";
+  if (collecting) {
+    notesCollectionStatus.textContent = "Interruzione della raccolta degli appunti…";
+    runtimeMessage({ type: "PEGASO_CANCEL_EXPORT", operationId: activeOperation.id });
+    return;
+  }
+  notesCollectionStatus.textContent = "Avvio della raccolta degli appunti…";
+  withActiveCourseTab(async (tabId) => {
+    if (!tabId) {
+      notesCollectionStatus.textContent = "Apri prima la pagina di un corso UniPegaso.";
+      return;
+    }
+    const response = await runtimeMessage({
+      type: "PEGASO_START_NOTES_EXPORT",
+      sourceTabId: tabId,
+      requestSource: "toolbar-popup",
+    });
+    if (!response?.accepted) {
+      notesCollectionStatus.textContent = response?.operation
+        ? operationLabel(response.operation)
+        : response?.reason || "Impossibile avviare la raccolta.";
+    } else playActionAnimation(notesCollectionSprite);
   });
 });

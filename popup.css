@@ -1398,6 +1398,10 @@ html[data-visual-style="gaming"] .test-collection-sprite {
   background-image: url("assets/gaming/action-test-collection.png");
 }
 
+html[data-visual-style="gaming"] .notes-collection-sprite {
+  background-image: url("assets/gaming/action-course-notes.png");
+}
+
 html[data-visual-style="gaming"] .materials-sprite {
   background-image: url("assets/gaming/action-study-materials.png");
 }
@@ -1412,6 +1416,7 @@ html[data-visual-style="gaming"] .materials-sprite {
   }
 
   html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):hover .test-collection-sprite:not(.is-playing),
+  html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):hover .notes-collection-sprite:not(.is-playing),
   html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):hover .materials-sprite:not(.is-playing) {
     animation: action-hover-preview 1700ms steps(5, end) infinite both;
   }
@@ -1426,6 +1431,7 @@ html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):not([data-
 }
 
 html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):focus-visible .test-collection-sprite:not(.is-playing),
+html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):focus-visible .notes-collection-sprite:not(.is-playing),
 html[data-visual-style="gaming"] .gaming-action-button:not(:disabled):focus-visible .materials-sprite:not(.is-playing) {
   animation: action-hover-preview 1700ms steps(5, end) infinite both;
 }
@@ -1439,6 +1445,7 @@ html[data-visual-style="gaming"] .turbo-tests-sprite.is-playing {
 }
 
 html[data-visual-style="gaming"] .test-collection-sprite.is-playing,
+html[data-visual-style="gaming"] .notes-collection-sprite.is-playing,
 html[data-visual-style="gaming"] .materials-sprite.is-playing {
   animation: action-six-frames 1200ms steps(5, end) 1 both;
 }
@@ -1560,25 +1567,13 @@ html[data-visual-style="gaming"] .materials-sprite.is-playing {
   font-size: 12px;
   line-height: 1.45;
   opacity: 1;
-  transition: height 220ms ease, opacity 180ms ease;
-  will-change: height, opacity;
 }
 
 .info-panel[hidden] {
   display: none;
 }
 
-.info-panel.is-collapsing,
-.info-panel.is-expanding {
-  pointer-events: none;
-}
-
-.info-panel.is-collapsing {
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .info-panel,
   .autoplay-options,
   .course-progress-fill,
   .course-progress-options-chevron,

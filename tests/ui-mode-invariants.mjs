@@ -12,6 +12,7 @@ const popupCssSource = readFileSync(new URL("../popup.css", import.meta.url), "u
 const popupHtmlSource = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
 const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
 const flameSprite = readFileSync(new URL("../assets/gaming/gaming-chapter-slider-flame.png", import.meta.url));
+const notesSprite = readFileSync(new URL("../assets/gaming/action-course-notes.png", import.meta.url));
 const themeSource = readFileSync(new URL("../theme.js", import.meta.url), "utf8");
 
 const stored = { visualStyle: "standard" };
@@ -58,6 +59,16 @@ assert.match(popupSource, /turboTestsStatus\.textContent = turbo \?[^;]+: "";/s)
 assert.match(popupSource, /objectivesStatus\.textContent = objectives[^;]+: "";/s);
 assert.match(popupSource, /testCollectionStatus\.textContent = operation\?\.kind === "tests"[^;]+: "";/s);
 assert.match(popupSource, /materialsStatus\.textContent = operation\?\.kind === "materials"[^;]+: "";/s);
+assert.match(popupHtmlSource, /id="createNotesCollection"[^>]+gaming-action-button[^>]+gaming-art-compact/);
+assert.match(popupHtmlSource, /aria-controls="notesCollectionInfo"[^>]+aria-expanded="false"/);
+assert.match(popupSource, /notesCollectionButtonLabel\.textContent = notesCollecting/);
+assert.match(floatingMenuSource, /class="action notes-collection has-gaming-art gaming-art-compact"[^>]+data-action="notes-collection"/);
+assert.match(floatingMenuSource, /notesLabel\.textContent = collectingNotes/);
+assert.match(floatingMenuSource, /\.action\.test-collection,\s*\.action\.notes-collection,\s*\.action\.materials\s*\{\s*grid-column:\s*1 \/ -1;/s);
+const infoPanelFunctions = popupSource.slice(popupSource.indexOf("function closeInfoPanel("), popupSource.indexOf("const infoToggleButtons"));
+assert.match(infoPanelFunctions, /panel\.hidden = true/);
+assert.match(infoPanelFunctions, /panel\.hidden = false/);
+assert.doesNotMatch(infoPanelFunctions, /\.animate\(|scrollIntoView/);
 assert.match(popupCssSource, /html\[data-menu-size="medium"\]\s*\{[^}]+--sw-action-font-size:\s*14px;[^}]+--sw-control-font-size:\s*12px;[^}]+--sw-secondary-font-size:\s*11px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*10px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);
@@ -72,6 +83,9 @@ assert.match(floatingMenuSource, /chapterLimitSlider\.addEventListener\("change"
 assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/gaming-chapter-slider-flame.png")));
 assert.equal(flameSprite.readUInt32BE(16), 160, "flame sprite must retain five 32px columns");
 assert.equal(flameSprite.readUInt32BE(20), 32, "flame sprite height must fit the slider thumb");
+assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/action-course-notes.png")));
+assert.equal(notesSprite.readUInt32BE(16), 384, "notes sprite must retain six 64px frames");
+assert.equal(notesSprite.readUInt32BE(20), 32, "notes sprite height must match compact actions");
 assert.match(popupSource, /autoplayStopAt70Enabled:\s*false/);
 assert.match(floatingMenuSource, /autoplayStopAt70Enabled:\s*false/);
 assert.match(floatingMenuSource, /data-setting="autoplay-stop-at-70-enabled"/);

@@ -376,7 +376,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
       }
       if (existing) return { accepted: false, operation: existing };
       const batch = kind === "turbo" || kind === "objectives";
-      const message = kind === "turbo"
+      const message = kind === "notes" ? "Raccolta degli appunti del corso…" : kind === "turbo"
         ? "Avvio dei test automatici…"
         : kind === "objectives"
           ? "Avvio del completamento degli Obiettivi…"
@@ -480,16 +480,32 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
       return { accepted: false, reason: error.message };
     }
   }
+  async function startNotesExport(message) {
+    if (!Number.isInteger(message.sourceTabId)) return { accepted: false, reason: "Scheda del corso non disponibile." };
+    const result = await acquire("notes", message.sourceTabId);
+    if (!result.accepted) return result;
+    try {
+      const response = await sendTabMessage(message.sourceTabId, {
+        type: "PEGASO_COLLECT_COURSE_NOTES",
+        operationId: result.operation.id,
+      });
+      if (!response?.accepted) throw new Error(response?.reason || "La pagina non ha accettato la raccolta degli appunti.");
+      return result;
+    } catch (error) {
+      await release(result.operation.id);
+      return { accepted: false, reason: error.message };
+    }
+  }
   async function cancelExport(message) {
     const operation = await currentOperation();
     if (!operation || operation.id !== message.operationId) return { accepted: false, reason: "Operazione non trovata." };
-    if (!(["materials", "pdf", "epub", "tests"].includes(operation.kind)) || !["collecting", "stopping"].includes(operation.phase)) {
+    if (!(["materials", "pdf", "epub", "tests", "notes"].includes(operation.kind)) || !["collecting", "stopping"].includes(operation.phase)) {
       return { accepted: false, reason: "La raccolta non può più essere interrotta da questo pulsante.", operation };
     }
     if (operation.phase === "stopping") return { accepted: true, operation };
     const updated = await update(operation.id, {
       phase: "stopping",
-      message: operation.kind === "tests"
+      message: operation.kind === "notes" ? "Interruzione della raccolta appunti…" : operation.kind === "tests"
         ? "Interruzione della raccolta dei test…"
         : operation.kind === "materials"
           ? "Interruzione della raccolta delle dispense…"
@@ -531,7 +547,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
   async function openBuilderOnce(message) {
     const operation = await currentOperation();
     if (!operation || operation.id !== message.operationId || !message.payload) return { accepted: false };
-    const format = message.format === "tests"
+    const format = message.format === "notes" ? "notes" : message.format === "tests"
       ? "tests"
       : message.format === "materials"
         ? "materials"
@@ -560,7 +576,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
         courseTabId: operation.sourceTabId,
       },
     });
-    const builderMessage = format === "tests"
+    const builderMessage = format === "notes" ? "Apertura della raccolta appunti…" : format === "tests"
       ? "Apertura della raccolta dei test…"
       : format === "materials"
         ? "Apertura dello strumento di esportazione delle dispense…"
@@ -570,7 +586,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
       await storageRemove(storageKey);
       return { accepted: false };
     }
-    const builderPage = format === "tests"
+    const builderPage = format === "notes" ? "notes-builder.html" : format === "tests"
       ? "test-builder.html"
       : format === "materials"
         ? "materials-builder.html"
@@ -579,7 +595,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
     const finalized = await update(operation.id, {
       phase: "building",
       builderTabId: tab?.id,
-      message: format === "tests"
+      message: format === "notes" ? "Appunti pronti: scegli PDF oppure HTML." : format === "tests"
         ? "Preparazione dei formati PDF e HTML…"
         : format === "materials"
           ? "Dispense pronte: scegli PDF oppure EPUB."
@@ -604,6 +620,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
     else if (message?.type === "PEGASO_SOURCE_PAGE_READY") action = Number.isInteger(sourceTabId) ? sourcePageReady(sourceTabId, Number(message.pageLoadedAt)) : Promise.resolve({ accepted: false });
     else if (message?.type === "PEGASO_ACQUIRE_OPERATION") action = Number.isInteger(sourceTabId) ? acquire(message.kind, sourceTabId) : Promise.resolve({ accepted: false, reason: "Scheda del corso non disponibile." });
     else if (message?.type === "PEGASO_START_EXPORT") action = startExport({ ...message, sourceTabId });
+    else if (message?.type === "PEGASO_START_NOTES_EXPORT") action = startNotesExport({ ...message, sourceTabId });
     else if (message?.type === "PEGASO_START_TEST_EXPORT") action = startTestExport({ ...message, sourceTabId });
     else if (message?.type === "PEGASO_CANCEL_EXPORT") action = cancelExport(message);
     else if (message?.type === "PEGASO_INVALIDATE_MATERIAL_CACHE") action = invalidateMaterialCache(message);

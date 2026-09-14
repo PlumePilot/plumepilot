@@ -365,6 +365,21 @@
       sendResponse({ accepted: true, duplicate: false });
       return;
     }
+    if (message?.type === "PEGASO_COLLECT_COURSE_NOTES") {
+      const operationId = exportOperationId(message.operationId);
+      if (!operationId) {
+        sendResponse({ accepted: false, reason: "Identificativo operazione mancante." });
+        return;
+      }
+      if (requestedExportOperationIds.has(operationId)) {
+        sendResponse({ accepted: true, duplicate: true });
+        return;
+      }
+      rememberExportOperation(requestedExportOperationIds, operationId);
+      window.postMessage({ type: "PEGASO_COLLECT_COURSE_NOTES_REQUEST", operationId }, "*");
+      sendResponse({ accepted: true, duplicate: false });
+      return;
+    }
     if (message?.type === "PEGASO_CANCEL_EXPORT_COLLECTION") {
       const operationId = exportOperationId(message.operationId);
       if (!operationId || terminalExportOperationIds.has(operationId)) {
@@ -521,6 +536,18 @@
       chrome.runtime.sendMessage({
         type: "PEGASO_OPEN_EXPORT_BUILDER",
         format: "tests",
+        operationId,
+        payload: event.data.payload,
+      });
+      return;
+    }
+    if (event.data.type === "PEGASO_COURSE_NOTES_COLLECTED") {
+      const operationId = exportOperationId(event.data.operationId);
+      if (!operationId || !event.data.payload || terminalExportOperationIds.has(operationId)) return;
+      rememberExportOperation(terminalExportOperationIds, operationId);
+      chrome.runtime.sendMessage({
+        type: "PEGASO_OPEN_EXPORT_BUILDER",
+        format: "notes",
         operationId,
         payload: event.data.payload,
       });
