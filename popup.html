@@ -128,10 +128,11 @@
                 <span>Capitoli</span>
                 <div class="chapter-limit-stepper">
                   <button id="chapterLimitMinus" type="button" aria-label="Riduci il limite">−</button>
-                  <output id="chapterLimitValue">1</output>
+                  <input id="chapterLimitValue" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
                   <button id="chapterLimitPlus" type="button" aria-label="Aumenta il limite">+</button>
                 </div>
               </div>
+              <input id="chapterLimitSlider" class="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
               <div id="chapterLimitProgress" class="action-status" aria-live="polite">Apri un corso per calcolare il limite.</div>
               <button id="chapterLimitResume" class="secondary-button" type="button" hidden>Riprendi per altri capitoli</button>
               <div class="setting-hint">PlumePilot si ferma prima del capitolo successivo. Con il limite attivo, “Fermati” viene temporaneamente trattato come “Ignora e continua”.</div>

@@ -8,6 +8,7 @@ const chapterLimitEnabledCheckbox = document.getElementById("chapterLimitEnabled
 const chapterLimitMinus = document.getElementById("chapterLimitMinus");
 const chapterLimitPlus = document.getElementById("chapterLimitPlus");
 const chapterLimitValue = document.getElementById("chapterLimitValue");
+const chapterLimitSlider = document.getElementById("chapterLimitSlider");
 const chapterLimitProgress = document.getElementById("chapterLimitProgress");
 const chapterLimitResume = document.getElementById("chapterLimitResume");
 const chapterLimitOptionsSummary = document.getElementById("chapterLimitOptionsSummary");
@@ -290,11 +291,17 @@ function renderChapterLimit() {
   const ready = Boolean(statusValue?.courseCode);
   const limit = Math.max(1, Number(statusValue?.limit) || 1);
   const maximum = Math.max(1, Number(statusValue?.maximum) || 1);
-  chapterLimitValue.textContent = String(limit);
+  chapterLimitValue.value = String(limit);
+  chapterLimitValue.max = String(maximum);
+  chapterLimitSlider.value = String(limit);
+  chapterLimitSlider.max = String(maximum);
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(limit, maximum));
   chapterLimitEnabledCheckbox.checked = statusValue?.enabled === true;
   chapterLimitEnabledCheckbox.disabled = !ready;
   chapterLimitMinus.disabled = !ready || limit <= 1;
   chapterLimitPlus.disabled = !ready || limit >= maximum;
+  chapterLimitValue.disabled = !ready;
+  chapterLimitSlider.disabled = !ready;
   chapterLimitProgress.textContent = !ready
     ? "Apri un corso per calcolare il limite."
     : statusValue.reached
@@ -345,9 +352,22 @@ function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnab
 }
 function updateChapterLimitValue(nextValue) {
   if (!chapterLimitStatus?.courseCode) return;
-  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, nextValue));
+  const numericValue = Number(nextValue);
+  if (!Number.isFinite(numericValue)) return;
+  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, Math.round(numericValue)));
   chapterLimitMaps.limits[chapterLimitStatus.courseCode] = value;
   chrome.storage.local.set({ autoplayChapterLimits: chapterLimitMaps.limits });
+}
+function flameLevelForLimit(value, maximum) {
+  if (maximum <= 1) return 5;
+  return Math.max(1, Math.min(5, Math.ceil(((value - 1) / (maximum - 1)) * 5)));
+}
+function commitChapterLimitInput() {
+  if (chapterLimitValue.value === "") {
+    renderChapterLimit();
+    return;
+  }
+  updateChapterLimitValue(chapterLimitValue.value);
 }
 function selectedPlaybackErrorRecovery() {
   return playbackErrorRecoveryRadios.find((radio) => radio.checked)?.value || "automatic";
@@ -762,6 +782,19 @@ chapterLimitEnabledCheckbox.addEventListener("change", () => {
 });
 chapterLimitMinus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) - 1));
 chapterLimitPlus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) + 1));
+chapterLimitValue.addEventListener("change", commitChapterLimitInput);
+chapterLimitValue.addEventListener("blur", commitChapterLimitInput);
+chapterLimitValue.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    commitChapterLimitInput();
+    chapterLimitValue.blur();
+  }
+});
+chapterLimitSlider.addEventListener("input", () => {
+  chapterLimitValue.value = chapterLimitSlider.value;
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(Number(chapterLimitSlider.value), Number(chapterLimitSlider.max)));
+});
+chapterLimitSlider.addEventListener("change", () => updateChapterLimitValue(chapterLimitSlider.value));
 chapterLimitResume.addEventListener("click", () => {
   if (!chapterLimitStatus?.courseCode) return;
   chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
