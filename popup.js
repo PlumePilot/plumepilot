@@ -304,7 +304,7 @@ function claimEnabledGamingAchievements() {
 }
 
 function operationTabId(operation) {
-  return ["turbo", "objectives", "tests"].includes(operation?.kind)
+  return ["turbo", "objectives"].includes(operation?.kind)
     ? "activitiesTab"
     : "courseTab";
 }
