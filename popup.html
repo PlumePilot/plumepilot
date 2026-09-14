@@ -8,6 +8,7 @@
   <script src="commission-state.js"></script>
   <script src="achievements.js"></script>
   <script src="sound-settings.js"></script>
+  <script src="floating-menu-layout.js"></script>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -294,6 +295,38 @@
           </div>
           <div id="floatingMenuInfo" class="info-panel" hidden>Mostra i controlli principali di PlumePilot direttamente nella pagina del corso. Il menu compare solo nella pagina che contiene l’elenco delle lezioni. Puoi trascinare l’icona lungo il bordo della finestra per scegliere la posizione.</div>
         </div>
+
+        <fieldset class="preference-choice floating-menu-layout-choice" aria-labelledby="floatingMenuLayoutTitle">
+          <div class="preference-choice-heading">
+            <span id="floatingMenuLayoutTitle">Pulsanti del menu fluttuante</span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sulla personalizzazione del menu fluttuante" aria-controls="floatingMenuLayoutInfo" aria-expanded="false"></button>
+          </div>
+          <div id="floatingMenuLayoutInfo" class="info-panel" hidden>Trascina i pulsanti per cambiarne l’ordine oppure usa le frecce. Puoi nascondere le funzioni che non usi: launcher, schede e impostazioni restano sempre disponibili.</div>
+          <ul id="floatingMenuLayoutList" class="floating-menu-layout-list" aria-label="Ordine e visibilità dei pulsanti">
+            <li class="floating-menu-layout-item" data-layout-item="complete-tests" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Completa tutti i test</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti i test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti i test verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="complete-objectives" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Completa tutti gli Obiettivi</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti gli Obiettivi verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti gli Obiettivi verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="test-collection" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Crea raccolta test</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Crea raccolta test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Crea raccolta test verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="study-materials" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Esporta dispense del corso</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Esporta dispense del corso verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Esporta dispense del corso verso il basso">↓</button></span>
+            </li>
+          </ul>
+          <button id="resetFloatingMenuLayout" class="secondary-button floating-menu-layout-reset" type="button">Ripristina disposizione predefinita</button>
+          <div id="floatingMenuLayoutStatus" class="action-status" role="status" aria-live="polite"></div>
+        </fieldset>
 
         <fieldset class="preference-choice visual-style-choice" aria-labelledby="visualStyleTitle">
           <div class="preference-choice-heading">

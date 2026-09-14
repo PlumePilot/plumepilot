@@ -123,6 +123,7 @@
         "commission-state.js",
         "achievements.js",
         "sound-settings.js",
+        "floating-menu-layout.js",
         "floating-menu.js"
       ],
       "run_at": "document_idle",

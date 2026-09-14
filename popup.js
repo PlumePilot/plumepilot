@@ -36,6 +36,9 @@ const visualStyleRadios = [...document.querySelectorAll('input[name="visualStyle
 const themePreferenceRadios = [...document.querySelectorAll('input[name="themePreference"]')];
 const menuSizeRadios = [...document.querySelectorAll('input[name="menuSize"]')];
 const floatingMenuEnabledCheckbox = document.getElementById("floatingMenuEnabled");
+const floatingMenuLayoutList = document.getElementById("floatingMenuLayoutList");
+const resetFloatingMenuLayoutButton = document.getElementById("resetFloatingMenuLayout");
+const floatingMenuLayoutStatus = document.getElementById("floatingMenuLayoutStatus");
 const commissionCheckEnabledCheckbox = document.getElementById("commissionCheckEnabled");
 const autoplayControlSprite = document.getElementById("autoplayControlSprite");
 const floatingMenuControlSprite = document.getElementById("floatingMenuControlSprite");
@@ -114,6 +117,51 @@ let achievementState = achievements.normalizeState(null);
 let gamingCosmetics = achievements.normalizeCosmetics(null, achievementState);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const soundApi = globalThis.PlumePilotSounds;
+const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
+let draggedFloatingLayoutItem = null;
+
+function floatingLayoutFromDom() {
+  return floatingLayoutApi.normalizeLayout({
+    version: floatingLayoutApi.VERSION,
+    items: [...floatingMenuLayoutList.querySelectorAll("[data-layout-item]")].map((row) => ({
+      id: row.dataset.layoutItem,
+      visible: row.querySelector('input[type="checkbox"]').checked,
+    })),
+  });
+}
+
+function updateFloatingLayoutMoveButtons() {
+  const rows = [...floatingMenuLayoutList.querySelectorAll("[data-layout-item]")];
+  rows.forEach((row, index) => {
+    row.querySelector('[data-direction="up"]').disabled = index === 0;
+    row.querySelector('[data-direction="down"]').disabled = index === rows.length - 1;
+  });
+}
+
+function renderFloatingMenuLayout(value) {
+  const normalized = floatingLayoutApi.normalizeLayout(value);
+  for (const item of normalized.items) {
+    const row = floatingMenuLayoutList.querySelector(`[data-layout-item="${item.id}"]`);
+    if (!row) continue;
+    row.querySelector('input[type="checkbox"]').checked = item.visible;
+    floatingMenuLayoutList.append(row);
+  }
+  updateFloatingLayoutMoveButtons();
+}
+
+function saveFloatingMenuLayout({ claim = true, message = "Disposizione salvata." } = {}) {
+  const layout = floatingLayoutFromDom();
+  chrome.storage.local.set({ [floatingLayoutApi.STORAGE_KEY]: layout }, () => {
+    if (chrome.runtime.lastError) {
+      floatingMenuLayoutStatus.textContent = "Impossibile salvare la disposizione.";
+      return;
+    }
+    floatingMenuLayoutStatus.textContent = message;
+    if (claim && !floatingLayoutApi.isDefaultLayout(layout) && document.documentElement.dataset.visualStyle === "gaming") {
+      claimAchievement("customize-floating-menu");
+    }
+  });
+}
 
 function renderSoundPreferences(value) {
   const normalized = soundApi.normalizeSettings(value);
@@ -708,7 +756,7 @@ function runtimeMessage(message) {
   return new Promise((resolve) => chrome.runtime.sendMessage(message, (response) => resolve(chrome.runtime.lastError ? { accepted: false, reason: chrome.runtime.lastError.message } : response)));
 }
 
-chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" }, ...soundApi.DEFAULTS }, (result) => {
+chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, floatingMenuLayout: floatingLayoutApi.DEFAULT_LAYOUT, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" }, ...soundApi.DEFAULTS }, (result) => {
   checkbox.checked = result.enabled;
   renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
   chapterLimitMaps = { limits: result.autoplayChapterLimits || {}, sessions: result.autoplayChapterLimitSessions || {} };
@@ -720,6 +768,7 @@ chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests:
   renderThemePreference(result.themePreference);
   renderMenuSize(result.menuSize);
   floatingMenuEnabledCheckbox.checked = result.floatingMenuEnabled;
+  renderFloatingMenuLayout(result.floatingMenuLayout);
   commissionCheckEnabledCheckbox.checked = result.commissionCheckEnabled;
   renderSoundPreferences(result);
   gamingCosmetics = achievements.normalizeCosmetics(result.gamingCosmetics, result.studywingAchievements); updateAutoplayControls(); updateStatus(result.enabled); renderOperation(result.pegasoActiveOperation); renderCommissionUpdates(result); renderCourseProgress(); renderAchievements(result.studywingAchievements);
@@ -788,6 +837,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes.themePreference) renderThemePreference(changes.themePreference.newValue);
   if (changes.menuSize) renderMenuSize(changes.menuSize.newValue);
   if (changes.floatingMenuEnabled) floatingMenuEnabledCheckbox.checked = changes.floatingMenuEnabled.newValue === true;
+  if (changes.floatingMenuLayout) renderFloatingMenuLayout(changes.floatingMenuLayout.newValue);
   if (changes.commissionCheckEnabled) commissionCheckEnabledCheckbox.checked = changes.commissionCheckEnabled.newValue === true;
   if (changes.commissionCheckEnabled || changes.commissionExams || changes.commissionExamsCapturedAt || changes.commissionUnseenExamIds) {
     readCommissionUpdates();
@@ -928,6 +978,60 @@ floatingMenuEnabledCheckbox.addEventListener("change", () => {
   if (floatingMenuEnabledCheckbox.checked) playActionAnimation(floatingMenuControlSprite);
   if (floatingMenuEnabledCheckbox.checked) claimAchievement("open-floating-menu");
 });
+
+floatingMenuLayoutList.addEventListener("change", (event) => {
+  if (event.target.matches('input[type="checkbox"]')) saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-direction]");
+  if (!button) return;
+  const row = button.closest("[data-layout-item]");
+  if (button.dataset.direction === "up" && row.previousElementSibling) {
+    floatingMenuLayoutList.insertBefore(row, row.previousElementSibling);
+  } else if (button.dataset.direction === "down" && row.nextElementSibling) {
+    floatingMenuLayoutList.insertBefore(row.nextElementSibling, row);
+  } else {
+    return;
+  }
+  updateFloatingLayoutMoveButtons();
+  button.focus();
+  saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("dragstart", (event) => {
+  const row = event.target.closest("[data-layout-item]");
+  if (!row) return;
+  draggedFloatingLayoutItem = row;
+  row.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", row.dataset.layoutItem);
+});
+floatingMenuLayoutList.addEventListener("dragover", (event) => {
+  if (!draggedFloatingLayoutItem) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  const target = event.target.closest("[data-layout-item]");
+  if (!target || target === draggedFloatingLayoutItem) return;
+  const rect = target.getBoundingClientRect();
+  floatingMenuLayoutList.insertBefore(
+    draggedFloatingLayoutItem,
+    event.clientY < rect.top + rect.height / 2 ? target : target.nextElementSibling,
+  );
+});
+floatingMenuLayoutList.addEventListener("drop", (event) => {
+  if (!draggedFloatingLayoutItem) return;
+  event.preventDefault();
+  updateFloatingLayoutMoveButtons();
+  saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("dragend", () => {
+  draggedFloatingLayoutItem?.classList.remove("is-dragging");
+  draggedFloatingLayoutItem = null;
+});
+resetFloatingMenuLayoutButton.addEventListener("click", () => {
+  renderFloatingMenuLayout(floatingLayoutApi.DEFAULT_LAYOUT);
+  saveFloatingMenuLayout({ claim: false, message: "Disposizione predefinita ripristinata." });
+});
+
 commissionCheckEnabledCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ commissionCheckEnabled: commissionCheckEnabledCheckbox.checked });
   if (commissionCheckEnabledCheckbox.checked) playActionAnimation(commissionControlSprite);
