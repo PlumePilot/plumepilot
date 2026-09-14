@@ -21,10 +21,10 @@ Aggiornata il 14 settembre 2026. Questa checklist prepara la prima pubblicazione
 - [x] Rifiuto Chrome Web Store `Red Titanium` ricondotto ai bundle PDF.js legacy minificati della `v2.32.8`.
 - [x] Candidata correttiva `v2.32.10` preparata dalla `main` congelata con la distribuzione standard leggibile PDF.js 5.6.205.
 - [x] Hash upstream PDF.js, test automatici, lettura PDF di prova e validazione dei tre pacchetti confermati.
-- [ ] Eseguire il controllo manuale mirato PDF/EPUB su Chrome prima del nuovo invio.
-- [ ] Unire la PR correttiva in `main` soltanto dopo il controllo manuale.
+- [x] Controllo manuale mirato PDF/EPUB superato su Chrome con esportazione completata correttamente.
+- [x] Esito registrato nel verbale e merge della PR correttiva autorizzato.
 
-Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI della `v2.32.8` sono chiusi. La `v2.32.8` inviata a Chrome è stata rifiutata esclusivamente per leggibilità del codice; non deve essere reinviata. La `v2.32.10` resta candidata finché non supera il controllo manuale PDF/EPUB.
+Lo smoke test completo della `v2.32.7`, la verifica mirata delle modifiche UI della `v2.32.8` e il controllo manuale PDF/EPUB della `v2.32.10` sono chiusi con esito positivo. La `v2.32.8` inviata a Chrome è stata rifiutata esclusivamente per leggibilità del codice e non deve essere reinviata.
 
 ## Strategia Git
 
@@ -105,7 +105,7 @@ Build candidata corrente `v2.32.8` verificata:
 - Firefox: 1.945.294 byte, SHA-256 `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`;
 - sorgente: 2.276.612 byte, SHA-256 `7c37e9328208ce850c243d335a3b937e176b44de1503e76c5e724f1744a72ac2`.
 
-Build correttiva `v2.32.10` verificata automaticamente, in attesa del controllo manuale PDF/EPUB:
+Build correttiva `v2.32.10` verificata automaticamente e manualmente su Chrome:
 
 - Chrome/Edge: 2.045.149 byte, SHA-256 `aae854859df98a92dde16f58d56cd889303a6cfa479b51d936c933be9fbda5b4`;
 - Firefox: 2.045.278 byte, SHA-256 `ebaec4e98c90702e8578581a61081ead8634c994b0897d5211d0d6b0d72492ad`;
