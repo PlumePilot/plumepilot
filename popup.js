@@ -42,6 +42,7 @@ const floatingMenuControlSprite = document.getElementById("floatingMenuControlSp
 const commissionControlSprite = document.getElementById("commissionControlSprite");
 const playbackRecoveryControlSprite = document.getElementById("playbackRecoveryControlSprite");
 const soundNotificationsEnabledCheckbox = document.getElementById("soundNotificationsEnabled");
+const soundNotificationControlSprite = document.getElementById("soundNotificationControlSprite");
 const soundNotificationControls = document.getElementById("soundNotificationControls");
 const notificationSoundSelect = document.getElementById("notificationSound");
 const notificationVolumeInput = document.getElementById("notificationVolume");
@@ -446,7 +447,7 @@ function renderVisualStyle(value) {
   document.documentElement.dataset.visualStyle = normalized;
   if (normalized !== "gaming" && document.getElementById("achievementsTab")?.getAttribute("aria-selected") === "true") selectPopupTab("courseTab");
   if (normalized !== "gaming") {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -894,6 +895,7 @@ for (const radio of playbackErrorRecoveryRadios) radio.addEventListener("change"
 soundNotificationsEnabledCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked });
   renderSoundPreferences({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked, notificationSound: notificationSoundSelect.value, notificationVolume: notificationVolumeInput.value });
+  if (soundNotificationsEnabledCheckbox.checked) playActionAnimation(soundNotificationControlSprite);
 });
 notificationSoundSelect.addEventListener("change", () => chrome.storage.local.set({ notificationSound: soundApi.normalizeSound(notificationSoundSelect.value) }));
 notificationVolumeInput.addEventListener("input", () => {
@@ -1132,12 +1134,12 @@ objectivesButton.addEventListener("click", () => {
   });
 });
 
-for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
   sprite.addEventListener("animationend", () => sprite.classList.remove("is-playing"));
 }
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }

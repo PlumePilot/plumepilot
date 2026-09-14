@@ -23,6 +23,7 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
   let courseThresholdQueue = Promise.resolve();
   let achievementQueue = Promise.resolve();
   let soundQueue = Promise.resolve();
+  let offscreenCreation = null;
   const storageGet = (key) => new Promise((resolve, reject) => chrome.storage.local.get(key, (result) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(result[key] || null)));
   const storageSet = (values) => new Promise((resolve, reject) => chrome.storage.local.set(values, () => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve()));
   const storageRemove = (key) => new Promise((resolve) => chrome.storage.local.remove(key, resolve));
@@ -603,6 +604,31 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
     return { accepted: true, duplicate: false, operation: finalized.operation };
   }
   function openBuilder(message) { return serializedBuilder(() => openBuilderOnce(message)); }
+  async function ensureOffscreenAudioDocument() {
+    if (!chrome.offscreen?.createDocument) return false;
+    if (await chrome.offscreen.hasDocument()) return true;
+    if (!offscreenCreation) {
+      offscreenCreation = chrome.offscreen.createDocument({
+        url: "offscreen-audio.html",
+        reasons: ["AUDIO_PLAYBACK"],
+        justification: "Riproduce gli avvisi sonori locali richiesti dall’utente.",
+      }).finally(() => { offscreenCreation = null; });
+    }
+    await offscreenCreation;
+    return true;
+  }
+  async function sendRuntimeMessage(message) {
+    return new Promise((resolve, reject) => chrome.runtime.sendMessage(message, (response) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(response)));
+  }
+  async function playNotificationSound(sound, volume, sourceTabId) {
+    if (await ensureOffscreenAudioDocument()) {
+      return sendRuntimeMessage({ type: "PLUMEPILOT_OFFSCREEN_PLAY", sound, volume });
+    }
+    const tabs = await new Promise((resolve) => chrome.tabs.query({ url: "*://*.pegaso.multiversity.click/*" }, resolve));
+    const target = tabs.find((tab) => tab.id === sourceTabId) || tabs.find((tab) => tab.active) || tabs[0];
+    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "Apri una pagina Pegaso per ascoltare l’anteprima." };
+    return sendTabMessage(target.id, { type: "STUDYWING_SOUND_PLAY", sound, volume });
+  }
   async function playSoundEvent(message, sourceTabId) {
     const eventId = typeof message?.eventId === "string" && /^[A-Za-z0-9:._-]{3,180}$/.test(message.eventId) ? message.eventId : null;
     if (!eventId || !soundApi) return { accepted: false, reason: "invalid-event" };
@@ -612,10 +638,7 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
     const now = Date.now();
     const remembered = preferences[SOUND_EVENT_MEMORY_KEY] && typeof preferences[SOUND_EVENT_MEMORY_KEY] === "object" ? preferences[SOUND_EVENT_MEMORY_KEY] : {};
     if (Number(remembered[eventId]) > 0) return { accepted: false, reason: "duplicate" };
-    const tabs = await new Promise((resolve) => chrome.tabs.query({ url: "*://*.pegaso.multiversity.click/*" }, resolve));
-    const target = tabs.find((tab) => tab.id === sourceTabId) || tabs.find((tab) => tab.active) || tabs[0];
-    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "no-playback-tab" };
-    const response = await sendTabMessage(target.id, { type: "STUDYWING_SOUND_PLAY", sound: normalized.notificationSound, volume: normalized.notificationVolume });
+    const response = await playNotificationSound(normalized.notificationSound, normalized.notificationVolume, sourceTabId);
     if (response?.played !== true) return { accepted: false, reason: response?.reason || "playback-failed" };
     const next = Object.fromEntries(Object.entries(remembered).filter(([, timestamp]) => now - Number(timestamp) < SOUND_EVENT_TTL_MS).slice(-99));
     next[eventId] = now;
@@ -626,10 +649,7 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
   async function previewSound(message, sourceTabId) {
     const sound = soundApi.normalizeSound(message?.sound);
     const volume = soundApi.normalizeVolume(message?.volume);
-    const tabs = await new Promise((resolve) => chrome.tabs.query({ url: "*://*.pegaso.multiversity.click/*" }, resolve));
-    const target = tabs.find((tab) => tab.id === sourceTabId) || tabs.find((tab) => tab.active) || tabs[0];
-    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "Apri una pagina Pegaso per ascoltare l’anteprima." };
-    return sendTabMessage(target.id, { type: "STUDYWING_SOUND_PLAY", sound, volume });
+    return playNotificationSound(sound, volume, sourceTabId);
   }
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let action = null;

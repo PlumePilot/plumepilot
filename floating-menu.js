@@ -148,6 +148,7 @@
           ui.autoplayControlSprite,
           ui.playbackRecoveryControlSprite,
           ui.commissionControlSprite,
+          ui.soundNotificationControlSprite,
         ]
       : [];
   }
@@ -1849,6 +1850,9 @@
     const actionCommissionCheckUrl = chrome.runtime.getURL(
       "assets/gaming/action-commission-check.png",
     );
+    const actionNotificationSoundUrl = chrome.runtime.getURL(
+      "assets/gaming/action-notification-sound.png",
+    );
     const notificationAlertUrl = chrome.runtime.getURL(
       "assets/gaming/notification-alert.png",
     );
@@ -2440,6 +2444,24 @@
           margin: 0;
           accent-color: var(--sw-accent);
           cursor: pointer;
+        }
+        .sound-options label {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          width: 100%;
+        }
+        .sound-heading {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+        .sound-heading > span:first-child { flex: 1 1 auto; min-width: 0; }
+        .sound-options select,
+        .sound-options input[type="range"] {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          font: inherit;
         }
         .preference-hint {
           margin: 7px 0 0;
@@ -3115,6 +3137,7 @@
         :host([data-visual-style="gaming"]) .autoplay-control-sprite { background-image: url("${actionAutoplayUrl}"); }
         :host([data-visual-style="gaming"]) .playback-recovery-control-sprite { background-image: url("${actionPlaybackRecoveryUrl}"); }
         :host([data-visual-style="gaming"]) .commission-control-sprite { background-image: url("${actionCommissionCheckUrl}"); }
+        :host([data-visual-style="gaming"]) .sound-notification-control-sprite { background-image: url("${actionNotificationSoundUrl}"); }
         @media (hover: hover) {
           :host([data-visual-style="gaming"]) .gaming-control-row:hover .gaming-control-sprite:not(.is-playing) {
             animation: control-hover-preview 1600ms steps(5, end) infinite both;
@@ -3569,8 +3592,8 @@
             <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
               <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
               <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
-                <label id="studywing-floating-sound-heading" class="preference-group-heading"><span>Notifiche sonore</span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
-                <div class="preference-options" data-role="sound-controls">
+                <label id="studywing-floating-sound-heading" class="preference-group-heading gaming-control-row sound-heading"><span>Notifiche sonore</span><span class="gaming-control-sprite sound-notification-control-sprite" data-role="sound-notification-control-sprite" aria-hidden="true"></span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
+                <div class="preference-options sound-options" data-role="sound-controls">
                   <label><span>Suono</span><select data-setting="notification-sound" aria-label="Suono delle notifiche"><option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option></select></label>
                   <label><span>Volume <output data-role="notification-volume-value">70%</output></span><input data-setting="notification-volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore"></label>
                   <button class="bookmark-action" data-action="preview-notification-sound" type="button">Ascolta anteprima</button>
@@ -3645,6 +3668,7 @@
         ),
       ],
       soundNotificationsEnabled: shadow.querySelector('[data-setting="sound-notifications-enabled"]'),
+      soundNotificationControlSprite: shadow.querySelector('[data-role="sound-notification-control-sprite"]'),
       notificationSound: shadow.querySelector('[data-setting="notification-sound"]'),
       notificationVolume: shadow.querySelector('[data-setting="notification-volume"]'),
       notificationVolumeValue: shadow.querySelector('[data-role="notification-volume-value"]'),
@@ -3897,7 +3921,10 @@
         );
         playActionAnimation(ui.playbackRecoveryControlSprite);
       });
-    ui.soundNotificationsEnabled.addEventListener("change", () => writeSetting("soundNotificationsEnabled", ui.soundNotificationsEnabled.checked));
+    ui.soundNotificationsEnabled.addEventListener("change", () => {
+      writeSetting("soundNotificationsEnabled", ui.soundNotificationsEnabled.checked);
+      if (ui.soundNotificationsEnabled.checked) playActionAnimation(ui.soundNotificationControlSprite);
+    });
     ui.notificationSound.addEventListener("change", () => writeSetting("notificationSound", soundApi.normalizeSound(ui.notificationSound.value)));
     ui.notificationVolume.addEventListener("input", () => {
       const volume = soundApi.normalizeVolume(ui.notificationVolume.value);

@@ -3,7 +3,9 @@
 ## Unreleased: optional local sound notifications
 
 - Adds opt-in sound notifications for the one-shot 70% course threshold, the autoplay chapter-session limit and commission transitions from **In Attesa** to a new state.
-- Provides four bundled local sounds, synchronized popup/floating-menu selection, preview and a 0–100 volume control; no network request or new permission is introduced.
+- Provides four bundled local sounds, synchronized popup/floating-menu selection, preview and a 0–100 volume control, without network requests or new host/data access.
+- Uses Chromium's dedicated offscreen audio document in Chrome and Edge, with the existing tab player retained as the Firefox fallback; the narrowly scoped Chromium-only `offscreen` permission is added because direct background-triggered tab playback is blocked there.
+- Makes sound labels and controls follow Small/Medium/Large sizing and adds a matching animated Gaming megaphone sprite.
 - Coordinates real notification playback through the background and one Pegaso tab, preventing overlaps and duplicate sounds across reloads, tabs and simultaneous 70%/chapter-limit events.
 - Adds the Gaming achievement **Orecchie tese!** for 20 EXP after the first successful real notification; previews, failed playback and Standard mode never award it.
 - Keeps the manifest version at `2.32.8` for feature testing.

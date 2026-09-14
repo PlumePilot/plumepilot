@@ -23,6 +23,9 @@ const background = readFileSync(new URL("../background.js", import.meta.url), "u
 const bridge = readFileSync(new URL("../bridge.js", import.meta.url), "utf8");
 const content = readFileSync(new URL("../content.js", import.meta.url), "utf8");
 const floating = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
+const popupCss = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
+const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+const sprite = readFileSync(new URL("../assets/gaming/action-notification-sound.png", import.meta.url));
 assert.match(achievements, /title: "Orecchie tese!"[^\n]+exp: 20/);
 assert.match(background, /serializedSound\(\(\) => playSoundEvent/);
 assert.match(background, /claimAchievement\("receive-sound-notification"\)/);
@@ -30,5 +33,12 @@ assert.match(bridge, /previousSnapshot\?\.state === commissionStates\.STATES\.PE
 assert.match(content, /thresholdReached \|\| sessionLimitReached/);
 assert.match(content, /`course-threshold:\$\{courseCode\}`/);
 assert.match(floating, /`course-threshold:\$\{courseCode\}`/);
+assert.match(background, /chrome\.offscreen\.createDocument/);
+assert.match(background, /PLUMEPILOT_OFFSCREEN_PLAY/);
+assert.match(floating, /\.sound-options select,[\s\S]+width: 100%;[\s\S]+min-width: 0;/);
+assert.match(popupCss, /\.sound-controls label, \.sound-controls select \{ font-size: var\(--sw-control-font-size\); \}/);
+assert.ok(manifest.web_accessible_resources.some((group) => group.resources?.includes("assets/gaming/action-notification-sound.png")));
+assert.equal(sprite.readUInt32BE(16), 384);
+assert.equal(sprite.readUInt32BE(20), 32);
 
 console.log("PASS: sound defaults, local assets, serialized deduplication, triggers and achievement are consistent");

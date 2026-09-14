@@ -32,6 +32,7 @@ function validateBrowserManifest(manifest, browser) {
   if (manifest.version !== "2.32.8") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
+    if (manifest.permissions?.includes("offscreen")) throw new Error("Firefox: permesso offscreen inatteso.");
     const gecko = manifest.browser_specific_settings?.gecko;
     if (gecko?.id !== "plumepilot@fabiofloris") throw new Error("Firefox: ID errato.");
     if (gecko?.strict_min_version !== "140.0") throw new Error("Firefox: versione minima errata.");
@@ -40,6 +41,7 @@ function validateBrowserManifest(manifest, browser) {
     if (JSON.stringify(permissions) !== JSON.stringify(expected)) throw new Error("Firefox: dichiarazione dati errata.");
     if (!manifest.background?.scripts || manifest.background?.service_worker) throw new Error("Firefox: background errato.");
   } else {
+    if (!manifest.permissions?.includes("offscreen")) throw new Error(`${browser}: permesso offscreen mancante.`);
     if (!manifest.background?.service_worker || manifest.background?.scripts) throw new Error(`${browser}: background errato.`);
     if (manifest.browser_specific_settings) throw new Error(`${browser}: configurazione Gecko presente.`);
   }

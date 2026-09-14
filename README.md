@@ -52,6 +52,7 @@ Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vend
 ## Permessi
 
 - `storage`: conserva localmente impostazioni, cache operative, stato commissione, Traguardi ed EXP;
+- `offscreen` (solo Chrome ed Edge): mantiene la riproduzione degli avvisi locali compatibile con le regole autoplay di Chromium;
 - pagine `*.pegaso.multiversity.click`: integra i controlli PlumePilot e comunica con le API Pegaso già accessibili all'utente autenticato;
 - `*.cloudfront.net` e `ita01.s3.eu-west-1.amazonaws.com`: scarica, su richiesta, dispense e immagini necessarie alla creazione locale dei materiali.
 
