@@ -24,6 +24,7 @@
     { id: "enable-70-advice", title: "Soglia nel mirino", description: "Fatti avvisare alla soglia del corso.", exp: 10, group: "secondary" },
     { id: "configure-autoplay-limit", title: "1.. 2.. 3.. Stella!", description: "Imposta un limite valido per la sessione.", exp: 15, group: "secondary" },
     { id: "open-floating-menu", title: "Menu da taschino", description: "Attiva il menu fluttuante nella pagina.", exp: 10, group: "secondary" },
+    { id: "receive-sound-notification", title: "Orecchie tese!", description: "Ricevi il tuo primo avviso sonoro.", exp: 20, group: "secondary" },
   ]);
 
   function normalizeState(value) {

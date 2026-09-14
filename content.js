@@ -589,7 +589,7 @@
     const activeLimit = Math.min(chapterLimit, chapterLimitMaximum);
     const previous = chapterLimitSession?.courseCode === courseCode
       ? chapterLimitSession
-      : { courseCode, completed: 0, reached: false, lastChapterKey: "" };
+      : { courseCode, completed: 0, reached: false, lastChapterKey: "", soundSessionId: Date.now() };
     if (previous.lastChapterKey === key) return previous.reached === true;
     const completed = Math.max(0, Number(previous.completed) || 0) + 1;
     chapterLimitSession = {
@@ -598,6 +598,7 @@
       reached: completed >= activeLimit,
       lastChapterKey: key,
       lastLessonNumber: stableLessonNumber,
+      soundSessionId: Number(previous.soundSessionId) || Date.now(),
     };
     persistChapterLimitSession();
     return chapterLimitSession.reached;
@@ -6392,7 +6393,15 @@
       }
 
       const sessionLimitReached = chapterLimitReached(chapterIdentity(chapter));
-      if (autoplayThresholdReached()) {
+      const thresholdReached = autoplayThresholdReached();
+      if (thresholdReached || sessionLimitReached) {
+        const courseCode = courseCodeFromUrl();
+        const eventId = thresholdReached
+          ? `course-threshold:${courseCode}`
+          : `chapter-limit:${courseCode}:${chapterLimitSession?.soundSessionId || chapterLimitSession?.lastLessonNumber || 0}`;
+        window.postMessage({ type: "STUDYWING_SOUND_EVENT", eventId }, "*");
+      }
+      if (thresholdReached) {
         log("Autoplay stopped after reaching 70% course progress.");
         setResumeDiscoveryStatus(
           sessionLimitReached

@@ -41,7 +41,8 @@ async function collectFiles(directory = root, relativeDirectory = "") {
 function manifestFor(baseManifest, browser) {
   const manifest = structuredClone(baseManifest);
   if (browser === "firefox") {
-    manifest.background = { scripts: ["achievements.js", "background.js"] };
+    manifest.background = { scripts: ["achievements.js", "sound-settings.js", "background.js"] };
+    manifest.permissions = (manifest.permissions || []).filter((permission) => permission !== "offscreen");
     manifest.browser_specific_settings = {
       gecko: {
         id: "plumepilot@fabiofloris",
@@ -53,6 +54,7 @@ function manifestFor(baseManifest, browser) {
     };
   } else {
     manifest.background = { service_worker: "background.js" };
+    manifest.permissions = [...new Set([...(manifest.permissions || []), "offscreen"])];
     delete manifest.browser_specific_settings;
   }
   return manifest;
@@ -62,7 +64,8 @@ function validateManifest(manifest, browser) {
   if (manifest.manifest_version !== 3) throw new Error(`${browser}: Manifest V3 richiesto.`);
   if (!/^\d+(?:\.\d+){0,3}$/.test(manifest.version)) throw new Error(`${browser}: versione non valida.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description oltre 132 caratteri.`);
-  if (manifest.permissions?.some((permission) => permission !== "storage")) {
+  const expectedPermissions = browser === "firefox" ? ["storage"] : ["storage", "offscreen"];
+  if (JSON.stringify(manifest.permissions || []) !== JSON.stringify(expectedPermissions)) {
     throw new Error(`${browser}: rilevato un permesso API inatteso.`);
   }
   if (browser === "firefox") {
