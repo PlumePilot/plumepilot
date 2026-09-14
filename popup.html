@@ -149,7 +149,19 @@
         </details>
       </section>
 
-      <div class="actions-title">Dispense del corso</div>
+      <div class="actions-title">Raccolte del corso</div>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
+            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
+        </div>
+        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
+        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
+      </section>
 
       <section class="action-section">
         <div class="action-row">
@@ -191,17 +203,7 @@
         <div id="objectivesStatus" class="action-status" aria-live="polite"></div>
       </section>
 
-      <section class="action-section">
-        <div class="action-row">
-          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
-            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
-            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
-        </div>
-        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
-        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
-      </section>
+
 
       <section class="commission-section" aria-labelledby="commissionSectionTitle">
         <div id="commissionSectionTitle" class="section-title">Esami online</div>
@@ -282,8 +284,9 @@
     </div>
 
     <div id="preferencesPanel" class="tab-panel" role="tabpanel" aria-labelledby="preferencesTab" hidden>
-      <section class="preferences-section" aria-labelledby="interfaceSectionTitle">
-        <div id="interfaceSectionTitle" class="section-title">Interfaccia</div>
+      <details class="preferences-section preference-macro" aria-labelledby="interfaceSectionTitle">
+        <summary id="interfaceSectionTitle" class="preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+        <div class="preference-macro-content">
         <div class="setting-block floating-menu-setting">
           <div class="setting-row gaming-control-row">
             <label for="floatingMenuEnabled">Mostra il menu fluttuante</label>
@@ -328,6 +331,9 @@
           <div id="floatingMenuLayoutStatus" class="action-status" role="status" aria-live="polite"></div>
         </fieldset>
 
+        <details class="preference-subsection style-theme-container">
+          <summary class="preference-subsection-summary"><span>Stile e tema</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+          <div class="preference-subsection-content">
         <fieldset class="preference-choice visual-style-choice" aria-labelledby="visualStyleTitle">
           <div class="preference-choice-heading">
             <span id="visualStyleTitle">Stile visivo</span>
@@ -365,10 +371,14 @@
           </div>
           <div id="menuSizeInfo" class="info-panel" hidden>Regola insieme la larghezza e la leggibilità del popup e del menu fluttuante. Il contenuto continua ad adattarsi allo spazio disponibile sullo schermo.</div>
         </fieldset>
-      </section>
+          </div>
+        </details>
+        </div>
+      </details>
 
-      <section class="preferences-section" aria-labelledby="behaviorSectionTitle">
-        <div id="behaviorSectionTitle" class="section-title">Comportamento</div>
+      <details class="preferences-section preference-macro" aria-labelledby="behaviorSectionTitle">
+        <summary id="behaviorSectionTitle" class="preference-macro-summary"><span>Comportamento</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+        <div class="preference-macro-content">
         <fieldset class="preference-choice sound-preference" aria-labelledby="soundNotificationsTitle">
           <div class="preference-choice-heading gaming-control-row">
             <label id="soundNotificationsTitle" for="soundNotificationsEnabled">Notifiche sonore</label>
@@ -399,7 +409,8 @@
           </div>
           <div id="playbackErrorRecoveryInfo" class="info-panel" hidden>Quando riconosce un errore di riproduzione noto, PlumePilot può confermare l’avviso e tentare il ripristino una sola volta. Con “Lascia aperto l’avviso” PlumePilot non preme OK e attende la tua scelta. Se lo stesso errore ricompare, l’avviso resta sempre aperto per evitare ricaricamenti continui. Gli altri avvisi di Pegaso non vengono chiusi automaticamente.</div>
         </fieldset>
-      </section>
+        </div>
+      </details>
 
       <section class="about-section">
         <div class="about-row">
