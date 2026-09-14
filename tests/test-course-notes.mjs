@@ -33,7 +33,8 @@ assert(!JSON.stringify(attack).includes('bad.invalid'));
 assert(JSON.stringify(attack).includes('Immagine non inclusa'));
 const context=globalThis;
 context.PDFLib=require('../vendor/pdf-lib.min.js');context.fontkit=require('../vendor/fontkit.umd.min.js');
-vm.runInThisContext(await readFile(new URL('notes-document.js',root),'utf8'));
+const notesDocumentSource=await readFile(new URL('notes-document.js',root),'utf8');
+vm.runInThisContext(notesDocumentSource);
 const job={courseTitle:'Statistica α e β',missing:[{chapter:'Capitolo 2',reason:'Appunti non recuperati'}],videos:[{section:'Modulo 1',chapterTitle:'1 - Anova',videoTitle:'Statistica test',notes:[{id:1,trackingTime:1,blocks:[{list:true,runs:[{text:'Appunto con α ≤ β e accenti: perché',bold:true,italic:false}]},{list:false,runs:[{text:'<script>alert(1)</script> & osservazioni',bold:false,italic:true}]}]}]},{section:'Modulo 2',chapterTitle:'1 - Altro capitolo',videoTitle:'Titolo diverso',notes:[{id:2,blocks:[{list:false,runs:[{text:'Nota lunga '.repeat(2000)}]}]}]}]};
 const html=context.PlumePilotNotesDocument.html(job);
 assert(!html.includes('<script>alert(1)</script>'));
@@ -46,12 +47,15 @@ assert(html.includes("const symbols=['α','β','γ','Δ','π','√','∞','≤',
 assert(html.includes('id="notes-data"'));
 assert(html.includes('video:0:note:1'));
 assert(html.includes('beforeunload'));
+assert(notesDocumentSource.includes("accent:[207,29,86],purple:[91,44,160],text:[40,29,50],muted:[111,100,121],line:[225,217,232]"));
 new Function(html.match(/<script>([\s\S]*)<\/script>/)[1]);
 const fonts=await Promise.all(['Regular','Bold','Italic'].map(s=>readFile(new URL(`vendor/standard_fonts/LiberationSans-${s}.ttf`,root))));
 const bytes=await context.PlumePilotNotesDocument.pdf(job,...fonts);
 const doc=await context.PDFLib.PDFDocument.load(bytes);
 assert(doc.getPageCount()>4);
 assert(doc.getPage(0).node.Annots().size()===2);
+assert(doc.catalog.get(context.PDFLib.PDFName.of('Outlines')));
+assert.equal(doc.catalog.get(context.PDFLib.PDFName.of('PageMode')).encodedName,'/UseOutlines');
 if(process.env.NOTES_QA_DIR){await mkdir(process.env.NOTES_QA_DIR,{recursive:true});await writeFile(process.env.NOTES_QA_DIR+'/notes.pdf',bytes);await writeFile(process.env.NOTES_QA_DIR+'/notes.html',html);}
 // Run the actual collector with controlled API responses and real ordering logic stub.
 const content=await readFile(new URL('content.js',root),'utf8');

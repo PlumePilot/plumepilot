@@ -945,66 +945,12 @@ clearCommissionDataButton.addEventListener("click", () => {
   });
 });
 
-const panelAnimations = new WeakMap();
-const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-function stopPanelAnimation(panel) {
-  const animation = panelAnimations.get(panel);
-  if (animation) animation.cancel();
-  panelAnimations.delete(panel);
-  panel.classList.remove("is-expanding", "is-collapsing");
-}
-
 function closeInfoPanel(panel) {
-  if (!panel || panel.hidden) return Promise.resolve();
-
-  stopPanelAnimation(panel);
-  const startHeight = panel.getBoundingClientRect().height;
-  panel.classList.add("is-collapsing");
-  const animation = panel.animate(
-    [
-      { height: `${startHeight}px`, opacity: 1 },
-      { height: "0px", opacity: 0 },
-    ],
-    { duration: reduceMotion.matches ? 0 : 200, easing: "ease", fill: "forwards" },
-  );
-  panelAnimations.set(panel, animation);
-
-  return animation.finished.catch(() => {}).then(() => {
-    if (panelAnimations.get(panel) !== animation) return;
-    panel.hidden = true;
-    panel.style.height = "";
-    panel.style.opacity = "";
-    stopPanelAnimation(panel);
-  });
+  if (panel) panel.hidden = true;
 }
 
 function openInfoPanel(panel) {
-  if (!panel) return;
-
-  stopPanelAnimation(panel);
-  panel.hidden = false;
-  panel.classList.add("is-expanding");
-  const targetHeight = panel.scrollHeight;
-  const animation = panel.animate(
-    [
-      { height: "0px", opacity: 0 },
-      { height: `${targetHeight}px`, opacity: 1 },
-    ],
-    { duration: reduceMotion.matches ? 0 : 220, easing: "ease", fill: "forwards" },
-  );
-  panelAnimations.set(panel, animation);
-
-  animation.finished.catch(() => {}).then(() => {
-    if (panelAnimations.get(panel) !== animation) return;
-    panel.style.height = "";
-    panel.style.opacity = "";
-    stopPanelAnimation(panel);
-    panel.scrollIntoView({
-      behavior: reduceMotion.matches ? "auto" : "smooth",
-      block: "nearest",
-    });
-  });
+  if (panel) panel.hidden = false;
 }
 
 const infoToggleButtons = document.querySelectorAll(".expand-button, .about-link");

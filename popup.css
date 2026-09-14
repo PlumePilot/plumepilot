@@ -1567,25 +1567,13 @@ html[data-visual-style="gaming"] .materials-sprite.is-playing {
   font-size: 12px;
   line-height: 1.45;
   opacity: 1;
-  transition: height 220ms ease, opacity 180ms ease;
-  will-change: height, opacity;
 }
 
 .info-panel[hidden] {
   display: none;
 }
 
-.info-panel.is-collapsing,
-.info-panel.is-expanding {
-  pointer-events: none;
-}
-
-.info-panel.is-collapsing {
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .info-panel,
   .autoplay-options,
   .course-progress-fill,
   .course-progress-options-chevron,

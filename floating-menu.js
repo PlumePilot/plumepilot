@@ -3097,6 +3097,7 @@
         .action.turbo,
         .action.objectives,
         .action.test-collection,
+        .action.notes-collection,
         .action.materials {
           grid-column: 1 / -1;
           color: var(--sw-heading);
@@ -3105,6 +3106,7 @@
         .action.turbo:hover,
         .action.objectives:hover,
         .action.test-collection:hover,
+        .action.notes-collection:hover,
         .action.materials:hover {
           color: var(--sw-on-accent);
           background: linear-gradient(135deg, var(--sw-action-hover-start), var(--sw-action-hover-end));

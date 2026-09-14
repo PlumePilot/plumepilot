@@ -2,15 +2,19 @@
   'use strict';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const plain = note => note.blocks.map(b => (b.list ? '• ' : '') + b.runs.map(r => r.text).join('')).join('\n');
-  function html(job) {
+  function groupedChapters(job) {
     const chapters=[];
     const chapterMap=new Map();
     for(const [videoIndex,video] of job.videos.entries()){
-      const key=`${video.section || ''}\u0000${video.chapterTitle || ''}`;
+      const key=video.chapterKey || `${video.section || ''}\u0000${video.chapterTitle || ''}`;
       let chapter=chapterMap.get(key);
       if(!chapter){chapter={section:video.section,chapterTitle:video.chapterTitle,videos:[]};chapterMap.set(key,chapter);chapters.push(chapter);}
       chapter.videos.push({...video,notes:video.notes.map((note,noteIndex)=>({...note,noteKey:`video:${video.videoId ?? videoIndex}:note:${note.id ?? noteIndex}`}))});
     }
+    return chapters;
+  }
+  function html(job) {
+    const chapters=groupedChapters(job);
     const filename=`appunti-${String(job.courseTitle || 'corso').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() || 'corso'}-aggiornati.html`;
     const payload=JSON.stringify({courseTitle:job.courseTitle,chapters,missing:job.missing || [],annotatedFilename:filename})
       .replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
@@ -27,32 +31,47 @@
     </script></body></html>`;
   }
   async function pdf(job, fontBytes, boldBytes, italicBytes, boldItalicBytes = boldBytes) {
-    const {PDFDocument, PDFName} = PDFLib;
+    const {PDFDocument, PDFName, PDFHexString} = PDFLib;
+    const A4=[595.28,841.89];const margin=54;const width=A4[0]-margin*2;
+    const colors={accent:[207,29,86],purple:[91,44,160],text:[40,29,50],muted:[111,100,121],line:[225,217,232]};
+    const rgb255=value=>PDFLib.rgb(...value.map(channel=>channel/255));
+    const chapters=groupedChapters(job);
     const doc=await PDFDocument.create();doc.registerFontkit(fontkit);
     const fonts=await Promise.all([fontBytes,boldBytes,italicBytes,boldItalicBytes].map(bytes=>doc.embedFont(bytes,{subset:true})));
     const characters = new Map(fonts.map(font => [font, new Set(font.getCharacterSet())]));
-    doc.setTitle(job.courseTitle + ' — Appunti');doc.setCreator('PlumePilot');
-    let page;let y;const links=[];const destinations=[];const margin=48;const width=499;
-    const newPage=()=>{page=doc.addPage([595,842]);y=786;};
+    doc.setTitle(job.courseTitle + ' — Appunti');doc.setSubject('Appunti dei video del corso ordinati per capitolo');doc.setCreator('PlumePilot');
+    let page;let y;const links=[];const entries=[];
+    const newPage=()=>{page=doc.addPage(A4);y=A4[1]-margin;return page;};
     const safeText=(text,font)=>Array.from(String(text)).map(c=>{
       if(c==='\n'||c==='\t')return c==='\t'?'    ':c;
       if(!characters.get(font).has(c.codePointAt(0)))throw Error('Il PDF non supporta un simbolo presente negli appunti. Usa il formato HTML.');
       return c;
     }).join('');
-    const line=(text,size=11,font=fonts[0],onRow=null)=>{
-      let current='';const result=[];
-      for(const token of safeText(text,font).split(/(\n|\s+)/)){
-        if(token.includes('\n')){result.push(current);current='';continue;}
-        if(current && font.widthOfTextAtSize(current+token,size)>width){result.push(current);current='';}
-        for(const char of token){if(font.widthOfTextAtSize(current+char,size)>width){result.push(current);current='';}current+=char;}
+    const wrap=(text,font,size,maxWidth)=>{
+      const result=[];
+      for(const paragraph of safeText(text,font).replace(/\r/g,'').split('\n')){
+        let current='';
+        for(const word of paragraph.split(/\s+/).filter(Boolean)){
+          const candidate=current?`${current} ${word}`:word;
+          if(font.widthOfTextAtSize(candidate,size)<=maxWidth){current=candidate;continue;}
+          if(current)result.push(current);current='';let part='';
+          for(const character of word){if(part&&font.widthOfTextAtSize(part+character,size)>maxWidth){result.push(part);part=character;}else part+=character;}
+          current=part;
+        }
+        result.push(current);
       }
-      if(current)result.push(current);
-      for(const row of result){if(y<60)newPage();page.drawText(row,{x:margin,y,size,font});onRow?.(page,y);y-=size*1.5;}return result.length;
+      return result.length?result:[''];
+    };
+    const drawLines=(text,options={})=>{
+      const font=options.font || (options.bold?fonts[1]:fonts[0]);const size=options.size||11;const lineHeight=options.lineHeight||size*1.35;const x=options.x??margin;const maxWidth=options.width??width;
+      const rows=wrap(text,font,size,maxWidth);
+      for(const row of rows){if(y-lineHeight<42)newPage();page.drawText(row,{x,y,size,font,color:rgb255(options.color||colors.text)});options.onRow?.(page,y,lineHeight);y-=lineHeight;}
+      y-=options.after||0;return rows.length;
     };
     function blockParagraph(block) {
       let x=margin;
-      const newline=()=>{y-=16.5;x=margin;if(y<60)newPage();};
-      if(y<60)newPage();
+      const newline=()=>{y-=16.5;x=margin;if(y<42)newPage();};
+      if(y<42)newPage();
       const runs=block.list?[{text:'• ',bold:false,italic:false},...block.runs]:block.runs;
       for(const run of runs){
         const font=fonts[run.bold?(run.italic?3:1):(run.italic?2:0)];
@@ -62,21 +81,39 @@
           const tokenWidth=font.widthOfTextAtSize(token,11);
           if(x>margin && x+tokenWidth>margin+width)newline();
           if(x===margin && /^\s+$/.test(token))continue;
-          if(tokenWidth<=width){page.drawText(token,{x,y,size:11,font});x+=tokenWidth;}
-          else for(const char of token){const w=font.widthOfTextAtSize(char,11);if(x+w>margin+width)newline();page.drawText(char,{x,y,size:11,font});x+=w;}
+          if(tokenWidth<=width){page.drawText(token,{x,y,size:11,font,color:rgb255(colors.text)});x+=tokenWidth;}
+          else for(const char of token){const w=font.widthOfTextAtSize(char,11);if(x+w>margin+width)newline();page.drawText(char,{x,y,size:11,font,color:rgb255(colors.text)});x+=w;}
         }
       }
       y-=21.5;
     }
-    newPage();line('PLUMEPILOT · APPUNTI DEL CORSO',11,fonts[1]);y-=12;line(job.courseTitle,22,fonts[1]);y-=20;line('Indice navigabile',16,fonts[1]);
-    job.videos.forEach((v,i)=>{if(y<100)newPage();line(`${i+1}. ${v.section} · ${v.chapterTitle} — ${v.videoTitle}`,11,fonts[0],(page,top)=>links.push({page,top,index:i,rows:1}));y-=8;});
-    if(job.missing.length){newPage();line('Raccolta parziale',18,fonts[1]);for(const m of job.missing)line(`${m.chapter}: ${m.reason}`);}
-    for(const video of job.videos){newPage();destinations.push(page.ref);line(video.section,12,fonts[1]);line(video.chapterTitle,18,fonts[1]);line(video.videoTitle,14,fonts[1]);y-=16;for(const note of video.notes){for(const b of note.blocks)blockParagraph(b);y-=14;}
+    function addBookmarks(){
+      if(!entries.length)return;const context=doc.context;const outlineRef=context.nextRef();const rootRef=context.nextRef();const sections=[];
+      for(const entry of entries){let section=sections.at(-1);if(!section||section.title!==entry.section){section={title:entry.section,entries:[]};sections.push(section);}section.entries.push(entry);}
+      const sectionRefs=sections.map(()=>context.nextRef());const chapterRefs=sections.map(section=>section.entries.map(()=>context.nextRef()));
+      context.assign(outlineRef,context.obj({Type:'Outlines',First:rootRef,Last:rootRef,Count:1+sectionRefs.length+chapterRefs.flat().length}));
+      context.assign(rootRef,context.obj({Title:PDFHexString.fromText('Appunti'),Parent:outlineRef,Dest:[entries[0].page.ref,PDFName.of('Fit')],First:sectionRefs[0],Last:sectionRefs.at(-1),Count:sectionRefs.length+chapterRefs.flat().length}));
+      sections.forEach((section,sectionIndex)=>{const refs=chapterRefs[sectionIndex];context.assign(sectionRefs[sectionIndex],context.obj({Title:PDFHexString.fromText(section.title),Parent:rootRef,Dest:[section.entries[0].page.ref,PDFName.of('Fit')],First:refs[0],Last:refs.at(-1),Count:refs.length,...(sectionIndex?{Prev:sectionRefs[sectionIndex-1]}:{}),...(sectionIndex+1<sections.length?{Next:sectionRefs[sectionIndex+1]}:{})}));section.entries.forEach((entry,entryIndex)=>context.assign(refs[entryIndex],context.obj({Title:PDFHexString.fromText(entry.chapterTitle),Parent:sectionRefs[sectionIndex],Dest:[entry.page.ref,PDFName.of('Fit')],...(entryIndex?{Prev:refs[entryIndex-1]}:{}),...(entryIndex+1<refs.length?{Next:refs[entryIndex+1]}:{})})));});
+      doc.catalog.set(PDFName.of('Outlines'),outlineRef);doc.catalog.set(PDFName.of('PageMode'),PDFName.of('UseOutlines'));
+    }
+    newPage();drawLines('PLUMEPILOT · APPUNTI DEL CORSO',{bold:true,size:11,color:colors.accent,after:18});drawLines(job.courseTitle,{bold:true,size:27,lineHeight:33,after:15});drawLines('Gli appunti sono organizzati per capitolo e video. L’indice e i segnalibri consentono di raggiungere rapidamente ogni capitolo.',{size:13,lineHeight:18,color:colors.muted,after:24});drawLines('Indice navigabile',{bold:true,size:16,color:colors.purple,after:10});
+    chapters.forEach((chapter,index)=>{drawLines(`${index+1}. ${chapter.section} · ${chapter.chapterTitle}`,{size:11,color:colors.accent,after:7,onRow:(linkPage,top,lineHeight)=>links.push({page:linkPage,top,lineHeight,index})});});
+    if(job.missing.length){newPage();drawLines('RACCOLTA PARZIALE',{bold:true,size:10,color:colors.accent,after:8});drawLines('Elementi non recuperati',{bold:true,size:21,after:14});for(const item of job.missing)drawLines(`${item.chapter}: ${item.reason}`,{size:11,color:colors.muted,after:7});}
+    for(const [chapterIndex,chapter] of chapters.entries()){
+      const chapterPage=newPage();entries.push({section:chapter.section,chapterTitle:chapter.chapterTitle,page:chapterPage});const number=String(chapter.chapterTitle||'').match(/^\s*(\d+)\s*-/)?.[1]||chapterIndex+1;
+      drawLines(`APPUNTI · CAPITOLO ${number}`,{bold:true,size:10,color:colors.accent,after:8});drawLines(chapter.section,{bold:true,size:12,color:colors.purple,after:4});drawLines(chapter.chapterTitle,{bold:true,size:21,lineHeight:26,after:14});page.drawLine({start:{x:margin,y:y+5},end:{x:A4[0]-margin,y:y+5},thickness:.8,color:rgb255(colors.line)});y-=12;
+      for(const [videoIndex,video] of chapter.videos.entries()){
+        if(y<135)newPage();drawLines(`VIDEO ${videoIndex+1}`,{bold:true,size:9,color:colors.accent,after:4});drawLines(video.videoTitle,{bold:true,size:14,lineHeight:19,color:colors.purple,after:9});
+        for(const [noteIndex,note] of video.notes.entries()){
+          if(video.notes.length>1)drawLines(`Appunto ${noteIndex+1}`,{bold:true,size:9.5,color:colors.muted,after:5});for(const block of note.blocks)blockParagraph(block);if(noteIndex+1<video.notes.length){page.drawLine({start:{x:margin,y:y+8},end:{x:A4[0]-margin,y:y+8},thickness:.6,color:rgb255(colors.line)});y-=5;}
+        }
+        y-=10;
+      }
       await new Promise(resolve=>{const channel=new MessageChannel();channel.port1.onmessage=()=>{channel.port1.close();channel.port2.close();resolve();};channel.port2.postMessage(null);});
     }
-    for(const link of links){const annotation=doc.context.register(doc.context.obj({Type:'Annot',Subtype:'Link',Rect:[margin,Math.max(50,link.top-link.rows*16.5),547,link.top+12],Border:[0,0,0],Dest:[destinations[link.index],PDFName.of('Fit')]}));link.page.node.addAnnot(annotation);}
-    const pages=doc.getPages();pages.forEach((p,i)=>p.drawText(`${i+1} / ${pages.length}`,{x:margin,y:28,size:9,font:fonts[0]}));
-    return doc.save();
+    for(const link of links){const target=entries[link.index]?.page;if(!target)continue;const annotation=doc.context.register(doc.context.obj({Type:'Annot',Subtype:'Link',Rect:[margin,link.top-link.lineHeight+2,A4[0]-margin,link.top+11],Border:[0,0,0],C:colors.accent.map(value=>value/255),Dest:[target.ref,PDFName.of('Fit')]}));link.page.node.addAnnot(annotation);}
+    addBookmarks();const pages=doc.getPages();pages.forEach((item,index)=>item.drawText(`${index+1} / ${pages.length}`,{x:A4[0]-margin-28,y:24,size:8.5,font:fonts[0],color:rgb255(colors.muted)}));
+    return doc.save({useObjectStreams:true,addDefaultPage:false});
   }
   globalThis.PlumePilotNotesDocument=Object.freeze({html,pdf,plain});
 })();

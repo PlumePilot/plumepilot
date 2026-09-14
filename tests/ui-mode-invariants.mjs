@@ -64,6 +64,11 @@ assert.match(popupHtmlSource, /aria-controls="notesCollectionInfo"[^>]+aria-expa
 assert.match(popupSource, /notesCollectionButtonLabel\.textContent = notesCollecting/);
 assert.match(floatingMenuSource, /class="action notes-collection has-gaming-art gaming-art-compact"[^>]+data-action="notes-collection"/);
 assert.match(floatingMenuSource, /notesLabel\.textContent = collectingNotes/);
+assert.match(floatingMenuSource, /\.action\.test-collection,\s*\.action\.notes-collection,\s*\.action\.materials\s*\{\s*grid-column:\s*1 \/ -1;/s);
+const infoPanelFunctions = popupSource.slice(popupSource.indexOf("function closeInfoPanel("), popupSource.indexOf("const infoToggleButtons"));
+assert.match(infoPanelFunctions, /panel\.hidden = true/);
+assert.match(infoPanelFunctions, /panel\.hidden = false/);
+assert.doesNotMatch(infoPanelFunctions, /\.animate\(|scrollIntoView/);
 assert.match(popupCssSource, /html\[data-menu-size="medium"\]\s*\{[^}]+--sw-action-font-size:\s*14px;[^}]+--sw-control-font-size:\s*12px;[^}]+--sw-secondary-font-size:\s*11px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*10px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);

@@ -5,6 +5,8 @@
 - Adds explicit, cancellable collection of the current course's video notes from `getNotes`, preserving section/chapter/video identity and reporting unavailable items separately from empty notes.
 - Adds a navigable Unicode PDF and an offline HTML styled like the test collection, with chapter navigation, video-grouped formatted notes, collapsible integrations, mathematical symbols and Automatic/Light/Dark themes. Updated copies preserve integrations; nothing is written back to Pegaso.
 - Aligns the new action with existing button dimensions, colors, expandable popup help and compact Gaming artwork in both interfaces; normalizes the supplied artwork as `action-course-notes`.
+- Aligns the notes PDF with the test-collection document hierarchy and palette: cover, clickable chapter index, module/chapter/video headings, PDF bookmarks and consistent rose, purple, text, muted and divider colors.
+- Makes popup help panels open without height animation to avoid browser-popup resize jitter, and restores the notes action to the full floating-menu grid width.
 - Reuses recent complete chapter snapshots only when the full route identity matches; reads notes fresh for each export, with bounded retries and pacing.
 - Drops personal identifiers and active markup before the bridge; uses existing permissions and temporary export-job cleanup.
 - Adds the one-time Gaming achievement “Pensieri in viaggio” (25 EXP), preserving existing balances and the 500 EXP cap.
