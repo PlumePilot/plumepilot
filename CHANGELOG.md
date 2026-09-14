@@ -1,5 +1,12 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.32.10: Chrome Web Store code readability
+
+- Replaces the minified legacy PDF.js bundles with the official readable standard distribution of the same PDF.js 5.6.205 release.
+- Removes legacy compatibility code that triggered the Chrome Web Store `Red Titanium` obfuscation detector.
+- Explicitly disables PDF.js dynamic function compilation while retaining its interpreter fallback.
+- Keeps PDF/EPUB behavior, permissions, data handling and every other bundled dependency unchanged.
+
 ## Improved in 2.32.8: clearer operation feedback and readable progress options
 
 - Shows the active operation message only beside its matching action instead of repeating the same explanation beneath every disabled action.
