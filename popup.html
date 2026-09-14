@@ -7,6 +7,7 @@
   <script src="theme.js"></script>
   <script src="commission-state.js"></script>
   <script src="achievements.js"></script>
+  <script src="sound-settings.js"></script>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -335,6 +336,23 @@
 
       <section class="preferences-section" aria-labelledby="behaviorSectionTitle">
         <div id="behaviorSectionTitle" class="section-title">Comportamento</div>
+        <fieldset class="preference-choice sound-preference" aria-labelledby="soundNotificationsTitle">
+          <div class="preference-choice-heading">
+            <label id="soundNotificationsTitle" for="soundNotificationsEnabled">Notifiche sonore</label>
+            <input id="soundNotificationsEnabled" type="checkbox">
+          </div>
+          <div id="soundNotificationControls" class="sound-controls">
+            <label for="notificationSound">Suono</label>
+            <select id="notificationSound" aria-label="Suono delle notifiche">
+              <option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option>
+            </select>
+            <label for="notificationVolume">Volume <output id="notificationVolumeValue" for="notificationVolume">70%</output></label>
+            <input id="notificationVolume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore">
+            <button id="previewNotificationSound" class="secondary-button" type="button">Ascolta anteprima</button>
+            <div id="soundPreviewStatus" class="action-status" role="status" aria-live="polite"></div>
+          </div>
+          <div class="setting-hint">Riproduce un avviso locale al 70%, al limite capitoli o quando una commissione passa da “In Attesa” a un nuovo stato.</div>
+        </fieldset>
         <fieldset class="preference-choice" aria-labelledby="playbackErrorRecoveryTitle">
           <div class="preference-choice-heading gaming-control-row">
             <span id="playbackErrorRecoveryTitle">Errori di riproduzione</span>

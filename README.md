@@ -27,6 +27,7 @@ Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissu
 - creazione locale di dispense complete in PDF ed EPUB;
 - barra di progressione del corso e avviso della soglia del 70%;
 - controllo dello stato della commissione degli esami online;
+- notifiche sonore locali facoltative per soglia del 70%, limite autoplay e cambi della commissione;
 - menu fluttuante, tema chiaro/scuro e dimensioni adattive;
 - modalità Gaming con Traguardi, EXP e ricompense cosmetiche locali.
 

@@ -84,6 +84,6 @@ assert.match(contentSource, /function autoplayThresholdReached\(\)[\s\S]+percent
 assert.match(contentSource, /recordKnownVideoProgress\(cur, getProgress\(cur\)\);[\s\S]+const sessionLimitReached = chapterLimitReached/);
 assert.ok(popupHtmlSource.indexOf('id="autoplayStopAt70Enabled"') < popupHtmlSource.indexOf('id="chapterLimitTitle"'), "70% stop must appear above the session limit in the popup");
 assert.ok(floatingMenuSource.indexOf('data-setting="autoplay-stop-at-70-enabled"') < floatingMenuSource.indexOf('data-setting="chapter-limit-enabled"'), "70% stop must appear above the session limit in the floating menu");
-assert.ok(contentSource.indexOf("if (autoplayThresholdReached())") < contentSource.indexOf("if (sessionLimitReached)"), "70% stop must be evaluated before the session limit");
+assert.ok(contentSource.indexOf("if (thresholdReached)") < contentSource.indexOf("if (sessionLimitReached)"), "70% stop must be evaluated before the session limit");
 
 console.log("PASS: EXP modes, navigation, responsive text, hybrid chapter limits and optional 70% autoplay stop are consistent");

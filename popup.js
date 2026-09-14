@@ -41,6 +41,13 @@ const autoplayControlSprite = document.getElementById("autoplayControlSprite");
 const floatingMenuControlSprite = document.getElementById("floatingMenuControlSprite");
 const commissionControlSprite = document.getElementById("commissionControlSprite");
 const playbackRecoveryControlSprite = document.getElementById("playbackRecoveryControlSprite");
+const soundNotificationsEnabledCheckbox = document.getElementById("soundNotificationsEnabled");
+const soundNotificationControls = document.getElementById("soundNotificationControls");
+const notificationSoundSelect = document.getElementById("notificationSound");
+const notificationVolumeInput = document.getElementById("notificationVolume");
+const notificationVolumeValue = document.getElementById("notificationVolumeValue");
+const previewNotificationSoundButton = document.getElementById("previewNotificationSound");
+const soundPreviewStatus = document.getElementById("soundPreviewStatus");
 const commissionTabBadge = document.getElementById("commissionTabBadge");
 const commissionUpdates = document.getElementById("commissionUpdates");
 const commissionUpdatesTitle = document.getElementById("commissionUpdatesTitle");
@@ -105,6 +112,27 @@ let achievementToastTimer = null;
 let achievementState = achievements.normalizeState(null);
 let gamingCosmetics = achievements.normalizeCosmetics(null, achievementState);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const soundApi = globalThis.PlumePilotSounds;
+
+function renderSoundPreferences(value) {
+  const normalized = soundApi.normalizeSettings(value);
+  soundNotificationsEnabledCheckbox.checked = normalized.soundNotificationsEnabled;
+  notificationSoundSelect.value = normalized.notificationSound;
+  notificationVolumeInput.value = String(normalized.notificationVolume);
+  notificationVolumeValue.value = `${normalized.notificationVolume}%`;
+  notificationVolumeValue.textContent = `${normalized.notificationVolume}%`;
+  soundNotificationControls.querySelectorAll("select,input,button").forEach((control) => { control.disabled = !normalized.soundNotificationsEnabled; });
+  soundNotificationControls.closest("fieldset").dataset.disabled = String(!normalized.soundNotificationsEnabled);
+}
+
+async function previewNotificationSound() {
+  const sound = soundApi.normalizeSound(notificationSoundSelect.value);
+  const volume = soundApi.normalizeVolume(notificationVolumeInput.value);
+  const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound, volume });
+  soundPreviewStatus.textContent = response?.played === true
+    ? (volume === 0 ? "Anteprima avviata con volume a 0%." : "Anteprima riprodotta.")
+    : (response?.reason || "Impossibile riprodurre l’anteprima.");
+}
 
 const COMMISSION_STORAGE_KEYS = [
   "commissionExams",
@@ -679,7 +707,7 @@ function runtimeMessage(message) {
   return new Promise((resolve) => chrome.runtime.sendMessage(message, (response) => resolve(chrome.runtime.lastError ? { accepted: false, reason: chrome.runtime.lastError.message } : response)));
 }
 
-chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" } }, (result) => {
+chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" }, ...soundApi.DEFAULTS }, (result) => {
   checkbox.checked = result.enabled;
   renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
   chapterLimitMaps = { limits: result.autoplayChapterLimits || {}, sessions: result.autoplayChapterLimitSessions || {} };
@@ -692,6 +720,7 @@ chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests:
   renderMenuSize(result.menuSize);
   floatingMenuEnabledCheckbox.checked = result.floatingMenuEnabled;
   commissionCheckEnabledCheckbox.checked = result.commissionCheckEnabled;
+  renderSoundPreferences(result);
   gamingCosmetics = achievements.normalizeCosmetics(result.gamingCosmetics, result.studywingAchievements); updateAutoplayControls(); updateStatus(result.enabled); renderOperation(result.pegasoActiveOperation); renderCommissionUpdates(result); renderCourseProgress(); renderAchievements(result.studywingAchievements);
   claimEnabledGamingAchievements();
 });
@@ -749,6 +778,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
     });
   }
   if (changes.playbackErrorRecovery) renderPlaybackErrorRecovery(changes.playbackErrorRecovery.newValue);
+  if (changes.soundNotificationsEnabled || changes.notificationSound || changes.notificationVolume) {
+    chrome.storage.local.get(soundApi.DEFAULTS, renderSoundPreferences);
+  }
   if (changes.visualStyle) renderVisualStyle(changes.visualStyle.newValue);
   if (changes.studywingAchievements) renderAchievements(changes.studywingAchievements.newValue);
   if (changes.gamingCosmetics) { gamingCosmetics = achievements.normalizeCosmetics(changes.gamingCosmetics.newValue, achievementState); renderRewards(); }
@@ -827,9 +859,10 @@ chapterLimitResume.addEventListener("click", () => {
   if (!chapterLimitStatus?.courseCode) return;
   chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
     courseCode: chapterLimitStatus.courseCode,
-    completed: 0,
-    reached: false,
-    lastChapterKey: "",
+          completed: 0,
+          reached: false,
+          lastChapterKey: "",
+          soundSessionId: Date.now(),
   };
   chrome.storage.local.set({ autoplayChapterLimitSessions: chapterLimitMaps.sessions });
 });
@@ -858,6 +891,18 @@ for (const radio of playbackErrorRecoveryRadios) radio.addEventListener("change"
   chrome.storage.local.set({ playbackErrorRecovery: selectedPlaybackErrorRecovery() });
   playActionAnimation(playbackRecoveryControlSprite);
 });
+soundNotificationsEnabledCheckbox.addEventListener("change", () => {
+  chrome.storage.local.set({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked });
+  renderSoundPreferences({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked, notificationSound: notificationSoundSelect.value, notificationVolume: notificationVolumeInput.value });
+});
+notificationSoundSelect.addEventListener("change", () => chrome.storage.local.set({ notificationSound: soundApi.normalizeSound(notificationSoundSelect.value) }));
+notificationVolumeInput.addEventListener("input", () => {
+  const volume = soundApi.normalizeVolume(notificationVolumeInput.value);
+  notificationVolumeValue.value = `${volume}%`;
+  notificationVolumeValue.textContent = `${volume}%`;
+});
+notificationVolumeInput.addEventListener("change", () => chrome.storage.local.set({ notificationVolume: soundApi.normalizeVolume(notificationVolumeInput.value) }));
+previewNotificationSoundButton.addEventListener("click", previewNotificationSound);
 for (const radio of visualStyleRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;
   const visualStyle = selectedVisualStyle();

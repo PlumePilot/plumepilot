@@ -27,6 +27,7 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const commissionStates = globalThis.StudyWingCommissionState;
   const achievements = globalThis.StudyWingAchievements;
+  const soundApi = globalThis.PlumePilotSounds;
   const defaults = {
     enabled: true,
     stopAtTests: false,
@@ -42,6 +43,9 @@
     autoplayStopAt70BypassedCourses: {},
     courseProgressThresholdNotified: {},
     playbackErrorRecovery: "automatic",
+    soundNotificationsEnabled: false,
+    notificationSound: "chirp",
+    notificationVolume: 70,
     visualStyle: "standard",
     themePreference: "system",
     menuSize: "medium",
@@ -676,6 +680,7 @@
       settings.courseProgressThresholdEnabled === true
     ) {
       showCourseThresholdToast();
+      void runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
     }
   }
 
@@ -1105,6 +1110,13 @@
       radio.checked = radio.value === menuSize;
     for (const radio of ui.playbackErrorRecoveryRadios)
       radio.checked = radio.value === playbackRecovery;
+    const sound = soundApi.normalizeSettings(settings);
+    ui.soundNotificationsEnabled.checked = sound.soundNotificationsEnabled;
+    ui.notificationSound.value = sound.notificationSound;
+    ui.notificationVolume.value = String(sound.notificationVolume);
+    ui.notificationVolumeValue.value = `${sound.notificationVolume}%`;
+    ui.notificationVolumeValue.textContent = `${sound.notificationVolume}%`;
+    ui.soundControls.querySelectorAll("select,input,button").forEach((control) => { control.disabled = !sound.soundNotificationsEnabled; });
   }
 
   function renderCourseProgress() {
@@ -3556,6 +3568,15 @@
             </section>
             <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
               <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
+                <label id="studywing-floating-sound-heading" class="preference-group-heading"><span>Notifiche sonore</span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
+                <div class="preference-options" data-role="sound-controls">
+                  <label><span>Suono</span><select data-setting="notification-sound" aria-label="Suono delle notifiche"><option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option></select></label>
+                  <label><span>Volume <output data-role="notification-volume-value">70%</output></span><input data-setting="notification-volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore"></label>
+                  <button class="bookmark-action" data-action="preview-notification-sound" type="button">Ascolta anteprima</button>
+                </div>
+                <p class="preference-hint">Avvisi locali per 70%, limite capitoli e cambi di stato della commissione.</p>
+              </fieldset>
               <fieldset class="preference-group" aria-labelledby="studywing-floating-playback-recovery-heading">
                 <div id="studywing-floating-playback-recovery-heading" class="preference-group-heading gaming-control-row playback-recovery-legend"><span>Errori di riproduzione</span><span class="gaming-control-sprite playback-recovery-control-sprite" data-role="playback-recovery-control-sprite" aria-hidden="true"></span></div>
                 <div class="preference-options">
@@ -3623,6 +3644,12 @@
           'input[name="studywing-playback-error-recovery"]',
         ),
       ],
+      soundNotificationsEnabled: shadow.querySelector('[data-setting="sound-notifications-enabled"]'),
+      notificationSound: shadow.querySelector('[data-setting="notification-sound"]'),
+      notificationVolume: shadow.querySelector('[data-setting="notification-volume"]'),
+      notificationVolumeValue: shadow.querySelector('[data-role="notification-volume-value"]'),
+      soundControls: shadow.querySelector('[data-role="sound-controls"]'),
+      previewNotificationSound: shadow.querySelector('[data-action="preview-notification-sound"]'),
       state: shadow.querySelector('[data-role="state"]'),
       status: shadow.querySelector('[data-role="status"]'),
       lastNotification: shadow.querySelector('[data-role="last-notification"]'),
@@ -3870,6 +3897,18 @@
         );
         playActionAnimation(ui.playbackRecoveryControlSprite);
       });
+    ui.soundNotificationsEnabled.addEventListener("change", () => writeSetting("soundNotificationsEnabled", ui.soundNotificationsEnabled.checked));
+    ui.notificationSound.addEventListener("change", () => writeSetting("notificationSound", soundApi.normalizeSound(ui.notificationSound.value)));
+    ui.notificationVolume.addEventListener("input", () => {
+      const volume = soundApi.normalizeVolume(ui.notificationVolume.value);
+      ui.notificationVolumeValue.value = `${volume}%`;
+      ui.notificationVolumeValue.textContent = `${volume}%`;
+    });
+    ui.notificationVolume.addEventListener("change", () => writeSetting("notificationVolume", soundApi.normalizeVolume(ui.notificationVolume.value)));
+    ui.previewNotificationSound.addEventListener("click", async () => {
+      const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound: ui.notificationSound.value, volume: ui.notificationVolume.value });
+      setFeedback(response?.played === true ? "Anteprima riprodotta." : (response?.reason || "Anteprima non disponibile."), response?.played !== true);
+    });
     ui.enabled.addEventListener("change", () => {
       writeSetting("enabled", ui.enabled.checked);
       if (ui.enabled.checked) playActionAnimation(ui.autoplayControlSprite);
@@ -4001,6 +4040,7 @@
             completed: 0,
             reached: false,
             lastChapterKey: "",
+            soundSessionId: Date.now(),
           },
         },
       });
@@ -4155,7 +4195,10 @@
       changes.visualStyle ||
       changes.themePreference ||
       changes.menuSize ||
-      changes.playbackErrorRecovery
+      changes.playbackErrorRecovery ||
+      changes.soundNotificationsEnabled ||
+      changes.notificationSound ||
+      changes.notificationVolume
     )
       renderPreferences();
     if (changes.visualStyle) renderCommissionExams();

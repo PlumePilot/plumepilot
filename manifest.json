@@ -34,6 +34,7 @@
   "background": {
     "scripts": [
       "achievements.js",
+      "sound-settings.js",
       "background.js"
     ],
     "service_worker": "background.js"
@@ -70,6 +71,7 @@
         "assets/gaming/progress-arcane-frame-right.png",
         "assets/gaming/progress-arcane-fill.png",
         "assets/gaming/rewards/*.png"
+        ,"assets/audio/*.mp3"
       ],
       "matches": [
         "*://*.pegaso.multiversity.click/*"
@@ -94,6 +96,7 @@
       ],
       "js": [
         "commission-state.js",
+        "sound-settings.js",
         "bridge.js"
       ],
       "run_at": "document_start",
@@ -118,6 +121,7 @@
       "js": [
         "commission-state.js",
         "achievements.js",
+        "sound-settings.js",
         "floating-menu.js"
       ],
       "run_at": "document_idle",

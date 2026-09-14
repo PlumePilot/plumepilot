@@ -41,7 +41,7 @@ async function collectFiles(directory = root, relativeDirectory = "") {
 function manifestFor(baseManifest, browser) {
   const manifest = structuredClone(baseManifest);
   if (browser === "firefox") {
-    manifest.background = { scripts: ["achievements.js", "background.js"] };
+    manifest.background = { scripts: ["achievements.js", "sound-settings.js", "background.js"] };
     manifest.browser_specific_settings = {
       gecko: {
         id: "plumepilot@fabiofloris",

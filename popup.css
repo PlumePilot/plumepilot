@@ -133,6 +133,11 @@ html[data-visual-style="gaming"] .chapter-limit-slider::-moz-range-thumb { width
 .chapter-limit-slider[data-flame-level="4"] { --sw-flame-x: -96px; }
 .chapter-limit-slider[data-flame-level="5"] { --sw-flame-x: -128px; }
 .setting-hint { margin-top: 7px; color: var(--sw-text-muted); font-size: 11px; line-height: 1.4; }
+.sound-controls { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px 10px; margin-top: 10px; }
+.sound-controls select, .sound-controls input[type="range"] { width: 100%; min-width: 0; }
+.sound-controls output { color: var(--sw-text-muted); font-variant-numeric: tabular-nums; }
+.sound-controls .secondary-button, .sound-controls .action-status { grid-column: 1 / -1; }
+.sound-preference[data-disabled="true"] .sound-controls { opacity: .55; }
 
 .brand-header {
   display: flex;
