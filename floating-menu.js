@@ -28,6 +28,7 @@
   const commissionStates = globalThis.StudyWingCommissionState;
   const achievements = globalThis.StudyWingAchievements;
   const soundApi = globalThis.PlumePilotSounds;
+  const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
   const defaults = {
     enabled: true,
     stopAtTests: false,
@@ -51,6 +52,7 @@
     menuSize: "medium",
     floatingMenuEnabled: true,
     floatingMenuPosition: DEFAULT_POSITION,
+    floatingMenuLayout: floatingLayoutApi.DEFAULT_LAYOUT,
     commissionCheckEnabled: false,
     commissionExams: [],
     commissionExamsCapturedAt: null,
@@ -1810,6 +1812,18 @@
     chrome.storage.local.set({ [key]: value });
   }
 
+  function applyFloatingMenuLayout() {
+    if (!ui?.actions) return;
+    const layout = floatingLayoutApi.normalizeLayout(settings.floatingMenuLayout);
+    for (const item of layout.items) {
+      const definition = floatingLayoutApi.definitionFor(item.id);
+      const button = definition ? ui.actions.querySelector(`[data-action="${definition.action}"]`) : null;
+      if (!button) continue;
+      button.hidden = !item.visible;
+      ui.actions.append(button);
+    }
+  }
+
   function createMenu() {
     if (host || !document.documentElement) return;
 
@@ -3521,10 +3535,10 @@
               </div>
             </div>
             <div class="actions">
-              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
-              <button class="action objectives has-gaming-art" data-action="objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
-              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
-              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
+              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
+              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
+              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" data-layout-item="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
+              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" data-layout-item="study-materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
             </div>
             <p class="status" data-role="status" data-error="false" aria-live="polite"></p>
             </div>
@@ -3809,6 +3823,7 @@
         '[data-role="loaded-other-count"]',
       ),
       loadedOtherList: shadow.querySelector('[data-role="loaded-other-list"]'),
+      actions: shadow.querySelector(".actions"),
       turbo: shadow.querySelector('[data-action="turbo"]'),
       turboLabel: shadow.querySelector('[data-role="turbo-label"]'),
       turboSprite: shadow.querySelector(".turbo-tests-sprite"),
@@ -3825,6 +3840,8 @@
       materialsSprite: shadow.querySelector(".materials-sprite"),
       hide: shadow.querySelector('[data-action="hide"]'),
     };
+
+    applyFloatingMenuLayout();
 
     ui.launcher.addEventListener("click", (event) => {
       if (suppressLauncherClick) {
@@ -4240,6 +4257,7 @@
       renderCourseProgressOverlay();
     }
     if (changes.floatingMenuPosition && !dragState) applyLauncherPosition();
+    if (changes.floatingMenuLayout) applyFloatingMenuLayout();
     if (
       changes.enabled ||
       changes.stopAtTests ||

@@ -1968,3 +1968,79 @@ html[data-visual-style="gaming"] .status {
   font-weight: 400 700;
   font-display: swap;
 }
+
+
+/* Floating menu layout preferences */
+.floating-menu-layout-list {
+  display: grid;
+  gap: 6px;
+  margin: 9px 0;
+  padding: 0;
+  list-style: none;
+}
+.floating-menu-layout-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 6px 7px;
+  border: 1px solid var(--sw-border);
+  border-radius: 6px;
+  background: var(--sw-surface);
+  cursor: grab;
+}
+.floating-menu-layout-item.is-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+.floating-menu-layout-handle {
+  color: var(--sw-text-muted);
+  letter-spacing: -3px;
+  user-select: none;
+}
+.floating-menu-layout-item label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.floating-menu-layout-item label span {
+  overflow-wrap: anywhere;
+}
+.floating-menu-layout-moves {
+  display: inline-flex;
+  gap: 4px;
+}
+.floating-menu-layout-moves button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--sw-border);
+  border-radius: 5px;
+  color: var(--sw-text);
+  background: var(--sw-surface-elevated);
+  cursor: pointer;
+}
+.floating-menu-layout-moves button:hover:not(:disabled),
+.floating-menu-layout-moves button:focus-visible {
+  color: var(--sw-on-accent);
+  background: var(--brand-purple);
+}
+.floating-menu-layout-moves button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.floating-menu-layout-reset {
+  width: 100%;
+}
+html[data-visual-style="gaming"] .floating-menu-layout-item,
+html[data-visual-style="gaming"] .floating-menu-layout-moves button {
+  border-width: 2px;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--sw-pixel-shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .floating-menu-layout-item { scroll-behavior: auto; }
+}
