@@ -2410,8 +2410,11 @@
           gap: 10px;
         }
         .preferences-section {
-          display: grid;
-          gap: 8px;
+          min-width: 0;
+          padding: 9px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          background: var(--sw-elevated);
         }
         .preferences-heading {
           margin: 0;
@@ -2421,6 +2424,21 @@
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
+        .preference-macro > summary,
+        .preference-subsection > summary { list-style: none; cursor: pointer; user-select: none; }
+        .preference-macro > summary::-webkit-details-marker,
+        .preference-subsection > summary::-webkit-details-marker { display: none; }
+        .preference-macro-summary,
+        .preference-subsection-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .preference-macro-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-subsection { min-width: 0; padding: 8px; border: 1px solid var(--sw-border); border-radius: 8px; background: var(--sw-surface); }
+        .preference-subsection-summary { color: var(--sw-heading); font-size: 10px; font-weight: 750; line-height: 1.3; }
+        .preference-subsection-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-disclosure-chevron { width: 7px; height: 7px; flex: 0 0 auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 140ms ease; }
+        details[open] > summary > .preference-disclosure-chevron { transform: rotate(225deg); }
+        .preference-macro > summary:focus-visible,
+        .preference-subsection > summary:focus-visible { outline: 2px solid var(--sw-gold); outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { .preference-disclosure-chevron { transition: none; } }
         .preference-group {
           min-width: 0;
           margin: 0;
@@ -3577,8 +3595,12 @@
             <div class="achievement-footer"><div class="achievement-progress" data-role="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="achievement-progress-fill" data-role="achievement-progress-fill"></span><span class="achievement-mid-marker" data-role="achievement-mid-marker" title="Premio stile barra"></span><span class="achievement-end-marker" data-role="achievement-end-marker" title="Premio stile launcher"></span></div></div>
           </div>
           <div id="studywing-preferences-panel" class="menu-tab-panel preferences-panel" data-role="preferences-panel" role="tabpanel" aria-labelledby="studywing-preferences-tab" hidden>
-            <section class="preferences-section" aria-labelledby="studywing-interface-preferences-heading">
-              <h2 id="studywing-interface-preferences-heading" class="preferences-heading">Interfaccia</h2>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
+              <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
+              <details class="preference-subsection style-theme-container">
+                <summary class="preference-subsection-summary"><span>Stile e tema</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+                <div class="preference-subsection-content">
               <fieldset class="preference-group" aria-labelledby="studywing-floating-visual-style-heading">
                 <div id="studywing-floating-visual-style-heading" class="preference-group-heading">Stile visivo</div>
                 <div class="preference-options" data-columns="2">
@@ -3605,9 +3627,13 @@
                 </div>
                 <p class="preference-hint">Regola larghezza e leggibilità di entrambi i menu.</p>
               </fieldset>
-            </section>
-            <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
-              <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
+                </div>
+              </details>
+              </div>
+            </details>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-behavior-preferences-heading">
+              <summary id="studywing-behavior-preferences-heading" class="preferences-heading preference-macro-summary"><span>Comportamento</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
               <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
                 <label id="studywing-floating-sound-heading" class="preference-group-heading gaming-control-row sound-heading"><span>Notifiche sonore</span><span class="gaming-control-sprite sound-notification-control-sprite" data-role="sound-notification-control-sprite" aria-hidden="true"></span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
                 <div class="preference-options sound-options" data-role="sound-controls">
@@ -3624,7 +3650,8 @@
                   <label><input type="radio" name="studywing-playback-error-recovery" value="manual"> <span>Lascia aperto l’avviso</span></label>
                 </div>
               </fieldset>
-            </section>
+              </div>
+            </details>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
