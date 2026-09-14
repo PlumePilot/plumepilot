@@ -1995,7 +1995,7 @@ html[data-visual-style="gaming"] .status {
   cursor: grabbing;
 }
 .floating-menu-layout-handle {
-  color: var(--sw-muted);
+  color: var(--sw-text-muted);
   letter-spacing: -3px;
   user-select: none;
 }
@@ -2017,16 +2017,16 @@ html[data-visual-style="gaming"] .status {
   min-width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--sw-border-strong);
+  border: 1px solid var(--sw-border);
   border-radius: 5px;
   color: var(--sw-text);
-  background: var(--sw-surface-raised);
+  background: var(--sw-surface-elevated);
   cursor: pointer;
 }
 .floating-menu-layout-moves button:hover:not(:disabled),
 .floating-menu-layout-moves button:focus-visible {
   color: var(--sw-on-accent);
-  background: var(--sw-accent);
+  background: var(--brand-purple);
 }
 .floating-menu-layout-moves button:disabled {
   opacity: 0.35;
