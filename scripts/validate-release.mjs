@@ -9,6 +9,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
 const releaseDirectory = path.resolve(root, process.argv[2] || "release");
 const expectedBrowsers = ["chrome", "firefox", "edge"];
+const expectedEdgeLocales = ["en", "it"];
 const generatedChecksums = [];
 const expectedPdfjsChecksums = new Map([
   ["vendor/pdf.mjs", "43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd"],
@@ -46,6 +47,11 @@ function validateBrowserManifest(manifest, browser) {
   } else {
     if (!manifest.background?.service_worker || manifest.background?.scripts) throw new Error(`${browser}: background errato.`);
     if (manifest.browser_specific_settings) throw new Error(`${browser}: configurazione Gecko presente.`);
+    if (browser === "edge") {
+      if (manifest.name !== "__MSG_extensionName__") throw new Error("Edge: nome localizzato assente.");
+      if (manifest.description !== "__MSG_extensionDescription__") throw new Error("Edge: descrizione localizzata assente.");
+      if (manifest.default_locale !== "it") throw new Error("Edge: lingua predefinita errata.");
+    }
   }
 }
 
@@ -64,6 +70,18 @@ for (const browser of expectedBrowsers) {
   }
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
+  if (browser === "edge") {
+    for (const locale of expectedEdgeLocales) {
+      const localeFile = zip.file(`_locales/${locale}/messages.json`);
+      if (!localeFile) throw new Error(`Edge: localizzazione ${locale} mancante.`);
+      const messages = JSON.parse(await localeFile.async("string"));
+      if (!messages.extensionName?.message || !messages.extensionDescription?.message) {
+        throw new Error(`Edge: metadati incompleti per la localizzazione ${locale}.`);
+      }
+    }
+  } else if (names.some((name) => name.startsWith("_locales/"))) {
+    throw new Error(`${browser}: localizzazioni Edge incluse per errore.`);
+  }
   for (const reference of referencedManifestFiles(manifest)) {
     if (!zip.file(reference)) throw new Error(`${browser}: file manifest mancante: ${reference}.`);
   }

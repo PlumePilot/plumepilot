@@ -11,6 +11,7 @@ const outputArgument = process.argv.find((argument) => argument.startsWith("--ou
 const outputDirectory = path.resolve(root, outputArgument?.slice("--output-dir=".length) || "release");
 const fixedZipDate = new Date("2026-01-01T00:00:00.000Z");
 const browsers = ["chrome", "firefox", "edge"];
+const edgeLocales = ["en", "it"];
 
 const excludedFiles = new Set([
   "manifest.json",
@@ -54,6 +55,12 @@ function manifestFor(baseManifest, browser) {
   } else {
     manifest.background = { service_worker: "background.js" };
     delete manifest.browser_specific_settings;
+    if (browser === "edge") {
+      manifest.name = "__MSG_extensionName__";
+      manifest.description = "__MSG_extensionDescription__";
+      manifest.default_locale = "it";
+      manifest.action.default_title = "__MSG_extensionName__";
+    }
   }
   return manifest;
 }
@@ -103,6 +110,16 @@ for (const browser of browsers) {
       date: fixedZipDate,
       createFolders: false,
     });
+  }
+  if (browser === "edge") {
+    for (const locale of edgeLocales) {
+      const localePath = path.join("scripts", "edge-locales", locale, "messages.json");
+      zip.file(
+        `_locales/${locale}/messages.json`,
+        await readFile(path.join(root, localePath)),
+        { binary: true, date: fixedZipDate, createFolders: false },
+      );
+    }
   }
   const bytes = await zip.generateAsync({
     type: "nodebuffer",
