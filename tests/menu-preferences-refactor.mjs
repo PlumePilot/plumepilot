@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const popup=readFileSync(new URL("../popup.html",import.meta.url),"utf8");
+const floating=readFileSync(new URL("../floating-menu.js",import.meta.url),"utf8");
+const course=popup.slice(popup.indexOf('id="coursePanel"'),popup.indexOf('id="activitiesPanel"'));
+const activities=popup.slice(popup.indexOf('id="activitiesPanel"'),popup.indexOf('id="achievementsPanel"'));
+assert.match(course,/id="createTestCollection"/);
+assert.doesNotMatch(activities,/id="createTestCollection"/);
+assert.match(course,/>Raccolte del corso</);
+assert.equal((popup.match(/class="preferences-section preference-macro"/g)||[]).length,2);
+assert.equal((popup.match(/class="preference-subsection style-theme-container"/g)||[]).length,1);
+assert.equal((floating.match(/class="preferences-section preference-macro"/g)||[]).length,2);
+assert.equal((floating.match(/class="preference-subsection style-theme-container"/g)||[]).length,1);
+assert.doesNotMatch(popup,/class="preferences-section preference-macro"[^>]+ open/);
+assert.doesNotMatch(floating,/class="preferences-section preference-macro"[^>]+ open/);
+console.log("PASS: course collections and collapsible preferences are consistent");
