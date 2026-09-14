@@ -45,14 +45,18 @@ Privacy policy: <https://plumepilot.github.io/plumepilot/privacy/>
 
 ## Note aggiuntive per Firefox/AMO
 
-Il codice applicativo di PlumePilot è incluso in forma leggibile e non è minificato o offuscato. Il pacchetto contiene copie locali minificate di librerie open source di terze parti:
+Il codice applicativo di PlumePilot è incluso in forma leggibile e non è minificato o offuscato. Il pacchetto contiene copie locali di librerie open source di terze parti:
 
 - pdf-lib 1.17.1;
 - @pdf-lib/fontkit 1.1.1;
-- PDF.js 5.6.205;
+- PDF.js 5.6.205, distribuzione standard non minificata;
 - JSZip 3.10.1.
 
 Versioni, collegamenti ufficiali, licenze e SHA-256 sono riportati in `THIRD_PARTY_NOTICES.md`. Non vengono scaricate dipendenze durante l'esecuzione dell'estensione.
+
+### Correzione Chrome Web Store Red Titanium
+
+La versione 2.32.10 sostituisce i precedenti bundle PDF.js legacy minificati con i file `pdf.mjs` e `pdf.worker.mjs` leggibili della distribuzione standard ufficiale PDF.js 5.6.205. La routine di compatibilità legacy indicata nel rifiuto (`scriptTag`) non è presente nei nuovi file. PlumePilot imposta inoltre `isEvalSupported: false`, usando il percorso interpretato di PDF.js senza compilazione dinamica. Versione della libreria e funzionalità dell'estensione restano invariate.
 
 È allegato anche il pacchetto sorgente con le istruzioni di build. Il comando seguente genera i tre archivi senza installare dipendenze:
 
