@@ -1,5 +1,7 @@
 # Informativa sulla privacy di PlumePilot
 
+[English version](https://plumepilot.github.io/plumepilot/privacy/en/)
+
 Ultimo aggiornamento: 3 settembre 2026.
 
 ## 1. Titolare e contatti

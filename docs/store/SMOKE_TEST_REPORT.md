@@ -8,9 +8,10 @@ Compilare questo documento esclusivamente sulla build congelata destinata agli s
 - Commit/tag: `PR #12 fix/chrome-code-readability-2.32.10` (tag da creare sul commit definitivo in `main`)
 - Data test: `14/09/2026`
 - Responsabile: `Fabio Floris`
-- Chrome ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
-- Edge ZIP SHA-256: `984be0daa4c93c92669e6a63c944a74b621820a8b04400b39d510d8489b13880`
-- Firefox ZIP SHA-256: `60470ce2676d4035da501b5d5aca7d9cfdbfb146c4ecd0081ac274f86189a9fa`
+- Chrome ZIP SHA-256: `c7aaefbf1351f9e2ab22a96122a359b1b2542f2ae1f8addc23d082ba0be2cd4c`
+- Edge ZIP SHA-256: `c7aaefbf1351f9e2ab22a96122a359b1b2542f2ae1f8addc23d082ba0be2cd4c`
+- Firefox ZIP SHA-256: `87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213`
+- Source ZIP SHA-256: `49bb6284b6ec1d027832ed72f318b8366bd820504d040407e3ea770ad1193b03`
 - File `SHA256SUMS.txt` verificato: `SÌ`
 
 ## Ambienti

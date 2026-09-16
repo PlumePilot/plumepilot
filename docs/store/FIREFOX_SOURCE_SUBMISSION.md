@@ -1,6 +1,6 @@
 # PlumePilot — pacchetto sorgente per Firefox Add-ons
 
-Queste istruzioni accompagnano il sorgente inviato privatamente ai revisori AMO. Il codice della repository non richiede transpiling, bundling o minificazione. Il solo processo di build seleziona i file di runtime, adatta il manifest al browser e crea ZIP deterministici.
+Queste istruzioni accompagnano il sorgente inviato privatamente ai revisori AMO. La copia inglese da usare direttamente nel pacchetto è `AMO_SOURCE_README.md`. Il codice della repository non richiede transpiling, bundling o minificazione. Il solo processo di build seleziona i file di runtime, adatta il manifest al browser e crea ZIP deterministici.
 
 ## Ambiente
 
@@ -19,10 +19,11 @@ Dalla radice del sorgente eseguire:
 node scripts/build-release.mjs
 ```
 
-Gli archivi vengono creati in `release/`. Il file destinato ad AMO è:
+Gli archivi vengono creati in `release/`. I file destinati ad AMO sono:
 
 ```text
 release/plumepilot-vX.Y.Z-firefox.zip
+release/plumepilot-vX.Y.Z-source.zip
 ```
 
 La directory di output deve essere priva di ZIP e di un precedente `SHA256SUMS.txt`. Il builder interrompe l'operazione prima di scrivere se trova artefatti di release esistenti, così una build precedente non può essere sovrascritta o confusa con quella corrente.
@@ -41,9 +42,9 @@ Eseguire:
 node scripts/validate-release.mjs
 ```
 
-Il validatore controlla i tre manifest, la struttura degli ZIP, i riferimenti ai file, l'assenza di codice dinamico o script remoti e la presenza delle licenze.
+Il validatore controlla i tre manifest, la struttura degli ZIP, i riferimenti ai file, l'assenza di codice dinamico o script remoti nel codice applicativo, la presenza delle licenze e i file richiesti nel pacchetto sorgente AMO.
 
-Il builder crea inoltre `SHA256SUMS.txt` nella directory di output. Il validatore ricalcola gli hash dei tre archivi e richiede che coincidano esattamente con questo file.
+Il builder crea inoltre `SHA256SUMS.txt` nella directory di output. Il validatore ricalcola gli hash dei tre archivi browser e del pacchetto sorgente e richiede che coincidano esattamente con questo file.
 
 Per confrontare la build con il pacchetto caricato su AMO:
 
