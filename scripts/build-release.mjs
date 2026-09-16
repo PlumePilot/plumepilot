@@ -11,9 +11,11 @@ const outputArgument = process.argv.find((argument) => argument.startsWith("--ou
 const outputDirectory = path.resolve(root, outputArgument?.slice("--output-dir=".length) || "release");
 const fixedZipDate = new Date("2026-01-01T00:00:00.000Z");
 const browsers = ["chrome", "firefox", "edge"];
+const edgeLocales = ["en", "it"];
 
 const excludedFiles = new Set([
   "manifest.json",
+  "AMO_SOURCE_README.md",
   "README.md",
   "CHANGELOG.md",
   "PRIVACY.md",
@@ -44,6 +46,9 @@ function manifestFor(baseManifest, browser) {
     manifest.background = { scripts: ["achievements.js", "sound-settings.js", "background.js"] };
     manifest.permissions = (manifest.permissions || []).filter((permission) => permission !== "offscreen");
     manifest.browser_specific_settings = {
+      gecko_android: {
+        strict_min_version: "142.0",
+      },
       gecko: {
         id: "plumepilot@fabiofloris",
         strict_min_version: "140.0",
@@ -56,8 +61,35 @@ function manifestFor(baseManifest, browser) {
     manifest.background = { service_worker: "background.js" };
     manifest.permissions = [...new Set([...(manifest.permissions || []), "offscreen"])];
     delete manifest.browser_specific_settings;
+    if (browser === "edge") {
+      manifest.name = "__MSG_extensionName__";
+      manifest.description = "__MSG_extensionDescription__";
+      manifest.default_locale = "it";
+      manifest.action.default_title = "__MSG_extensionName__";
+    }
   }
   return manifest;
+}
+
+async function collectSourceSubmissionFiles(directory = root, relativeDirectory = "") {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const relativePath = path.posix.join(relativeDirectory, entry.name);
+    const absolutePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (
+        entry.name === ".git" ||
+        entry.name === ".github" ||
+        entry.name === "docs" ||
+        entry.name === "release" ||
+        absolutePath === outputDirectory
+      ) continue;
+      files.push(...await collectSourceSubmissionFiles(absolutePath, relativePath));
+    } else {
+      files.push(relativePath);
+    }
+  }
+  return files.sort();
 }
 
 function validateManifest(manifest, browser) {
@@ -81,6 +113,7 @@ function validateManifest(manifest, browser) {
 
 const baseManifest = JSON.parse(await readFile(path.join(root, "manifest.json"), "utf8"));
 const sourceFiles = await collectFiles();
+const sourceSubmissionFiles = await collectSourceSubmissionFiles();
 await mkdir(outputDirectory, { recursive: true });
 const existingReleaseArtifacts = (await readdir(outputDirectory))
   .filter((name) => name.endsWith(".zip") || name === "SHA256SUMS.txt");
@@ -107,6 +140,16 @@ for (const browser of browsers) {
       createFolders: false,
     });
   }
+  if (browser === "edge") {
+    for (const locale of edgeLocales) {
+      const localePath = path.join("scripts", "edge-locales", locale, "messages.json");
+      zip.file(
+        `_locales/${locale}/messages.json`,
+        await readFile(path.join(root, localePath)),
+        { binary: true, date: fixedZipDate, createFolders: false },
+      );
+    }
+  }
   const bytes = await zip.generateAsync({
     type: "nodebuffer",
     compression: "DEFLATE",
@@ -120,6 +163,27 @@ for (const browser of browsers) {
   checksumLines.push(`${checksum}  ${filename}`);
   console.log(`${filename}\t${bytes.length} byte\tsha256 ${checksum}`);
 }
+
+const sourceZip = new JSZip();
+for (const relativePath of sourceSubmissionFiles) {
+  sourceZip.file(relativePath, await readFile(path.join(root, relativePath)), {
+    binary: true,
+    date: fixedZipDate,
+    createFolders: false,
+  });
+}
+const sourceBytes = await sourceZip.generateAsync({
+  type: "nodebuffer",
+  compression: "DEFLATE",
+  compressionOptions: { level: 9 },
+  platform: "UNIX",
+});
+const sourceFilename = `plumepilot-v${baseManifest.version}-source.zip`;
+await writeFile(path.join(outputDirectory, sourceFilename), sourceBytes);
+checksumLines.push(`${createHash("sha256").update(sourceBytes).digest("hex")}  ${sourceFilename}`);
+console.log(
+  `${sourceFilename}\t${sourceBytes.length} byte\tsha256 ${createHash("sha256").update(sourceBytes).digest("hex")}`,
+);
 
 await writeFile(
   path.join(outputDirectory, "SHA256SUMS.txt"),

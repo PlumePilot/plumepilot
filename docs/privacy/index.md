@@ -5,6 +5,8 @@ title: "Informativa sulla privacy di PlumePilot"
 
 # Informativa sulla privacy di PlumePilot
 
+[English version](en/)
+
 Ultimo aggiornamento: 3 settembre 2026.
 
 ## 1. Titolare e contatti

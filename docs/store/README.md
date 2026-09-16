@@ -5,6 +5,7 @@ Questa cartella raccoglie i materiali operativi per pubblicare PlumePilot su Chr
 - [`PUBLICATION_CHECKLIST.md`](PUBLICATION_CHECKLIST.md): gate di rilascio, asset, test e flusso per i tre store.
 - [`SUBMISSION_COPY_IT.md`](SUBMISSION_COPY_IT.md): testi italiani, scopo unico, permessi e dichiarazioni dati.
 - [`REVIEWER_NOTES_IT.md`](REVIEWER_NOTES_IT.md): modello privato per credenziali DEMO e istruzioni di verifica.
+- [`REVIEWER_NOTES_EN.md`](REVIEWER_NOTES_EN.md): testo inglese pronto per il campo privato **Notes for Reviewers** di AMO.
 - [`FIREFOX_SOURCE_SUBMISSION.md`](FIREFOX_SOURCE_SUBMISSION.md): ambiente e build riproducibile per i revisori AMO.
 - [`SCREENSHOT_CAPTURE_GUIDE.md`](SCREENSHOT_CAPTURE_GUIDE.md): sequenza, formato e controlli privacy per le immagini degli store.
 - [`SMOKE_TEST_REPORT.md`](SMOKE_TEST_REPORT.md): verbale da compilare sulla build congelata nei tre browser.

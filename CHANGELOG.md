@@ -10,6 +10,22 @@
 - Adds the Gaming achievement **Orecchie tese!** for 20 EXP after the first successful real notification; previews, failed playback and Standard mode never award it.
 - Keeps the manifest version at `2.32.8` for feature testing.
 
+## Fixed in 2.32.10: Chrome Web Store code readability
+
+- Replaces the minified legacy PDF.js bundles with the official readable standard distribution of the same PDF.js 5.6.205 release.
+- Removes legacy compatibility code that triggered the Chrome Web Store `Red Titanium` obfuscation detector.
+- Explicitly disables PDF.js dynamic function compilation while retaining its interpreter fallback.
+- Keeps PDF/EPUB behavior, permissions, data handling and every other bundled dependency unchanged.
+
+## Improved in 2.32.9: Firefox review readiness
+
+- Declares Firefox for Android 142 as the minimum Android version for the built-in data collection consent manifest key while keeping the AMO release limited to Firefox Desktop.
+- Replaces the only first-party dynamic `innerHTML` assignment used to decode entities with inert `DOMParser` text extraction.
+- Generates the Firefox source submission archive together with the browser packages and includes it in `SHA256SUMS.txt`.
+- Validates the source archive, reviewer build instructions and Firefox-specific minimum versions before release.
+- Adds English AMO reviewer notes and a root-level source-build README, and documents exact official package sources for every bundled vendor library.
+- Leaves extension permissions, supported domains, user-facing behavior and data handling unchanged.
+
 ## Improved in 2.32.8: clearer operation feedback and readable progress options
 
 - Shows the active operation message only beside its matching action instead of repeating the same explanation beneath every disabled action.
