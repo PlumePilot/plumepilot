@@ -2,7 +2,7 @@
 
 PlumePilot è distribuito sotto GPL-3.0-only. I componenti elencati in questo documento rimangono soggetti alle rispettive licenze.
 
-I checksum si riferiscono ai file inclusi nella release PlumePilot 2.32.9. Prima della release sono stati confrontati byte per byte con i file estratti dai pacchetti npm ufficiali indicati sotto.
+I checksum si riferiscono ai file inclusi nella release sorgente PlumePilot 2.32.10.
 
 ## pdf-lib 1.17.1
 
@@ -33,12 +33,12 @@ I checksum si riferiscono ai file inclusi nella release PlumePilot 2.32.9. Prima
 - Uso: lettura, estrazione e rendering locale delle dispense durante la creazione EPUB.
 - Licenza: Apache License 2.0.
 - Progetto e tag: <https://github.com/mozilla/pdf.js/tree/v5.6.205>
-- Pacchetto ufficiale: <https://www.npmjs.com/package/pdfjs-dist/v/5.6.205>
-- Archivio npm ufficiale: <https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz> (`legacy/build/pdf.min.mjs` e `legacy/build/pdf.worker.min.mjs`).
-- File API: `vendor/pdf.min.mjs`.
-- SHA-256 API: `0d29c4871eff0b72f3896825f2673ddf7dfbccf815a7095a5d14f5aa68fab0e5`.
-- File worker: `vendor/pdf.worker.min.mjs`.
-- SHA-256 worker: `7fc442c268d107d656755252cf38c422a88e825b7f0caaac6a5f58364dff4179`.
+- Distribuzione ufficiale standard: <https://github.com/mozilla/pdf.js/releases/download/v5.6.205/pdfjs-5.6.205-dist.zip>.
+- SHA-256 distribuzione: `0555ef47464e456125dcd0b9742cfa2aaed6d282e804e4dd1f1b99316b46ac00`.
+- File API leggibile: `vendor/pdf.mjs`.
+- SHA-256 API: `43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd`.
+- File worker leggibile: `vendor/pdf.worker.mjs`.
+- SHA-256 worker: `08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0`.
 - Testo della licenza: `vendor/pdfjs-LICENSE.txt`.
 
 ## JSZip 3.10.1

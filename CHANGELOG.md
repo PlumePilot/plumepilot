@@ -1,5 +1,12 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.32.10: Chrome Web Store code readability
+
+- Replaces the minified legacy PDF.js bundles with the official readable standard distribution of the same PDF.js 5.6.205 release.
+- Removes legacy compatibility code that triggered the Chrome Web Store `Red Titanium` obfuscation detector.
+- Explicitly disables PDF.js dynamic function compilation while retaining its interpreter fallback.
+- Keeps PDF/EPUB behavior, permissions, data handling and every other bundled dependency unchanged.
+
 ## Improved in 2.32.9: Firefox review readiness
 
 - Declares Firefox for Android 142 as the minimum Android version for the built-in data collection consent manifest key while keeping the AMO release limited to Firefox Desktop.

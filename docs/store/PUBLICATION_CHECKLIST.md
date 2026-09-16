@@ -1,6 +1,6 @@
 # PlumePilot — checklist di pubblicazione
 
-Aggiornata l'11 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
+Aggiornata il 14 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
 
 ## Stato e criterio di rilascio
 
@@ -21,8 +21,13 @@ Aggiornata l'11 settembre 2026. Questa checklist prepara la prima pubblicazione 
 - [x] Messaggi delle operazioni mostrati soltanto accanto all'azione pertinente, senza duplicazioni.
 - [x] Gerarchia tipografica di popup e menu fluttuante verificata nei formati Piccolo/Medio/Grande.
 - [x] Congelamento della release candidate finale.
+- [x] Rifiuto Chrome Web Store `Red Titanium` ricondotto ai bundle PDF.js legacy minificati della `v2.32.8`.
+- [x] Candidata correttiva `v2.32.10` preparata dalla `main` congelata con la distribuzione standard leggibile PDF.js 5.6.205.
+- [x] Hash upstream PDF.js, test automatici, lettura PDF di prova e validazione dei tre pacchetti confermati.
+- [x] Controllo manuale mirato PDF/EPUB superato su Chrome con esportazione completata correttamente.
+- [x] Esito registrato nel verbale e merge della PR correttiva autorizzato.
 
-Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI della `v2.32.8` sono chiusi. I test automatici, la build e il lint AMO locale della `v2.32.9` sono chiusi; prima dell'upload resta una verifica manuale mirata del pacchetto Firefox definitivo. Usare esclusivamente i pacchetti `v2.32.9` identificati dagli hash riportati in questa checklist.
+Lo smoke test completo della `v2.32.7`, la verifica mirata delle modifiche UI della `v2.32.8` e il controllo manuale PDF/EPUB della `v2.32.10` sono chiusi con esito positivo. La `v2.32.8` inviata a Chrome è stata rifiutata esclusivamente per leggibilità del codice e non deve essere reinviata.
 
 ## Strategia Git
 
@@ -30,6 +35,7 @@ Lo smoke test completo della `v2.32.7` e la verifica mirata delle modifiche UI d
 - `fix/standard-exp-floating-tabs`: integrato con la PR #3 in `v2.32.7`; contiene il recupero dinamico dell'indice master, l'associazione tramite `testId`, il gate EXP, Ko-fi e le correzioni sticky.
 - `fix/pre-store-ui-polish`: integrato con la PR #4 in `v2.32.8`; elimina gli stati operativi duplicati e riallinea la tipografia responsive.
 - `chore/amo-submission-2.32.9`: candidata AMO; aggiorna il manifest Firefox, il decoder delle entità, la build del sorgente e la documentazione per i revisori.
+- `fix/chrome-code-readability-2.32.10`: candidata correttiva derivata da `main`; sostituisce soltanto i bundle PDF.js legacy minificati e disabilita esplicitamente la compilazione dinamica PDF.js.
 - `chore/store-submission-prep`: contiene esclusivamente documentazione e preparazione store.
 - `main`: riceve i branch solo dopo revisione e test.
 - Il tag di release va creato soltanto sul commit realmente caricato negli store.
@@ -103,6 +109,13 @@ Build candidata corrente `v2.32.9` verificata:
 - Chrome/Edge: 1.945.426 byte, SHA-256 `c7aaefbf1351f9e2ab22a96122a359b1b2542f2ae1f8addc23d082ba0be2cd4c`;
 - Firefox: 1.945.571 byte, SHA-256 `87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213`;
 - sorgente: 2.249.875 byte, SHA-256 `49bb6284b6ec1d027832ed72f318b8366bd820504d040407e3ea770ad1193b03`.
+
+Build correttiva `v2.32.10` verificata automaticamente e manualmente su Chrome:
+
+- Chrome/Edge: 2.045.149 byte, SHA-256 `aae854859df98a92dde16f58d56cd889303a6cfa479b51d936c933be9fbda5b4`;
+- Firefox: 2.045.278 byte, SHA-256 `ebaec4e98c90702e8578581a61081ead8634c994b0897d5211d0d6b0d72492ad`;
+- PDF.js API leggibile: SHA-256 `43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd`;
+- PDF.js worker leggibile: SHA-256 `08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0`.
 
 Le candidate precedenti non devono essere installate né caricate negli store:
 
