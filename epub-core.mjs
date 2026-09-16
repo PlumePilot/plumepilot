@@ -1,4 +1,4 @@
-import * as pdfjsLib from "./vendor/pdf.min.mjs";
+import * as pdfjsLib from "./vendor/pdf.mjs";
 
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
@@ -6,7 +6,7 @@ const debugLog = (...values) => {
 };
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "./vendor/pdf.worker.min.mjs",
+  "./vendor/pdf.worker.mjs",
   import.meta.url,
 ).href;
 
@@ -1148,6 +1148,7 @@ async function convertMaterial(
     throwIfAborted(signal);
     loadingTask = pdfjsLib.getDocument({
       data: bytes,
+      isEvalSupported: false,
       standardFontDataUrl: new URL(
         "./vendor/standard_fonts/",
         import.meta.url,

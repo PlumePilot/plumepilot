@@ -207,9 +207,9 @@
   }
 
   function decodeHtmlEntities(value, maxLength) {
-    const textarea = document.createElement("textarea");
-    textarea.innerHTML = safeString(value, maxLength) || "";
-    return textarea.value.replace(/\s+/g, " ").trim();
+    const source = safeString(value, maxLength) || "";
+    const parsed = new DOMParser().parseFromString(source, "text/html");
+    return (parsed.body.textContent || "").replace(/\s+/g, " ").trim();
   }
 
   function safeTestImageUrl(value) {

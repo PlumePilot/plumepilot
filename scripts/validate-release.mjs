@@ -10,7 +10,13 @@ const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
 const releaseDirectory = path.resolve(root, process.argv[2] || "release");
 const expectedBrowsers = ["chrome", "firefox", "edge"];
 const expectedEdgeLocales = ["en", "it"];
+const sourceManifest = JSON.parse(await readFile(path.join(root, "manifest.json"), "utf8"));
+const expectedVersion = sourceManifest.version;
 const generatedChecksums = [];
+const expectedPdfjsChecksums = new Map([
+  ["vendor/pdf.mjs", "43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd"],
+  ["vendor/pdf.worker.mjs", "08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0"],
+]);
 
 function referencedManifestFiles(manifest) {
   const references = new Set();
@@ -30,12 +36,15 @@ function referencedManifestFiles(manifest) {
 }
 
 function validateBrowserManifest(manifest, browser) {
-  if (manifest.version !== "2.32.8") throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
+  if (manifest.version !== expectedVersion) throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
     const gecko = manifest.browser_specific_settings?.gecko;
     if (gecko?.id !== "plumepilot@fabiofloris") throw new Error("Firefox: ID errato.");
     if (gecko?.strict_min_version !== "140.0") throw new Error("Firefox: versione minima errata.");
+    if (manifest.browser_specific_settings?.gecko_android?.strict_min_version !== "142.0") {
+      throw new Error("Firefox Android: versione minima errata.");
+    }
     const permissions = gecko?.data_collection_permissions?.required || [];
     const expected = ["authenticationInfo", "websiteContent", "websiteActivity"];
     if (JSON.stringify(permissions) !== JSON.stringify(expected)) throw new Error("Firefox: dichiarazione dati errata.");
@@ -52,7 +61,7 @@ function validateBrowserManifest(manifest, browser) {
 }
 
 for (const browser of expectedBrowsers) {
-  const filename = `plumepilot-v2.32.8-${browser}.zip`;
+  const filename = `plumepilot-v${expectedVersion}-${browser}.zip`;
   const bytes = await readFile(path.join(releaseDirectory, filename));
   generatedChecksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${filename}`);
   const zip = await JSZip.loadAsync(bytes);
@@ -89,10 +98,48 @@ for (const browser of expectedBrowsers) {
   if (!zip.file("LICENSE") || !zip.file("THIRD_PARTY_NOTICES.md")) {
     throw new Error(`${browser}: documentazione licenze mancante.`);
   }
+  for (const [pdfjsFile, expectedChecksum] of expectedPdfjsChecksums) {
+    const entry = zip.file(pdfjsFile);
+    if (!entry) throw new Error(`${browser}: distribuzione PDF.js leggibile mancante: ${pdfjsFile}.`);
+    const bytes = await entry.async("nodebuffer");
+    const checksum = createHash("sha256").update(bytes).digest("hex");
+    if (checksum !== expectedChecksum) throw new Error(`${browser}: checksum PDF.js inatteso: ${pdfjsFile}.`);
+    const source = bytes.toString("utf8");
+    if (/scriptTag|ActiveXObject|NullProtoObjectViaActiveX/.test(source)) {
+      throw new Error(`${browser}: codice di compatibilità PDF.js legacy inatteso: ${pdfjsFile}.`);
+    }
+  }
+  for (const legacyPdfjsFile of ["vendor/pdf.min.mjs", "vendor/pdf.worker.min.mjs"]) {
+    if (zip.file(legacyPdfjsFile)) throw new Error(`${browser}: bundle PDF.js legacy/minificato inatteso: ${legacyPdfjsFile}.`);
+  }
   console.log(`${filename}: OK (${names.length} file, manifest alla radice)`);
 }
 
-const unexpectedArchives = (await readdir(releaseDirectory)).filter((name) => name.endsWith(".zip") && !expectedBrowsers.some((browser) => name === `plumepilot-v2.32.8-${browser}.zip`));
+const sourceFilename = `plumepilot-v${expectedVersion}-source.zip`;
+const sourceBytes = await readFile(path.join(releaseDirectory, sourceFilename));
+generatedChecksums.push(`${createHash("sha256").update(sourceBytes).digest("hex")}  ${sourceFilename}`);
+const sourceZip = await JSZip.loadAsync(sourceBytes);
+for (const required of [
+  "manifest.json",
+  "AMO_SOURCE_README.md",
+  "THIRD_PARTY_NOTICES.md",
+  "scripts/build-release.mjs",
+  "scripts/validate-release.mjs",
+]) {
+  if (!sourceZip.file(required)) throw new Error(`Sorgente AMO: file mancante ${required}.`);
+}
+if (Object.keys(sourceZip.files).some((name) => name.startsWith(".git/") || name.startsWith("release/"))) {
+  throw new Error("Sorgente AMO: contiene file Git o artefatti di release.");
+}
+console.log(`${sourceFilename}: OK`);
+
+const expectedArchives = new Set([
+  ...expectedBrowsers.map((browser) => `plumepilot-v${expectedVersion}-${browser}.zip`),
+  sourceFilename,
+]);
+const unexpectedArchives = (await readdir(releaseDirectory)).filter(
+  (name) => name.endsWith(".zip") && !expectedArchives.has(name),
+);
 if (unexpectedArchives.length) throw new Error(`Archivi inattesi: ${unexpectedArchives.join(", ")}`);
 
 const checksumManifest = await readFile(path.join(releaseDirectory, "SHA256SUMS.txt"), "utf8");

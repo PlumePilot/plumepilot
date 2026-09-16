@@ -15,6 +15,7 @@ const edgeLocales = ["en", "it"];
 
 const excludedFiles = new Set([
   "manifest.json",
+  "AMO_SOURCE_README.md",
   "README.md",
   "CHANGELOG.md",
   "PRIVACY.md",
@@ -44,6 +45,9 @@ function manifestFor(baseManifest, browser) {
   if (browser === "firefox") {
     manifest.background = { scripts: ["achievements.js", "background.js"] };
     manifest.browser_specific_settings = {
+      gecko_android: {
+        strict_min_version: "142.0",
+      },
       gecko: {
         id: "plumepilot@fabiofloris",
         strict_min_version: "140.0",
@@ -63,6 +67,27 @@ function manifestFor(baseManifest, browser) {
     }
   }
   return manifest;
+}
+
+async function collectSourceSubmissionFiles(directory = root, relativeDirectory = "") {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const relativePath = path.posix.join(relativeDirectory, entry.name);
+    const absolutePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (
+        entry.name === ".git" ||
+        entry.name === ".github" ||
+        entry.name === "docs" ||
+        entry.name === "release" ||
+        absolutePath === outputDirectory
+      ) continue;
+      files.push(...await collectSourceSubmissionFiles(absolutePath, relativePath));
+    } else {
+      files.push(relativePath);
+    }
+  }
+  return files.sort();
 }
 
 function validateManifest(manifest, browser) {
@@ -85,6 +110,7 @@ function validateManifest(manifest, browser) {
 
 const baseManifest = JSON.parse(await readFile(path.join(root, "manifest.json"), "utf8"));
 const sourceFiles = await collectFiles();
+const sourceSubmissionFiles = await collectSourceSubmissionFiles();
 await mkdir(outputDirectory, { recursive: true });
 const existingReleaseArtifacts = (await readdir(outputDirectory))
   .filter((name) => name.endsWith(".zip") || name === "SHA256SUMS.txt");
@@ -134,6 +160,27 @@ for (const browser of browsers) {
   checksumLines.push(`${checksum}  ${filename}`);
   console.log(`${filename}\t${bytes.length} byte\tsha256 ${checksum}`);
 }
+
+const sourceZip = new JSZip();
+for (const relativePath of sourceSubmissionFiles) {
+  sourceZip.file(relativePath, await readFile(path.join(root, relativePath)), {
+    binary: true,
+    date: fixedZipDate,
+    createFolders: false,
+  });
+}
+const sourceBytes = await sourceZip.generateAsync({
+  type: "nodebuffer",
+  compression: "DEFLATE",
+  compressionOptions: { level: 9 },
+  platform: "UNIX",
+});
+const sourceFilename = `plumepilot-v${baseManifest.version}-source.zip`;
+await writeFile(path.join(outputDirectory, sourceFilename), sourceBytes);
+checksumLines.push(`${createHash("sha256").update(sourceBytes).digest("hex")}  ${sourceFilename}`);
+console.log(
+  `${sourceFilename}\t${sourceBytes.length} byte\tsha256 ${createHash("sha256").update(sourceBytes).digest("hex")}`,
+);
 
 await writeFile(
   path.join(outputDirectory, "SHA256SUMS.txt"),
