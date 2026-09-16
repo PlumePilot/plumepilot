@@ -38,6 +38,7 @@
     "scripts": [
       "achievements.js",
       "sound-settings.js",
+      "whats-new.js",
       "background.js"
     ],
     "service_worker": "background.js"

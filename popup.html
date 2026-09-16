@@ -9,6 +9,7 @@
   <script src="achievements.js"></script>
   <script src="sound-settings.js"></script>
   <script src="floating-menu-layout.js"></script>
+  <script src="whats-new.js"></script>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -36,6 +37,15 @@
     </div>
 
     <button id="activeOperationBanner" class="operation-banner" type="button" hidden></button>
+
+    <aside id="whatsNewBanner" class="whats-new-banner" aria-labelledby="whatsNewBannerTitle" hidden>
+      <button id="dismissWhatsNew" class="whats-new-dismiss" type="button" aria-label="Chiudi le novità">×</button>
+      <div class="whats-new-banner-copy">
+        <strong id="whatsNewBannerTitle">Novità in PlumePilot 2.33.0</strong>
+        <span>Più controllo sull’autoplay, quiz annotabili, avvisi sonori e un menu fluttuante personalizzabile.</span>
+      </div>
+      <button id="openWhatsNew" class="secondary-button whats-new-open" type="button">Scopri le novità</button>
+    </aside>
 
     <div id="coursePanel" class="tab-panel" role="tabpanel" aria-labelledby="courseTab">
       <section class="course-progress-section" aria-labelledby="courseProgressTitle">
@@ -422,11 +432,26 @@
           <span>Nato inizialmente come strumento personale, PlumePilot è pensato per gli studenti che desiderano organizzare meglio la fruizione dei corsi e utilizzare strumenti aggiuntivi per lo studio.</span>
           <span>Progetto indipendente, non affiliato, approvato o distribuito da Università Telematica Pegaso o Multiversity.</span>
           <span>PlumePilot non invia alcun dato allo sviluppatore.</span>
-          <span class="about-links"><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Sostieni su Ko-fi</a></span>
+          <span class="about-links"><button id="openWhatsNewFromAbout" class="about-inline-button" type="button">Novità</button><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Sostieni su Ko-fi</a></span>
         </div>
       </section>
     </div>
   </main>
+
+  <div id="whatsNewDialog" class="whats-new-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="whatsNewDialogTitle" hidden>
+    <section class="whats-new-dialog">
+      <header class="whats-new-dialog-header">
+        <div>
+          <span class="whats-new-eyebrow">PlumePilot <span id="whatsNewDialogVersion"></span></span>
+          <h2 id="whatsNewDialogTitle"></h2>
+        </div>
+        <button id="closeWhatsNewDialog" class="whats-new-dialog-close" type="button" aria-label="Chiudi il pannello Novità">×</button>
+      </header>
+      <p id="whatsNewDialogSummary" class="whats-new-dialog-summary"></p>
+      <div id="whatsNewItems" class="whats-new-items"></div>
+      <button id="confirmWhatsNew" class="primary-button" type="button">Ho capito</button>
+    </section>
+  </div>
 
   <script src="popup.js"></script>
 </body>

@@ -74,6 +74,19 @@ const markCommissionSeenButton = document.getElementById("markCommissionSeen");
 const clearCommissionDataButton = document.getElementById("clearCommissionData");
 const clearCommissionDataStatus = document.getElementById("clearCommissionDataStatus");
 const extensionVersion = document.getElementById("extensionVersion");
+const whatsNewBanner = document.getElementById("whatsNewBanner");
+const dismissWhatsNewButton = document.getElementById("dismissWhatsNew");
+const openWhatsNewButton = document.getElementById("openWhatsNew");
+const openWhatsNewFromAboutButton = document.getElementById("openWhatsNewFromAbout");
+const whatsNewDialogBackdrop = document.getElementById("whatsNewDialog");
+const closeWhatsNewDialogButton = document.getElementById("closeWhatsNewDialog");
+const confirmWhatsNewButton = document.getElementById("confirmWhatsNew");
+const whatsNewDialogVersion = document.getElementById("whatsNewDialogVersion");
+const whatsNewDialogTitle = document.getElementById("whatsNewDialogTitle");
+const whatsNewDialogSummary = document.getElementById("whatsNewDialogSummary");
+const whatsNewItems = document.getElementById("whatsNewItems");
+const whatsNewApi = globalThis.PlumePilotWhatsNew;
+let whatsNewReturnFocus = null;
 const status = document.getElementById("status");
 const turboTestsButton = document.getElementById("turboTests");
 const turboTestsButtonLabel = document.getElementById("turboTestsButtonLabel");
@@ -192,6 +205,85 @@ const COMMISSION_STORAGE_KEYS = [
 ];
 
 extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
+
+function renderWhatsNewContent() {
+  const release = whatsNewApi.RELEASE;
+  whatsNewDialogVersion.textContent = `v${release.version}`;
+  whatsNewDialogTitle.textContent = release.title;
+  whatsNewDialogSummary.textContent = release.summary;
+  whatsNewItems.replaceChildren(...release.items.map((item) => {
+    const card = document.createElement("article");
+    const title = document.createElement("h3");
+    const text = document.createElement("p");
+    title.textContent = item.title;
+    text.textContent = item.text;
+    card.append(title, text);
+    return card;
+  }));
+}
+
+function markWhatsNewSeen() {
+  const version = whatsNewApi.RELEASE.version;
+  whatsNewBanner.hidden = true;
+  chrome.storage.local.set({ [whatsNewApi.LAST_SEEN_KEY]: version }, () => {
+    chrome.storage.local.remove(whatsNewApi.PENDING_KEY);
+  });
+}
+
+function openWhatsNewDialog({ markSeen = false, returnFocus = null } = {}) {
+  whatsNewReturnFocus = returnFocus instanceof HTMLElement ? returnFocus : document.activeElement;
+  if (markSeen) markWhatsNewSeen();
+  whatsNewDialogBackdrop.hidden = false;
+  closeWhatsNewDialogButton.focus();
+}
+
+function closeWhatsNewDialog() {
+  whatsNewDialogBackdrop.hidden = true;
+  if (whatsNewReturnFocus instanceof HTMLElement && whatsNewReturnFocus.isConnected) whatsNewReturnFocus.focus();
+  whatsNewReturnFocus = null;
+}
+
+function initializeWhatsNew() {
+  if (!whatsNewApi) return;
+  renderWhatsNewContent();
+  const releaseVersion = whatsNewApi.RELEASE.version;
+  const currentVersion = chrome.runtime.getManifest().version;
+  chrome.storage.local.get({
+    [whatsNewApi.PENDING_KEY]: null,
+    [whatsNewApi.LAST_SEEN_KEY]: null,
+  }, (result) => {
+    whatsNewBanner.hidden = !(
+      currentVersion === releaseVersion &&
+      result[whatsNewApi.PENDING_KEY] === releaseVersion &&
+      result[whatsNewApi.LAST_SEEN_KEY] !== releaseVersion
+    );
+  });
+}
+
+dismissWhatsNewButton.addEventListener("click", markWhatsNewSeen);
+openWhatsNewButton.addEventListener("click", () => openWhatsNewDialog({ markSeen: true, returnFocus: openWhatsNewButton }));
+openWhatsNewFromAboutButton.addEventListener("click", () => openWhatsNewDialog({ returnFocus: openWhatsNewFromAboutButton }));
+closeWhatsNewDialogButton.addEventListener("click", closeWhatsNewDialog);
+confirmWhatsNewButton.addEventListener("click", closeWhatsNewDialog);
+whatsNewDialogBackdrop.addEventListener("click", (event) => {
+  if (event.target === whatsNewDialogBackdrop) closeWhatsNewDialog();
+});
+document.addEventListener("keydown", (event) => {
+  if (whatsNewDialogBackdrop.hidden) return;
+  if (event.key === "Escape") {
+    closeWhatsNewDialog();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [closeWhatsNewDialogButton, confirmWhatsNewButton];
+  const currentIndex = focusable.indexOf(document.activeElement);
+  const nextIndex = event.shiftKey
+    ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+    : (currentIndex + 1) % focusable.length;
+  event.preventDefault();
+  focusable[nextIndex].focus();
+});
+initializeWhatsNew();
 
 function selectPopupTab(tabId, focus = false) {
   const selectedButton = tabButtons.find((button) => button.id === tabId);

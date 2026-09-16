@@ -1,5 +1,6 @@
 if (!globalThis.StudyWingAchievements && typeof importScripts === "function") importScripts("achievements.js");
 if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importScripts("sound-settings.js");
+if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") importScripts("whats-new.js");
 (() => {
   "use strict";
   const STUDYWING_DEBUG = false;
@@ -14,6 +15,7 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
   const SOUND_EVENT_MEMORY_KEY = "plumepilotPlayedSoundEvents";
   const SOUND_EVENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
   const soundApi = globalThis.PlumePilotSounds;
+  const whatsNewApi = globalThis.PlumePilotWhatsNew;
   const COMMISSION_CHECK_INTERVAL_MS = 10 * 60 * 1000;
   const COMMISSION_LEASE_MS = 45 * 1000;
   const MAX_OPERATION_AGE_MS = 2 * 60 * 60 * 1000;
@@ -24,6 +26,13 @@ if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importS
   let achievementQueue = Promise.resolve();
   let soundQueue = Promise.resolve();
   let offscreenCreation = null;
+
+  chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason !== "update" || !whatsNewApi) return;
+    const currentVersion = chrome.runtime.getManifest().version;
+    if (currentVersion !== whatsNewApi.RELEASE.version) return;
+    chrome.storage.local.set({ [whatsNewApi.PENDING_KEY]: currentVersion });
+  });
   const storageGet = (key) => new Promise((resolve, reject) => chrome.storage.local.get(key, (result) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(result[key] || null)));
   const storageSet = (values) => new Promise((resolve, reject) => chrome.storage.local.set(values, () => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve()));
   const storageRemove = (key) => new Promise((resolve) => chrome.storage.local.remove(key, resolve));
