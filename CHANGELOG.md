@@ -1,5 +1,11 @@
 # PlumePilot — Changelog
 
+## Unreleased: Novità after updates
+
+- Shows a compact dismissible notice only after a real update to 2.33.0, never on a fresh installation.
+- Stores dismissal per version locally and keeps the release overview available under **Preferenze → Informazioni → Novità**.
+- Opens the complete overview inside the popup without automatically creating a browser tab or making a network request.
+
 ## Unreleased: optional local sound notifications
 
 - Adds opt-in sound notifications for the one-shot 70% course threshold, the autoplay chapter-session limit and commission transitions from **In Attesa** to a new state.
