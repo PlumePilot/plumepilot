@@ -18,6 +18,7 @@ const popupJs = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
 const popupCss = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
 const build = readFileSync(new URL("../scripts/build-release.mjs", import.meta.url), "utf8");
 const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
+assert.equal(manifest.version, api.RELEASE.version);
 
 assert.match(background, /details\.reason !== "update"/);
 assert.match(background, /currentVersion !== whatsNewApi\.RELEASE\.version/);

@@ -10,6 +10,7 @@
   <script src="sound-settings.js"></script>
   <script src="floating-menu-layout.js"></script>
   <script src="whats-new.js"></script>
+  <script src="store-links.js"></script>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -425,14 +426,17 @@
       <section class="about-section">
         <div class="about-row">
           <button class="about-link" type="button" aria-label="Mostra informazioni su PlumePilot" aria-controls="aboutInfo" aria-expanded="false">Informazioni</button>
+          <a class="about-action-link" href="https://plumepilot.github.io/plumepilot/faq/" target="_blank" rel="noopener noreferrer">FAQ</a>
+          <a id="storeReviewLink" class="about-action-link" href="https://chromewebstore.google.com/detail/plumepilot-%E2%80%93-assistente-p/cbkkkjekidcdjojlmnbihmjfohkdfcaa?hl=it&amp;utm_source=ext_sidebar" target="_blank" rel="noopener noreferrer">Vota</a>
+          <a class="about-action-link" href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Dona</a>
         </div>
         <div id="aboutInfo" class="info-panel about-info" hidden>
           <strong>PlumePilot <span id="extensionVersion"></span></strong>
-          <span>Creato e sviluppato da Fabio Floris per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
+          <span>Progetto gratuito e open source creato per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
           <span>Nato inizialmente come strumento personale, PlumePilot è pensato per gli studenti che desiderano organizzare meglio la fruizione dei corsi e utilizzare strumenti aggiuntivi per lo studio.</span>
           <span>Progetto indipendente, non affiliato, approvato o distribuito da Università Telematica Pegaso o Multiversity.</span>
           <span>PlumePilot non invia alcun dato allo sviluppatore.</span>
-          <span class="about-links"><button id="openWhatsNewFromAbout" class="about-inline-button" type="button">Novità</button><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Sostieni su Ko-fi</a></span>
+          <span class="about-links"><button id="openWhatsNewFromAbout" class="about-inline-button" type="button">Novità</button><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a></span>
         </div>
       </section>
     </div>

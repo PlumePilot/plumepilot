@@ -1671,7 +1671,8 @@ html[data-visual-style="gaming"] .materials-sprite.is-playing {
 }
 
 .about-row {
-  justify-content: space-between;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   color: var(--brand-purple-dark);
   font-size: 12px;
   font-weight: 700;
@@ -1807,6 +1808,17 @@ html[data-visual-style="gaming"] .materials-sprite.is-playing {
 
 .about-link:hover { color: var(--sw-heading); }
 .about-link:focus-visible { outline: 2px solid var(--brand-purple); outline-offset: 3px; }
+
+.about-action-link {
+  color: var(--brand-purple-dark);
+  font-size: var(--sw-control-font-size);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.about-action-link:hover { color: var(--sw-heading); }
+.about-action-link:focus-visible { outline: 2px solid var(--brand-purple); outline-offset: 3px; }
 
 html[data-menu-size="small"] {
   --sw-popup-width: 380px;

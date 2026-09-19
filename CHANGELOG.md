@@ -1,20 +1,23 @@
 # PlumePilot — Changelog
 
-## Unreleased: Novità after updates
+## Added in 2.33.0: more control, richer quizzes and a customizable interface
 
-- Shows a compact dismissible notice only after a real update to 2.33.0, never on a fresh installation.
-- Stores dismissal per version locally and keeps the release overview available under **Preferenze → Informazioni → Novità**.
-- Opens the complete overview inside the popup without automatically creating a browser tab or making a network request.
-
-## Unreleased: optional local sound notifications
-
-- Adds opt-in sound notifications for the one-shot 70% course threshold, the autoplay chapter-session limit and commission transitions from **In Attesa** to a new state.
-- Provides four bundled local sounds, synchronized popup/floating-menu selection, preview and a 0–100 volume control, without network requests or new host/data access.
-- Uses Chromium's dedicated offscreen audio document in Chrome and Edge, with the existing tab player retained as the Firefox fallback; the narrowly scoped Chromium-only `offscreen` permission is added because direct background-triggered tab playback is blocked there.
-- Makes sound labels and controls follow Small/Medium/Large sizing and adds a matching animated Gaming megaphone sprite.
-- Coordinates real notification playback through the background and one Pegaso tab, preventing overlaps and duplicate sounds across reloads, tabs and simultaneous 70%/chapter-limit events.
-- Adds the Gaming achievement **Orecchie tese!** for 20 EXP after the first successful real notification; previews, failed playback and Standard mode never award it.
-- Keeps the manifest version at `2.32.8` for feature testing.
+- Adds the optional **Ferma autoplay al 70%** rule with explicit per-course continuation and correct coexistence with the chapter-session limit.
+- Replaces the chapter-limit display with a synchronized numeric field, −/+ controls and slider, including the five-level Gaming flame thumb.
+- Adds closed-by-default **Spiegazione** and **Osservazioni** fields, a Unicode math palette, saved-note feedback and self-contained annotated downloads to offline HTML quizzes.
+- Adds Automatic, Light and Dark themes to offline HTML quizzes and preserves the selected theme in downloaded annotated copies.
+- Adds opt-in local sound notifications for the 70% threshold, autoplay chapter limit and commission transitions from **In Attesa**, with sound selection, preview and volume controls.
+- Adds customizable floating-menu action order and visibility, accessible move controls and default-layout restoration shared across Standard and Gaming.
+- Reorganizes collections under **Corso**, adds collapsible preference groups and makes commission monitoring directly discoverable from the floating-menu **Esami** tab.
+- Adds the Gaming achievements **Orecchie tese!** and **Su misura**, each worth 20 EXP.
+- Adds a compact dismissible **Novità** notice after real updates, never on fresh installation, with per-version dismissal and permanent access under **Preferenze → Informazioni → Novità**.
+- Restores the visible PDF/EPUB signature identifying PlumePilot as available on Chrome, Edge and Firefox.
+- Adds a public FAQ for common test, objective and handout messages, linked directly from the popup.
+- Reorganizes the footer as **Informazioni · FAQ · Vota · Dona**, removes the maintainer's personal name from public information and opens the matching browser store for ratings.
+- Mirrors **Informazioni · FAQ · Vota · Dona** at the bottom of the floating-menu **Preferenze** tab for direct access from Pegaso pages without cluttering the other tabs.
+- Adds the visible PlumePilot browser-availability signature to generated test PDFs and interactive HTML quizzes.
+- Strengthens Edge package validation for localized name, description, action title and the exact Italian/English locale set.
+- Keeps all new preferences local; no developer-operated backend or remote dependency is introduced.
 
 ## Fixed in 2.32.10: Chrome Web Store code readability
 

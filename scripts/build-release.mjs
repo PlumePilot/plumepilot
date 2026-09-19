@@ -108,6 +108,12 @@ function validateManifest(manifest, browser) {
   } else {
     if (manifest.background?.scripts) throw new Error(`${browser}: background.scripts inatteso.`);
     if (manifest.browser_specific_settings) throw new Error(`${browser}: configurazione Gecko inattesa.`);
+    if (browser === "edge") {
+      if (manifest.name !== "__MSG_extensionName__") throw new Error("Edge: nome localizzato assente.");
+      if (manifest.description !== "__MSG_extensionDescription__") throw new Error("Edge: descrizione localizzata assente.");
+      if (manifest.action?.default_title !== "__MSG_extensionName__") throw new Error("Edge: titolo azione localizzato assente.");
+      if (manifest.default_locale !== "it") throw new Error("Edge: lingua predefinita errata.");
+    }
   }
 }
 
