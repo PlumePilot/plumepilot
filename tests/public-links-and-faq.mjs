@@ -43,6 +43,13 @@ assert.match(floating, />Vota<\/a>/);
 assert.match(floating, />Dona<\/a>/);
 assert.match(floating, /storeLinksApi\?\.reviewUrl\(extensionManifest\)/);
 assert.match(floating, /PlumePilot \$\{extensionManifest\.version\} è un progetto gratuito/);
+const floatingPreferences = floating.slice(
+  floating.indexOf('id="studywing-preferences-panel"'),
+  floating.indexOf('<button class="hide-menu"'),
+);
+assert.match(floatingPreferences, /class="project-links"/);
+assert.match(floatingPreferences, />Informazioni<\/button>/);
+assert.equal((floating.match(/class="project-links"/g) || []).length, 1);
 const floatingScripts = manifest.content_scripts.find((entry) => entry.js?.includes("floating-menu.js"))?.js || [];
 assert.ok(floatingScripts.indexOf("store-links.js") >= 0);
 assert.ok(floatingScripts.indexOf("store-links.js") < floatingScripts.indexOf("floating-menu.js"));

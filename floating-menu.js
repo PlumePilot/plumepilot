@@ -3721,15 +3721,15 @@
               </fieldset>
               </div>
             </details>
+            <div class="project-links" aria-label="Collegamenti di PlumePilot">
+              <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
+              <a class="project-link" href="${faqUrl}" target="_blank" rel="noopener noreferrer">FAQ</a>
+              <a class="project-link" href="${storeReviewUrl}" target="_blank" rel="noopener noreferrer">Vota</a>
+              <a class="project-link" href="${donateUrl}" target="_blank" rel="noopener noreferrer">Dona</a>
+            </div>
+            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot ${extensionManifest.version} è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
-          <div class="project-links" aria-label="Collegamenti di PlumePilot">
-            <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
-            <a class="project-link" href="${faqUrl}" target="_blank" rel="noopener noreferrer">FAQ</a>
-            <a class="project-link" href="${storeReviewUrl}" target="_blank" rel="noopener noreferrer">Vota</a>
-            <a class="project-link" href="${donateUrl}" target="_blank" rel="noopener noreferrer">Dona</a>
-          </div>
-          <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot ${extensionManifest.version} è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
         </div>
       </section>`;
 

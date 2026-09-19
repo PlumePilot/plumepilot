@@ -14,7 +14,7 @@
 - Restores the visible PDF/EPUB signature identifying PlumePilot as available on Chrome, Edge and Firefox.
 - Adds a public FAQ for common test, objective and handout messages, linked directly from the popup.
 - Reorganizes the footer as **Informazioni · FAQ · Vota · Dona**, removes the maintainer's personal name from public information and opens the matching browser store for ratings.
-- Mirrors **Informazioni · FAQ · Vota · Dona** in the floating menu for direct access from Pegaso pages.
+- Mirrors **Informazioni · FAQ · Vota · Dona** at the bottom of the floating-menu **Preferenze** tab for direct access from Pegaso pages without cluttering the other tabs.
 - Adds the visible PlumePilot browser-availability signature to generated test PDFs and interactive HTML quizzes.
 - Strengthens Edge package validation for localized name, description, action title and the exact Italian/English locale set.
 - Keeps all new preferences local; no developer-operated backend or remote dependency is introduced.
