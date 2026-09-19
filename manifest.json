@@ -127,6 +127,7 @@
         "commission-state.js",
         "achievements.js",
         "sound-settings.js",
+        "store-links.js",
         "floating-menu-layout.js",
         "floating-menu.js"
       ],

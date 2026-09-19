@@ -28,7 +28,12 @@
   const commissionStates = globalThis.StudyWingCommissionState;
   const achievements = globalThis.StudyWingAchievements;
   const soundApi = globalThis.PlumePilotSounds;
+  const storeLinksApi = globalThis.PlumePilotStoreLinks;
   const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
+  const extensionManifest = chrome.runtime.getManifest();
+  const storeReviewUrl = storeLinksApi?.reviewUrl(extensionManifest) || storeLinksApi?.STORE_URLS?.chrome || "https://chromewebstore.google.com/";
+  const faqUrl = storeLinksApi?.FAQ_URL || "https://plumepilot.github.io/plumepilot/faq/";
+  const donateUrl = storeLinksApi?.DONATE_URL || "https://ko-fi.com/flo_";
   const defaults = {
     enabled: true,
     stopAtTests: false,
@@ -3373,6 +3378,44 @@
           cursor: pointer;
         }
         .hide-menu:hover { color: var(--sw-accent-strong); }
+        .project-links {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 5px 10px;
+          margin-top: 7px;
+          padding-top: 8px;
+          border-top: 1px solid var(--sw-divider);
+          font-size: 10px;
+        }
+        .project-link {
+          padding: 0;
+          border: 0;
+          color: var(--sw-accent-strong);
+          background: transparent;
+          font: inherit;
+          font-weight: 700;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          cursor: pointer;
+        }
+        .project-link:hover { color: var(--sw-heading); }
+        .project-link:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+        .project-info {
+          margin: 7px 0 0;
+          padding: 8px;
+          border: 1px solid var(--sw-divider);
+          border-radius: 7px;
+          color: var(--sw-control-text);
+          background: var(--sw-surface);
+          font-size: 10px;
+          line-height: 1.4;
+        }
+        .project-info[hidden] { display: none; }
+        :host([data-menu-size="medium"]) .project-links,
+        :host([data-menu-size="medium"]) .project-info { font-size: 11px; }
+        :host([data-menu-size="large"]) .project-links,
+        :host([data-menu-size="large"]) .project-info { font-size: 12px; }
 
         /* Gaming pixel frames: static CSS only, with unclipped focus outlines. */
         :host([data-visual-style="gaming"]) {
@@ -3680,6 +3723,13 @@
             </details>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
+          <div class="project-links" aria-label="Collegamenti di PlumePilot">
+            <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
+            <a class="project-link" href="${faqUrl}" target="_blank" rel="noopener noreferrer">FAQ</a>
+            <a class="project-link" href="${storeReviewUrl}" target="_blank" rel="noopener noreferrer">Vota</a>
+            <a class="project-link" href="${donateUrl}" target="_blank" rel="noopener noreferrer">Dona</a>
+          </div>
+          <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot ${extensionManifest.version} è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
         </div>
       </section>`;
 
@@ -3900,6 +3950,8 @@
       materials: shadow.querySelector('[data-action="materials"]'),
       materialsLabel: shadow.querySelector('[data-role="materials-label"]'),
       materialsSprite: shadow.querySelector(".materials-sprite"),
+      projectInfoToggle: shadow.querySelector('[data-action="toggle-project-info"]'),
+      projectInfo: shadow.querySelector('[data-role="project-info"]'),
       hide: shadow.querySelector('[data-action="hide"]'),
     };
 
@@ -4164,6 +4216,11 @@
     ui.objectives.addEventListener("click", toggleObjectives);
     ui.testCollection.addEventListener("click", toggleTestExport);
     ui.materials.addEventListener("click", toggleMaterialsExport);
+    ui.projectInfoToggle.addEventListener("click", () => {
+      const willOpen = ui.projectInfo.hidden;
+      ui.projectInfo.hidden = !willOpen;
+      ui.projectInfoToggle.setAttribute("aria-expanded", String(willOpen));
+    });
     ui.hide.addEventListener("click", () =>
       writeSetting(
         isCommissionOnlyPage()

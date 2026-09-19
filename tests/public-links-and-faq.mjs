@@ -22,6 +22,9 @@ assert.equal(
 
 const popup = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
 const popupJs = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
+const floating = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
+const testBuilder = readFileSync(new URL("../test-builder.js", import.meta.url), "utf8");
+const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
 const privacy = readFileSync(new URL("../PRIVACY.md", import.meta.url), "utf8");
 const publicPrivacy = readFileSync(new URL("../docs/privacy/index.md", import.meta.url), "utf8");
 const publicPrivacyEn = readFileSync(new URL("../docs/privacy/en/index.md", import.meta.url), "utf8");
@@ -34,9 +37,20 @@ assert.match(about, />Vota</);
 assert.match(about, />Dona</);
 assert.doesNotMatch(about, /Fabio Floris|Sostieni su Ko-fi/);
 assert.match(popupJs, /storeLinksApi\.reviewUrl\(chrome\.runtime\.getManifest\(\)\)/);
+assert.match(floating, />Informazioni<\/button>/);
+assert.match(floating, />FAQ<\/a>/);
+assert.match(floating, />Vota<\/a>/);
+assert.match(floating, />Dona<\/a>/);
+assert.match(floating, /storeLinksApi\?\.reviewUrl\(extensionManifest\)/);
+assert.match(floating, /PlumePilot \$\{extensionManifest\.version\} è un progetto gratuito/);
+const floatingScripts = manifest.content_scripts.find((entry) => entry.js?.includes("floating-menu.js"))?.js || [];
+assert.ok(floatingScripts.indexOf("store-links.js") >= 0);
+assert.ok(floatingScripts.indexOf("store-links.js") < floatingScripts.indexOf("floating-menu.js"));
+assert.match(testBuilder, /drawLines\(GENERATED_SIGNATURE/);
+assert.match(testBuilder, /class="generated-signature">\$\{GENERATED_SIGNATURE\}/);
 assert.doesNotMatch(`${privacy}\n${publicPrivacy}\n${publicPrivacyEn}`, /Fabio Floris/);
 assert.match(faq, /Le domande ricevute non corrispondono al test richiesto/);
 assert.match(faq, /Nessuna dispensa trovata/);
 assert.match(faq, /Un’altra operazione di PlumePilot è già in corso/);
 
-console.log("PASS: FAQ, public identity and browser-specific review links are consistent");
+console.log("PASS: FAQ, generated-test branding, public identity and browser-specific project links are consistent");
