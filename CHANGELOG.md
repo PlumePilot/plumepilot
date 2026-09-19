@@ -12,6 +12,9 @@
 - Adds the Gaming achievements **Orecchie tese!** and **Su misura**, each worth 20 EXP.
 - Adds a compact dismissible **Novità** notice after real updates, never on fresh installation, with per-version dismissal and permanent access under **Preferenze → Informazioni → Novità**.
 - Restores the visible PDF/EPUB signature identifying PlumePilot as available on Chrome, Edge and Firefox.
+- Adds a public FAQ for common test, objective and handout messages, linked directly from the popup.
+- Reorganizes the footer as **Informazioni · FAQ · Vota · Dona**, removes the maintainer's personal name from public information and opens the matching browser store for ratings.
+- Strengthens Edge package validation for localized name, description, action title and the exact Italian/English locale set.
 - Keeps all new preferences local; no developer-operated backend or remote dependency is introduced.
 
 ## Fixed in 2.32.10: Chrome Web Store code readability

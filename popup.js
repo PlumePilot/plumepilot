@@ -74,6 +74,7 @@ const markCommissionSeenButton = document.getElementById("markCommissionSeen");
 const clearCommissionDataButton = document.getElementById("clearCommissionData");
 const clearCommissionDataStatus = document.getElementById("clearCommissionDataStatus");
 const extensionVersion = document.getElementById("extensionVersion");
+const storeReviewLink = document.getElementById("storeReviewLink");
 const whatsNewBanner = document.getElementById("whatsNewBanner");
 const dismissWhatsNewButton = document.getElementById("dismissWhatsNew");
 const openWhatsNewButton = document.getElementById("openWhatsNew");
@@ -86,6 +87,7 @@ const whatsNewDialogTitle = document.getElementById("whatsNewDialogTitle");
 const whatsNewDialogSummary = document.getElementById("whatsNewDialogSummary");
 const whatsNewItems = document.getElementById("whatsNewItems");
 const whatsNewApi = globalThis.PlumePilotWhatsNew;
+const storeLinksApi = globalThis.PlumePilotStoreLinks;
 let whatsNewReturnFocus = null;
 const status = document.getElementById("status");
 const turboTestsButton = document.getElementById("turboTests");
@@ -205,6 +207,9 @@ const COMMISSION_STORAGE_KEYS = [
 ];
 
 extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
+if (storeReviewLink && storeLinksApi) {
+  storeReviewLink.href = storeLinksApi.reviewUrl(chrome.runtime.getManifest());
+}
 
 function renderWhatsNewContent() {
   const release = whatsNewApi.RELEASE;

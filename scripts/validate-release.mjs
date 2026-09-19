@@ -57,6 +57,7 @@ function validateBrowserManifest(manifest, browser) {
     if (browser === "edge") {
       if (manifest.name !== "__MSG_extensionName__") throw new Error("Edge: nome localizzato assente.");
       if (manifest.description !== "__MSG_extensionDescription__") throw new Error("Edge: descrizione localizzata assente.");
+      if (manifest.action?.default_title !== "__MSG_extensionName__") throw new Error("Edge: titolo azione localizzato assente.");
       if (manifest.default_locale !== "it") throw new Error("Edge: lingua predefinita errata.");
     }
   }
@@ -78,12 +79,23 @@ for (const browser of expectedBrowsers) {
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
   if (browser === "edge") {
+    const packagedLocales = [...new Set(names.flatMap((name) => {
+      const match = name.match(/^_locales\/([^/]+)\/messages\.json$/);
+      return match ? [match[1]] : [];
+    }))].sort();
+    if (JSON.stringify(packagedLocales) !== JSON.stringify([...expectedEdgeLocales].sort())) {
+      throw new Error(`Edge: localizzazioni inattese: ${packagedLocales.join(", ") || "nessuna"}.`);
+    }
     for (const locale of expectedEdgeLocales) {
       const localeFile = zip.file(`_locales/${locale}/messages.json`);
       if (!localeFile) throw new Error(`Edge: localizzazione ${locale} mancante.`);
       const messages = JSON.parse(await localeFile.async("string"));
       if (!messages.extensionName?.message || !messages.extensionDescription?.message) {
         throw new Error(`Edge: metadati incompleti per la localizzazione ${locale}.`);
+      }
+      const messageKeys = Object.keys(messages).sort();
+      if (JSON.stringify(messageKeys) !== JSON.stringify(["extensionDescription", "extensionName"])) {
+        throw new Error(`Edge: chiavi di localizzazione inattese per ${locale}.`);
       }
     }
   } else if (names.some((name) => name.startsWith("_locales/"))) {

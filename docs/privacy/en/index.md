@@ -11,7 +11,7 @@ Last updated: 3 September 2026.
 
 ## 1. Controller and contact details
 
-PlumePilot is created and maintained by Fabio Floris.
+PlumePilot is a free and open-source project.
 
 Privacy contact: [plumepilot@gmail.com](mailto:plumepilot@gmail.com).
 
