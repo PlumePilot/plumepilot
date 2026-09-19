@@ -1,4 +1,4 @@
-# PlumePilot 2.32.9 — AMO source submission
+# PlumePilot 2.33.0 — AMO source submission
 
 This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process only selects runtime files, creates the browser-specific manifest, and writes deterministic ZIP archives.
 
@@ -23,7 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.32.9-firefox.zip
+release/plumepilot-v2.33.0-firefox.zip
 ```
 
 Expected SHA-256:
