@@ -7,6 +7,10 @@
   <script src="theme.js"></script>
   <script src="commission-state.js"></script>
   <script src="achievements.js"></script>
+  <script src="sound-settings.js"></script>
+  <script src="floating-menu-layout.js"></script>
+  <script src="whats-new.js"></script>
+  <script src="store-links.js"></script>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -34,6 +38,15 @@
     </div>
 
     <button id="activeOperationBanner" class="operation-banner" type="button" hidden></button>
+
+    <aside id="whatsNewBanner" class="whats-new-banner" aria-labelledby="whatsNewBannerTitle" hidden>
+      <button id="dismissWhatsNew" class="whats-new-dismiss" type="button" aria-label="Chiudi le novità">×</button>
+      <div class="whats-new-banner-copy">
+        <strong id="whatsNewBannerTitle">Novità in PlumePilot 2.33.0</strong>
+        <span>Più controllo sull’autoplay, quiz annotabili, avvisi sonori e un menu fluttuante personalizzabile.</span>
+      </div>
+      <button id="openWhatsNew" class="secondary-button whats-new-open" type="button">Scopri le novità</button>
+    </aside>
 
     <div id="coursePanel" class="tab-panel" role="tabpanel" aria-labelledby="courseTab">
       <section class="course-progress-section" aria-labelledby="courseProgressTitle">
@@ -70,7 +83,12 @@
               <span>Avvisami al raggiungimento del 70%</span>
               <input id="courseProgressThresholdEnabled" type="checkbox">
             </label>
-            <div class="course-progress-option-hint">L’avviso funziona anche quando la barra sullo schermo è nascosta.</div>
+            <label class="toggle-row" for="autoplayStopAt70Enabled">
+              <span>Ferma autoplay al 70%</span>
+              <input id="autoplayStopAt70Enabled" type="checkbox">
+            </label>
+            <button id="autoplayStopAt70Resume" class="secondary-button" type="button" hidden>Continua oltre il 70%</button>
+            <div class="course-progress-option-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare esplicitamente oltre la soglia.</div>
           </div>
         </details>
       </section>
@@ -128,10 +146,11 @@
                 <span>Capitoli</span>
                 <div class="chapter-limit-stepper">
                   <button id="chapterLimitMinus" type="button" aria-label="Riduci il limite">−</button>
-                  <output id="chapterLimitValue">1</output>
+                  <input id="chapterLimitValue" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
                   <button id="chapterLimitPlus" type="button" aria-label="Aumenta il limite">+</button>
                 </div>
               </div>
+              <input id="chapterLimitSlider" class="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
               <div id="chapterLimitProgress" class="action-status" aria-live="polite">Apri un corso per calcolare il limite.</div>
               <button id="chapterLimitResume" class="secondary-button" type="button" hidden>Riprendi per altri capitoli</button>
               <div class="setting-hint">PlumePilot si ferma prima del capitolo successivo. Con il limite attivo, “Fermati” viene temporaneamente trattato come “Ignora e continua”.</div>
@@ -141,7 +160,19 @@
         </details>
       </section>
 
-      <div class="actions-title">Dispense del corso</div>
+      <div class="actions-title">Raccolte del corso</div>
+
+      <section class="action-section">
+        <div class="action-row">
+          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
+            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
+        </div>
+        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
+        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
+      </section>
 
       <section class="action-section">
         <div class="action-row">
@@ -183,17 +214,7 @@
         <div id="objectivesStatus" class="action-status" aria-live="polite"></div>
       </section>
 
-      <section class="action-section">
-        <div class="action-row">
-          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
-            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
-            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
-        </div>
-        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
-        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
-      </section>
+
 
       <section class="commission-section" aria-labelledby="commissionSectionTitle">
         <div id="commissionSectionTitle" class="section-title">Esami online</div>
@@ -274,8 +295,9 @@
     </div>
 
     <div id="preferencesPanel" class="tab-panel" role="tabpanel" aria-labelledby="preferencesTab" hidden>
-      <section class="preferences-section" aria-labelledby="interfaceSectionTitle">
-        <div id="interfaceSectionTitle" class="section-title">Interfaccia</div>
+      <details class="preferences-section preference-macro" aria-labelledby="interfaceSectionTitle">
+        <summary id="interfaceSectionTitle" class="preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+        <div class="preference-macro-content">
         <div class="setting-block floating-menu-setting">
           <div class="setting-row gaming-control-row">
             <label for="floatingMenuEnabled">Mostra il menu fluttuante</label>
@@ -288,6 +310,41 @@
           <div id="floatingMenuInfo" class="info-panel" hidden>Mostra i controlli principali di PlumePilot direttamente nella pagina del corso. Il menu compare solo nella pagina che contiene l’elenco delle lezioni. Puoi trascinare l’icona lungo il bordo della finestra per scegliere la posizione.</div>
         </div>
 
+        <fieldset class="preference-choice floating-menu-layout-choice" aria-labelledby="floatingMenuLayoutTitle">
+          <div class="preference-choice-heading">
+            <span id="floatingMenuLayoutTitle">Pulsanti del menu fluttuante</span>
+            <button class="expand-button" type="button" aria-label="Mostra informazioni sulla personalizzazione del menu fluttuante" aria-controls="floatingMenuLayoutInfo" aria-expanded="false"></button>
+          </div>
+          <div id="floatingMenuLayoutInfo" class="info-panel" hidden>Trascina i pulsanti per cambiarne l’ordine oppure usa le frecce. Puoi nascondere le funzioni che non usi: launcher, schede e impostazioni restano sempre disponibili.</div>
+          <ul id="floatingMenuLayoutList" class="floating-menu-layout-list" aria-label="Ordine e visibilità dei pulsanti">
+            <li class="floating-menu-layout-item" data-layout-item="complete-tests" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Completa tutti i test</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti i test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti i test verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="complete-objectives" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Completa tutti gli Obiettivi</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti gli Obiettivi verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti gli Obiettivi verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="test-collection" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Crea raccolta test</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Crea raccolta test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Crea raccolta test verso il basso">↓</button></span>
+            </li>
+            <li class="floating-menu-layout-item" data-layout-item="study-materials" draggable="true">
+              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
+              <label><input type="checkbox" checked> <span>Esporta dispense del corso</span></label>
+              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Esporta dispense del corso verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Esporta dispense del corso verso il basso">↓</button></span>
+            </li>
+          </ul>
+          <button id="resetFloatingMenuLayout" class="secondary-button floating-menu-layout-reset" type="button">Ripristina disposizione predefinita</button>
+          <div id="floatingMenuLayoutStatus" class="action-status" role="status" aria-live="polite"></div>
+        </fieldset>
+
+        <details class="preference-subsection style-theme-container">
+          <summary class="preference-subsection-summary"><span>Stile e tema</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+          <div class="preference-subsection-content">
         <fieldset class="preference-choice visual-style-choice" aria-labelledby="visualStyleTitle">
           <div class="preference-choice-heading">
             <span id="visualStyleTitle">Stile visivo</span>
@@ -325,10 +382,32 @@
           </div>
           <div id="menuSizeInfo" class="info-panel" hidden>Regola insieme la larghezza e la leggibilità del popup e del menu fluttuante. Il contenuto continua ad adattarsi allo spazio disponibile sullo schermo.</div>
         </fieldset>
-      </section>
+          </div>
+        </details>
+        </div>
+      </details>
 
-      <section class="preferences-section" aria-labelledby="behaviorSectionTitle">
-        <div id="behaviorSectionTitle" class="section-title">Comportamento</div>
+      <details class="preferences-section preference-macro" aria-labelledby="behaviorSectionTitle">
+        <summary id="behaviorSectionTitle" class="preference-macro-summary"><span>Comportamento</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+        <div class="preference-macro-content">
+        <fieldset class="preference-choice sound-preference" aria-labelledby="soundNotificationsTitle">
+          <div class="preference-choice-heading gaming-control-row">
+            <label id="soundNotificationsTitle" for="soundNotificationsEnabled">Notifiche sonore</label>
+            <span id="soundNotificationControlSprite" class="gaming-control-sprite sound-notification-control-sprite" aria-hidden="true"></span>
+            <input id="soundNotificationsEnabled" type="checkbox">
+          </div>
+          <div id="soundNotificationControls" class="sound-controls">
+            <label for="notificationSound">Suono</label>
+            <select id="notificationSound" aria-label="Suono delle notifiche">
+              <option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option>
+            </select>
+            <label for="notificationVolume">Volume <output id="notificationVolumeValue" for="notificationVolume">70%</output></label>
+            <input id="notificationVolume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore">
+            <button id="previewNotificationSound" class="secondary-button" type="button">Ascolta anteprima</button>
+            <div id="soundPreviewStatus" class="action-status" role="status" aria-live="polite"></div>
+          </div>
+          <div class="setting-hint">Riproduce un avviso locale al 70%, al limite capitoli o quando una commissione passa da “In Attesa” a un nuovo stato.</div>
+        </fieldset>
         <fieldset class="preference-choice" aria-labelledby="playbackErrorRecoveryTitle">
           <div class="preference-choice-heading gaming-control-row">
             <span id="playbackErrorRecoveryTitle">Errori di riproduzione</span>
@@ -341,23 +420,42 @@
           </div>
           <div id="playbackErrorRecoveryInfo" class="info-panel" hidden>Quando riconosce un errore di riproduzione noto, PlumePilot può confermare l’avviso e tentare il ripristino una sola volta. Con “Lascia aperto l’avviso” PlumePilot non preme OK e attende la tua scelta. Se lo stesso errore ricompare, l’avviso resta sempre aperto per evitare ricaricamenti continui. Gli altri avvisi di Pegaso non vengono chiusi automaticamente.</div>
         </fieldset>
-      </section>
+        </div>
+      </details>
 
       <section class="about-section">
         <div class="about-row">
           <button class="about-link" type="button" aria-label="Mostra informazioni su PlumePilot" aria-controls="aboutInfo" aria-expanded="false">Informazioni</button>
+          <a class="about-action-link" href="https://plumepilot.github.io/plumepilot/faq/" target="_blank" rel="noopener noreferrer">FAQ</a>
+          <a id="storeReviewLink" class="about-action-link" href="https://chromewebstore.google.com/detail/plumepilot-%E2%80%93-assistente-p/cbkkkjekidcdjojlmnbihmjfohkdfcaa?hl=it&amp;utm_source=ext_sidebar" target="_blank" rel="noopener noreferrer">Vota</a>
+          <a class="about-action-link" href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Dona</a>
         </div>
         <div id="aboutInfo" class="info-panel about-info" hidden>
           <strong>PlumePilot <span id="extensionVersion"></span></strong>
-          <span>Creato e sviluppato da Fabio Floris per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
+          <span>Progetto gratuito e open source creato per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
           <span>Nato inizialmente come strumento personale, PlumePilot è pensato per gli studenti che desiderano organizzare meglio la fruizione dei corsi e utilizzare strumenti aggiuntivi per lo studio.</span>
           <span>Progetto indipendente, non affiliato, approvato o distribuito da Università Telematica Pegaso o Multiversity.</span>
           <span>PlumePilot non invia alcun dato allo sviluppatore.</span>
-          <span class="about-links"><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="https://ko-fi.com/flo_" target="_blank" rel="noopener noreferrer">Sostieni su Ko-fi</a></span>
+          <span class="about-links"><button id="openWhatsNewFromAbout" class="about-inline-button" type="button">Novità</button><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a></span>
         </div>
       </section>
     </div>
   </main>
+
+  <div id="whatsNewDialog" class="whats-new-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="whatsNewDialogTitle" hidden>
+    <section class="whats-new-dialog">
+      <header class="whats-new-dialog-header">
+        <div>
+          <span class="whats-new-eyebrow">PlumePilot <span id="whatsNewDialogVersion"></span></span>
+          <h2 id="whatsNewDialogTitle"></h2>
+        </div>
+        <button id="closeWhatsNewDialog" class="whats-new-dialog-close" type="button" aria-label="Chiudi il pannello Novità">×</button>
+      </header>
+      <p id="whatsNewDialogSummary" class="whats-new-dialog-summary"></p>
+      <div id="whatsNewItems" class="whats-new-items"></div>
+      <button id="confirmWhatsNew" class="primary-button" type="button">Ho capito</button>
+    </section>
+  </div>
 
   <script src="popup.js"></script>
 </body>

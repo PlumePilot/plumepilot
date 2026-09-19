@@ -7,6 +7,7 @@ title: PlumePilot
 
 Assistente indipendente e open source per la piattaforma Pegaso.
 
+- [Domande frequenti e messaggi di PlumePilot](faq/)
 - [Informativa sulla privacy](privacy/) · [Privacy policy (English)](privacy/en/)
 - [Repository e codice sorgente](https://github.com/PlumePilot/plumepilot)
 - [Supporto e segnalazioni](https://github.com/PlumePilot/plumepilot/issues)

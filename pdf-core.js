@@ -6,7 +6,7 @@
   const ACCENT = { r: 207 / 255, g: 29 / 255, b: 86 / 255 };
   const TEXT = { r: 31 / 255, g: 41 / 255, b: 55 / 255 };
   const MUTED = { r: 107 / 255, g: 114 / 255, b: 128 / 255 };
-  const STUDYWING_SIGNATURE = "Generato con PlumePilot - Assistente per Pegaso.";
+  const STUDYWING_SIGNATURE = "Generato con PlumePilot - Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.";
   const STUDYWING_GENERATOR = `PlumePilot ${globalThis.chrome?.runtime?.getManifest?.().version || "versione sconosciuta"}`;
 
   function filenameFor(title) {

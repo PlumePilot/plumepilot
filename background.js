@@ -1,4 +1,6 @@
 if (!globalThis.StudyWingAchievements && typeof importScripts === "function") importScripts("achievements.js");
+if (!globalThis.PlumePilotSounds && typeof importScripts === "function") importScripts("sound-settings.js");
+if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") importScripts("whats-new.js");
 (() => {
   "use strict";
   const STUDYWING_DEBUG = false;
@@ -10,6 +12,10 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
   const COMMISSION_CAPTURE_KEY = "commissionExamsCapturedAt";
   const COURSE_THRESHOLD_NOTIFIED_KEY = "courseProgressThresholdNotified";
   const LESSON_COMPLETION_PENDING_KEY = "studywingPendingLessonCompletions";
+  const SOUND_EVENT_MEMORY_KEY = "plumepilotPlayedSoundEvents";
+  const SOUND_EVENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  const soundApi = globalThis.PlumePilotSounds;
+  const whatsNewApi = globalThis.PlumePilotWhatsNew;
   const COMMISSION_CHECK_INTERVAL_MS = 10 * 60 * 1000;
   const COMMISSION_LEASE_MS = 45 * 1000;
   const MAX_OPERATION_AGE_MS = 2 * 60 * 60 * 1000;
@@ -18,6 +24,15 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
   let commissionQueue = Promise.resolve();
   let courseThresholdQueue = Promise.resolve();
   let achievementQueue = Promise.resolve();
+  let soundQueue = Promise.resolve();
+  let offscreenCreation = null;
+
+  chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason !== "update" || !whatsNewApi) return;
+    const currentVersion = chrome.runtime.getManifest().version;
+    if (currentVersion !== whatsNewApi.RELEASE.version) return;
+    chrome.storage.local.set({ [whatsNewApi.PENDING_KEY]: currentVersion });
+  });
   const storageGet = (key) => new Promise((resolve, reject) => chrome.storage.local.get(key, (result) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(result[key] || null)));
   const storageSet = (values) => new Promise((resolve, reject) => chrome.storage.local.set(values, () => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve()));
   const storageRemove = (key) => new Promise((resolve) => chrome.storage.local.remove(key, resolve));
@@ -26,6 +41,7 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
   function serializedCommission(task) { const next = commissionQueue.then(task, task); commissionQueue = next.catch(() => {}); return next; }
   function serializedCourseThreshold(task) { const next = courseThresholdQueue.then(task, task); courseThresholdQueue = next.catch(() => {}); return next; }
   function serializedAchievement(task) { const next = achievementQueue.then(task, task); achievementQueue = next.catch(() => {}); return next; }
+  function serializedSound(task) { const next = soundQueue.then(task, task); soundQueue = next.catch(() => {}); return next; }
   function newlyUnlockedRewards(api, previousState, nextState) {
     const before = new Set(api.normalizeState(previousState).unlockedCosmeticIds);
     return api.normalizeState(nextState).unlockedCosmeticIds.filter((id) => !before.has(id));
@@ -597,6 +613,53 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
     return { accepted: true, duplicate: false, operation: finalized.operation };
   }
   function openBuilder(message) { return serializedBuilder(() => openBuilderOnce(message)); }
+  async function ensureOffscreenAudioDocument() {
+    if (!chrome.offscreen?.createDocument) return false;
+    if (await chrome.offscreen.hasDocument()) return true;
+    if (!offscreenCreation) {
+      offscreenCreation = chrome.offscreen.createDocument({
+        url: "offscreen-audio.html",
+        reasons: ["AUDIO_PLAYBACK"],
+        justification: "Riproduce gli avvisi sonori locali richiesti dall’utente.",
+      }).finally(() => { offscreenCreation = null; });
+    }
+    await offscreenCreation;
+    return true;
+  }
+  async function sendRuntimeMessage(message) {
+    return new Promise((resolve, reject) => chrome.runtime.sendMessage(message, (response) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(response)));
+  }
+  async function playNotificationSound(sound, volume, sourceTabId) {
+    if (await ensureOffscreenAudioDocument()) {
+      return sendRuntimeMessage({ type: "PLUMEPILOT_OFFSCREEN_PLAY", sound, volume });
+    }
+    const tabs = await new Promise((resolve) => chrome.tabs.query({ url: "*://*.pegaso.multiversity.click/*" }, resolve));
+    const target = tabs.find((tab) => tab.id === sourceTabId) || tabs.find((tab) => tab.active) || tabs[0];
+    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "Apri una pagina Pegaso per ascoltare l’anteprima." };
+    return sendTabMessage(target.id, { type: "STUDYWING_SOUND_PLAY", sound, volume });
+  }
+  async function playSoundEvent(message, sourceTabId) {
+    const eventId = typeof message?.eventId === "string" && /^[A-Za-z0-9:._-]{3,180}$/.test(message.eventId) ? message.eventId : null;
+    if (!eventId || !soundApi) return { accepted: false, reason: "invalid-event" };
+    const preferences = await new Promise((resolve) => chrome.storage.local.get({ ...soundApi.DEFAULTS, [SOUND_EVENT_MEMORY_KEY]: {} }, resolve));
+    const normalized = soundApi.normalizeSettings(preferences);
+    if (!normalized.soundNotificationsEnabled) return { accepted: false, reason: "disabled" };
+    const now = Date.now();
+    const remembered = preferences[SOUND_EVENT_MEMORY_KEY] && typeof preferences[SOUND_EVENT_MEMORY_KEY] === "object" ? preferences[SOUND_EVENT_MEMORY_KEY] : {};
+    if (Number(remembered[eventId]) > 0) return { accepted: false, reason: "duplicate" };
+    const response = await playNotificationSound(normalized.notificationSound, normalized.notificationVolume, sourceTabId);
+    if (response?.played !== true) return { accepted: false, reason: response?.reason || "playback-failed" };
+    const next = Object.fromEntries(Object.entries(remembered).filter(([, timestamp]) => now - Number(timestamp) < SOUND_EVENT_TTL_MS).slice(-99));
+    next[eventId] = now;
+    await storageSet({ [SOUND_EVENT_MEMORY_KEY]: next });
+    const achievement = await claimAchievement("receive-sound-notification");
+    return { accepted: true, played: true, achievement };
+  }
+  async function previewSound(message, sourceTabId) {
+    const sound = soundApi.normalizeSound(message?.sound);
+    const volume = soundApi.normalizeVolume(message?.volume);
+    return playNotificationSound(sound, volume, sourceTabId);
+  }
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let action = null;
     const sourceTabId = Number.isInteger(message?.sourceTabId) ? message.sourceTabId : sender.tab?.id;
@@ -618,6 +681,8 @@ if (!globalThis.StudyWingAchievements && typeof importScripts === "function") im
     else if (message?.type === "STUDYWING_CHAPTER_VIDEOS_CLAIM") action = claimChapterVideoCompletion(message);
     else if (message?.type === "STUDYWING_LESSON_COMPLETION_CLAIM") action = claimLessonCompletion(message);
     else if (message?.type === "STUDYWING_PENDING_LESSONS_GET") action = pendingLessonCompletions(message.courseCode);
+    else if (message?.type === "STUDYWING_SOUND_EVENT") action = serializedSound(() => playSoundEvent(message, sourceTabId));
+    else if (message?.type === "STUDYWING_SOUND_PREVIEW") action = previewSound(message, sourceTabId);
     if (!action) return undefined;
     action.then(sendResponse).catch((error) => { console.error("[PlumePilot] Background operation failed:", error); sendResponse({ accepted: false, reason: error.message }); });
     return true;

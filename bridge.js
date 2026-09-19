@@ -28,6 +28,25 @@
   let queuedCommissionPayload = null;
   let commissionCheckTimer = null;
   let currentCommissionLeaseId = null;
+  let notificationAudio = null;
+  const soundApi = globalThis.PlumePilotSounds;
+
+  async function playNotificationSound(soundValue, volumeValue) {
+    const sound = soundApi.normalizeSound(soundValue);
+    const volume = soundApi.normalizeVolume(volumeValue);
+    try {
+      if (!notificationAudio) notificationAudio = new Audio();
+      notificationAudio.pause();
+      notificationAudio.currentTime = 0;
+      notificationAudio.src = chrome.runtime.getURL(soundApi.SOUNDS[sound].path);
+      notificationAudio.volume = volume / 100;
+      await notificationAudio.play();
+      return { accepted: true, played: true };
+    } catch (error) {
+      console.warn("[PlumePilot] Riproduzione dell’avviso sonoro non riuscita:", error?.message || error);
+      return { accepted: false, played: false, reason: "playback-failed" };
+    }
+  }
 
   const COMMISSION_RESPONSE = "STUDYWING_COMMISSION_EXAMS_RESPONSE";
   const COMMISSION_REQUEST = "STUDYWING_COMMISSION_EXAMS_REQUEST";
@@ -177,6 +196,7 @@
       const initialized = stored.commissionExamTrackingInitialized === true;
       const nextSnapshots = {};
       const newlyChangedIds = [];
+      const soundChanges = [];
       const previousExams = new Map(
         (Array.isArray(stored.commissionExams) ? stored.commissionExams : [])
           .map((exam) => [String(exam?.exam_id), exam]),
@@ -194,6 +214,9 @@
         );
         if (commissionStates.shouldNotifyChange(previousSnapshot, snapshot)) {
           newlyChangedIds.push(exam.exam_id);
+        }
+        if (previousSnapshot?.state === commissionStates.STATES.PENDING && snapshot.state !== commissionStates.STATES.PENDING) {
+          soundChanges.push(`${exam.exam_id}-${snapshot.state}`);
         }
       }
 
@@ -220,6 +243,16 @@
             newVerdicts: newlyChangedIds.length,
             baselineCreated: !initialized,
           });
+          if (soundChanges.length) {
+            chrome.runtime.sendMessage({
+              type: "STUDYWING_SOUND_EVENT",
+              eventId: `commission:${Number(payload.capturedAt) || Date.now()}:${soundChanges.sort().join(".")}`,
+            }, (result) => {
+              if (!chrome.runtime.lastError && result?.achievement?.accepted) {
+                window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
+              }
+            });
+          }
         }
         releaseCommissionLease(!storageFailed, Number(payload.capturedAt) || Date.now());
         commissionProcessing = false;
@@ -240,6 +273,8 @@
     autoplayChapterLimits,
     autoplayChapterLimitSessions,
     courseProgressOverlayEnabled,
+    autoplayStopAt70Enabled,
+    autoplayStopAt70BypassedCourses,
     visualStyle,
     initialSync = false,
   ) {
@@ -253,6 +288,8 @@
       autoplayChapterLimits,
       autoplayChapterLimitSessions,
       courseProgressOverlayEnabled,
+      autoplayStopAt70Enabled,
+      autoplayStopAt70BypassedCourses,
       visualStyle,
       initialSync,
       extensionVersion,
@@ -270,6 +307,8 @@
         autoplayChapterLimits: {},
         autoplayChapterLimitSessions: {},
         courseProgressOverlayEnabled: false,
+        autoplayStopAt70Enabled: false,
+        autoplayStopAt70BypassedCourses: {},
         visualStyle: "standard",
       },
       (result) => {
@@ -288,6 +327,8 @@
           result.autoplayChapterLimits || {},
           result.autoplayChapterLimitSessions || {},
           result.courseProgressOverlayEnabled === true,
+          result.autoplayStopAt70Enabled === true,
+          result.autoplayStopAt70BypassedCourses || {},
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
         );
@@ -307,6 +348,10 @@
   });
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (window !== window.top) return;
+    if (message?.type === "STUDYWING_SOUND_PLAY") {
+      playNotificationSound(message.sound, message.volume).then(sendResponse);
+      return true;
+    }
     if (message?.type === "PEGASO_CLEAR_COMMISSION_MEMORY") {
       cancelCommissionCheck();
       window.postMessage({ type: COMMISSION_CLEAR_MEMORY }, "*");
@@ -416,6 +461,17 @@
   });
   window.addEventListener("message", (event) => {
     if (event.source !== window || !event.data) return;
+    if (event.data.type === "STUDYWING_SOUND_EVENT") {
+      chrome.runtime.sendMessage(
+        { type: "STUDYWING_SOUND_EVENT", eventId: safeText(event.data.eventId, 180) },
+        (result) => {
+          if (!chrome.runtime.lastError && result?.achievement?.accepted) {
+            window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
+          }
+        },
+      );
+      return;
+    }
     if (event.data.type === "STUDYWING_NOTIFICATION_UPDATED") {
       const source = event.data.notification || null;
       const message = safeText(source?.message, 1200) || "";
@@ -640,6 +696,8 @@
       changes.autoplayChapterLimitSessions ||
       changes.playbackErrorRecovery ||
       changes.courseProgressOverlayEnabled ||
+      changes.autoplayStopAt70Enabled ||
+      changes.autoplayStopAt70BypassedCourses ||
       changes.visualStyle
     ) {
       readAndSendState(false);

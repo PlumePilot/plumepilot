@@ -39,6 +39,7 @@ function validateBrowserManifest(manifest, browser) {
   if (manifest.version !== expectedVersion) throw new Error(`${browser}: versione inattesa ${manifest.version}.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description troppo lunga.`);
   if (browser === "firefox") {
+    if (manifest.permissions?.includes("offscreen")) throw new Error("Firefox: permesso offscreen inatteso.");
     const gecko = manifest.browser_specific_settings?.gecko;
     if (gecko?.id !== "plumepilot@fabiofloris") throw new Error("Firefox: ID errato.");
     if (gecko?.strict_min_version !== "140.0") throw new Error("Firefox: versione minima errata.");
@@ -50,11 +51,13 @@ function validateBrowserManifest(manifest, browser) {
     if (JSON.stringify(permissions) !== JSON.stringify(expected)) throw new Error("Firefox: dichiarazione dati errata.");
     if (!manifest.background?.scripts || manifest.background?.service_worker) throw new Error("Firefox: background errato.");
   } else {
+    if (!manifest.permissions?.includes("offscreen")) throw new Error(`${browser}: permesso offscreen mancante.`);
     if (!manifest.background?.service_worker || manifest.background?.scripts) throw new Error(`${browser}: background errato.`);
     if (manifest.browser_specific_settings) throw new Error(`${browser}: configurazione Gecko presente.`);
     if (browser === "edge") {
       if (manifest.name !== "__MSG_extensionName__") throw new Error("Edge: nome localizzato assente.");
       if (manifest.description !== "__MSG_extensionDescription__") throw new Error("Edge: descrizione localizzata assente.");
+      if (manifest.action?.default_title !== "__MSG_extensionName__") throw new Error("Edge: titolo azione localizzato assente.");
       if (manifest.default_locale !== "it") throw new Error("Edge: lingua predefinita errata.");
     }
   }
@@ -76,12 +79,23 @@ for (const browser of expectedBrowsers) {
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
   if (browser === "edge") {
+    const packagedLocales = [...new Set(names.flatMap((name) => {
+      const match = name.match(/^_locales\/([^/]+)\/messages\.json$/);
+      return match ? [match[1]] : [];
+    }))].sort();
+    if (JSON.stringify(packagedLocales) !== JSON.stringify([...expectedEdgeLocales].sort())) {
+      throw new Error(`Edge: localizzazioni inattese: ${packagedLocales.join(", ") || "nessuna"}.`);
+    }
     for (const locale of expectedEdgeLocales) {
       const localeFile = zip.file(`_locales/${locale}/messages.json`);
       if (!localeFile) throw new Error(`Edge: localizzazione ${locale} mancante.`);
       const messages = JSON.parse(await localeFile.async("string"));
       if (!messages.extensionName?.message || !messages.extensionDescription?.message) {
         throw new Error(`Edge: metadati incompleti per la localizzazione ${locale}.`);
+      }
+      const messageKeys = Object.keys(messages).sort();
+      if (JSON.stringify(messageKeys) !== JSON.stringify(["extensionDescription", "extensionName"])) {
+        throw new Error(`Edge: chiavi di localizzazione inattese per ${locale}.`);
       }
     }
   } else if (names.some((name) => name.startsWith("_locales/"))) {
@@ -127,6 +141,10 @@ for (const required of [
   "scripts/validate-release.mjs",
 ]) {
   if (!sourceZip.file(required)) throw new Error(`Sorgente AMO: file mancante ${required}.`);
+}
+const sourceReadme = await sourceZip.file("AMO_SOURCE_README.md").async("string");
+if (!sourceReadme.includes(`PlumePilot ${expectedVersion}`) || !sourceReadme.includes(`plumepilot-v${expectedVersion}-firefox.zip`)) {
+  throw new Error("Sorgente AMO: versione o nome del pacchetto non allineati al manifest.");
 }
 if (Object.keys(sourceZip.files).some((name) => name.startsWith(".git/") || name.startsWith("release/"))) {
   throw new Error("Sorgente AMO: contiene file Git o artefatti di release.");

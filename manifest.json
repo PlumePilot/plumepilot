@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PlumePilot – Assistente per Pegaso",
   "short_name": "PlumePilot",
-  "version": "2.32.10",
+  "version": "2.33.0",
   "description": "Assistente per Pegaso: automatizza lezioni e attività, crea materiali di studio e controlla lo stato degli esami online.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -37,6 +37,8 @@
   "background": {
     "scripts": [
       "achievements.js",
+      "sound-settings.js",
+      "whats-new.js",
       "background.js"
     ],
     "service_worker": "background.js"
@@ -65,13 +67,16 @@
         "assets/gaming/action-autoplay.png",
         "assets/gaming/action-playback-recovery.png",
         "assets/gaming/action-commission-check.png",
+        "assets/gaming/action-notification-sound.png",
         "assets/gaming/notification-alert.png",
+        "assets/gaming/gaming-chapter-slider-flame.png",
         "assets/fonts/pixelify-sans-latin.ttf",
         "assets/gaming/progress-arcane-frame-left.png",
         "assets/gaming/progress-arcane-frame-center.png",
         "assets/gaming/progress-arcane-frame-right.png",
         "assets/gaming/progress-arcane-fill.png",
         "assets/gaming/rewards/*.png"
+        ,"assets/audio/*.mp3"
       ],
       "matches": [
         "*://*.pegaso.multiversity.click/*"
@@ -96,6 +101,7 @@
       ],
       "js": [
         "commission-state.js",
+        "sound-settings.js",
         "bridge.js"
       ],
       "run_at": "document_start",
@@ -120,6 +126,9 @@
       "js": [
         "commission-state.js",
         "achievements.js",
+        "sound-settings.js",
+        "store-links.js",
+        "floating-menu-layout.js",
         "floating-menu.js"
       ],
       "run_at": "document_idle",

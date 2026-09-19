@@ -6,7 +6,7 @@ Ultimo aggiornamento: 3 settembre 2026.
 
 ## 1. Titolare e contatti
 
-PlumePilot è creato e mantenuto da Fabio Floris.
+PlumePilot è un progetto gratuito e open source.
 
 Contatto privacy: [plumepilot@gmail.com](mailto:plumepilot@gmail.com).
 

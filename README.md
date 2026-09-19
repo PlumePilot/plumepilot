@@ -27,6 +27,7 @@ Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissu
 - creazione locale di dispense complete in PDF ed EPUB;
 - barra di progressione del corso e avviso della soglia del 70%;
 - controllo dello stato della commissione degli esami online;
+- notifiche sonore locali facoltative per soglia del 70%, limite autoplay e cambi della commissione;
 - menu fluttuante, tema chiaro/scuro e dimensioni adattive;
 - modalità Gaming con Traguardi, EXP e ricompense cosmetiche locali.
 
@@ -51,6 +52,7 @@ Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vend
 ## Permessi
 
 - `storage`: conserva localmente impostazioni, cache operative, stato commissione, Traguardi ed EXP;
+- `offscreen` (solo Chrome ed Edge): mantiene la riproduzione degli avvisi locali compatibile con le regole autoplay di Chromium;
 - pagine `*.pegaso.multiversity.click`: integra i controlli PlumePilot e comunica con le API Pegaso già accessibili all'utente autenticato;
 - `*.cloudfront.net` e `ita01.s3.eu-west-1.amazonaws.com`: scarica, su richiesta, dispense e immagini necessarie alla creazione locale dei materiali.
 

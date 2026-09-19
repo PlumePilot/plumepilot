@@ -8,6 +8,7 @@ const chapterLimitEnabledCheckbox = document.getElementById("chapterLimitEnabled
 const chapterLimitMinus = document.getElementById("chapterLimitMinus");
 const chapterLimitPlus = document.getElementById("chapterLimitPlus");
 const chapterLimitValue = document.getElementById("chapterLimitValue");
+const chapterLimitSlider = document.getElementById("chapterLimitSlider");
 const chapterLimitProgress = document.getElementById("chapterLimitProgress");
 const chapterLimitResume = document.getElementById("chapterLimitResume");
 const chapterLimitOptionsSummary = document.getElementById("chapterLimitOptionsSummary");
@@ -20,9 +21,13 @@ const courseProgressOverlayEnabledCheckbox = document.getElementById("courseProg
 const courseProgressPositionFieldset = document.getElementById("courseProgressPositionFieldset");
 const courseProgressPositionRadios = [...document.querySelectorAll('input[name="courseProgressOverlayPosition"]')];
 const courseProgressThresholdEnabledCheckbox = document.getElementById("courseProgressThresholdEnabled");
+const autoplayStopAt70EnabledCheckbox = document.getElementById("autoplayStopAt70Enabled");
+const autoplayStopAt70Resume = document.getElementById("autoplayStopAt70Resume");
 const courseProgressOptionsSummary = document.getElementById("courseProgressOptionsSummary");
 let chapterLimitStatus = null;
 let courseProgressStatus = null;
+let autoplayStopAt70Enabled = false;
+let autoplayStopAt70BypassedCourses = {};
 let activeCourseTabId = null;
 let chapterLimitMaps = { limits: {}, sessions: {} };
 let chapterLimitStatuses = {};
@@ -31,11 +36,22 @@ const visualStyleRadios = [...document.querySelectorAll('input[name="visualStyle
 const themePreferenceRadios = [...document.querySelectorAll('input[name="themePreference"]')];
 const menuSizeRadios = [...document.querySelectorAll('input[name="menuSize"]')];
 const floatingMenuEnabledCheckbox = document.getElementById("floatingMenuEnabled");
+const floatingMenuLayoutList = document.getElementById("floatingMenuLayoutList");
+const resetFloatingMenuLayoutButton = document.getElementById("resetFloatingMenuLayout");
+const floatingMenuLayoutStatus = document.getElementById("floatingMenuLayoutStatus");
 const commissionCheckEnabledCheckbox = document.getElementById("commissionCheckEnabled");
 const autoplayControlSprite = document.getElementById("autoplayControlSprite");
 const floatingMenuControlSprite = document.getElementById("floatingMenuControlSprite");
 const commissionControlSprite = document.getElementById("commissionControlSprite");
 const playbackRecoveryControlSprite = document.getElementById("playbackRecoveryControlSprite");
+const soundNotificationsEnabledCheckbox = document.getElementById("soundNotificationsEnabled");
+const soundNotificationControlSprite = document.getElementById("soundNotificationControlSprite");
+const soundNotificationControls = document.getElementById("soundNotificationControls");
+const notificationSoundSelect = document.getElementById("notificationSound");
+const notificationVolumeInput = document.getElementById("notificationVolume");
+const notificationVolumeValue = document.getElementById("notificationVolumeValue");
+const previewNotificationSoundButton = document.getElementById("previewNotificationSound");
+const soundPreviewStatus = document.getElementById("soundPreviewStatus");
 const commissionTabBadge = document.getElementById("commissionTabBadge");
 const commissionUpdates = document.getElementById("commissionUpdates");
 const commissionUpdatesTitle = document.getElementById("commissionUpdatesTitle");
@@ -58,6 +74,21 @@ const markCommissionSeenButton = document.getElementById("markCommissionSeen");
 const clearCommissionDataButton = document.getElementById("clearCommissionData");
 const clearCommissionDataStatus = document.getElementById("clearCommissionDataStatus");
 const extensionVersion = document.getElementById("extensionVersion");
+const storeReviewLink = document.getElementById("storeReviewLink");
+const whatsNewBanner = document.getElementById("whatsNewBanner");
+const dismissWhatsNewButton = document.getElementById("dismissWhatsNew");
+const openWhatsNewButton = document.getElementById("openWhatsNew");
+const openWhatsNewFromAboutButton = document.getElementById("openWhatsNewFromAbout");
+const whatsNewDialogBackdrop = document.getElementById("whatsNewDialog");
+const closeWhatsNewDialogButton = document.getElementById("closeWhatsNewDialog");
+const confirmWhatsNewButton = document.getElementById("confirmWhatsNew");
+const whatsNewDialogVersion = document.getElementById("whatsNewDialogVersion");
+const whatsNewDialogTitle = document.getElementById("whatsNewDialogTitle");
+const whatsNewDialogSummary = document.getElementById("whatsNewDialogSummary");
+const whatsNewItems = document.getElementById("whatsNewItems");
+const whatsNewApi = globalThis.PlumePilotWhatsNew;
+const storeLinksApi = globalThis.PlumePilotStoreLinks;
+let whatsNewReturnFocus = null;
 const status = document.getElementById("status");
 const turboTestsButton = document.getElementById("turboTests");
 const turboTestsButtonLabel = document.getElementById("turboTestsButtonLabel");
@@ -100,6 +131,72 @@ let achievementToastTimer = null;
 let achievementState = achievements.normalizeState(null);
 let gamingCosmetics = achievements.normalizeCosmetics(null, achievementState);
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const soundApi = globalThis.PlumePilotSounds;
+const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
+let draggedFloatingLayoutItem = null;
+
+function floatingLayoutFromDom() {
+  return floatingLayoutApi.normalizeLayout({
+    version: floatingLayoutApi.VERSION,
+    items: [...floatingMenuLayoutList.querySelectorAll("[data-layout-item]")].map((row) => ({
+      id: row.dataset.layoutItem,
+      visible: row.querySelector('input[type="checkbox"]').checked,
+    })),
+  });
+}
+
+function updateFloatingLayoutMoveButtons() {
+  const rows = [...floatingMenuLayoutList.querySelectorAll("[data-layout-item]")];
+  rows.forEach((row, index) => {
+    row.querySelector('[data-direction="up"]').disabled = index === 0;
+    row.querySelector('[data-direction="down"]').disabled = index === rows.length - 1;
+  });
+}
+
+function renderFloatingMenuLayout(value) {
+  const normalized = floatingLayoutApi.normalizeLayout(value);
+  for (const item of normalized.items) {
+    const row = floatingMenuLayoutList.querySelector(`[data-layout-item="${item.id}"]`);
+    if (!row) continue;
+    row.querySelector('input[type="checkbox"]').checked = item.visible;
+    floatingMenuLayoutList.append(row);
+  }
+  updateFloatingLayoutMoveButtons();
+}
+
+function saveFloatingMenuLayout({ claim = true, message = "Disposizione salvata." } = {}) {
+  const layout = floatingLayoutFromDom();
+  chrome.storage.local.set({ [floatingLayoutApi.STORAGE_KEY]: layout }, () => {
+    if (chrome.runtime.lastError) {
+      floatingMenuLayoutStatus.textContent = "Impossibile salvare la disposizione.";
+      return;
+    }
+    floatingMenuLayoutStatus.textContent = message;
+    if (claim && !floatingLayoutApi.isDefaultLayout(layout) && document.documentElement.dataset.visualStyle === "gaming") {
+      claimAchievement("customize-floating-menu");
+    }
+  });
+}
+
+function renderSoundPreferences(value) {
+  const normalized = soundApi.normalizeSettings(value);
+  soundNotificationsEnabledCheckbox.checked = normalized.soundNotificationsEnabled;
+  notificationSoundSelect.value = normalized.notificationSound;
+  notificationVolumeInput.value = String(normalized.notificationVolume);
+  notificationVolumeValue.value = `${normalized.notificationVolume}%`;
+  notificationVolumeValue.textContent = `${normalized.notificationVolume}%`;
+  soundNotificationControls.querySelectorAll("select,input,button").forEach((control) => { control.disabled = !normalized.soundNotificationsEnabled; });
+  soundNotificationControls.closest("fieldset").dataset.disabled = String(!normalized.soundNotificationsEnabled);
+}
+
+async function previewNotificationSound() {
+  const sound = soundApi.normalizeSound(notificationSoundSelect.value);
+  const volume = soundApi.normalizeVolume(notificationVolumeInput.value);
+  const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound, volume });
+  soundPreviewStatus.textContent = response?.played === true
+    ? (volume === 0 ? "Anteprima avviata con volume a 0%." : "Anteprima riprodotta.")
+    : (response?.reason || "Impossibile riprodurre l’anteprima.");
+}
 
 const COMMISSION_STORAGE_KEYS = [
   "commissionExams",
@@ -110,6 +207,88 @@ const COMMISSION_STORAGE_KEYS = [
 ];
 
 extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
+if (storeReviewLink && storeLinksApi) {
+  storeReviewLink.href = storeLinksApi.reviewUrl(chrome.runtime.getManifest());
+}
+
+function renderWhatsNewContent() {
+  const release = whatsNewApi.RELEASE;
+  whatsNewDialogVersion.textContent = `v${release.version}`;
+  whatsNewDialogTitle.textContent = release.title;
+  whatsNewDialogSummary.textContent = release.summary;
+  whatsNewItems.replaceChildren(...release.items.map((item) => {
+    const card = document.createElement("article");
+    const title = document.createElement("h3");
+    const text = document.createElement("p");
+    title.textContent = item.title;
+    text.textContent = item.text;
+    card.append(title, text);
+    return card;
+  }));
+}
+
+function markWhatsNewSeen() {
+  const version = whatsNewApi.RELEASE.version;
+  whatsNewBanner.hidden = true;
+  chrome.storage.local.set({ [whatsNewApi.LAST_SEEN_KEY]: version }, () => {
+    chrome.storage.local.remove(whatsNewApi.PENDING_KEY);
+  });
+}
+
+function openWhatsNewDialog({ markSeen = false, returnFocus = null } = {}) {
+  whatsNewReturnFocus = returnFocus instanceof HTMLElement ? returnFocus : document.activeElement;
+  if (markSeen) markWhatsNewSeen();
+  whatsNewDialogBackdrop.hidden = false;
+  closeWhatsNewDialogButton.focus();
+}
+
+function closeWhatsNewDialog() {
+  whatsNewDialogBackdrop.hidden = true;
+  if (whatsNewReturnFocus instanceof HTMLElement && whatsNewReturnFocus.isConnected) whatsNewReturnFocus.focus();
+  whatsNewReturnFocus = null;
+}
+
+function initializeWhatsNew() {
+  if (!whatsNewApi) return;
+  renderWhatsNewContent();
+  const releaseVersion = whatsNewApi.RELEASE.version;
+  const currentVersion = chrome.runtime.getManifest().version;
+  chrome.storage.local.get({
+    [whatsNewApi.PENDING_KEY]: null,
+    [whatsNewApi.LAST_SEEN_KEY]: null,
+  }, (result) => {
+    whatsNewBanner.hidden = !(
+      currentVersion === releaseVersion &&
+      result[whatsNewApi.PENDING_KEY] === releaseVersion &&
+      result[whatsNewApi.LAST_SEEN_KEY] !== releaseVersion
+    );
+  });
+}
+
+dismissWhatsNewButton.addEventListener("click", markWhatsNewSeen);
+openWhatsNewButton.addEventListener("click", () => openWhatsNewDialog({ markSeen: true, returnFocus: openWhatsNewButton }));
+openWhatsNewFromAboutButton.addEventListener("click", () => openWhatsNewDialog({ returnFocus: openWhatsNewFromAboutButton }));
+closeWhatsNewDialogButton.addEventListener("click", closeWhatsNewDialog);
+confirmWhatsNewButton.addEventListener("click", closeWhatsNewDialog);
+whatsNewDialogBackdrop.addEventListener("click", (event) => {
+  if (event.target === whatsNewDialogBackdrop) closeWhatsNewDialog();
+});
+document.addEventListener("keydown", (event) => {
+  if (whatsNewDialogBackdrop.hidden) return;
+  if (event.key === "Escape") {
+    closeWhatsNewDialog();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [closeWhatsNewDialogButton, confirmWhatsNewButton];
+  const currentIndex = focusable.indexOf(document.activeElement);
+  const nextIndex = event.shiftKey
+    ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+    : (currentIndex + 1) % focusable.length;
+  event.preventDefault();
+  focusable[nextIndex].focus();
+});
+initializeWhatsNew();
 
 function selectPopupTab(tabId, focus = false) {
   const selectedButton = tabButtons.find((button) => button.id === tabId);
@@ -222,7 +401,7 @@ function claimEnabledGamingAchievements() {
 }
 
 function operationTabId(operation) {
-  return ["turbo", "objectives", "tests"].includes(operation?.kind)
+  return ["turbo", "objectives"].includes(operation?.kind)
     ? "activitiesTab"
     : "courseTab";
 }
@@ -290,11 +469,17 @@ function renderChapterLimit() {
   const ready = Boolean(statusValue?.courseCode);
   const limit = Math.max(1, Number(statusValue?.limit) || 1);
   const maximum = Math.max(1, Number(statusValue?.maximum) || 1);
-  chapterLimitValue.textContent = String(limit);
+  chapterLimitValue.value = String(limit);
+  chapterLimitValue.max = String(maximum);
+  chapterLimitSlider.value = String(limit);
+  chapterLimitSlider.max = String(maximum);
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(limit, maximum));
   chapterLimitEnabledCheckbox.checked = statusValue?.enabled === true;
   chapterLimitEnabledCheckbox.disabled = !ready;
   chapterLimitMinus.disabled = !ready || limit <= 1;
   chapterLimitPlus.disabled = !ready || limit >= maximum;
+  chapterLimitValue.disabled = !ready;
+  chapterLimitSlider.disabled = !ready;
   chapterLimitProgress.textContent = !ready
     ? "Apri un corso per calcolare il limite."
     : statusValue.reached
@@ -324,11 +509,13 @@ function renderCourseProgress(nextStatus = courseProgressStatus) {
   courseProgressMessage.textContent = ready
     ? courseProgressStatus.message || "Sincronizzato con Pegaso."
     : "Apri un corso per visualizzare il progresso.";
+  renderAutoplayStopAt70();
 }
 function normalizedCourseProgressPosition(value) {
   return ["top", "bottom", "left", "right"].includes(value) ? value : "bottom";
 }
-function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnabled) {
+function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnabled, stopAt70Enabled = autoplayStopAt70Enabled) {
+  autoplayStopAt70Enabled = stopAt70Enabled === true;
   courseProgressOverlayEnabledCheckbox.checked = overlayEnabled === true;
   courseProgressPositionFieldset.disabled = overlayEnabled !== true;
   const normalizedPosition = normalizedCourseProgressPosition(position);
@@ -336,18 +523,50 @@ function renderCourseProgressPreferences(overlayEnabled, position, thresholdEnab
     radio.checked = radio.value === normalizedPosition;
   }
   courseProgressThresholdEnabledCheckbox.checked = thresholdEnabled === true;
+  autoplayStopAt70EnabledCheckbox.checked = autoplayStopAt70Enabled;
   courseProgressThresholdMarker.hidden = thresholdEnabled !== true;
   const positionLabels = { top: "sopra", bottom: "sotto", left: "a sinistra", right: "a destra" };
   const summary = [];
   if (overlayEnabled === true) summary.push(`Barra ${positionLabels[normalizedPosition]}`);
   if (thresholdEnabled === true) summary.push("avviso 70%");
+  if (autoplayStopAt70Enabled) summary.push("stop 70%");
   courseProgressOptionsSummary.textContent = summary.length ? summary.join(" · ") : "Disattivate";
+  renderAutoplayStopAt70();
+}
+function renderAutoplayStopAt70() {
+  const courseCode = courseProgressStatus?.courseCode || "";
+  const percent = Number(courseProgressStatus?.percent);
+  const reached = courseProgressStatus?.available === true && Number.isFinite(percent) && percent >= 70;
+  autoplayStopAt70Resume.hidden = !autoplayStopAt70Enabled || !courseCode || !reached || autoplayStopAt70BypassedCourses[courseCode] === true;
+}
+function updateAutoplayStopAt70Bypass(bypassed) {
+  const courseCode = courseProgressStatus?.courseCode;
+  if (!courseCode) return;
+  const next = { ...autoplayStopAt70BypassedCourses };
+  if (bypassed) next[courseCode] = true;
+  else delete next[courseCode];
+  autoplayStopAt70BypassedCourses = next;
+  chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
+  renderAutoplayStopAt70();
 }
 function updateChapterLimitValue(nextValue) {
   if (!chapterLimitStatus?.courseCode) return;
-  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, nextValue));
+  const numericValue = Number(nextValue);
+  if (!Number.isFinite(numericValue)) return;
+  const value = Math.max(1, Math.min(chapterLimitStatus.maximum, Math.round(numericValue)));
   chapterLimitMaps.limits[chapterLimitStatus.courseCode] = value;
   chrome.storage.local.set({ autoplayChapterLimits: chapterLimitMaps.limits });
+}
+function flameLevelForLimit(value, maximum) {
+  if (maximum <= 1) return 5;
+  return Math.max(1, Math.min(5, Math.ceil(((value - 1) / (maximum - 1)) * 5)));
+}
+function commitChapterLimitInput() {
+  if (chapterLimitValue.value === "") {
+    renderChapterLimit();
+    return;
+  }
+  updateChapterLimitValue(chapterLimitValue.value);
 }
 function selectedPlaybackErrorRecovery() {
   return playbackErrorRecoveryRadios.find((radio) => radio.checked)?.value || "automatic";
@@ -373,7 +592,7 @@ function renderVisualStyle(value) {
   document.documentElement.dataset.visualStyle = normalized;
   if (normalized !== "gaming" && document.getElementById("achievementsTab")?.getAttribute("aria-selected") === "true") selectPopupTab("courseTab");
   if (normalized !== "gaming") {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }
@@ -634,18 +853,21 @@ function runtimeMessage(message) {
   return new Promise((resolve) => chrome.runtime.sendMessage(message, (response) => resolve(chrome.runtime.lastError ? { accepted: false, reason: chrome.runtime.lastError.message } : response)));
 }
 
-chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" } }, (result) => {
+chrome.storage.local.get({ enabled: true, stopAtTests: false, autoCompleteTests: false, autoplayChapterLimitEnabled: false, autoplayChapterLimits: {}, autoplayChapterLimitSessions: {}, autoplayChapterLimitStatuses: {}, courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {}, playbackErrorRecovery: "automatic", visualStyle: "standard", themePreference: "system", menuSize: "medium", floatingMenuEnabled: true, floatingMenuLayout: floatingLayoutApi.DEFAULT_LAYOUT, commissionCheckEnabled: false, commissionExams: [], commissionExamsCapturedAt: null, commissionUnseenExamIds: [], pegasoActiveOperation: null, studywingAchievements: null, gamingCosmetics: { barStyle: "arcane", launcherStyle: "arcane" }, ...soundApi.DEFAULTS }, (result) => {
   checkbox.checked = result.enabled;
   renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
   chapterLimitMaps = { limits: result.autoplayChapterLimits || {}, sessions: result.autoplayChapterLimitSessions || {} };
   chapterLimitStatuses = result.autoplayChapterLimitStatuses || {};
-  renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled);
+  autoplayStopAt70BypassedCourses = result.autoplayStopAt70BypassedCourses || {};
+  renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled, result.autoplayStopAt70Enabled);
   renderPlaybackErrorRecovery(result.playbackErrorRecovery);
   renderVisualStyle(result.visualStyle);
   renderThemePreference(result.themePreference);
   renderMenuSize(result.menuSize);
   floatingMenuEnabledCheckbox.checked = result.floatingMenuEnabled;
+  renderFloatingMenuLayout(result.floatingMenuLayout);
   commissionCheckEnabledCheckbox.checked = result.commissionCheckEnabled;
+  renderSoundPreferences(result);
   gamingCosmetics = achievements.normalizeCosmetics(result.gamingCosmetics, result.studywingAchievements); updateAutoplayControls(); updateStatus(result.enabled); renderOperation(result.pegasoActiveOperation); renderCommissionUpdates(result); renderCourseProgress(); renderAchievements(result.studywingAchievements);
   claimEnabledGamingAchievements();
 });
@@ -696,17 +918,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
       renderChapterLimit();
     });
   }
-  if (changes.courseProgressOverlayEnabled || changes.courseProgressOverlayPosition || changes.courseProgressThresholdEnabled) {
-    chrome.storage.local.get({ courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false }, (result) =>
-      renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled));
+  if (changes.courseProgressOverlayEnabled || changes.courseProgressOverlayPosition || changes.courseProgressThresholdEnabled || changes.autoplayStopAt70Enabled || changes.autoplayStopAt70BypassedCourses) {
+    chrome.storage.local.get({ courseProgressOverlayEnabled: false, courseProgressOverlayPosition: "bottom", courseProgressThresholdEnabled: false, autoplayStopAt70Enabled: false, autoplayStopAt70BypassedCourses: {} }, (result) => {
+      autoplayStopAt70BypassedCourses = result.autoplayStopAt70BypassedCourses || {};
+      renderCourseProgressPreferences(result.courseProgressOverlayEnabled, result.courseProgressOverlayPosition, result.courseProgressThresholdEnabled, result.autoplayStopAt70Enabled);
+    });
   }
   if (changes.playbackErrorRecovery) renderPlaybackErrorRecovery(changes.playbackErrorRecovery.newValue);
+  if (changes.soundNotificationsEnabled || changes.notificationSound || changes.notificationVolume) {
+    chrome.storage.local.get(soundApi.DEFAULTS, renderSoundPreferences);
+  }
   if (changes.visualStyle) renderVisualStyle(changes.visualStyle.newValue);
   if (changes.studywingAchievements) renderAchievements(changes.studywingAchievements.newValue);
   if (changes.gamingCosmetics) { gamingCosmetics = achievements.normalizeCosmetics(changes.gamingCosmetics.newValue, achievementState); renderRewards(); }
   if (changes.themePreference) renderThemePreference(changes.themePreference.newValue);
   if (changes.menuSize) renderMenuSize(changes.menuSize.newValue);
   if (changes.floatingMenuEnabled) floatingMenuEnabledCheckbox.checked = changes.floatingMenuEnabled.newValue === true;
+  if (changes.floatingMenuLayout) renderFloatingMenuLayout(changes.floatingMenuLayout.newValue);
   if (changes.commissionCheckEnabled) commissionCheckEnabledCheckbox.checked = changes.commissionCheckEnabled.newValue === true;
   if (changes.commissionCheckEnabled || changes.commissionExams || changes.commissionExamsCapturedAt || changes.commissionUnseenExamIds) {
     readCommissionUpdates();
@@ -762,13 +990,27 @@ chapterLimitEnabledCheckbox.addEventListener("change", () => {
 });
 chapterLimitMinus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) - 1));
 chapterLimitPlus.addEventListener("click", () => updateChapterLimitValue((Number(chapterLimitStatus?.limit) || 1) + 1));
+chapterLimitValue.addEventListener("change", commitChapterLimitInput);
+chapterLimitValue.addEventListener("blur", commitChapterLimitInput);
+chapterLimitValue.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    commitChapterLimitInput();
+    chapterLimitValue.blur();
+  }
+});
+chapterLimitSlider.addEventListener("input", () => {
+  chapterLimitValue.value = chapterLimitSlider.value;
+  chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(Number(chapterLimitSlider.value), Number(chapterLimitSlider.max)));
+});
+chapterLimitSlider.addEventListener("change", () => updateChapterLimitValue(chapterLimitSlider.value));
 chapterLimitResume.addEventListener("click", () => {
   if (!chapterLimitStatus?.courseCode) return;
   chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
     courseCode: chapterLimitStatus.courseCode,
-    completed: 0,
-    reached: false,
-    lastChapterKey: "",
+          completed: 0,
+          reached: false,
+          lastChapterKey: "",
+          soundSessionId: Date.now(),
   };
   chrome.storage.local.set({ autoplayChapterLimitSessions: chapterLimitMaps.sessions });
 });
@@ -784,11 +1026,32 @@ courseProgressThresholdEnabledCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ courseProgressThresholdEnabled: courseProgressThresholdEnabledCheckbox.checked });
   if (courseProgressThresholdEnabledCheckbox.checked) claimAchievement("enable-70-advice");
 });
+autoplayStopAt70EnabledCheckbox.addEventListener("change", () => {
+  autoplayStopAt70BypassedCourses = {};
+  chrome.storage.local.set({
+    autoplayStopAt70Enabled: autoplayStopAt70EnabledCheckbox.checked,
+    autoplayStopAt70BypassedCourses: {},
+  });
+});
+autoplayStopAt70Resume.addEventListener("click", () => updateAutoplayStopAt70Bypass(true));
 for (const radio of playbackErrorRecoveryRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;
   chrome.storage.local.set({ playbackErrorRecovery: selectedPlaybackErrorRecovery() });
   playActionAnimation(playbackRecoveryControlSprite);
 });
+soundNotificationsEnabledCheckbox.addEventListener("change", () => {
+  chrome.storage.local.set({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked });
+  renderSoundPreferences({ soundNotificationsEnabled: soundNotificationsEnabledCheckbox.checked, notificationSound: notificationSoundSelect.value, notificationVolume: notificationVolumeInput.value });
+  if (soundNotificationsEnabledCheckbox.checked) playActionAnimation(soundNotificationControlSprite);
+});
+notificationSoundSelect.addEventListener("change", () => chrome.storage.local.set({ notificationSound: soundApi.normalizeSound(notificationSoundSelect.value) }));
+notificationVolumeInput.addEventListener("input", () => {
+  const volume = soundApi.normalizeVolume(notificationVolumeInput.value);
+  notificationVolumeValue.value = `${volume}%`;
+  notificationVolumeValue.textContent = `${volume}%`;
+});
+notificationVolumeInput.addEventListener("change", () => chrome.storage.local.set({ notificationVolume: soundApi.normalizeVolume(notificationVolumeInput.value) }));
+previewNotificationSoundButton.addEventListener("click", previewNotificationSound);
 for (const radio of visualStyleRadios) radio.addEventListener("change", () => {
   if (!radio.checked) return;
   const visualStyle = selectedVisualStyle();
@@ -812,6 +1075,60 @@ floatingMenuEnabledCheckbox.addEventListener("change", () => {
   if (floatingMenuEnabledCheckbox.checked) playActionAnimation(floatingMenuControlSprite);
   if (floatingMenuEnabledCheckbox.checked) claimAchievement("open-floating-menu");
 });
+
+floatingMenuLayoutList.addEventListener("change", (event) => {
+  if (event.target.matches('input[type="checkbox"]')) saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-direction]");
+  if (!button) return;
+  const row = button.closest("[data-layout-item]");
+  if (button.dataset.direction === "up" && row.previousElementSibling) {
+    floatingMenuLayoutList.insertBefore(row, row.previousElementSibling);
+  } else if (button.dataset.direction === "down" && row.nextElementSibling) {
+    floatingMenuLayoutList.insertBefore(row.nextElementSibling, row);
+  } else {
+    return;
+  }
+  updateFloatingLayoutMoveButtons();
+  button.focus();
+  saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("dragstart", (event) => {
+  const row = event.target.closest("[data-layout-item]");
+  if (!row) return;
+  draggedFloatingLayoutItem = row;
+  row.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", row.dataset.layoutItem);
+});
+floatingMenuLayoutList.addEventListener("dragover", (event) => {
+  if (!draggedFloatingLayoutItem) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  const target = event.target.closest("[data-layout-item]");
+  if (!target || target === draggedFloatingLayoutItem) return;
+  const rect = target.getBoundingClientRect();
+  floatingMenuLayoutList.insertBefore(
+    draggedFloatingLayoutItem,
+    event.clientY < rect.top + rect.height / 2 ? target : target.nextElementSibling,
+  );
+});
+floatingMenuLayoutList.addEventListener("drop", (event) => {
+  if (!draggedFloatingLayoutItem) return;
+  event.preventDefault();
+  updateFloatingLayoutMoveButtons();
+  saveFloatingMenuLayout();
+});
+floatingMenuLayoutList.addEventListener("dragend", () => {
+  draggedFloatingLayoutItem?.classList.remove("is-dragging");
+  draggedFloatingLayoutItem = null;
+});
+resetFloatingMenuLayoutButton.addEventListener("click", () => {
+  renderFloatingMenuLayout(floatingLayoutApi.DEFAULT_LAYOUT);
+  saveFloatingMenuLayout({ claim: false, message: "Disposizione predefinita ripristinata." });
+});
+
 commissionCheckEnabledCheckbox.addEventListener("change", () => {
   chrome.storage.local.set({ commissionCheckEnabled: commissionCheckEnabledCheckbox.checked });
   if (commissionCheckEnabledCheckbox.checked) playActionAnimation(commissionControlSprite);
@@ -1018,12 +1335,12 @@ objectivesButton.addEventListener("click", () => {
   });
 });
 
-for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
   sprite.addEventListener("animationend", () => sprite.classList.remove("is-playing"));
 }
 reducedMotion.addEventListener("change", () => {
   if (reducedMotion.matches) {
-    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite]) {
+    for (const sprite of [turboTestsSprite, objectivesSprite, testCollectionSprite, materialsSprite, autoplayControlSprite, floatingMenuControlSprite, commissionControlSprite, playbackRecoveryControlSprite, soundNotificationControlSprite]) {
       sprite.classList.remove("is-playing");
     }
   }

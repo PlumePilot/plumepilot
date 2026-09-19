@@ -20,7 +20,7 @@ const VISUAL_CUT_SCAN_STEP = 4;
 const VISUAL_CUT_OVERLAP = 18;
 const EPUB_CONVERSION_PERCENT = 92;
 const STUDYWING_SIGNATURE =
-  "Generato con PlumePilot – Assistente per Pegaso.";
+  "Generato con PlumePilot – Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.";
 
 const IMAGE_OPERATION_NAMES = [
   "paintImageMaskXObject",

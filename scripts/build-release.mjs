@@ -43,7 +43,8 @@ async function collectFiles(directory = root, relativeDirectory = "") {
 function manifestFor(baseManifest, browser) {
   const manifest = structuredClone(baseManifest);
   if (browser === "firefox") {
-    manifest.background = { scripts: ["achievements.js", "background.js"] };
+    manifest.background = { scripts: ["achievements.js", "sound-settings.js", "whats-new.js", "background.js"] };
+    manifest.permissions = (manifest.permissions || []).filter((permission) => permission !== "offscreen");
     manifest.browser_specific_settings = {
       gecko_android: {
         strict_min_version: "142.0",
@@ -58,6 +59,7 @@ function manifestFor(baseManifest, browser) {
     };
   } else {
     manifest.background = { service_worker: "background.js" };
+    manifest.permissions = [...new Set([...(manifest.permissions || []), "offscreen"])];
     delete manifest.browser_specific_settings;
     if (browser === "edge") {
       manifest.name = "__MSG_extensionName__";
@@ -94,7 +96,8 @@ function validateManifest(manifest, browser) {
   if (manifest.manifest_version !== 3) throw new Error(`${browser}: Manifest V3 richiesto.`);
   if (!/^\d+(?:\.\d+){0,3}$/.test(manifest.version)) throw new Error(`${browser}: versione non valida.`);
   if ([...manifest.description].length > 132) throw new Error(`${browser}: description oltre 132 caratteri.`);
-  if (manifest.permissions?.some((permission) => permission !== "storage")) {
+  const expectedPermissions = browser === "firefox" ? ["storage"] : ["storage", "offscreen"];
+  if (JSON.stringify(manifest.permissions || []) !== JSON.stringify(expectedPermissions)) {
     throw new Error(`${browser}: rilevato un permesso API inatteso.`);
   }
   if (browser === "firefox") {
@@ -105,6 +108,12 @@ function validateManifest(manifest, browser) {
   } else {
     if (manifest.background?.scripts) throw new Error(`${browser}: background.scripts inatteso.`);
     if (manifest.browser_specific_settings) throw new Error(`${browser}: configurazione Gecko inattesa.`);
+    if (browser === "edge") {
+      if (manifest.name !== "__MSG_extensionName__") throw new Error("Edge: nome localizzato assente.");
+      if (manifest.description !== "__MSG_extensionDescription__") throw new Error("Edge: descrizione localizzata assente.");
+      if (manifest.action?.default_title !== "__MSG_extensionName__") throw new Error("Edge: titolo azione localizzato assente.");
+      if (manifest.default_locale !== "it") throw new Error("Edge: lingua predefinita errata.");
+    }
   }
 }
 

@@ -27,6 +27,13 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const commissionStates = globalThis.StudyWingCommissionState;
   const achievements = globalThis.StudyWingAchievements;
+  const soundApi = globalThis.PlumePilotSounds;
+  const storeLinksApi = globalThis.PlumePilotStoreLinks;
+  const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
+  const extensionManifest = chrome.runtime.getManifest();
+  const storeReviewUrl = storeLinksApi?.reviewUrl(extensionManifest) || storeLinksApi?.STORE_URLS?.chrome || "https://chromewebstore.google.com/";
+  const faqUrl = storeLinksApi?.FAQ_URL || "https://plumepilot.github.io/plumepilot/faq/";
+  const donateUrl = storeLinksApi?.DONATE_URL || "https://ko-fi.com/flo_";
   const defaults = {
     enabled: true,
     stopAtTests: false,
@@ -38,13 +45,19 @@
     courseProgressOverlayEnabled: false,
     courseProgressOverlayPosition: "bottom",
     courseProgressThresholdEnabled: false,
+    autoplayStopAt70Enabled: false,
+    autoplayStopAt70BypassedCourses: {},
     courseProgressThresholdNotified: {},
     playbackErrorRecovery: "automatic",
+    soundNotificationsEnabled: false,
+    notificationSound: "chirp",
+    notificationVolume: 70,
     visualStyle: "standard",
     themePreference: "system",
     menuSize: "medium",
     floatingMenuEnabled: true,
     floatingMenuPosition: DEFAULT_POSITION,
+    floatingMenuLayout: floatingLayoutApi.DEFAULT_LAYOUT,
     commissionCheckEnabled: false,
     commissionExams: [],
     commissionExamsCapturedAt: null,
@@ -142,6 +155,7 @@
           ui.autoplayControlSprite,
           ui.playbackRecoveryControlSprite,
           ui.commissionControlSprite,
+          ui.soundNotificationControlSprite,
         ]
       : [];
   }
@@ -674,6 +688,10 @@
       settings.courseProgressThresholdEnabled === true
     ) {
       showCourseThresholdToast();
+      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
+      if (soundResult?.achievement?.accepted) {
+        window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
+      }
     }
   }
 
@@ -751,7 +769,7 @@
   ) {
     if (!ui) return;
     const courseAvailable = !isCommissionOnlyPage();
-    const examsAvailable = settings.commissionCheckEnabled === true;
+    const examsAvailable = true;
     const achievementsAvailable =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     const selectedTab =
@@ -782,7 +800,12 @@
       if (selected && focus) tab.focus();
     }
 
-    if (selectedTab === "exams" && acknowledge && !ui.panel.hidden)
+    if (
+      selectedTab === "exams" &&
+      settings.commissionCheckEnabled === true &&
+      acknowledge &&
+      !ui.panel.hidden
+    )
       markCommissionNotificationsSeen();
     setTimeout(placePanel, 0);
   }
@@ -977,6 +1000,14 @@
     );
   }
 
+  function flameLevelForLimit(value, maximum) {
+    if (maximum <= 1) return 5;
+    return Math.max(
+      1,
+      Math.min(5, Math.ceil(((value - 1) / (maximum - 1)) * 5)),
+    );
+  }
+
   function renderSettings() {
     if (!ui) return;
     const autoplayDisabled = settings.enabled === false;
@@ -1016,9 +1047,15 @@
     ui.chapterLimitEnabled.checked =
       settings.autoplayChapterLimitEnabled === true;
     ui.chapterLimitEnabled.disabled = !limitReady;
-    ui.chapterLimitValue.textContent = String(limit);
+    ui.chapterLimitValue.value = String(limit);
+    ui.chapterLimitValue.max = String(maximum);
+    ui.chapterLimitSlider.value = String(limit);
+    ui.chapterLimitSlider.max = String(maximum);
+    ui.chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(limit, maximum));
     ui.chapterLimitMinus.disabled = !limitReady || limit <= 1;
     ui.chapterLimitPlus.disabled = !limitReady || limit >= maximum;
+    ui.chapterLimitValue.disabled = !limitReady;
+    ui.chapterLimitSlider.disabled = !limitReady;
     ui.chapterLimitProgress.textContent = !limitReady
       ? "Limite disponibile dopo il caricamento del corso."
       : limitStatus.reached
@@ -1044,6 +1081,14 @@
     );
     ui.courseProgressThresholdEnabled.checked =
       settings.courseProgressThresholdEnabled === true;
+    ui.autoplayStopAt70Enabled.checked = settings.autoplayStopAt70Enabled === true;
+    const thresholdReached =
+      courseProgressStatus?.available === true &&
+      Number(courseProgressStatus.percent) >= 70;
+    ui.autoplayStopAt70Resume.hidden =
+      settings.autoplayStopAt70Enabled !== true ||
+      !thresholdReached ||
+      settings.autoplayStopAt70BypassedCourses?.[currentCode] === true;
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
@@ -1056,6 +1101,8 @@
     }
     if (settings.courseProgressThresholdEnabled === true)
       progressSummary.push("avviso 70%");
+    if (settings.autoplayStopAt70Enabled === true)
+      progressSummary.push("stop 70%");
     ui.courseProgressOptionsSummary.textContent = progressSummary.length
       ? progressSummary.join(" · ")
       : "Disattivate";
@@ -1079,6 +1126,13 @@
       radio.checked = radio.value === menuSize;
     for (const radio of ui.playbackErrorRecoveryRadios)
       radio.checked = radio.value === playbackRecovery;
+    const sound = soundApi.normalizeSettings(settings);
+    ui.soundNotificationsEnabled.checked = sound.soundNotificationsEnabled;
+    ui.notificationSound.value = sound.notificationSound;
+    ui.notificationVolume.value = String(sound.notificationVolume);
+    ui.notificationVolumeValue.value = `${sound.notificationVolume}%`;
+    ui.notificationVolumeValue.textContent = `${sound.notificationVolume}%`;
+    ui.soundControls.querySelectorAll("select,input,button").forEach((control) => { control.disabled = !sound.soundNotificationsEnabled; });
   }
 
   function renderCourseProgress() {
@@ -1258,15 +1312,17 @@
     const achievementsEnabled =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     ui.courseTab.hidden = commissionOnlyPage;
-    ui.examsTab.hidden = !enabled;
+    ui.examsTab.hidden = false;
     ui.achievementsTab.hidden = !achievementsEnabled;
     ui.tabList.dataset.count = String(
-      1 +
+      2 +
         Number(!commissionOnlyPage) +
-        Number(enabled) +
         Number(achievementsEnabled),
     );
-    ui.commissionSection.hidden = !enabled;
+    ui.commissionSection.hidden = false;
+    ui.commissionEnabled.checked = enabled;
+    ui.commissionDisabled.hidden = enabled;
+    ui.commissionContent.hidden = !enabled;
     ui.hide.textContent = commissionOnlyPage
       ? "Disattiva il controllo commissione"
       : "Nascondi il menu dalla pagina";
@@ -1274,11 +1330,10 @@
     if (
       !activeMenuTab ||
       (activeMenuTab === "course" && commissionOnlyPage) ||
-      (activeMenuTab === "exams" && !enabled) ||
       (activeMenuTab === "achievements" && !achievementsEnabled)
     ) {
       selectMenuTab(
-        commissionOnlyPage ? (enabled ? "exams" : "preferences") : "course",
+        commissionOnlyPage ? "exams" : "course",
         { acknowledge: false },
       );
     }
@@ -1768,6 +1823,18 @@
     chrome.storage.local.set({ [key]: value });
   }
 
+  function applyFloatingMenuLayout() {
+    if (!ui?.actions) return;
+    const layout = floatingLayoutApi.normalizeLayout(settings.floatingMenuLayout);
+    for (const item of layout.items) {
+      const definition = floatingLayoutApi.definitionFor(item.id);
+      const button = definition ? ui.actions.querySelector(`[data-action="${definition.action}"]`) : null;
+      if (!button) continue;
+      button.hidden = !item.visible;
+      ui.actions.append(button);
+    }
+  }
+
   function createMenu() {
     if (host || !document.documentElement) return;
 
@@ -1810,6 +1877,9 @@
     );
     const actionCommissionCheckUrl = chrome.runtime.getURL(
       "assets/gaming/action-commission-check.png",
+    );
+    const actionNotificationSoundUrl = chrome.runtime.getURL(
+      "assets/gaming/action-notification-sound.png",
     );
     const notificationAlertUrl = chrome.runtime.getURL(
       "assets/gaming/notification-alert.png",
@@ -2351,8 +2421,11 @@
           gap: 10px;
         }
         .preferences-section {
-          display: grid;
-          gap: 8px;
+          min-width: 0;
+          padding: 9px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          background: var(--sw-elevated);
         }
         .preferences-heading {
           margin: 0;
@@ -2362,6 +2435,18 @@
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
+        .preference-macro > summary { list-style: none; cursor: pointer; user-select: none; }
+        .preference-macro > summary::-webkit-details-marker { display: none; }
+        .preference-macro-summary,
+        .preference-subsection-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .preference-macro-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-subsection { min-width: 0; padding: 8px; border: 1px solid var(--sw-border); border-radius: 8px; background: var(--sw-surface); }
+        .preference-subsection-summary { color: var(--sw-heading); font-size: 10px; font-weight: 750; line-height: 1.3; }
+        .preference-subsection-content { display: grid; gap: 8px; padding-top: 8px; }
+        .preference-disclosure-chevron { width: 7px; height: 7px; flex: 0 0 auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 140ms ease; }
+        details[open] > summary > .preference-disclosure-chevron { transform: rotate(225deg); }
+        .preference-macro > summary:focus-visible { outline: 2px solid var(--sw-gold); outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { .preference-disclosure-chevron { transition: none; } }
         .preference-group {
           min-width: 0;
           margin: 0;
@@ -2402,6 +2487,24 @@
           margin: 0;
           accent-color: var(--sw-accent);
           cursor: pointer;
+        }
+        .sound-options label {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          width: 100%;
+        }
+        .sound-heading {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+        .sound-heading > span:first-child { flex: 1 1 auto; min-width: 0; }
+        .sound-options select,
+        .sound-options input[type="range"] {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          font: inherit;
         }
         .preference-hint {
           margin: 7px 0 0;
@@ -2716,9 +2819,23 @@
         .autoplay-options-content.disabled input { cursor: not-allowed; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
         .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 36px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
+        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
         .chapter-limit-stepper button { border: 0; min-height: 28px; color: var(--sw-heading); background: var(--sw-surface-elevated); }
-        .chapter-limit-stepper output { text-align: center; font-weight: 750; }
+        .chapter-limit-stepper input { width: 100%; min-width: 0; min-height: 28px; padding: 0 2px; border: 0; border-inline: 1px solid var(--sw-border); color: var(--sw-heading); background: var(--sw-surface); font: inherit; font-weight: 750; text-align: center; -moz-appearance: textfield; }
+        .chapter-limit-stepper input::-webkit-inner-spin-button,
+        .chapter-limit-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+        .chapter-limit-slider { width: 100%; height: 32px; margin: 7px 0 0; accent-color: var(--sw-accent); cursor: pointer; }
+        .chapter-limit-slider:disabled { cursor: not-allowed; opacity: .55; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider { appearance: none; height: 32px; background: transparent; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-track { height: 4px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -14px; border: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; appearance: none; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 32px; height: 32px; border: 0; border-radius: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; image-rendering: pixelated; }
+        .chapter-limit-slider[data-flame-level="1"] { --sw-flame-x: 0; }
+        .chapter-limit-slider[data-flame-level="2"] { --sw-flame-x: -32px; }
+        .chapter-limit-slider[data-flame-level="3"] { --sw-flame-x: -64px; }
+        .chapter-limit-slider[data-flame-level="4"] { --sw-flame-x: -96px; }
+        .chapter-limit-slider[data-flame-level="5"] { --sw-flame-x: -128px; }
         .chapter-limit-progress { margin: 6px 0 0; color: var(--sw-text-muted); font-size: 10px; line-height: 1.35; }
         .bookmark-action {
           width: 100%;
@@ -2852,6 +2969,25 @@
         .commission-section {
           padding-top: 1px;
         }
+        .commission-toggle {
+          margin-bottom: 4px;
+          padding: 0 2px 6px;
+          border-bottom: 1px solid var(--sw-divider-soft);
+          font-weight: 750;
+        }
+        .commission-disabled {
+          margin: 9px 0 0;
+          padding: 10px;
+          border-radius: 7px;
+          color: var(--sw-muted);
+          background: var(--sw-empty-bg);
+          font-size: 10px;
+          line-height: 1.4;
+          text-align: center;
+        }
+        .commission-disabled[hidden],
+        .commission-content[hidden] { display: none; }
+        .commission-content { padding-top: 7px; }
         .commission-heading {
           margin: 0 0 3px;
           color: var(--sw-heading);
@@ -3063,6 +3199,7 @@
         :host([data-visual-style="gaming"]) .autoplay-control-sprite { background-image: url("${actionAutoplayUrl}"); }
         :host([data-visual-style="gaming"]) .playback-recovery-control-sprite { background-image: url("${actionPlaybackRecoveryUrl}"); }
         :host([data-visual-style="gaming"]) .commission-control-sprite { background-image: url("${actionCommissionCheckUrl}"); }
+        :host([data-visual-style="gaming"]) .sound-notification-control-sprite { background-image: url("${actionNotificationSoundUrl}"); }
         @media (hover: hover) {
           :host([data-visual-style="gaming"]) .gaming-control-row:hover .gaming-control-sprite:not(.is-playing) {
             animation: control-hover-preview 1600ms steps(5, end) infinite both;
@@ -3241,6 +3378,44 @@
           cursor: pointer;
         }
         .hide-menu:hover { color: var(--sw-accent-strong); }
+        .project-links {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 5px 10px;
+          margin-top: 7px;
+          padding-top: 8px;
+          border-top: 1px solid var(--sw-divider);
+          font-size: 10px;
+        }
+        .project-link {
+          padding: 0;
+          border: 0;
+          color: var(--sw-accent-strong);
+          background: transparent;
+          font: inherit;
+          font-weight: 700;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          cursor: pointer;
+        }
+        .project-link:hover { color: var(--sw-heading); }
+        .project-link:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
+        .project-info {
+          margin: 7px 0 0;
+          padding: 8px;
+          border: 1px solid var(--sw-divider);
+          border-radius: 7px;
+          color: var(--sw-control-text);
+          background: var(--sw-surface);
+          font-size: 10px;
+          line-height: 1.4;
+        }
+        .project-info[hidden] { display: none; }
+        :host([data-menu-size="medium"]) .project-links,
+        :host([data-menu-size="medium"]) .project-info { font-size: 11px; }
+        :host([data-menu-size="large"]) .project-links,
+        :host([data-menu-size="large"]) .project-info { font-size: 12px; }
 
         /* Gaming pixel frames: static CSS only, with unclipped focus outlines. */
         :host([data-visual-style="gaming"]) {
@@ -3404,7 +3579,9 @@
                     </div>
                   </div>
                   <label class="course-progress-setting"><span>Avvisami al 70%</span><input data-setting="course-progress-threshold-enabled" type="checkbox"></label>
-                  <p class="course-progress-hint">L’avviso funziona anche senza la barra sullo schermo.</p>
+                  <label class="course-progress-setting"><span>Ferma autoplay al 70%</span><input data-setting="autoplay-stop-at-70-enabled" type="checkbox"></label>
+                  <button class="bookmark-action" data-action="autoplay-stop-at-70-resume" type="button" hidden>Continua oltre il 70%</button>
+                  <p class="course-progress-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare oltre la soglia.</p>
                 </div>
               </details>
             </section>
@@ -3430,9 +3607,10 @@
                     <label class="chapter-limit-row"><span>Limite sessione autoplay</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
                     <div class="chapter-limit-stepper">
                       <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
-                      <output data-role="chapter-limit-value">1</output>
+                      <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
                       <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
                     </div>
+                    <input class="chapter-limit-slider" data-role="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
                     <p class="chapter-limit-progress" data-role="chapter-limit-progress"></p>
                     <button class="bookmark-action" data-action="chapter-limit-resume" type="button" hidden>Riprendi sessione</button>
                   </div>
@@ -3440,17 +3618,20 @@
               </div>
             </div>
             <div class="actions">
-              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
-              <button class="action objectives has-gaming-art" data-action="objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
-              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
-              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
+              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
+              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
+              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" data-layout-item="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
+              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" data-layout-item="study-materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
             </div>
             <p class="status" data-role="status" data-error="false" aria-live="polite"></p>
             </div>
           </div>
           <div id="studywing-exams-panel" class="menu-tab-panel" data-role="exams-panel" role="tabpanel" aria-labelledby="studywing-exams-tab" hidden>
-            <section class="commission-section" data-role="commission-section" hidden>
-              <div class="commission-heading-row gaming-control-row"><h2 class="commission-heading">Stato della commissione</h2><span class="gaming-control-sprite commission-control-sprite" data-role="commission-control-sprite" aria-hidden="true"></span></div>
+            <section class="commission-section" data-role="commission-section">
+              <label class="setting commission-toggle gaming-control-row"><span>Controlla stato commissione</span><span class="gaming-control-sprite commission-control-sprite" data-role="commission-control-sprite" aria-hidden="true"></span><input data-setting="commission-check-enabled" type="checkbox"></label>
+              <p class="commission-disabled" data-role="commission-disabled">Il controllo automatico della commissione è disattivato.</p>
+              <div class="commission-content" data-role="commission-content" hidden>
+              <h2 class="commission-heading">Stato della commissione</h2>
               <p class="commission-intro">Controllo automatico ogni 10 minuti mentre una pagina Pegaso è visibile. Gli esami restano qui durante la valutazione; gli esiti caricati da Pegaso sono raccolti nel sottomenù.</p>
               <div class="commission-empty" data-role="commission-empty">Nessun esame da mostrare. Il controllo partirà quando l’autenticazione della pagina Pegaso sarà disponibile.</div>
               <div class="commission-list" data-role="commission-list"></div>
@@ -3473,6 +3654,7 @@
                 </section>
               </div>
               <p class="commission-note">L’elenco principale mostra gli esami il cui esito non è ancora stato caricato da Pegaso.</p>
+              </div>
             </section>
           </div>
           <div id="studywing-achievements-panel" class="menu-tab-panel achievements-panel" data-role="achievements-panel" role="tabpanel" aria-labelledby="studywing-achievements-tab" hidden>
@@ -3482,8 +3664,12 @@
             <div class="achievement-footer"><div class="achievement-progress" data-role="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="achievement-progress-fill" data-role="achievement-progress-fill"></span><span class="achievement-mid-marker" data-role="achievement-mid-marker" title="Premio stile barra"></span><span class="achievement-end-marker" data-role="achievement-end-marker" title="Premio stile launcher"></span></div></div>
           </div>
           <div id="studywing-preferences-panel" class="menu-tab-panel preferences-panel" data-role="preferences-panel" role="tabpanel" aria-labelledby="studywing-preferences-tab" hidden>
-            <section class="preferences-section" aria-labelledby="studywing-interface-preferences-heading">
-              <h2 id="studywing-interface-preferences-heading" class="preferences-heading">Interfaccia</h2>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
+              <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
+              <div class="preference-subsection style-theme-container">
+                <div class="preference-subsection-summary">Stile e tema</div>
+                <div class="preference-subsection-content">
               <fieldset class="preference-group" aria-labelledby="studywing-floating-visual-style-heading">
                 <div id="studywing-floating-visual-style-heading" class="preference-group-heading">Stile visivo</div>
                 <div class="preference-options" data-columns="2">
@@ -3510,9 +3696,22 @@
                 </div>
                 <p class="preference-hint">Regola larghezza e leggibilità di entrambi i menu.</p>
               </fieldset>
-            </section>
-            <section class="preferences-section" aria-labelledby="studywing-behavior-preferences-heading">
-              <h2 id="studywing-behavior-preferences-heading" class="preferences-heading">Comportamento</h2>
+                </div>
+              </div>
+              </div>
+            </details>
+            <details class="preferences-section preference-macro" aria-labelledby="studywing-behavior-preferences-heading">
+              <summary id="studywing-behavior-preferences-heading" class="preferences-heading preference-macro-summary"><span>Comportamento</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+              <div class="preference-macro-content">
+              <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
+                <label id="studywing-floating-sound-heading" class="preference-group-heading gaming-control-row sound-heading"><span>Notifiche sonore</span><span class="gaming-control-sprite sound-notification-control-sprite" data-role="sound-notification-control-sprite" aria-hidden="true"></span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
+                <div class="preference-options sound-options" data-role="sound-controls">
+                  <label><span>Suono</span><select data-setting="notification-sound" aria-label="Suono delle notifiche"><option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option></select></label>
+                  <label><span>Volume <output data-role="notification-volume-value">70%</output></span><input data-setting="notification-volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore"></label>
+                  <button class="bookmark-action" data-action="preview-notification-sound" type="button">Ascolta anteprima</button>
+                </div>
+                <p class="preference-hint">Avvisi locali per 70%, limite capitoli e cambi di stato della commissione.</p>
+              </fieldset>
               <fieldset class="preference-group" aria-labelledby="studywing-floating-playback-recovery-heading">
                 <div id="studywing-floating-playback-recovery-heading" class="preference-group-heading gaming-control-row playback-recovery-legend"><span>Errori di riproduzione</span><span class="gaming-control-sprite playback-recovery-control-sprite" data-role="playback-recovery-control-sprite" aria-hidden="true"></span></div>
                 <div class="preference-options">
@@ -3520,7 +3719,15 @@
                   <label><input type="radio" name="studywing-playback-error-recovery" value="manual"> <span>Lascia aperto l’avviso</span></label>
                 </div>
               </fieldset>
-            </section>
+              </div>
+            </details>
+            <div class="project-links" aria-label="Collegamenti di PlumePilot">
+              <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
+              <a class="project-link" href="${faqUrl}" target="_blank" rel="noopener noreferrer">FAQ</a>
+              <a class="project-link" href="${storeReviewUrl}" target="_blank" rel="noopener noreferrer">Vota</a>
+              <a class="project-link" href="${donateUrl}" target="_blank" rel="noopener noreferrer">Dona</a>
+            </div>
+            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot ${extensionManifest.version} è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
@@ -3580,6 +3787,13 @@
           'input[name="studywing-playback-error-recovery"]',
         ),
       ],
+      soundNotificationsEnabled: shadow.querySelector('[data-setting="sound-notifications-enabled"]'),
+      soundNotificationControlSprite: shadow.querySelector('[data-role="sound-notification-control-sprite"]'),
+      notificationSound: shadow.querySelector('[data-setting="notification-sound"]'),
+      notificationVolume: shadow.querySelector('[data-setting="notification-volume"]'),
+      notificationVolumeValue: shadow.querySelector('[data-role="notification-volume-value"]'),
+      soundControls: shadow.querySelector('[data-role="sound-controls"]'),
+      previewNotificationSound: shadow.querySelector('[data-action="preview-notification-sound"]'),
       state: shadow.querySelector('[data-role="state"]'),
       status: shadow.querySelector('[data-role="status"]'),
       lastNotification: shadow.querySelector('[data-role="last-notification"]'),
@@ -3622,6 +3836,12 @@
       courseProgressThresholdEnabled: shadow.querySelector(
         '[data-setting="course-progress-threshold-enabled"]',
       ),
+      autoplayStopAt70Enabled: shadow.querySelector(
+        '[data-setting="autoplay-stop-at-70-enabled"]',
+      ),
+      autoplayStopAt70Resume: shadow.querySelector(
+        '[data-action="autoplay-stop-at-70-resume"]',
+      ),
       courseProgressOptionsSummary: shadow.querySelector(
         '[data-role="course-progress-options-summary"]',
       ),
@@ -3663,6 +3883,9 @@
       chapterLimitValue: shadow.querySelector(
         '[data-role="chapter-limit-value"]',
       ),
+      chapterLimitSlider: shadow.querySelector(
+        '[data-role="chapter-limit-slider"]',
+      ),
       chapterLimitProgress: shadow.querySelector(
         '[data-role="chapter-limit-progress"]',
       ),
@@ -3672,6 +3895,15 @@
       courseTools: shadow.querySelector('[data-role="course-tools"]'),
       commissionSection: shadow.querySelector(
         '[data-role="commission-section"]',
+      ),
+      commissionEnabled: shadow.querySelector(
+        '[data-setting="commission-check-enabled"]',
+      ),
+      commissionDisabled: shadow.querySelector(
+        '[data-role="commission-disabled"]',
+      ),
+      commissionContent: shadow.querySelector(
+        '[data-role="commission-content"]',
       ),
       commissionEmpty: shadow.querySelector('[data-role="commission-empty"]'),
       commissionList: shadow.querySelector('[data-role="commission-list"]'),
@@ -3703,6 +3935,7 @@
         '[data-role="loaded-other-count"]',
       ),
       loadedOtherList: shadow.querySelector('[data-role="loaded-other-list"]'),
+      actions: shadow.querySelector(".actions"),
       turbo: shadow.querySelector('[data-action="turbo"]'),
       turboLabel: shadow.querySelector('[data-role="turbo-label"]'),
       turboSprite: shadow.querySelector(".turbo-tests-sprite"),
@@ -3717,8 +3950,12 @@
       materials: shadow.querySelector('[data-action="materials"]'),
       materialsLabel: shadow.querySelector('[data-role="materials-label"]'),
       materialsSprite: shadow.querySelector(".materials-sprite"),
+      projectInfoToggle: shadow.querySelector('[data-action="toggle-project-info"]'),
+      projectInfo: shadow.querySelector('[data-role="project-info"]'),
       hide: shadow.querySelector('[data-action="hide"]'),
     };
+
+    applyFloatingMenuLayout();
 
     ui.launcher.addEventListener("click", (event) => {
       if (suppressLauncherClick) {
@@ -3794,6 +4031,12 @@
       ui.confirmedToggle.setAttribute("aria-expanded", String(expanded));
       ui.confirmedPanel.hidden = !expanded;
     });
+    ui.commissionEnabled.addEventListener("change", () => {
+      writeSetting("commissionCheckEnabled", ui.commissionEnabled.checked);
+      if (!ui.commissionEnabled.checked) return;
+      playActionAnimation(ui.commissionControlSprite);
+      claimFloatingAchievement("enable-commission-check");
+    });
     for (const radio of ui.visualStyleRadios)
       radio.addEventListener("change", () => {
         if (radio.checked)
@@ -3818,6 +4061,21 @@
         );
         playActionAnimation(ui.playbackRecoveryControlSprite);
       });
+    ui.soundNotificationsEnabled.addEventListener("change", () => {
+      writeSetting("soundNotificationsEnabled", ui.soundNotificationsEnabled.checked);
+      if (ui.soundNotificationsEnabled.checked) playActionAnimation(ui.soundNotificationControlSprite);
+    });
+    ui.notificationSound.addEventListener("change", () => writeSetting("notificationSound", soundApi.normalizeSound(ui.notificationSound.value)));
+    ui.notificationVolume.addEventListener("input", () => {
+      const volume = soundApi.normalizeVolume(ui.notificationVolume.value);
+      ui.notificationVolumeValue.value = `${volume}%`;
+      ui.notificationVolumeValue.textContent = `${volume}%`;
+    });
+    ui.notificationVolume.addEventListener("change", () => writeSetting("notificationVolume", soundApi.normalizeVolume(ui.notificationVolume.value)));
+    ui.previewNotificationSound.addEventListener("click", async () => {
+      const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound: ui.notificationSound.value, volume: ui.notificationVolume.value });
+      setFeedback(response?.played === true ? "Anteprima riprodotta." : (response?.reason || "Anteprima non disponibile."), response?.played !== true);
+    });
     ui.enabled.addEventListener("change", () => {
       writeSetting("enabled", ui.enabled.checked);
       if (ui.enabled.checked) playActionAnimation(ui.autoplayControlSprite);
@@ -3883,20 +4141,59 @@
       if (ui.courseProgressThresholdEnabled.checked)
         claimFloatingAchievement("enable-70-advice");
     });
-    const changeLimit = (delta) => {
+    const resetThresholdBypassForCurrentCourse = (bypassed) => {
+      const currentCode = currentCourseCode();
+      if (!currentCode) return;
+      const next = { ...(settings.autoplayStopAt70BypassedCourses || {}) };
+      if (bypassed) next[currentCode] = true;
+      else delete next[currentCode];
+      chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
+    };
+    ui.autoplayStopAt70Enabled.addEventListener("change", () => {
+      chrome.storage.local.set({
+        autoplayStopAt70Enabled: ui.autoplayStopAt70Enabled.checked,
+        autoplayStopAt70BypassedCourses: {},
+      });
+    });
+    ui.autoplayStopAt70Resume.addEventListener("click", () => {
+      resetThresholdBypassForCurrentCourse(true);
+    });
+    const setLimit = (nextValue) => {
       const currentCode = currentCourseCode();
       const status =
         settings.autoplayChapterLimitStatuses?.[currentCode] || null;
       if (!status?.courseCode) return;
+      const numericValue = Number(nextValue);
+      if (!Number.isFinite(numericValue)) return;
       const limits = { ...(settings.autoplayChapterLimits || {}) };
       limits[status.courseCode] = Math.max(
         1,
-        Math.min(status.maximum, (Number(status.limit) || 1) + delta),
+        Math.min(status.maximum, Math.round(numericValue)),
       );
       chrome.storage.local.set({ autoplayChapterLimits: limits });
     };
-    ui.chapterLimitMinus.addEventListener("click", () => changeLimit(-1));
-    ui.chapterLimitPlus.addEventListener("click", () => changeLimit(1));
+    const commitLimitInput = () => {
+      if (ui.chapterLimitValue.value === "") {
+        renderSettings();
+        return;
+      }
+      setLimit(ui.chapterLimitValue.value);
+    };
+    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) - 1));
+    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) + 1));
+    ui.chapterLimitValue.addEventListener("change", commitLimitInput);
+    ui.chapterLimitValue.addEventListener("blur", commitLimitInput);
+    ui.chapterLimitValue.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        commitLimitInput();
+        ui.chapterLimitValue.blur();
+      }
+    });
+    ui.chapterLimitSlider.addEventListener("input", () => {
+      ui.chapterLimitValue.value = ui.chapterLimitSlider.value;
+      ui.chapterLimitSlider.dataset.flameLevel = String(flameLevelForLimit(Number(ui.chapterLimitSlider.value), Number(ui.chapterLimitSlider.max)));
+    });
+    ui.chapterLimitSlider.addEventListener("change", () => setLimit(ui.chapterLimitSlider.value));
     ui.chapterLimitResume.addEventListener("click", () => {
       const currentCode = currentCourseCode();
       const status =
@@ -3910,6 +4207,7 @@
             completed: 0,
             reached: false,
             lastChapterKey: "",
+            soundSessionId: Date.now(),
           },
         },
       });
@@ -3918,6 +4216,11 @@
     ui.objectives.addEventListener("click", toggleObjectives);
     ui.testCollection.addEventListener("click", toggleTestExport);
     ui.materials.addEventListener("click", toggleMaterialsExport);
+    ui.projectInfoToggle.addEventListener("click", () => {
+      const willOpen = ui.projectInfo.hidden;
+      ui.projectInfo.hidden = !willOpen;
+      ui.projectInfoToggle.setAttribute("aria-expanded", String(willOpen));
+    });
     ui.hide.addEventListener("click", () =>
       writeSetting(
         isCommissionOnlyPage()
@@ -4020,6 +4323,7 @@
       const status = event.data.status || null;
       if (String(status?.courseCode || "") !== currentCourseCode()) return;
       courseProgressStatus = status;
+      renderSettings();
       renderCourseProgress();
       return;
     }
@@ -4063,7 +4367,10 @@
       changes.visualStyle ||
       changes.themePreference ||
       changes.menuSize ||
-      changes.playbackErrorRecovery
+      changes.playbackErrorRecovery ||
+      changes.soundNotificationsEnabled ||
+      changes.notificationSound ||
+      changes.notificationVolume
     )
       renderPreferences();
     if (changes.visualStyle) renderCommissionExams();
@@ -4075,6 +4382,7 @@
       renderCourseProgressOverlay();
     }
     if (changes.floatingMenuPosition && !dragState) applyLauncherPosition();
+    if (changes.floatingMenuLayout) applyFloatingMenuLayout();
     if (
       changes.enabled ||
       changes.stopAtTests ||
@@ -4089,6 +4397,8 @@
       changes.courseProgressOverlayEnabled ||
       changes.courseProgressOverlayPosition ||
       changes.courseProgressThresholdEnabled
+      || changes.autoplayStopAt70Enabled
+      || changes.autoplayStopAt70BypassedCourses
     ) {
       if (
         !thresholdWasEnabled &&
