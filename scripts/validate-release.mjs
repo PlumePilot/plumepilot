@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
+const JSZip = require(path.join(root, "vendor", "jszip.js"));
 const releaseDirectory = path.resolve(root, process.argv[2] || "release");
 const expectedBrowsers = ["chrome", "firefox", "edge"];
 const expectedEdgeLocales = ["en", "it"];
@@ -17,6 +17,28 @@ const expectedPdfjsChecksums = new Map([
   ["vendor/pdf.mjs", "43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd"],
   ["vendor/pdf.worker.mjs", "08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0"],
 ]);
+const expectedReadableVendorChecksums = new Map([
+  ["vendor/pdf-lib.js", "bb3ee8ff88640cd6f91da2febd8fefa2d537cab5f8ef852500c52241b6cf7514"],
+  ["vendor/fontkit.umd.js", "d60739f02b41b636ee0cc2fb79ba589958144f9240e585dbc19e6a3b08d82825"],
+  ["vendor/jszip.js", "e2e1be5c22d3f15b0b89e676d3eede94644529996d9898a6b1587c9908a78506"],
+]);
+
+function assertNoMinifiedJavaScript(names, label) {
+  const minified = names.filter((name) => /(?:^|\/)\S+\.min\.(?:js|mjs)$/i.test(name));
+  if (minified.length) {
+    throw new Error(`${label}: JavaScript minificato inatteso: ${minified.join(", ")}.`);
+  }
+}
+
+async function assertChecksums(zip, expectedChecksums, label) {
+  for (const [filename, expectedChecksum] of expectedChecksums) {
+    const entry = zip.file(filename);
+    if (!entry) throw new Error(`${label}: file leggibile mancante: ${filename}.`);
+    const bytes = await entry.async("nodebuffer");
+    const checksum = createHash("sha256").update(bytes).digest("hex");
+    if (checksum !== expectedChecksum) throw new Error(`${label}: checksum inatteso: ${filename}.`);
+  }
+}
 
 function referencedManifestFiles(manifest) {
   const references = new Set();
@@ -69,6 +91,7 @@ for (const browser of expectedBrowsers) {
   generatedChecksums.push(`${createHash("sha256").update(bytes).digest("hex")}  ${filename}`);
   const zip = await JSZip.loadAsync(bytes);
   const names = Object.keys(zip.files).filter((name) => !zip.files[name].dir);
+  assertNoMinifiedJavaScript(names, browser);
   if (!zip.file("manifest.json")) throw new Error(`${browser}: manifest.json non è alla radice.`);
   if (names.some((name) => name.startsWith("plumepilot-v") || name.startsWith("studywing-v") || name.startsWith("docs/") || name.startsWith("scripts/") || name.startsWith("release/"))) {
     throw new Error(`${browser}: struttura o file di sviluppo inattesi.`);
@@ -112,6 +135,7 @@ for (const browser of expectedBrowsers) {
   if (!zip.file("LICENSE") || !zip.file("THIRD_PARTY_NOTICES.md")) {
     throw new Error(`${browser}: documentazione licenze mancante.`);
   }
+  await assertChecksums(zip, expectedReadableVendorChecksums, browser);
   for (const [pdfjsFile, expectedChecksum] of expectedPdfjsChecksums) {
     const entry = zip.file(pdfjsFile);
     if (!entry) throw new Error(`${browser}: distribuzione PDF.js leggibile mancante: ${pdfjsFile}.`);
@@ -133,6 +157,8 @@ const sourceFilename = `plumepilot-v${expectedVersion}-source.zip`;
 const sourceBytes = await readFile(path.join(releaseDirectory, sourceFilename));
 generatedChecksums.push(`${createHash("sha256").update(sourceBytes).digest("hex")}  ${sourceFilename}`);
 const sourceZip = await JSZip.loadAsync(sourceBytes);
+const sourceNames = Object.keys(sourceZip.files).filter((name) => !sourceZip.files[name].dir);
+assertNoMinifiedJavaScript(sourceNames, "Sorgente AMO");
 for (const required of [
   "manifest.json",
   "AMO_SOURCE_README.md",
@@ -149,6 +175,7 @@ if (!sourceReadme.includes(`PlumePilot ${expectedVersion}`) || !sourceReadme.inc
 if (Object.keys(sourceZip.files).some((name) => name.startsWith(".git/") || name.startsWith("release/"))) {
   throw new Error("Sorgente AMO: contiene file Git o artefatti di release.");
 }
+await assertChecksums(sourceZip, expectedReadableVendorChecksums, "Sorgente AMO");
 console.log(`${sourceFilename}: OK`);
 
 const expectedArchives = new Set([

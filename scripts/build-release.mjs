@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const JSZip = require(path.join(root, "vendor", "jszip.min.js"));
+const JSZip = require(path.join(root, "vendor", "jszip.js"));
 const outputArgument = process.argv.find((argument) => argument.startsWith("--output-dir="));
 const outputDirectory = path.resolve(root, outputArgument?.slice("--output-dir=".length) || "release");
 const fixedZipDate = new Date("2026-01-01T00:00:00.000Z");

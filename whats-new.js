@@ -2,7 +2,7 @@
   "use strict";
 
   const RELEASE = Object.freeze({
-    version: "2.33.0",
+    version: "2.33.1",
     title: "Più controllo, più libertà",
     summary: "Nuovi controlli per l’autoplay, quiz annotabili, avvisi sonori e un menu fluttuante su misura.",
     items: Object.freeze([

@@ -1,4 +1,4 @@
-# PlumePilot 2.33.0 — AMO source submission
+# PlumePilot 2.33.1 — AMO source submission
 
 This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process only selects runtime files, creates the browser-specific manifest, and writes deterministic ZIP archives.
 
@@ -10,7 +10,7 @@ This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's fi
 - Network access: not required.
 - CPU architecture: architecture-independent JavaScript build.
 
-All code and tools required by the build are included in this archive. The build script imports the bundled official JSZip 3.10.1 release from `vendor/jszip.min.js`.
+All code and tools required by the build are included in this archive. The build script imports the bundled readable JSZip 3.10.1 distribution from `vendor/jszip.js`.
 
 ## Reproduce the Firefox package
 
@@ -23,13 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.33.0-firefox.zip
-```
-
-Expected SHA-256:
-
-```text
-87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213
+release/plumepilot-v2.33.1-firefox.zip
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -58,7 +52,7 @@ The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, an
 
 ## Third-party libraries
 
-The minified files in `vendor/` are unmodified copies from official npm releases; PlumePilot does not rebuild or modify them. `THIRD_PARTY_NOTICES.md` provides, for every component:
+The readable distribution files in `vendor/` are unmodified copies from official npm releases; PlumePilot does not rebuild or modify them. `THIRD_PARTY_NOTICES.md` provides, for every component:
 
 - name and exact version;
 - exact file path inside the official npm archive;
