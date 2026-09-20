@@ -36,13 +36,14 @@ assert.match(about, />FAQ</);
 assert.match(about, />Vota</);
 assert.match(about, />Dona</);
 assert.doesNotMatch(about, /Fabio Floris|Sostieni su Ko-fi/);
-assert.match(popupJs, /storeLinksApi\.reviewUrl\(chrome\.runtime\.getManifest\(\)\)/);
+assert.match(popupJs, /storeLinksApi\.reviewUrl\(\s*chrome\.runtime\.getManifest\(\),?\s*\)/);
 assert.match(floating, />Informazioni<\/button>/);
 assert.match(floating, />FAQ<\/a>/);
 assert.match(floating, />Vota<\/a>/);
 assert.match(floating, />Dona<\/a>/);
 assert.match(floating, /storeLinksApi\?\.reviewUrl\(extensionManifest\)/);
-assert.match(floating, /PlumePilot \$\{extensionManifest\.version\} è un progetto gratuito/);
+assert.match(floating, /PlumePilot __PP_VERSION__ è un progetto gratuito/);
+assert.match(floating, /__PP_VERSION__: extensionManifest\.version/);
 const floatingPreferences = floating.slice(
   floating.indexOf('id="studywing-preferences-panel"'),
   floating.indexOf('<button class="hide-menu"'),

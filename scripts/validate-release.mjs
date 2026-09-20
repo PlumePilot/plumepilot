@@ -30,6 +30,41 @@ function assertNoMinifiedJavaScript(names, label) {
   }
 }
 
+async function assertFirefoxReviewSafe(zip, names) {
+  const findings = [];
+  for (const name of names.filter((entry) => /\.(?:js|mjs|html)$/i.test(entry))) {
+    const source = await zip.file(name).async("string");
+    const checks = [
+      ["eval call", /\beval\s*\(/],
+      ["Function constructor", /\b(?:new\s+)?Function\s*\(/],
+      ["dynamic import", /\bimport\s*\(\s*(?!["'`])/],
+      ["Chromium offscreen API", /\bchrome\.offscreen\b/],
+    ];
+    for (const [label, pattern] of checks) {
+      if (pattern.test(source)) findings.push(`${name}: ${label}`);
+    }
+    if (name.endsWith(".js") && couldBeMinifiedCode(source)) {
+      findings.push(`${name}: AMO unknown/minified heuristic`);
+    }
+    if (!name.startsWith("vendor/") && /\.innerHTML\s*=\s*`[^`]*\$\{/s.test(source)) {
+      findings.push(`${name}: dynamic innerHTML template`);
+    }
+  }
+  if (findings.length) {
+    throw new Error(`Firefox: costrutti non review-safe:\n- ${findings.join("\n- ")}`);
+  }
+}
+
+function couldBeMinifiedCode(source) {
+  if (/\/\/[#@]\s*sourceMappingURL\s*=/.test(source)) return true;
+  const normalized = source.replace(/\/\*[\s\S]*?\*\/|\/\/.+/g, "");
+  const lines = normalized.split("\n").slice(0, 29);
+  if (!lines.length) return false;
+  const indented = lines.filter((line) => /^\s+/.test(line)).length;
+  const huge = lines.filter((line) => line.length >= 500).length;
+  return (indented / (lines.length + 1)) * 100 < 20 || huge > 4;
+}
+
 async function assertChecksums(zip, expectedChecksums, label) {
   for (const [filename, expectedChecksum] of expectedChecksums) {
     const entry = zip.file(filename);
@@ -101,6 +136,7 @@ for (const browser of expectedBrowsers) {
   }
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
+  if (browser === "firefox") await assertFirefoxReviewSafe(zip, names);
   if (browser === "edge") {
     const packagedLocales = [...new Set(names.flatMap((name) => {
       const match = name.match(/^_locales\/([^/]+)\/messages\.json$/);
@@ -135,13 +171,34 @@ for (const browser of expectedBrowsers) {
   if (!zip.file("LICENSE") || !zip.file("THIRD_PARTY_NOTICES.md")) {
     throw new Error(`${browser}: documentazione licenze mancante.`);
   }
-  await assertChecksums(zip, expectedReadableVendorChecksums, browser);
+  await assertChecksums(
+    zip,
+    browser === "firefox"
+      ? new Map()
+      : expectedReadableVendorChecksums,
+    browser,
+  );
+  if (browser === "firefox") {
+    const pdfLibBytes = await zip.file("vendor/pdf-lib.js").async("nodebuffer");
+    const pdfLibChecksum = createHash("sha256").update(pdfLibBytes).digest("hex");
+    if (pdfLibChecksum === expectedReadableVendorChecksums.get("vendor/pdf-lib.js")) {
+      throw new Error("Firefox: rimozione del riferimento source map di pdf-lib assente.");
+    }
+    if (/sourceMappingURL/.test(pdfLibBytes.toString("utf8"))) {
+      throw new Error("Firefox: riferimento source map non incluso ancora presente in pdf-lib.");
+    }
+  }
   for (const [pdfjsFile, expectedChecksum] of expectedPdfjsChecksums) {
     const entry = zip.file(pdfjsFile);
     if (!entry) throw new Error(`${browser}: distribuzione PDF.js leggibile mancante: ${pdfjsFile}.`);
     const bytes = await entry.async("nodebuffer");
     const checksum = createHash("sha256").update(bytes).digest("hex");
-    if (checksum !== expectedChecksum) throw new Error(`${browser}: checksum PDF.js inatteso: ${pdfjsFile}.`);
+    if (browser !== "firefox" && checksum !== expectedChecksum) {
+      throw new Error(`${browser}: checksum PDF.js inatteso: ${pdfjsFile}.`);
+    }
+    if (browser === "firefox" && checksum === expectedChecksum) {
+      throw new Error(`Firefox: trasformazione review-safe assente: ${pdfjsFile}.`);
+    }
     const source = bytes.toString("utf8");
     if (/scriptTag|ActiveXObject|NullProtoObjectViaActiveX/.test(source)) {
       throw new Error(`${browser}: codice di compatibilità PDF.js legacy inatteso: ${pdfjsFile}.`);

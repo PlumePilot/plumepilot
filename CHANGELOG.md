@@ -1,5 +1,13 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.33.2: Firefox AMO review-safe package
+
+- Produces a Firefox-only runtime package without eval-like constructors, variable dynamic imports or unsupported Chromium offscreen API references.
+- Keeps PDF.js on its existing interpreter path and disables only unbundled fallback loaders; normal module-worker and WebAssembly processing remain available.
+- Removes dynamic values from the two first-party Shadow DOM `innerHTML` assignments and hydrates packaged URLs and metadata through DOM nodes and attributes.
+- Adds a fail-closed Firefox transformation step and scans the complete generated AMO package for the constructs reported by Mozilla.
+- Keeps features, permissions, supported domains and data handling unchanged from 2.33.1; Chrome and Edge retain the official unmodified vendor distributions.
+
 ## Fixed in 2.33.1: reviewable source packages
 
 - Replaces the bundled minified pdf-lib, fontkit and JSZip distributions with their readable official equivalents from the same upstream releases.

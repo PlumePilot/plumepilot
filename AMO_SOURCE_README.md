@@ -1,6 +1,6 @@
-# PlumePilot 2.33.1 — AMO source submission
+# PlumePilot 2.33.2 — AMO source submission
 
-This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process only selects runtime files, creates the browser-specific manifest, and writes deterministic ZIP archives.
+This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process selects runtime files, creates the browser-specific manifest, applies the documented Firefox-only review-safety transformations below, and writes deterministic ZIP archives.
 
 ## Build environment
 
@@ -23,7 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.33.1-firefox.zip
+release/plumepilot-v2.33.2-firefox.zip
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -50,9 +50,22 @@ The validator checks browser-specific manifests, referenced runtime files, absen
 
 The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, and the UNIX platform flag. A compatible Node.js runtime therefore produces the same Firefox archive byte for byte. Compare the generated SHA-256 with the value supplied in the AMO version notes.
 
+## Firefox-only review-safety transformations
+
+`scripts/build-release.mjs` performs exact-match, fail-closed transformations while writing the Firefox ZIP. Chrome and Edge keep the official distributions unchanged. The Firefox package:
+
+- replaces the unsupported Chromium offscreen-audio path with the existing tab-based fallback;
+- rejects JSZip's legacy string form of `setImmediate` callbacks (PlumePilot only passes functions);
+- replaces two unused legacy fontkit fallbacks that construct or expose executable code;
+- removes pdf-lib's dangling source-map marker because the map is not part of the runtime distribution used by PlumePilot;
+- forces PDF.js to use its interpreter instead of its optional PostScript compiler;
+- disables PDF.js fallback loaders for resources that PlumePilot does not bundle, while retaining the normal module-worker and WebAssembly paths.
+
+Every replacement requires exactly one known upstream code fragment. The build fails if an upstream file changes, preventing an incomplete or accidental patch. `scripts/validate-release.mjs` then scans the entire Firefox archive for the rejected constructs and mirrors AMO's unknown/minified-code heuristic for JavaScript files.
+
 ## Third-party libraries
 
-The readable distribution files in `vendor/` are unmodified copies from official npm releases; PlumePilot does not rebuild or modify them. `THIRD_PARTY_NOTICES.md` provides, for every component:
+The readable distribution files in the source archive and in the Chrome/Edge packages are unmodified copies from official releases. The Firefox runtime copies contain only the deterministic review-safety transformations documented above. `THIRD_PARTY_NOTICES.md` provides, for every component:
 
 - name and exact version;
 - exact file path inside the official npm archive;
@@ -60,7 +73,9 @@ The readable distribution files in `vendor/` are unmodified copies from official
 - license and local license file;
 - SHA-256 of the bundled file.
 
-Before this submission, every bundled vendor file was compared byte for byte with the corresponding file extracted using `npm pack`; all comparisons matched. No dependency or executable code is downloaded at extension runtime.
+Before this submission, every source vendor file was compared byte for byte with the corresponding official release. No dependency or executable code is downloaded at extension runtime.
+
+The generated 2.33.2 Firefox package was checked with `web-ext lint 10.6.0`: **0 errors, 0 notices, 0 warnings, and an empty `unknownMinifiedFiles` list**.
 
 ## Runtime/source separation
 
