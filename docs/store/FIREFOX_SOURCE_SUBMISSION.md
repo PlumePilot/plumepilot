@@ -9,7 +9,7 @@ Queste istruzioni accompagnano il sorgente inviato privatamente ai revisori AMO.
 - npm: non necessario.
 - Accesso alla rete: non necessario.
 
-Tutte le dipendenze usate dal builder e dall'estensione sono incluse nel sorgente. Il builder importa la copia locale di JSZip da `vendor/jszip.min.js`.
+Tutte le dipendenze usate dal builder e dall'estensione sono incluse nel sorgente. Il builder importa la distribuzione leggibile locale di JSZip da `vendor/jszip.js`.
 
 ## Generazione
 
@@ -56,7 +56,7 @@ Il builder usa una data ZIP fissa, ordinamento stabile dei file e compressione D
 
 ## Librerie di terze parti
 
-Le librerie minificate presenti in `vendor/` non sono generate dal processo di build PlumePilot. Sono copie delle release upstream e restano invariate durante la creazione degli ZIP. `THIRD_PARTY_NOTICES.md` contiene per ogni componente:
+Le librerie leggibili presenti in `vendor/` non sono generate dal processo di build PlumePilot. Sono copie delle release upstream e restano invariate durante la creazione degli ZIP. `THIRD_PARTY_NOTICES.md` contiene per ogni componente:
 
 - nome e versione;
 - progetto e pacchetto ufficiale;

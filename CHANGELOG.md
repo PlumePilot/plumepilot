@@ -1,5 +1,12 @@
 # PlumePilot — Changelog
 
+## Fixed in 2.33.1: reviewable source packages
+
+- Replaces the bundled minified pdf-lib, fontkit and JSZip distributions with their readable official equivalents from the same upstream releases.
+- Moves the offline quiz runtime into a readable first-party source file and embeds that source unchanged in generated standalone quiz pages.
+- Strengthens release validation so minified JavaScript cannot re-enter browser or AMO source packages.
+- Keeps extension features, permissions, supported domains and data handling unchanged from 2.33.0.
+
 ## Added in 2.33.0: more control, richer quizzes and a customizable interface
 
 - Adds the optional **Ferma autoplay al 70%** rule with explicit per-course continuation and correct coexistence with the chapter-session limit.

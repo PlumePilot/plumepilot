@@ -7,7 +7,7 @@ const context = vm.createContext({});
 vm.runInContext(definitionSource, context);
 const api = context.PlumePilotWhatsNew;
 
-assert.equal(api.RELEASE.version, "2.33.0");
+assert.equal(api.RELEASE.version, "2.33.1");
 assert.equal(api.RELEASE.items.length, 6);
 assert.match(api.PENDING_KEY, /PendingWhatsNewVersion$/);
 assert.match(api.LAST_SEEN_KEY, /LastSeenWhatsNewVersion$/);

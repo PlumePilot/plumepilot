@@ -4,3 +4,6 @@
 *.ttf binary
 *.pfb binary
 *.zip binary
+
+# Preserve the official pdf-lib distribution byte for byte (it uses CRLF).
+vendor/pdf-lib.js -text
