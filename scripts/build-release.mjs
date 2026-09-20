@@ -13,6 +13,138 @@ const fixedZipDate = new Date("2026-01-01T00:00:00.000Z");
 const browsers = ["chrome", "firefox", "edge"];
 const edgeLocales = ["en", "it"];
 
+function replaceExactly(source, search, replacement, label) {
+  const first = source.indexOf(search);
+  if (first < 0 || source.indexOf(search, first + search.length) >= 0) {
+    throw new Error(`Firefox review-safe: pattern inatteso (${label}).`);
+  }
+  return source.slice(0, first) + replacement + source.slice(first + search.length);
+}
+
+function firefoxReviewSafeSource(relativePath, bytes) {
+  if (!["background.js", "vendor/jszip.js", "vendor/fontkit.umd.js", "vendor/pdf-lib.js", "vendor/pdf.mjs", "vendor/pdf.worker.mjs"].includes(relativePath)) {
+    return bytes;
+  }
+
+  let source = bytes.toString("utf8");
+  if (relativePath === "background.js") {
+    source = replaceExactly(
+      source,
+      `  async function ensureOffscreenAudioDocument() {
+    if (!chrome.offscreen?.createDocument) return false;
+    if (await chrome.offscreen.hasDocument()) return true;
+    if (!offscreenCreation) {
+      offscreenCreation = chrome.offscreen.createDocument({
+        url: "offscreen-audio.html",
+        reasons: ["AUDIO_PLAYBACK"],
+        justification: "Riproduce gli avvisi sonori locali richiesti dall’utente.",
+      }).finally(() => { offscreenCreation = null; });
+    }
+    await offscreenCreation;
+    return true;
+  }`,
+      `  async function ensureOffscreenAudioDocument() {
+    return false;
+  }`,
+      "background offscreen fallback",
+    );
+  } else if (relativePath === "vendor/jszip.js") {
+    source = replaceExactly(
+      source,
+      `      // Callback can either be a function or a string
+      if (typeof callback !== "function") {
+        callback = new Function("" + callback);
+      }`,
+      `      // String callbacks require eval-like execution and are not supported.
+      if (typeof callback !== "function") {
+        throw new TypeError("setImmediate callback must be a function");
+      }`,
+      "JSZip string callback",
+    );
+  } else if (relativePath === "vendor/fontkit.umd.js") {
+    source = replaceExactly(
+      source,
+      `\t  bound = Function('binder', 'return function (' + boundArgs.join(',') + '){ return binder.apply(this,arguments); }')(binder);`,
+      `\t  bound = function bound() { return binder.apply(this, arguments); };`,
+      "fontkit bind fallback",
+    );
+    source = replaceExactly(
+      source,
+      `\t  '%eval%': eval,
+\t  // eslint-disable-line no-eval`,
+      `\t  '%eval%': undefined$1,`,
+      "fontkit eval intrinsic",
+    );
+  } else if (relativePath === "vendor/pdf-lib.js") {
+    source = replaceExactly(
+      source,
+      "\n//# sourceMappingURL=pdf-lib.js.map",
+      "",
+      "pdf-lib absent source map marker",
+    );
+  } else {
+    source = replaceExactly(
+      source,
+      `function isEvalSupported() {
+  try {
+    new Function("");
+    return true;
+  } catch {
+    return false;
+  }
+}`,
+      `function isEvalSupported() {
+  return false;
+}`,
+      `${relativePath} eval feature test`,
+    );
+    if (relativePath === "vendor/pdf.mjs") {
+      source = replaceExactly(
+        source,
+        `      const worker = await import(
+      /*webpackIgnore: true*/
+      /*@vite-ignore*/
+      this.workerSrc);
+      return worker.WorkerMessageHandler;`,
+        `      throw new Error("PDF.js fake-worker loading is disabled in the Firefox package.");`,
+        "PDF.js dynamic fake-worker import",
+      );
+    } else {
+      source = replaceExactly(
+        source,
+        `    const path = \`${'${this.#wasmUrl}'}openjpeg_nowasm_fallback.js\`;
+    let instance = null;
+    try {
+      const mod = await import(
+      /*webpackIgnore: true*/
+      /*@vite-ignore*/
+      path);
+      instance = mod.default();
+    } catch (e) {
+      warn(\`JpxImage#getJsModule: ${'${e}'}\`);
+    }
+    fallbackCallback(instance);`,
+        `    warn("JpxImage#getJsModule: JavaScript fallback is not bundled.");
+    fallbackCallback(null);`,
+        "PDF.js OpenJPEG dynamic fallback import",
+      );
+      source = replaceExactly(
+        source,
+        `    if (factory.isEvalSupported && FeatureTest.isEvalSupported) {
+      const compiled = new PostScriptCompiler().compile(code, domain, range);
+      if (compiled) {
+        return new Function("src", "srcOffset", "dest", "destOffset", compiled);
+      }
+    }
+    info("Unable to compile PS function");`,
+        `    info("PostScript functions use the interpreter in the Firefox package");`,
+        "PDF.js PostScript compiler",
+      );
+    }
+  }
+  return Buffer.from(source, "utf8");
+}
+
 const excludedFiles = new Set([
   "manifest.json",
   "AMO_SOURCE_README.md",
@@ -34,7 +166,10 @@ async function collectFiles(directory = root, relativeDirectory = "") {
     if (entry.name.startsWith(".") || (entry.isDirectory() && excludedDirectories.has(entry.name))) continue;
     const relativePath = path.posix.join(relativeDirectory, entry.name);
     const absolutePath = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await collectFiles(absolutePath, relativePath));
+    if (entry.isDirectory()) {
+      if (absolutePath === outputDirectory) continue;
+      files.push(...await collectFiles(absolutePath, relativePath));
+    }
     else if (!excludedFiles.has(relativePath)) files.push(relativePath);
   }
   return files.sort();
@@ -140,7 +275,10 @@ for (const browser of browsers) {
     createFolders: false,
   });
   for (const relativePath of sourceFiles) {
-    zip.file(relativePath, await readFile(path.join(root, relativePath)), {
+    const sourceBytes = await readFile(path.join(root, relativePath));
+    zip.file(relativePath, browser === "firefox"
+      ? firefoxReviewSafeSource(relativePath, sourceBytes)
+      : sourceBytes, {
       binary: true,
       date: fixedZipDate,
       createFolders: false,

@@ -88,6 +88,28 @@
   const progressOverlayExpQueue = [];
   let thresholdActivationAwaitingBaseline = false;
   let lastNotification = null;
+
+  function hydrateShadowPlaceholders(shadow, replacements) {
+    const apply = (value) => {
+      let hydrated = value;
+      for (const [placeholder, replacement] of Object.entries(replacements)) {
+        hydrated = hydrated.replaceAll(placeholder, String(replacement));
+      }
+      return hydrated;
+    };
+    const walker = document.createTreeWalker(shadow, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const hydrated = apply(node.nodeValue || "");
+      if (hydrated !== node.nodeValue) node.nodeValue = hydrated;
+    }
+    for (const element of shadow.querySelectorAll("*")) {
+      for (const attribute of element.attributes) {
+        const hydrated = apply(attribute.value);
+        if (hydrated !== attribute.value) element.setAttribute(attribute.name, hydrated);
+      }
+    }
+  }
   const pendingThresholdClaims = new Set();
   const silentlyAcknowledgedThresholds = new Set();
 
@@ -309,7 +331,7 @@
       <style>
         @font-face {
           font-family: "Pixelify Sans";
-          src: url("${pixelFontUrl}") format("truetype");
+          src: url("__PP_PIXEL_FONT__") format("truetype");
           font-display: swap;
         }
         :host {
@@ -549,6 +571,7 @@
         <strong>70% raggiunto!</strong>
         <span>Hai raggiunto la percentuale richiesta per prenotare l’esame di questo insegnamento.</span>
       </div>`;
+    hydrateShadowPlaceholders(shadow, { __PP_PIXEL_FONT__: pixelFontUrl });
     document.documentElement.appendChild(progressOverlayHost);
     applyCosmetics();
     progressOverlayUi = {
@@ -1904,7 +1927,7 @@
       <style>
         @font-face {
           font-family: "Pixelify Sans";
-          src: url("${pixelFontUrl}") format("truetype");
+          src: url("__PP_PIXEL_FONT__") format("truetype");
           font-style: normal;
           font-weight: 400 700;
           font-display: swap;
@@ -2124,7 +2147,7 @@
           display: block;
           width: 16px;
           height: 16px;
-          background-image: url("${notificationAlertUrl}");
+          background-image: url("__PP_NOTIFICATION_ALERT__");
           background-repeat: no-repeat;
           background-position: 0 0;
           background-size: 500% 100%;
@@ -2173,10 +2196,10 @@
         :host([data-visual-style="gaming"]) .launcher-standard { display: none; }
         :host([data-visual-style="gaming"]) .launcher-mascot {
           display: block;
-          background-image: url("${mascotIdleLightUrl}");
+          background-image: url("__PP_MASCOT_IDLE_LIGHT__");
         }
         :host([data-visual-style="gaming"][data-studywing-theme="dark"]) .launcher-mascot {
-          background-image: url("${mascotIdleDarkUrl}");
+          background-image: url("__PP_MASCOT_IDLE_DARK__");
         }
         :host([data-visual-style="gaming"]) .launcher:hover:not(.dragging) .launcher-mascot,
         :host([data-visual-style="gaming"]) .launcher.mascot-idle-playing .launcher-mascot {
@@ -2300,10 +2323,10 @@
         :host([data-visual-style="gaming"]) .header-logo-standard { display: none; }
         :host([data-visual-style="gaming"]) .header-logo-gaming {
           display: block !important;
-          background-image: url("${mascotLogoLightUrl}");
+          background-image: url("__PP_MASCOT_LOGO_LIGHT__");
         }
         :host([data-visual-style="gaming"][data-studywing-theme="dark"]) .header-logo-gaming {
-          background-image: url("${mascotLogoDarkUrl}");
+          background-image: url("__PP_MASCOT_LOGO_DARK__");
         }
         :host([data-visual-style="gaming"][data-studywing-theme="dark"]) .header-logo {
           border-color: #d3a92d;
@@ -2563,9 +2586,9 @@
           border-radius: 0;
           background-color: #15111f;
           background-image:
-            var(--sw-active-frame-left, url("${progressFrameLeftUrl}")),
-            var(--sw-active-frame-right, url("${progressFrameRightUrl}")),
-            var(--sw-active-frame-center, url("${progressFrameCenterUrl}"));
+            var(--sw-active-frame-left, url("__PP_PROGRESS_FRAME_LEFT__")),
+            var(--sw-active-frame-right, url("__PP_PROGRESS_FRAME_RIGHT__")),
+            var(--sw-active-frame-center, url("__PP_PROGRESS_FRAME_CENTER__"));
           background-position: left top, right top, left top;
           background-repeat: no-repeat, no-repeat, repeat-x;
           background-size: 28px 28px, 28px 28px, 16px 28px;
@@ -2581,7 +2604,7 @@
           position: relative;
           border-radius: 0;
           background-color: #5b2ca0;
-          background-image: var(--sw-active-fill, url("${progressFillUrl}"));
+          background-image: var(--sw-active-fill, url("__PP_PROGRESS_FILL__"));
           background-repeat: repeat-x;
           background-position: left top;
           background-size: 16px 10px;
@@ -2829,8 +2852,8 @@
         :host([data-visual-style="gaming"]) .chapter-limit-slider { appearance: none; height: 32px; background: transparent; }
         :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-runnable-track { height: 6px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
         :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-track { height: 4px; border: 1px solid var(--sw-border); border-radius: 0; background: var(--sw-surface-elevated); }
-        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -14px; border: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; appearance: none; image-rendering: pixelated; }
-        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 32px; height: 32px; border: 0; border-radius: 0; background: url("${chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png")}") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -14px; border: 0; background: url("__PP_CHAPTER_FLAME__") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; appearance: none; image-rendering: pixelated; }
+        :host([data-visual-style="gaming"]) .chapter-limit-slider::-moz-range-thumb { width: 32px; height: 32px; border: 0; border-radius: 0; background: url("__PP_CHAPTER_FLAME__") var(--sw-flame-x, 0) 0 / 160px 32px no-repeat; image-rendering: pixelated; }
         .chapter-limit-slider[data-flame-level="1"] { --sw-flame-x: 0; }
         .chapter-limit-slider[data-flame-level="2"] { --sw-flame-x: -32px; }
         .chapter-limit-slider[data-flame-level="3"] { --sw-flame-x: -64px; }
@@ -3196,10 +3219,10 @@
           image-rendering: pixelated;
           pointer-events: none;
         }
-        :host([data-visual-style="gaming"]) .autoplay-control-sprite { background-image: url("${actionAutoplayUrl}"); }
-        :host([data-visual-style="gaming"]) .playback-recovery-control-sprite { background-image: url("${actionPlaybackRecoveryUrl}"); }
-        :host([data-visual-style="gaming"]) .commission-control-sprite { background-image: url("${actionCommissionCheckUrl}"); }
-        :host([data-visual-style="gaming"]) .sound-notification-control-sprite { background-image: url("${actionNotificationSoundUrl}"); }
+        :host([data-visual-style="gaming"]) .autoplay-control-sprite { background-image: url("__PP_ACTION_AUTOPLAY__"); }
+        :host([data-visual-style="gaming"]) .playback-recovery-control-sprite { background-image: url("__PP_ACTION_RECOVERY__"); }
+        :host([data-visual-style="gaming"]) .commission-control-sprite { background-image: url("__PP_ACTION_COMMISSION__"); }
+        :host([data-visual-style="gaming"]) .sound-notification-control-sprite { background-image: url("__PP_ACTION_SOUND__"); }
         @media (hover: hover) {
           :host([data-visual-style="gaming"]) .gaming-control-row:hover .gaming-control-sprite:not(.is-playing) {
             animation: control-hover-preview 1600ms steps(5, end) infinite both;
@@ -3231,15 +3254,15 @@
           pointer-events: none;
         }
         :host([data-visual-style="gaming"]) .objectives-sprite {
-          background-image: url("${actionObjectivesUrl}");
+          background-image: url("__PP_ACTION_OBJECTIVES__");
         }
         :host([data-visual-style="gaming"]) .gaming-art-compact .gaming-action-sprite {
           width: 64px;
           background-size: 600% 100%;
         }
-        :host([data-visual-style="gaming"]) .turbo-tests-sprite { background-image: url("${actionAutoTestsUrl}"); }
-        :host([data-visual-style="gaming"]) .test-collection-sprite { background-image: url("${actionTestCollectionUrl}"); }
-        :host([data-visual-style="gaming"]) .materials-sprite { background-image: url("${actionStudyMaterialsUrl}"); }
+        :host([data-visual-style="gaming"]) .turbo-tests-sprite { background-image: url("__PP_ACTION_AUTO_TESTS__"); }
+        :host([data-visual-style="gaming"]) .test-collection-sprite { background-image: url("__PP_ACTION_TEST_COLLECTION__"); }
+        :host([data-visual-style="gaming"]) .materials-sprite { background-image: url("__PP_ACTION_MATERIALS__"); }
         @media (hover: hover) {
           :host([data-visual-style="gaming"]) .action:not(:disabled):not([data-running="true"]):hover .objectives-sprite:not(.is-playing) {
             animation: objectives-hover-preview 1600ms steps(10, end) infinite both;
@@ -3524,7 +3547,7 @@
         }
       </style>
       <button class="launcher" type="button" aria-label="Apri PlumePilot; trascina per spostare l’icona lungo il bordo" aria-expanded="false" aria-controls="studywing-panel" title="Clicca per aprire PlumePilot · Trascina per spostare">
-        <img class="launcher-standard" src="${iconUrl}" alt="" draggable="false">
+        <img class="launcher-standard" src="__PP_ICON__" alt="" draggable="false">
         <span class="launcher-mascot" aria-hidden="true"></span>
         <span class="launcher-cosmetic-frame" aria-hidden="true"></span>
       </button>
@@ -3535,7 +3558,7 @@
       <section id="studywing-panel" class="panel" aria-label="Menu PlumePilot" hidden>
         <div class="header">
           <span class="header-logo" aria-hidden="true">
-            <img class="header-logo-standard" src="${iconUrl}" alt="">
+            <img class="header-logo-standard" src="__PP_ICON__" alt="">
             <span class="header-logo-gaming"></span>
           </span>
           <div class="identity">
@@ -3723,15 +3746,41 @@
             </details>
             <div class="project-links" aria-label="Collegamenti di PlumePilot">
               <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
-              <a class="project-link" href="${faqUrl}" target="_blank" rel="noopener noreferrer">FAQ</a>
-              <a class="project-link" href="${storeReviewUrl}" target="_blank" rel="noopener noreferrer">Vota</a>
-              <a class="project-link" href="${donateUrl}" target="_blank" rel="noopener noreferrer">Dona</a>
+              <a class="project-link" href="__PP_FAQ_URL__" target="_blank" rel="noopener noreferrer">FAQ</a>
+              <a class="project-link" href="__PP_REVIEW_URL__" target="_blank" rel="noopener noreferrer">Vota</a>
+              <a class="project-link" href="__PP_DONATE_URL__" target="_blank" rel="noopener noreferrer">Dona</a>
             </div>
-            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot ${extensionManifest.version} è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
+            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot __PP_VERSION__ è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
       </section>`;
+    hydrateShadowPlaceholders(shadow, {
+      __PP_PIXEL_FONT__: pixelFontUrl,
+      __PP_NOTIFICATION_ALERT__: notificationAlertUrl,
+      __PP_MASCOT_IDLE_LIGHT__: mascotIdleLightUrl,
+      __PP_MASCOT_IDLE_DARK__: mascotIdleDarkUrl,
+      __PP_MASCOT_LOGO_LIGHT__: mascotLogoLightUrl,
+      __PP_MASCOT_LOGO_DARK__: mascotLogoDarkUrl,
+      __PP_PROGRESS_FRAME_LEFT__: progressFrameLeftUrl,
+      __PP_PROGRESS_FRAME_RIGHT__: progressFrameRightUrl,
+      __PP_PROGRESS_FRAME_CENTER__: progressFrameCenterUrl,
+      __PP_PROGRESS_FILL__: progressFillUrl,
+      __PP_CHAPTER_FLAME__: chrome.runtime.getURL("assets/gaming/gaming-chapter-slider-flame.png"),
+      __PP_ACTION_AUTOPLAY__: actionAutoplayUrl,
+      __PP_ACTION_RECOVERY__: actionPlaybackRecoveryUrl,
+      __PP_ACTION_COMMISSION__: actionCommissionCheckUrl,
+      __PP_ACTION_SOUND__: actionNotificationSoundUrl,
+      __PP_ACTION_OBJECTIVES__: actionObjectivesUrl,
+      __PP_ACTION_AUTO_TESTS__: actionAutoTestsUrl,
+      __PP_ACTION_TEST_COLLECTION__: actionTestCollectionUrl,
+      __PP_ACTION_MATERIALS__: actionStudyMaterialsUrl,
+      __PP_ICON__: iconUrl,
+      __PP_FAQ_URL__: faqUrl,
+      __PP_REVIEW_URL__: storeReviewUrl,
+      __PP_DONATE_URL__: donateUrl,
+      __PP_VERSION__: extensionManifest.version,
+    });
 
     document.documentElement.appendChild(host);
     ui = {

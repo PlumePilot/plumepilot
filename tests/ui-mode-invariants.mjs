@@ -54,10 +54,10 @@ assert.match(popupCssSource, /\.popup-sticky-header\s*\{[^}]*top:\s*0;[^}]*paddi
 assert.match(popupCssSource, /html\[data-visual-style="gaming"\] \.popup-sticky-header\s*\{[^}]*top:\s*8px;[^}]*padding-top:\s*6px;/s);
 assert.match(themeSource, /const VISUAL_STYLE_KEY = "visualStyle";/);
 assert.match(themeSource, /document\.documentElement\.dataset\.visualStyle = visualStyle;/);
-assert.match(popupSource, /turboTestsStatus\.textContent = turbo \?[^;]+: "";/s);
-assert.match(popupSource, /objectivesStatus\.textContent = objectives[^;]+: "";/s);
-assert.match(popupSource, /testCollectionStatus\.textContent = operation\?\.kind === "tests"[^;]+: "";/s);
-assert.match(popupSource, /materialsStatus\.textContent = operation\?\.kind === "materials"[^;]+: "";/s);
+assert.match(popupSource, /turboTestsStatus\.textContent = turbo\s*\?[^;]+: "";/s);
+assert.match(popupSource, /objectivesStatus\.textContent = objectives\s*\?[^;]+: "";/s);
+assert.match(popupSource, /testCollectionStatus\.textContent =\s*operation\?\.kind === "tests"[^;]+: "";/s);
+assert.match(popupSource, /materialsStatus\.textContent =\s*operation\?\.kind === "materials"[^;]+: "";/s);
 assert.match(popupCssSource, /html\[data-menu-size="medium"\]\s*\{[^}]+--sw-action-font-size:\s*14px;[^}]+--sw-control-font-size:\s*12px;[^}]+--sw-secondary-font-size:\s*11px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="medium"\]\) \.course-progress-options-menu summary small,[^}]+\.autoplay-options-summary,[^}]+font-size:\s*10px;/s);
 assert.match(floatingMenuSource, /:host\(\[data-menu-size="large"\]\) \.course-progress-options-menu summary,[^}]+\.autoplay-options-title,[^}]+font-size:\s*12px;/s);
@@ -67,7 +67,7 @@ assert.match(popupHtmlSource, /id="chapterLimitValue" type="number"[^>]+min="1"[
 assert.match(popupHtmlSource, /id="chapterLimitSlider"[^>]+type="range"[^>]+min="1"[^>]+step="1"/);
 assert.match(floatingMenuSource, /data-role="chapter-limit-value" type="number"[^>]+min="1"[^>]+step="1"/);
 assert.match(floatingMenuSource, /data-role="chapter-limit-slider" type="range"[^>]+min="1"[^>]+step="1"/);
-assert.match(popupSource, /chapterLimitSlider\.addEventListener\("change", \(\) => updateChapterLimitValue/);
+assert.match(popupSource, /chapterLimitSlider\.addEventListener\("change", \(\) =>\s*updateChapterLimitValue/);
 assert.match(floatingMenuSource, /chapterLimitSlider\.addEventListener\("change", \(\) => setLimit/);
 assert.ok(manifest.web_accessible_resources.some(group => group.resources?.includes("assets/gaming/gaming-chapter-slider-flame.png")));
 assert.equal(flameSprite.readUInt32BE(16), 160, "flame sprite must retain five 32px columns");

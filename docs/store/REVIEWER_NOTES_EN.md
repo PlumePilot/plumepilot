@@ -41,29 +41,31 @@ Privacy policy: <https://plumepilot.github.io/plumepilot/privacy/>
 
 ## Source and reproducible build
 
-The attached `plumepilot-v2.32.9-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
+The attached `plumepilot-v2.33.2-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
 
 ```bash
 node scripts/build-release.mjs
 node scripts/validate-release.mjs
 ```
 
-Expected Firefox package SHA-256: `87fe0ee15fa4562265138129da4e90f9726394d81c734484e323183cc4d64213`
+Expected Firefox package SHA-256: `13abff570c415b603608483123bfd2d1fee09a6412080220b7c5f426eabbdb10`
 
 ## Third-party libraries
 
-The runtime package contains these unmodified official releases:
+The source archive contains these readable official releases:
 
 - pdf-lib 1.17.1 — <https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz> — readable source: <https://github.com/Hopding/pdf-lib/tree/v1.17.1>
 - @pdf-lib/fontkit 1.1.1 — <https://registry.npmjs.org/@pdf-lib/fontkit/-/fontkit-1.1.1.tgz> — readable versioned source is included in the archive under `es/` and `lib/`; project repository: <https://github.com/Hopding/fontkit>
 - PDF.js 5.6.205 — <https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz> — readable source: <https://github.com/mozilla/pdf.js/tree/v5.6.205>
 - JSZip 3.10.1 — <https://registry.npmjs.org/jszip/-/jszip-3.10.1.tgz> — readable source: <https://github.com/Stuk/jszip/tree/v3.10.1>
 
-Exact paths, licenses, and SHA-256 values are recorded in `THIRD_PARTY_NOTICES.md`. Each bundled file was compared byte for byte with the corresponding file extracted from the official npm archive and matched.
+Exact paths, licenses, and source SHA-256 values are recorded in `THIRD_PARTY_NOTICES.md`. Each source vendor file was compared byte for byte with its official release and matched.
 
-The AMO linter reports 14 warnings and no errors for this package: 12 `Function`, `eval`, or dynamic-import warnings originate exclusively from the unmodified upstream vendor releases; the remaining two flag `shadow.innerHTML` assignments in `floating-menu.js`. Both assignments create closed Shadow DOM interfaces from extension-owned static markup and interpolate only URLs returned by `chrome.runtime.getURL()` for packaged images and the packaged font. No website content or user input reaches those assignments. The extension does not use any of these constructs to download or execute remote code.
+The build applies exact-match, fail-closed transformations only to the Firefox runtime copies. They remove the legacy JSZip string-callback evaluator, two unused fontkit eval-like fallbacks, PDF.js's optional PostScript compiler and variable fallback imports, pdf-lib's dangling source-map marker (the map is not bundled), and the unsupported Chromium offscreen-audio branch. PDF.js retains its interpreter, normal module-worker and WebAssembly paths. Chrome and Edge keep the official files unchanged. The build fails if any expected upstream fragment differs, and the validator scans the complete Firefox ZIP for eval calls, `Function` constructors, variable dynamic imports and `chrome.offscreen` references.
 
-The linter can heuristically classify `popup.js` as minified; it is readable first-party source and is not transformed during the build.
+The two Shadow DOM templates now contain static extension-owned markup. Packaged URLs and the version string are assigned afterward through DOM text nodes and attributes; no website content or user input reaches them.
+
+`web-ext lint 10.6.0` reports **0 errors, 0 notices, 0 warnings**, and an empty `unknownMinifiedFiles` list for the generated Firefox package.
 
 ## Optional reviewer video
 
