@@ -9,7 +9,10 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
   };
   const OPERATION_KEY = "pegasoActiveOperation";
   const COMMISSION_LEASE_KEY = "commissionCheckLease";
+  const COMMISSION_LEASES_KEY = "commissionCheckLeases";
   const COMMISSION_CAPTURE_KEY = "commissionExamsCapturedAt";
+  const COMMISSION_CAPTURES_KEY = "commissionExamsCapturedAtByPlatform";
+  const SUPPORTED_PLATFORM_IDS = new Set(["pegaso", "mercatorum", "utsr"]);
   const COURSE_THRESHOLD_NOTIFIED_KEY = "courseProgressThresholdNotified";
   const LESSON_COMPLETION_PENDING_KEY = "studywingPendingLessonCompletions";
   const SOUND_EVENT_MEMORY_KEY = "plumepilotPlayedSoundEvents";
@@ -270,26 +273,43 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     });
   }
 
-  async function currentCommissionLease() {
-    const lease = await storageGet(COMMISSION_LEASE_KEY);
+  function normalizedPlatformId(value) {
+    return SUPPORTED_PLATFORM_IDS.has(value) ? value : null;
+  }
+
+  async function currentCommissionLease(platformId) {
+    const normalized = normalizedPlatformId(platformId);
+    if (!normalized) return null;
+    const leases = await storageGet(COMMISSION_LEASES_KEY) || {};
+    const lease = leases?.[normalized];
     if (!lease || typeof lease !== "object") return null;
     if (
       !Number.isFinite(Number(lease.expiresAt)) ||
       Number(lease.expiresAt) <= Date.now() ||
       Number(lease.expiresAt) - Date.now() > COMMISSION_LEASE_MS * 2
     ) {
-      await storageRemove(COMMISSION_LEASE_KEY);
+      const next = { ...leases };
+      delete next[normalized];
+      await storageSet({ [COMMISSION_LEASES_KEY]: next });
       return null;
     }
     return lease;
   }
 
-  function claimCommissionCheck(sourceTabId) {
+  function claimCommissionCheck(sourceTabId, platformId) {
     return serializedCommission(async () => {
+      const normalized = normalizedPlatformId(platformId);
+      if (!normalized) return { accepted: false, reason: "invalid-platform" };
       const now = Date.now();
-      const capturedAt = Number(await storageGet(COMMISSION_CAPTURE_KEY));
+      const captures = await storageGet(COMMISSION_CAPTURES_KEY) || {};
+      const capturedAt = Number(captures?.[normalized]);
       const captureAge = now - capturedAt;
-      if (Number.isFinite(capturedAt) && capturedAt > 0 && captureAge >= 0 && captureAge < COMMISSION_CHECK_INTERVAL_MS) {
+      if (
+        Number.isFinite(capturedAt) &&
+        capturedAt > 0 &&
+        captureAge >= 0 &&
+        captureAge < COMMISSION_CHECK_INTERVAL_MS
+      ) {
         return {
           accepted: false,
           reason: "fresh",
@@ -297,7 +317,7 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
         };
       }
 
-      const existing = await currentCommissionLease();
+      const existing = await currentCommissionLease(normalized);
       if (existing) {
         return {
           accepted: false,
@@ -308,30 +328,44 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
 
       const lease = {
         id: crypto.randomUUID(),
+        platformId: normalized,
         sourceTabId,
         startedAt: now,
         expiresAt: now + COMMISSION_LEASE_MS,
       };
-      await storageSet({ [COMMISSION_LEASE_KEY]: lease });
+      const leases = await storageGet(COMMISSION_LEASES_KEY) || {};
+      await storageSet({ [COMMISSION_LEASES_KEY]: { ...leases, [normalized]: lease } });
       return { accepted: true, leaseId: lease.id, expiresAt: lease.expiresAt };
     });
   }
 
-  function releaseCommissionCheck(leaseId) {
+  function releaseCommissionCheck(leaseId, platformId) {
     return serializedCommission(async () => {
-      const lease = await currentCommissionLease();
+      const normalized = normalizedPlatformId(platformId);
+      if (!normalized) return { accepted: false };
+      const lease = await currentCommissionLease(normalized);
       if (!lease || lease.id !== leaseId) return { accepted: false };
-      await storageRemove(COMMISSION_LEASE_KEY);
+      const leases = await storageGet(COMMISSION_LEASES_KEY) || {};
+      const next = { ...leases };
+      delete next[normalized];
+      await storageSet({ [COMMISSION_LEASES_KEY]: next });
       return { accepted: true };
     });
   }
 
   function releaseCommissionCheckForTab(tabId) {
     return serializedCommission(async () => {
-      const lease = await currentCommissionLease();
-      if (!lease || lease.sourceTabId !== tabId) return { accepted: false };
-      await storageRemove(COMMISSION_LEASE_KEY);
-      return { accepted: true };
+      const leases = await storageGet(COMMISSION_LEASES_KEY) || {};
+      const next = { ...leases };
+      let released = false;
+      for (const [platformId, lease] of Object.entries(leases)) {
+        if (lease?.sourceTabId === tabId) {
+          delete next[platformId];
+          released = true;
+        }
+      }
+      if (released) await storageSet({ [COMMISSION_LEASES_KEY]: next });
+      return { accepted: true, released };
     });
   }
   async function currentOperation() {
@@ -454,7 +488,10 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
         .filter((tab) => Number.isInteger(tab?.id))
         .map((tab) => sendTabMessage(tab.id, { type: "PEGASO_CLEAR_COMMISSION_MEMORY" })),
     );
-    await serializedCommission(async () => storageRemove(COMMISSION_LEASE_KEY));
+    await serializedCommission(async () => {
+      await storageRemove(COMMISSION_LEASE_KEY);
+      await storageRemove(COMMISSION_LEASES_KEY);
+    });
     return {
       accepted: true,
       clearedTabs: results.filter((result) => result.status === "fulfilled" && result.value?.accepted).length,
@@ -679,8 +716,8 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     else if (message?.type === "PEGASO_UPDATE_OPERATION") action = update(message.operationId, message.patch || {});
     else if (message?.type === "PEGASO_RELEASE_OPERATION") action = release(message.operationId);
     else if (message?.type === "PEGASO_OPEN_EXPORT_BUILDER") action = openBuilder(message).catch(async (error) => { await release(message.operationId); return { accepted: false, reason: error.message }; });
-    else if (message?.type === "PEGASO_COMMISSION_CHECK_CLAIM") action = Number.isInteger(sourceTabId) ? claimCommissionCheck(sourceTabId) : Promise.resolve({ accepted: false, reason: "missing-tab" });
-    else if (message?.type === "PEGASO_COMMISSION_CHECK_RELEASE") action = releaseCommissionCheck(message.leaseId);
+    else if (message?.type === "PEGASO_COMMISSION_CHECK_CLAIM") action = Number.isInteger(sourceTabId) ? claimCommissionCheck(sourceTabId, message.platformId) : Promise.resolve({ accepted: false, reason: "missing-tab" });
+    else if (message?.type === "PEGASO_COMMISSION_CHECK_RELEASE") action = releaseCommissionCheck(message.leaseId, message.platformId);
     else if (message?.type === "PEGASO_CLEAR_COMMISSION_MEMORY_ALL_TABS") action = clearCommissionMemoryInTabs();
     else if (message?.type === "PEGASO_COURSE_THRESHOLD_CLAIM") action = claimCourseProgressThreshold(message.courseCode);
     else if (message?.type === "STUDYWING_ACHIEVEMENT_CLAIM") action = claimAchievement(message.achievementId);
