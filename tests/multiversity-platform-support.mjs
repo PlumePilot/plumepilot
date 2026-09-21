@@ -48,4 +48,22 @@ assert.match(floating, /eventId: `course-threshold:\$\{PLATFORM_ID\}:\$\{courseC
 assert.match(background, /\*:\/\/\*\.mercatorum\.multiversity\.click\/\*/);
 assert.match(background, /\*:\/\/\*\.utsr\.multiversity\.click\/\*/);
 
+
+assert.match(floating, /function courseSurfaceAvailable\(\)/);
+assert.match(
+  floating,
+  /const supportedSurface =\s*courseSurfaceAvailable\(\) \|\| isCommissionOnlyPage\(\)/,
+);
+assert.match(
+  floating,
+  /const shouldShow =\s*settings\.floatingMenuEnabled === true && supportedSurface/,
+);
+assert.match(floating, /ui\.courseTab\.hidden = false/);
+assert.match(floating, /ui\.courseTools\.inert = !courseAvailable/);
+assert.match(
+  floating,
+  /ui\.hide\.addEventListener\("click",[\s\S]+writeSetting\("floatingMenuEnabled", false\)/,
+);
+assert.match(floating, /Apri un corso per usare questi strumenti/);
+
 console.log("multiversity-platform-support: ok");
