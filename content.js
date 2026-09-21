@@ -55,6 +55,8 @@
   const EPUB_LINK_TIMEOUT_MS = 15000;
   const EPUB_RETRY_DELAY_MS = 2000;
   const EPUB_CHAPTER_PACING_MS = 1000;
+  const MATERIAL_CONTENT_SETTLE_MS = 2500;
+  const MATERIAL_LINK_ABSENT = Symbol("material-link-absent");
   const API_MATERIAL_PACING_MS = 150;
   const TURBO_API_PACING_MS = 350;
   const COURSE_INDEX_RETRY_DELAYS_MS = [350, 750];
@@ -1827,6 +1829,48 @@
     };
   }
 
+  async function waitForChapterDispensa(identity, timeout, operationId) {
+    let stableSince = null;
+    let lastSignature = null;
+
+    return waitForExport(() => {
+      const chapter = findChapter(identity);
+      const link = getChapterDispensa(chapter);
+
+      if (link) {
+        return link;
+      }
+
+      const container = getChapterContainer(chapter);
+      const rows = chapterRows(chapter);
+
+      if (!container || !isChapterOpen(identity) || rows.length === 0) {
+        stableSince = null;
+        lastSignature = null;
+        return null;
+      }
+
+      const signature = [
+        container.querySelectorAll("*").length,
+        container.querySelectorAll("a").length,
+        rows.length,
+        container.textContent?.replace(/\s+/g, " ").trim().length || 0,
+      ].join(":");
+
+      if (signature !== lastSignature) {
+        lastSignature = signature;
+        stableSince = Date.now();
+        return null;
+      }
+
+      if (Date.now() - stableSince >= MATERIAL_CONTENT_SETTLE_MS) {
+        return MATERIAL_LINK_ABSENT;
+      }
+
+      return null;
+    }, timeout, operationId);
+  }
+
   async function openSectionForEpub(sectionText, operationId) {
     const hasVisibleChapters = () =>
       chapters().some(
@@ -1913,11 +1957,19 @@
       const opened = await openChapter(identity, true, operationId);
 
       if (opened) {
-        const link = await waitForExport(
-          () => getChapterDispensa(findChapter(identity)),
+        const link = await waitForChapterDispensa(
+          identity,
           EPUB_LINK_TIMEOUT_MS,
           operationId,
         );
+
+        if (link === MATERIAL_LINK_ABSENT) {
+          log(
+            "EPUB collector: chapter rendered without a Dispensa:",
+            identity,
+          );
+          return null;
+        }
 
         if (link) {
           return link;
@@ -2103,14 +2155,14 @@
 
       const opened = await openChapter(item.identity, false, operationId);
       const link = opened
-        ? await waitForExport(
-            () => getChapterDispensa(findChapter(item.identity)),
+        ? await waitForChapterDispensa(
+            item.identity,
             WAIT_MS,
             operationId,
           )
         : null;
 
-      if (!link) {
+      if (!link || link === MATERIAL_LINK_ABSENT) {
         log("PDF recovery: Dispensa still unavailable:", item.chapter);
         continue;
       }
@@ -3104,14 +3156,14 @@
                 continue;
               }
 
-              link = await waitForExport(
-                () => getChapterDispensa(findChapter(identity)),
+              link = await waitForChapterDispensa(
+                identity,
                 WAIT_MS,
                 operationId,
               );
             }
 
-            if (!link) {
+            if (!link || link === MATERIAL_LINK_ABSENT) {
               const failure = {
                 chapter: qualifiedChapter,
                 reason: "Dispensa non trovata",
