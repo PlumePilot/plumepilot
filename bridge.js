@@ -28,12 +28,28 @@
   )?.[0] || null;
   if (!PLATFORM_ID) return;
 
-  function commissionExamKey(exam) {
-    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
-      ? exam.platformId
-      : "pegaso";
-    const examId = Number(exam?.exam_id);
-    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
+  function courseStorageKey(courseCode, platformId = PLATFORM_ID) {
+    const course = typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
+      ? courseCode
+      : null;
+    return course && ["pegaso", "mercatorum", "utsr"].includes(platformId)
+      ? `${platformId}:${course}`
+      : null;
+  }
+
+  function currentPlatformCourseMap(source) {
+    const stored = source && typeof source === "object" ? source : {};
+    const scoped = {};
+    if (PLATFORM_ID === "pegaso") {
+      for (const [key, value] of Object.entries(stored)) {
+        if (/^[A-Za-z0-9_-]{3,80}$/.test(key)) scoped[key] = value;
+      }
+    }
+    const prefix = `${PLATFORM_ID}:`;
+    for (const [key, value] of Object.entries(stored)) {
+      if (key.startsWith(prefix)) scoped[key.slice(prefix.length)] = value;
+    }
+    return scoped;
   }
   let turboTestsStatus = { running: false, stopping: false, message: "" };
   let turboOperationId = null;
@@ -72,7 +88,6 @@
   const COMMISSION_CLEAR_MEMORY = "STUDYWING_COMMISSION_EXAMS_CLEAR_MEMORY";
   const COMMISSION_CHECK_INTERVAL_MS = 10 * 60 * 1000;
   const COMMISSION_RETRY_MS = 60 * 1000;
-  const commissionStates = globalThis.StudyWingCommissionState;
   const pageLoadedAt = Date.now();
   const extensionVersion = chrome.runtime.getManifest().version;
   const requestedExportOperationIds = new Set();
@@ -164,6 +179,12 @@
     return typeof value === "string" ? value.slice(0, maxLength) : null;
   }
 
+  function platformScopedSoundEventId(value) {
+    const eventId = safeText(value, 180);
+    const match = eventId?.match(/^(course-threshold|chapter-limit):(.+)$/);
+    return match ? `${match[1]}:${PLATFORM_ID}:${match[2]}` : eventId;
+  }
+
   function safeNumber(value) {
     if (value === null || value === undefined || value === "") return null;
     return Number.isFinite(Number(value)) ? Number(value) : null;
@@ -206,137 +227,39 @@
     }
 
     commissionProcessing = true;
-    const platformId = PLATFORM_ID;
     const platformExams = payload.exams
       .slice(0, 200)
       .map(normalizeCommissionExam)
-      .filter(Boolean)
-      .map((exam) => ({ ...exam, platformId }));
-
-    chrome.storage.local.get({
-      commissionExamTrackingInitialized: false,
-      commissionExamTrackingInitializedByPlatform: {},
-      commissionExamSnapshots: {},
-      commissionUnseenExamIds: [],
-      commissionExams: [],
-      commissionExamsCapturedAtByPlatform: {},
-    }, (stored) => {
-      const previousSnapshots = stored.commissionExamSnapshots && typeof stored.commissionExamSnapshots === "object"
-        ? stored.commissionExamSnapshots
-        : {};
-      const initializedByPlatform = stored.commissionExamTrackingInitializedByPlatform &&
-        typeof stored.commissionExamTrackingInitializedByPlatform === "object"
-        ? { ...stored.commissionExamTrackingInitializedByPlatform }
-        : {};
-      if (stored.commissionExamTrackingInitialized === true && initializedByPlatform.pegaso !== true) {
-        initializedByPlatform.pegaso = true;
-      }
-      const initialized = initializedByPlatform[platformId] === true;
-
-      const existingExams = Array.isArray(stored.commissionExams)
-        ? stored.commissionExams
-            .map((exam) => exam && typeof exam === "object"
-              ? { ...exam, platformId: ["pegaso", "mercatorum", "utsr"].includes(exam.platformId) ? exam.platformId : "pegaso" }
-              : null)
-            .filter(Boolean)
-        : [];
-      const previousExams = new Map(existingExams.map((exam) => [commissionExamKey(exam), exam]));
-      const nextSnapshots = { ...previousSnapshots };
-      for (const key of Object.keys(nextSnapshots)) {
-        if (key.startsWith(`${platformId}:`)) delete nextSnapshots[key];
-      }
-
-      const newlyChangedIds = [];
-      const soundChanges = [];
-      for (const exam of platformExams) {
-        const key = commissionExamKey(exam);
-        if (!key) continue;
-        const snapshot = commissionStates.createSnapshot(exam);
-        nextSnapshots[key] = snapshot;
-        if (!initialized) continue;
-
-        const previousSnapshot = commissionStates.normalizeStoredSnapshot(
-          previousSnapshots[key] ?? (platformId === "pegaso" ? previousSnapshots[String(exam.exam_id)] : null),
-          previousExams.get(key),
-        );
-        if (commissionStates.shouldNotifyChange(previousSnapshot, snapshot)) {
-          newlyChangedIds.push(key);
-        }
-        if (
-          previousSnapshot?.state === commissionStates.STATES.PENDING &&
-          snapshot.state !== commissionStates.STATES.PENDING
-        ) {
-          soundChanges.push(`${key}-${snapshot.state}`);
-        }
-      }
-
-      const currentPlatformKeys = new Set(platformExams.map(commissionExamKey).filter(Boolean));
-      const storedUnseen = Array.isArray(stored.commissionUnseenExamIds)
-        ? stored.commissionUnseenExamIds
-        : [];
-      const normalizedStoredUnseen = storedUnseen
-        .map((value) => {
-          if (typeof value === "string" && /^[a-z]+:\d+$/.test(value)) return value;
-          const legacyId = Number(value);
-          return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
-        })
-        .filter(Boolean);
-      const unseen = [...new Set([
-        ...normalizedStoredUnseen.filter((key) =>
-          !key.startsWith(`${platformId}:`) || currentPlatformKeys.has(key)
-        ),
-        ...newlyChangedIds,
-      ])];
-
-      const exams = [
-        ...existingExams.filter((exam) => exam.platformId !== platformId),
-        ...platformExams,
-      ];
-      initializedByPlatform[platformId] = true;
-      const capturedAt = Number(payload.capturedAt) || Date.now();
-      const capturedAtByPlatform = stored.commissionExamsCapturedAtByPlatform &&
-        typeof stored.commissionExamsCapturedAtByPlatform === "object"
-        ? { ...stored.commissionExamsCapturedAtByPlatform, [platformId]: capturedAt }
-        : { [platformId]: capturedAt };
-
-      chrome.storage.local.set({
-        commissionExams: exams,
-        commissionExamsCapturedAt: capturedAt,
-        commissionExamsCapturedAtByPlatform: capturedAtByPlatform,
-        commissionExamSnapshots: nextSnapshots,
-        commissionExamTrackingInitialized: true,
-        commissionExamTrackingInitializedByPlatform: initializedByPlatform,
-        commissionUnseenExamIds: unseen,
-      }, () => {
-        const storageFailed = Boolean(chrome.runtime.lastError);
+      .filter(Boolean);
+    chrome.runtime.sendMessage({
+      type: "PEGASO_COMMISSION_PAYLOAD_STORE",
+      platformId: PLATFORM_ID,
+      exams: platformExams,
+      capturedAt: Number(payload.capturedAt) || Date.now(),
+    }, (result) => {
+        const storageFailed = Boolean(chrome.runtime.lastError) || result?.accepted !== true;
         if (storageFailed) {
-          console.warn("[PlumePilot Commissione] Salvataggio non riuscito:", chrome.runtime.lastError.message);
-        } else {
-          debugLog("[PlumePilot Commissione] Esami aggiornati.", {
-            platformId,
-            exams: platformExams.length,
-            newVerdicts: newlyChangedIds.length,
-            baselineCreated: !initialized,
+          console.warn(
+            "[PlumePilot Commissione] Salvataggio non riuscito:",
+            chrome.runtime.lastError?.message || result?.reason || "errore sconosciuto",
+          );
+        } else if (result.soundEventId) {
+          chrome.runtime.sendMessage({
+            type: "STUDYWING_SOUND_EVENT",
+            eventId: result.soundEventId,
+          }, (soundResult) => {
+            if (!chrome.runtime.lastError && soundResult?.achievement?.accepted) {
+              window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
+            }
           });
-          if (soundChanges.length) {
-            chrome.runtime.sendMessage({
-              type: "STUDYWING_SOUND_EVENT",
-              eventId: `commission:${platformId}:${capturedAt}:${soundChanges.sort().join(".")}`,
-            }, (result) => {
-              if (!chrome.runtime.lastError && result?.achievement?.accepted) {
-                window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
-              }
-            });
-          }
         }
-        releaseCommissionLease(!storageFailed, capturedAt);
+        releaseCommissionLease(!storageFailed, result?.capturedAt);
         commissionProcessing = false;
         if (queuedCommissionPayload) {
           const queued = queuedCommissionPayload;
           queuedCommissionPayload = null;
           processCommissionPayload(queued);
         }
-      });
     });
   }
   function sendState(
@@ -399,11 +322,11 @@
           autoEnabled,
           playbackErrorRecovery,
           result.autoplayChapterLimitEnabled === true,
-          result.autoplayChapterLimits || {},
-          result.autoplayChapterLimitSessions || {},
+          currentPlatformCourseMap(result.autoplayChapterLimits),
+          currentPlatformCourseMap(result.autoplayChapterLimitSessions),
           result.courseProgressOverlayEnabled === true,
           result.autoplayStopAt70Enabled === true,
-          result.autoplayStopAt70BypassedCourses || {},
+          currentPlatformCourseMap(result.autoplayStopAt70BypassedCourses),
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
         );
@@ -538,7 +461,7 @@
     if (event.source !== window || !event.data) return;
     if (event.data.type === "STUDYWING_SOUND_EVENT") {
       chrome.runtime.sendMessage(
-        { type: "STUDYWING_SOUND_EVENT", eventId: safeText(event.data.eventId, 180) },
+        { type: "STUDYWING_SOUND_EVENT", eventId: platformScopedSoundEventId(event.data.eventId) },
         (result) => {
           if (!chrome.runtime.lastError && result?.achievement?.accepted) {
             window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
@@ -567,14 +490,17 @@
       return;
     }
     if (event.data.type === "PEGASO_CHAPTER_LIMIT_STATUS") {
-      chapterLimitStatus = event.data.status || null;
+      chapterLimitStatus = event.data.status
+        ? { ...event.data.status, platformId: PLATFORM_ID }
+        : null;
       const courseCode = String(chapterLimitStatus?.courseCode || "");
-      if (!courseCode) return;
+      const storageKey = courseStorageKey(courseCode);
+      if (!storageKey) return;
       chrome.storage.local.get({ autoplayChapterLimitStatuses: {} }, (result) => {
         chrome.storage.local.set({
           autoplayChapterLimitStatuses: {
             ...(result.autoplayChapterLimitStatuses || {}),
-            [courseCode]: chapterLimitStatus,
+            [storageKey]: chapterLimitStatus,
           },
         });
       });
@@ -587,6 +513,7 @@
         : "";
       const percent = Number(source?.percent);
       courseProgressStatus = courseCode ? {
+        platformId: PLATFORM_ID,
         courseCode,
         available: source.available === true && Number.isFinite(percent),
         percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, Math.floor(percent))) : null,
@@ -604,12 +531,13 @@
     }
     if (event.data.type === "PEGASO_CHAPTER_LIMIT_SESSION_UPDATE") {
       const courseCode = String(event.data.courseCode || "");
-      if (!courseCode) return;
+      const storageKey = courseStorageKey(courseCode);
+      if (!storageKey) return;
       chrome.storage.local.get({ autoplayChapterLimitSessions: {} }, (result) => {
         chrome.storage.local.set({
           autoplayChapterLimitSessions: {
             ...(result.autoplayChapterLimitSessions || {}),
-            [courseCode]: event.data.session || null,
+            [storageKey]: event.data.session || null,
           },
         });
       });
@@ -664,6 +592,7 @@
     if (event.data.type === "STUDYWING_CHAPTER_VIDEOS_CLAIM_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_CHAPTER_VIDEOS_CLAIM",
+        platformId: PLATFORM_ID,
         chapterKey: event.data.chapterKey,
         videos: event.data.videos,
       }, (result) => {
@@ -674,6 +603,7 @@
     if (event.data.type === "STUDYWING_LESSON_COMPLETION_CANDIDATE_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_LESSON_COMPLETION_CLAIM",
+        platformId: PLATFORM_ID,
         lessonKey: event.data.lessonKey,
         chapters: event.data.chapters,
         candidate: event.data.candidate === true,
@@ -687,6 +617,7 @@
     if (event.data.type === "STUDYWING_PENDING_LESSONS_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_PENDING_LESSONS_GET",
+        platformId: PLATFORM_ID,
         courseCode: event.data.courseCode,
       }, (result) => {
         if (chrome.runtime.lastError || result?.accepted !== true) return;

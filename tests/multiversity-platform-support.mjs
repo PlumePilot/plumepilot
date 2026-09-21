@@ -5,6 +5,8 @@ const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta
 const interceptor = readFileSync(new URL("../commission-interceptor.js", import.meta.url), "utf8");
 const bridge = readFileSync(new URL("../bridge.js", import.meta.url), "utf8");
 const background = readFileSync(new URL("../background.js", import.meta.url), "utf8");
+const popup = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
+const floating = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
 
 const matches = [
   "*://*.pegaso.multiversity.click/*",
@@ -30,11 +32,19 @@ for (const origin of [
 assert.match(interceptor, /url\.origin === API_ORIGIN && url\.pathname === TARGET_PATH/);
 assert.match(interceptor, /payload: \{ \.\.\.lastPayload, requestId/);
 assert.match(interceptor, /platformId: PLATFORM_ID/);
-assert.match(bridge, /commissionExamTrackingInitializedByPlatform/);
-assert.match(bridge, /commissionExamsCapturedAtByPlatform/);
+assert.match(bridge, /PEGASO_COMMISSION_PAYLOAD_STORE/);
+assert.doesNotMatch(bridge, /chrome\.storage\.local\.set\(\{\s*commissionExams:/);
 assert.match(bridge, /commissionCheckLeases/);
+assert.match(bridge, /currentPlatformCourseMap\(result\.autoplayChapterLimits\)/);
+assert.match(bridge, /platformId: PLATFORM_ID,[\s\S]+chapterKey: event\.data\.chapterKey/);
 assert.match(background, /commissionCheckLeases/);
 assert.match(background, /commissionExamsCapturedAtByPlatform/);
+assert.match(background, /function storeCommissionPayload\(message\)[\s\S]+return serializedCommission/);
+assert.match(background, /const progressKey = `\$\{platformId\}:\$\{chapterKey\}`/);
+assert.match(background, /claimCourseProgressThreshold\(platformId, courseCode\)/);
+assert.match(popup, /function courseScopedValue\(/);
+assert.match(floating, /function courseScopedValue\(/);
+assert.match(floating, /eventId: `course-threshold:\$\{PLATFORM_ID\}:\$\{courseCode\}`/);
 assert.match(background, /\*:\/\/\*\.mercatorum\.multiversity\.click\/\*/);
 assert.match(background, /\*:\/\/\*\.utsr\.multiversity\.click\/\*/);
 

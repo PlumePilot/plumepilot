@@ -37,6 +37,7 @@
   "background": {
     "scripts": [
       "achievements.js",
+      "commission-state.js",
       "sound-settings.js",
       "whats-new.js",
       "background.js"

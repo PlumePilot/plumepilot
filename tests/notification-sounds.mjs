@@ -29,13 +29,15 @@ const sprite = readFileSync(new URL("../assets/gaming/action-notification-sound.
 assert.match(achievements, /title: "Orecchie tese!"[^\n]+exp: 20/);
 assert.match(background, /serializedSound\(\(\) => playSoundEvent/);
 assert.match(background, /claimAchievement\("receive-sound-notification"\)/);
-assert.equal((bridge.match(/result\?\.achievement\?\.accepted/g) || []).length, 2);
+assert.equal((bridge.match(/result\?\.achievement\?\.accepted/g) || []).length, 1);
+assert.match(bridge, /soundResult\?\.achievement\?\.accepted/);
 assert.match(bridge, /STUDYWING_ACHIEVEMENT_AWARDED[^\n]+result\.achievement/);
 assert.match(floating, /soundResult\?\.achievement\?\.accepted[\s\S]+STUDYWING_ACHIEVEMENT_AWARDED/);
-assert.match(bridge, /previousSnapshot\?\.state === commissionStates\.STATES\.PENDING/);
+assert.match(background, /previousSnapshot\?\.state === commissionStates\.STATES\.PENDING/);
+assert.match(bridge, /`\$\{match\[1\]\}:\$\{PLATFORM_ID\}:\$\{match\[2\]\}`/);
 assert.match(content, /thresholdReached \|\| sessionLimitReached/);
 assert.match(content, /`course-threshold:\$\{courseCode\}`/);
-assert.match(floating, /`course-threshold:\$\{courseCode\}`/);
+assert.match(floating, /`course-threshold:\$\{PLATFORM_ID\}:\$\{courseCode\}`/);
 assert.match(background, /chrome\.offscreen\.createDocument/);
 assert.match(background, /PLUMEPILOT_OFFSCREEN_PLAY/);
 assert.match(floating, /\.sound-options select,[\s\S]+width: 100%;[\s\S]+min-width: 0;/);

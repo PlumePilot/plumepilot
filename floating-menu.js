@@ -17,6 +17,16 @@
     "/student/home",
     "/student/dashboard",
   ]);
+  const PLATFORM_DOMAINS = Object.freeze({
+    pegaso: "pegaso.multiversity.click",
+    mercatorum: "mercatorum.multiversity.click",
+    utsr: "utsr.multiversity.click",
+  });
+  const currentHostname = window.location.hostname.toLowerCase();
+  const PLATFORM_ID = Object.entries(PLATFORM_DOMAINS).find(
+    ([, domain]) => currentHostname === domain || currentHostname.endsWith(`.${domain}`),
+  )?.[0] || null;
+  if (!PLATFORM_ID) return;
   const LAUNCHER_SIZES = Object.freeze({ small: 42, medium: 46, large: 50 });
   const EDGE_MARGIN = 18;
   const PANEL_GAP = 12;
@@ -112,6 +122,29 @@
   }
   const pendingThresholdClaims = new Set();
   const silentlyAcknowledgedThresholds = new Set();
+
+  function courseStorageKey(courseCode) {
+    return typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
+      ? `${PLATFORM_ID}:${courseCode}`
+      : null;
+  }
+
+  function courseScopedValue(map, courseCode) {
+    const key = courseStorageKey(courseCode);
+    if (!key || !map || typeof map !== "object") return undefined;
+    if (Object.prototype.hasOwnProperty.call(map, key)) return map[key];
+    return PLATFORM_ID === "pegaso" ? map[courseCode] : undefined;
+  }
+
+  function setCourseScopedValue(map, courseCode, value) {
+    const key = courseStorageKey(courseCode);
+    const next = { ...(map || {}) };
+    if (!key) return next;
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+    if (PLATFORM_ID === "pegaso") delete next[courseCode];
+    return next;
+  }
 
   function currentCourseCode() {
     return String(
@@ -697,21 +730,23 @@
   }
 
   async function claimCourseThreshold(courseCode, silent = false) {
-    if (!courseCode || pendingThresholdClaims.has(courseCode)) return;
-    if (settings.courseProgressThresholdNotified?.[courseCode] === true) return;
-    pendingThresholdClaims.add(courseCode);
+    const storageKey = courseStorageKey(courseCode);
+    if (!storageKey || pendingThresholdClaims.has(storageKey)) return;
+    if (courseScopedValue(settings.courseProgressThresholdNotified, courseCode) === true) return;
+    pendingThresholdClaims.add(storageKey);
     const response = await runtimeMessage({
       type: "PEGASO_COURSE_THRESHOLD_CLAIM",
+      platformId: PLATFORM_ID,
       courseCode,
     });
-    pendingThresholdClaims.delete(courseCode);
+    pendingThresholdClaims.delete(storageKey);
     if (
       response?.accepted &&
       !silent &&
       settings.courseProgressThresholdEnabled === true
     ) {
       showCourseThresholdToast();
-      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
+      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${PLATFORM_ID}:${courseCode}` });
       if (soundResult?.achievement?.accepted) {
         window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
       }
@@ -1062,8 +1097,10 @@
           ? "Stop ai test"
           : "Test ignorati";
     const currentCode = currentCourseCode();
-    const limitStatus =
-      settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+    const limitStatus = courseScopedValue(
+      settings.autoplayChapterLimitStatuses,
+      currentCode,
+    ) || null;
     const limitReady = Boolean(limitStatus?.courseCode === currentCode);
     const limit = Math.max(1, Number(limitStatus?.limit) || 1);
     const maximum = Math.max(1, Number(limitStatus?.maximum) || 1);
@@ -1111,7 +1148,7 @@
     ui.autoplayStopAt70Resume.hidden =
       settings.autoplayStopAt70Enabled !== true ||
       !thresholdReached ||
-      settings.autoplayStopAt70BypassedCourses?.[currentCode] === true;
+      courseScopedValue(settings.autoplayStopAt70BypassedCourses, currentCode) === true;
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
@@ -4207,9 +4244,11 @@
     const resetThresholdBypassForCurrentCourse = (bypassed) => {
       const currentCode = currentCourseCode();
       if (!currentCode) return;
-      const next = { ...(settings.autoplayStopAt70BypassedCourses || {}) };
-      if (bypassed) next[currentCode] = true;
-      else delete next[currentCode];
+      const next = setCourseScopedValue(
+        settings.autoplayStopAt70BypassedCourses,
+        currentCode,
+        bypassed ? true : undefined,
+      );
       chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
     };
     ui.autoplayStopAt70Enabled.addEventListener("change", () => {
@@ -4223,15 +4262,20 @@
     });
     const setLimit = (nextValue) => {
       const currentCode = currentCourseCode();
-      const status =
-        settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+      const status = courseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        currentCode,
+      ) || null;
       if (!status?.courseCode) return;
       const numericValue = Number(nextValue);
       if (!Number.isFinite(numericValue)) return;
-      const limits = { ...(settings.autoplayChapterLimits || {}) };
-      limits[status.courseCode] = Math.max(
+      const limits = setCourseScopedValue(
+        settings.autoplayChapterLimits,
+        status.courseCode,
+        Math.max(
         1,
         Math.min(status.maximum, Math.round(numericValue)),
+        ),
       );
       chrome.storage.local.set({ autoplayChapterLimits: limits });
     };
@@ -4242,8 +4286,8 @@
       }
       setLimit(ui.chapterLimitValue.value);
     };
-    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) - 1));
-    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) + 1));
+    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(courseScopedValue(settings.autoplayChapterLimitStatuses, currentCourseCode())?.limit) || 1) - 1));
+    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(courseScopedValue(settings.autoplayChapterLimitStatuses, currentCourseCode())?.limit) || 1) + 1));
     ui.chapterLimitValue.addEventListener("change", commitLimitInput);
     ui.chapterLimitValue.addEventListener("blur", commitLimitInput);
     ui.chapterLimitValue.addEventListener("keydown", (event) => {
@@ -4259,20 +4303,23 @@
     ui.chapterLimitSlider.addEventListener("change", () => setLimit(ui.chapterLimitSlider.value));
     ui.chapterLimitResume.addEventListener("click", () => {
       const currentCode = currentCourseCode();
-      const status =
-        settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+      const status = courseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        currentCode,
+      ) || null;
       if (!status?.courseCode) return;
       chrome.storage.local.set({
-        autoplayChapterLimitSessions: {
-          ...(settings.autoplayChapterLimitSessions || {}),
-          [status.courseCode]: {
+        autoplayChapterLimitSessions: setCourseScopedValue(
+          settings.autoplayChapterLimitSessions,
+          status.courseCode,
+          {
             courseCode: status.courseCode,
             completed: 0,
             reached: false,
             lastChapterKey: "",
             soundSessionId: Date.now(),
           },
-        },
+        ),
       });
     });
     ui.turbo.addEventListener("click", toggleTurboTests);
@@ -4375,10 +4422,11 @@
       const status = event.data.status || null;
       const courseCode = String(status?.courseCode || "");
       if (!courseCode) return;
-      settings.autoplayChapterLimitStatuses = {
-        ...(settings.autoplayChapterLimitStatuses || {}),
-        [courseCode]: status,
-      };
+      settings.autoplayChapterLimitStatuses = setCourseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        courseCode,
+        { ...status, platformId: PLATFORM_ID },
+      );
       if (ui && courseCode === currentCourseCode()) renderSettings();
       return;
     }

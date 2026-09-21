@@ -64,6 +64,32 @@
   let activeCourseTabId = null;
   let chapterLimitMaps = { limits: {}, sessions: {} };
   let chapterLimitStatuses = {};
+
+  function courseStorageKey(courseCode, platformId = "pegaso") {
+    const course = typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
+      ? courseCode
+      : null;
+    return course && ["pegaso", "mercatorum", "utsr"].includes(platformId)
+      ? `${platformId}:${course}`
+      : null;
+  }
+
+  function courseScopedValue(map, courseCode, platformId = "pegaso") {
+    const key = courseStorageKey(courseCode, platformId);
+    if (!key || !map || typeof map !== "object") return undefined;
+    if (Object.prototype.hasOwnProperty.call(map, key)) return map[key];
+    return platformId === "pegaso" ? map[courseCode] : undefined;
+  }
+
+  function setCourseScopedValue(map, courseCode, platformId, value) {
+    const key = courseStorageKey(courseCode, platformId);
+    const next = { ...(map || {}) };
+    if (!key) return next;
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+    if (platformId === "pegaso") delete next[courseCode];
+    return next;
+  }
   const playbackErrorRecoveryRadios = [
     ...document.querySelectorAll('input[name="playbackErrorRecovery"]'),
   ];
@@ -817,14 +843,21 @@
       !autoplayStopAt70Enabled ||
       !courseCode ||
       !reached ||
-      autoplayStopAt70BypassedCourses[courseCode] === true;
+      courseScopedValue(
+        autoplayStopAt70BypassedCourses,
+        courseCode,
+        courseProgressStatus?.platformId,
+      ) === true;
   }
   function updateAutoplayStopAt70Bypass(bypassed) {
     const courseCode = courseProgressStatus?.courseCode;
     if (!courseCode) return;
-    const next = { ...autoplayStopAt70BypassedCourses };
-    if (bypassed) next[courseCode] = true;
-    else delete next[courseCode];
+    const next = setCourseScopedValue(
+      autoplayStopAt70BypassedCourses,
+      courseCode,
+      courseProgressStatus?.platformId,
+      bypassed ? true : undefined,
+    );
     autoplayStopAt70BypassedCourses = next;
     chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
     renderAutoplayStopAt70();
@@ -837,7 +870,12 @@
       1,
       Math.min(chapterLimitStatus.maximum, Math.round(numericValue)),
     );
-    chapterLimitMaps.limits[chapterLimitStatus.courseCode] = value;
+    chapterLimitMaps.limits = setCourseScopedValue(
+      chapterLimitMaps.limits,
+      chapterLimitStatus.courseCode,
+      chapterLimitStatus.platformId,
+      value,
+    );
     chrome.storage.local.set({
       autoplayChapterLimits: chapterLimitMaps.limits,
     });
@@ -1391,9 +1429,11 @@
           };
           chapterLimitStatuses = result.autoplayChapterLimitStatuses || {};
           if (chapterLimitStatus?.courseCode) {
-            chapterLimitStatus =
-              chapterLimitStatuses[chapterLimitStatus.courseCode] ||
-              chapterLimitStatus;
+            chapterLimitStatus = courseScopedValue(
+              chapterLimitStatuses,
+              chapterLimitStatus.courseCode,
+              chapterLimitStatus.platformId,
+            ) || chapterLimitStatus;
           }
           if (chapterLimitStatus)
             chapterLimitStatus.enabled =
@@ -1551,13 +1591,18 @@
   );
   chapterLimitResume.addEventListener("click", () => {
     if (!chapterLimitStatus?.courseCode) return;
-    chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
+    chapterLimitMaps.sessions = setCourseScopedValue(
+      chapterLimitMaps.sessions,
+      chapterLimitStatus.courseCode,
+      chapterLimitStatus.platformId,
+      {
       courseCode: chapterLimitStatus.courseCode,
       completed: 0,
       reached: false,
       lastChapterKey: "",
       soundSessionId: Date.now(),
-    };
+      },
+    );
     chrome.storage.local.set({
       autoplayChapterLimitSessions: chapterLimitMaps.sessions,
     });
