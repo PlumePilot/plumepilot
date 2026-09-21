@@ -1261,11 +1261,25 @@
       : "Esito non disponibile";
   }
 
+  function commissionExamKey(exam) {
+    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
+      ? exam.platformId
+      : "pegaso";
+    const examId = Number(exam?.exam_id);
+    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
+  }
+
+  function normalizeCommissionUnseenId(value) {
+    if (typeof value === "string" && /^(?:pegaso|mercatorum|utsr):\d+$/.test(value)) return value;
+    const legacyId = Number(value);
+    return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
+  }
+
   function sortCommissionExams(exams, unseenSet) {
     exams.sort((first, second) => {
       const unseenDifference =
-        Number(unseenSet.has(Number(second?.exam_id))) -
-        Number(unseenSet.has(Number(first?.exam_id)));
+        Number(unseenSet.has(commissionExamKey(second))) -
+        Number(unseenSet.has(commissionExamKey(first)));
       if (unseenDifference) return unseenDifference;
       const firstDate = new Date(first?.date_exam || 0).getTime() || 0;
       const secondDate = new Date(second?.date_exam || 0).getTime() || 0;
@@ -1277,7 +1291,7 @@
     if (!exam || !Number.isFinite(Number(exam.exam_id))) return null;
     const item = document.createElement("article");
     item.className = "exam-card";
-    if (unseenSet.has(Number(exam.exam_id))) item.dataset.new = "true";
+    if (unseenSet.has(commissionExamKey(exam))) item.dataset.new = "true";
 
     const heading = document.createElement("div");
     heading.className = "exam-title";
@@ -1363,7 +1377,7 @@
 
     const unseenIds =
       enabled && Array.isArray(settings.commissionUnseenExamIds)
-        ? settings.commissionUnseenExamIds.map(Number).filter(Number.isFinite)
+        ? settings.commissionUnseenExamIds.map(normalizeCommissionUnseenId).filter(Boolean)
         : [];
     const unseenSet = new Set(unseenIds);
     const allExams = Array.isArray(settings.commissionExams)
@@ -1377,12 +1391,12 @@
       unseenIds.length > 9 ? "9+" : String(unseenIds.length || "!");
 
     const unseenAlertSignature = JSON.stringify(
-      unseenIds.map((examId) => {
+      unseenIds.map((examKey) => {
         const exam = allExams.find(
-          (candidate) => Number(candidate?.exam_id) === examId,
+          (candidate) => commissionExamKey(candidate) === examKey,
         );
         return [
-          examId,
+          examKey,
           String(exam?.commission || ""),
           String(exam?.result || ""),
           commissionStates.rejectMotivationText(exam),
@@ -1430,7 +1444,7 @@
     ui.commissionEmpty.hidden = openExams.length > 0;
     ui.commissionEmpty.textContent = settings.commissionExamsCapturedAt
       ? "Nessun esame in attesa o ancora da confermare."
-      : "Nessun esame da mostrare. Il controllo partirà quando Pegaso renderà disponibile la sessione autenticata.";
+      : "Nessun esame da mostrare. Il controllo partirà quando la piattaforma renderà disponibile la sessione autenticata.";
     for (const exam of openExams) {
       const card = createCommissionExamCard(exam, unseenSet);
       if (card) ui.commissionList.append(card);
@@ -1447,7 +1461,7 @@
     }
 
     const loadedUnseen = loadedExams.filter((exam) =>
-      unseenSet.has(Number(exam?.exam_id)),
+      unseenSet.has(commissionExamKey(exam)),
     ).length;
     ui.confirmedToggle.hidden = loadedExams.length === 0;
     ui.confirmedLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
