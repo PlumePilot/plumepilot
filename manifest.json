@@ -75,18 +75,22 @@
         "assets/gaming/progress-arcane-frame-center.png",
         "assets/gaming/progress-arcane-frame-right.png",
         "assets/gaming/progress-arcane-fill.png",
-        "assets/gaming/rewards/*.png"
-        ,"assets/audio/*.mp3"
+        "assets/gaming/rewards/*.png",
+        "assets/audio/*.mp3"
       ],
       "matches": [
-        "*://*.pegaso.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*"
       ]
     }
   ],
   "content_scripts": [
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*"
       ],
       "js": [
         "commission-interceptor.js"
@@ -97,7 +101,9 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*"
       ],
       "js": [
         "commission-state.js",
@@ -109,7 +115,9 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*"
       ],
       "js": [
         "notification-manager.js",
@@ -121,7 +129,9 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*"
       ],
       "js": [
         "commission-state.js",
