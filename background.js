@@ -633,9 +633,15 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     if (await ensureOffscreenAudioDocument()) {
       return sendRuntimeMessage({ type: "PLUMEPILOT_OFFSCREEN_PLAY", sound, volume });
     }
-    const tabs = await new Promise((resolve) => chrome.tabs.query({ url: "*://*.pegaso.multiversity.click/*" }, resolve));
+    const tabs = await new Promise((resolve) => chrome.tabs.query({
+      url: [
+        "*://*.pegaso.multiversity.click/*",
+        "*://*.mercatorum.multiversity.click/*",
+        "*://*.utsr.multiversity.click/*",
+      ],
+    }, resolve));
     const target = tabs.find((tab) => tab.id === sourceTabId) || tabs.find((tab) => tab.active) || tabs[0];
-    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "Apri una pagina Pegaso per ascoltare l’anteprima." };
+    if (!Number.isInteger(target?.id)) return { accepted: false, reason: "Apri una pagina supportata per ascoltare l’anteprima." };
     return sendTabMessage(target.id, { type: "STUDYWING_SOUND_PLAY", sound, volume });
   }
   async function playSoundEvent(message, sourceTabId) {
