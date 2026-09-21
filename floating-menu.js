@@ -4367,9 +4367,12 @@
   }
 
   function applyVisibility() {
+    const courseSurfaceAvailable =
+      Boolean(document.querySelector(COURSE_SELECTOR)) ||
+      (PLATFORM_ID === "mercatorum" && Boolean(currentCourseCode()));
     const courseMenu =
       settings.floatingMenuEnabled === true &&
-      Boolean(document.querySelector(COURSE_SELECTOR));
+      courseSurfaceAvailable;
     const commissionMenu =
       settings.commissionCheckEnabled === true && isCommissionOnlyPage();
     const shouldShow = courseMenu || commissionMenu;
