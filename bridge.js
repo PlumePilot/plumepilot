@@ -17,6 +17,24 @@
   });
 
   const MAX_TRACKED_EXPORT_OPERATIONS = 20;
+  const PLATFORM_DOMAINS = Object.freeze({
+    pegaso: "pegaso.multiversity.click",
+    mercatorum: "mercatorum.multiversity.click",
+    utsr: "utsr.multiversity.click",
+  });
+  const currentHostname = window.location.hostname.toLowerCase();
+  const PLATFORM_ID = Object.entries(PLATFORM_DOMAINS).find(
+    ([, domain]) => currentHostname === domain || currentHostname.endsWith(`.${domain}`),
+  )?.[0] || null;
+  if (!PLATFORM_ID) return;
+
+  function commissionExamKey(exam) {
+    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
+      ? exam.platformId
+      : "pegaso";
+    const examId = Number(exam?.exam_id);
+    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
+  }
   let turboTestsStatus = { running: false, stopping: false, message: "" };
   let turboOperationId = null;
   let objectivesStatus = { running: false, stopping: false, message: "" };
@@ -97,6 +115,7 @@
     if (leaseId) {
       chrome.runtime.sendMessage({
         type: "PEGASO_COMMISSION_CHECK_RELEASE",
+        platformId: PLATFORM_ID,
         leaseId,
       }, () => void chrome.runtime.lastError);
     }
@@ -121,7 +140,7 @@
   function runCommissionCheck() {
     commissionCheckTimer = null;
     if (!commissionCheckEnabled || !pageIsVisible()) return;
-    chrome.runtime.sendMessage({ type: "PEGASO_COMMISSION_CHECK_CLAIM" }, (response) => {
+    chrome.runtime.sendMessage({ type: "PEGASO_COMMISSION_CHECK_CLAIM", platformId: PLATFORM_ID }, (response) => {
       if (chrome.runtime.lastError || !commissionCheckEnabled) {
         scheduleCommissionCheck(COMMISSION_RETRY_MS);
         return;
@@ -176,62 +195,117 @@
   }
 
   function processCommissionPayload(payload) {
-    if (!commissionCheckEnabled || !Array.isArray(payload?.exams)) return;
+    if (
+      !commissionCheckEnabled ||
+      payload?.platformId !== PLATFORM_ID ||
+      !Array.isArray(payload?.exams)
+    ) return;
     if (commissionProcessing) {
       queuedCommissionPayload = payload;
       return;
     }
 
     commissionProcessing = true;
-    const exams = payload.exams.slice(0, 200).map(normalizeCommissionExam).filter(Boolean);
+    const platformId = PLATFORM_ID;
+    const platformExams = payload.exams
+      .slice(0, 200)
+      .map(normalizeCommissionExam)
+      .filter(Boolean)
+      .map((exam) => ({ ...exam, platformId }));
+
     chrome.storage.local.get({
       commissionExamTrackingInitialized: false,
+      commissionExamTrackingInitializedByPlatform: {},
       commissionExamSnapshots: {},
       commissionUnseenExamIds: [],
       commissionExams: [],
+      commissionExamsCapturedAtByPlatform: {},
     }, (stored) => {
-      const previous = stored.commissionExamSnapshots && typeof stored.commissionExamSnapshots === "object"
+      const previousSnapshots = stored.commissionExamSnapshots && typeof stored.commissionExamSnapshots === "object"
         ? stored.commissionExamSnapshots
         : {};
-      const initialized = stored.commissionExamTrackingInitialized === true;
-      const nextSnapshots = {};
+      const initializedByPlatform = stored.commissionExamTrackingInitializedByPlatform &&
+        typeof stored.commissionExamTrackingInitializedByPlatform === "object"
+        ? { ...stored.commissionExamTrackingInitializedByPlatform }
+        : {};
+      if (stored.commissionExamTrackingInitialized === true && initializedByPlatform.pegaso !== true) {
+        initializedByPlatform.pegaso = true;
+      }
+      const initialized = initializedByPlatform[platformId] === true;
+
+      const existingExams = Array.isArray(stored.commissionExams)
+        ? stored.commissionExams
+            .map((exam) => exam && typeof exam === "object"
+              ? { ...exam, platformId: ["pegaso", "mercatorum", "utsr"].includes(exam.platformId) ? exam.platformId : "pegaso" }
+              : null)
+            .filter(Boolean)
+        : [];
+      const previousExams = new Map(existingExams.map((exam) => [commissionExamKey(exam), exam]));
+      const nextSnapshots = { ...previousSnapshots };
+      for (const key of Object.keys(nextSnapshots)) {
+        if (key.startsWith(`${platformId}:`)) delete nextSnapshots[key];
+      }
+
       const newlyChangedIds = [];
       const soundChanges = [];
-      const previousExams = new Map(
-        (Array.isArray(stored.commissionExams) ? stored.commissionExams : [])
-          .map((exam) => [String(exam?.exam_id), exam]),
-      );
-
-      for (const exam of exams) {
-        const id = String(exam.exam_id);
+      for (const exam of platformExams) {
+        const key = commissionExamKey(exam);
+        if (!key) continue;
         const snapshot = commissionStates.createSnapshot(exam);
-        nextSnapshots[id] = snapshot;
+        nextSnapshots[key] = snapshot;
         if (!initialized) continue;
 
         const previousSnapshot = commissionStates.normalizeStoredSnapshot(
-          previous[id],
-          previousExams.get(id),
+          previousSnapshots[key] ?? (platformId === "pegaso" ? previousSnapshots[String(exam.exam_id)] : null),
+          previousExams.get(key),
         );
         if (commissionStates.shouldNotifyChange(previousSnapshot, snapshot)) {
-          newlyChangedIds.push(exam.exam_id);
+          newlyChangedIds.push(key);
         }
-        if (previousSnapshot?.state === commissionStates.STATES.PENDING && snapshot.state !== commissionStates.STATES.PENDING) {
-          soundChanges.push(`${exam.exam_id}-${snapshot.state}`);
+        if (
+          previousSnapshot?.state === commissionStates.STATES.PENDING &&
+          snapshot.state !== commissionStates.STATES.PENDING
+        ) {
+          soundChanges.push(`${key}-${snapshot.state}`);
         }
       }
 
-      const stillPresent = new Set(exams.map((exam) => exam.exam_id));
-      const storedUnseen = Array.isArray(stored.commissionUnseenExamIds) ? stored.commissionUnseenExamIds : [];
+      const currentPlatformKeys = new Set(platformExams.map(commissionExamKey).filter(Boolean));
+      const storedUnseen = Array.isArray(stored.commissionUnseenExamIds)
+        ? stored.commissionUnseenExamIds
+        : [];
+      const normalizedStoredUnseen = storedUnseen
+        .map((value) => {
+          if (typeof value === "string" && /^[a-z]+:\d+$/.test(value)) return value;
+          const legacyId = Number(value);
+          return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
+        })
+        .filter(Boolean);
       const unseen = [...new Set([
-        ...storedUnseen.filter((id) => stillPresent.has(Number(id))).map(Number),
+        ...normalizedStoredUnseen.filter((key) =>
+          !key.startsWith(`${platformId}:`) || currentPlatformKeys.has(key)
+        ),
         ...newlyChangedIds,
       ])];
 
+      const exams = [
+        ...existingExams.filter((exam) => exam.platformId !== platformId),
+        ...platformExams,
+      ];
+      initializedByPlatform[platformId] = true;
+      const capturedAt = Number(payload.capturedAt) || Date.now();
+      const capturedAtByPlatform = stored.commissionExamsCapturedAtByPlatform &&
+        typeof stored.commissionExamsCapturedAtByPlatform === "object"
+        ? { ...stored.commissionExamsCapturedAtByPlatform, [platformId]: capturedAt }
+        : { [platformId]: capturedAt };
+
       chrome.storage.local.set({
         commissionExams: exams,
-        commissionExamsCapturedAt: Number(payload.capturedAt) || Date.now(),
+        commissionExamsCapturedAt: capturedAt,
+        commissionExamsCapturedAtByPlatform: capturedAtByPlatform,
         commissionExamSnapshots: nextSnapshots,
         commissionExamTrackingInitialized: true,
+        commissionExamTrackingInitializedByPlatform: initializedByPlatform,
         commissionUnseenExamIds: unseen,
       }, () => {
         const storageFailed = Boolean(chrome.runtime.lastError);
@@ -239,14 +313,15 @@
           console.warn("[PlumePilot Commissione] Salvataggio non riuscito:", chrome.runtime.lastError.message);
         } else {
           debugLog("[PlumePilot Commissione] Esami aggiornati.", {
-            exams: exams.length,
+            platformId,
+            exams: platformExams.length,
             newVerdicts: newlyChangedIds.length,
             baselineCreated: !initialized,
           });
           if (soundChanges.length) {
             chrome.runtime.sendMessage({
               type: "STUDYWING_SOUND_EVENT",
-              eventId: `commission:${Number(payload.capturedAt) || Date.now()}:${soundChanges.sort().join(".")}`,
+              eventId: `commission:${platformId}:${capturedAt}:${soundChanges.sort().join(".")}`,
             }, (result) => {
               if (!chrome.runtime.lastError && result?.achievement?.accepted) {
                 window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
@@ -254,7 +329,7 @@
             });
           }
         }
-        releaseCommissionLease(!storageFailed, Number(payload.capturedAt) || Date.now());
+        releaseCommissionLease(!storageFailed, capturedAt);
         commissionProcessing = false;
         if (queuedCommissionPayload) {
           const queued = queuedCommissionPayload;
@@ -707,16 +782,15 @@
       if (commissionCheckEnabled) scheduleCommissionCheck(0);
       else cancelCommissionCheck();
     }
-    if (changes.commissionExamsCapturedAt && commissionCheckEnabled) {
-      scheduleCommissionCheckFromCapture(changes.commissionExamsCapturedAt.newValue);
+    if (changes.commissionExamsCapturedAtByPlatform && commissionCheckEnabled) {
+      scheduleCommissionCheckFromCapture(
+        changes.commissionExamsCapturedAtByPlatform.newValue?.[PLATFORM_ID],
+      );
     }
-    if (
-      changes.commissionCheckLease &&
-      !changes.commissionCheckLease.newValue &&
-      commissionCheckEnabled &&
-      pageIsVisible()
-    ) {
-      scheduleCommissionCheck(250);
+    if (changes.commissionCheckLeases && commissionCheckEnabled && pageIsVisible()) {
+      const before = changes.commissionCheckLeases.oldValue?.[PLATFORM_ID];
+      const after = changes.commissionCheckLeases.newValue?.[PLATFORM_ID];
+      if (before && !after) scheduleCommissionCheck(250);
     }
   });
   document.addEventListener("visibilitychange", () => {
