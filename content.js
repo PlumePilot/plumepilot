@@ -136,6 +136,36 @@
 
   const log = debugLog;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let pageHiddenEpoch = 0;
+
+  function documentIsHidden() {
+    return document.visibilityState === "hidden";
+  }
+
+  async function waitForDocumentVisibleAfterTimeout(
+    hiddenDuringWait,
+    operationId = null,
+  ) {
+    if (!hiddenDuringWait && !documentIsHidden()) return false;
+
+    log(
+      "DOM wait expired while the page was hidden. Deferring recovery until the page is visible.",
+    );
+
+    while (documentIsHidden()) {
+      if (operationId) ensureExportNotCancelled(operationId);
+      await sleep(250);
+    }
+
+    if (operationId) ensureExportNotCancelled(operationId);
+    log("Page is visible again. Revalidating the DOM before recovery.");
+    return true;
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (documentIsHidden()) pageHiddenEpoch += 1;
+    log("Page visibility changed:", document.visibilityState);
+  });
 
   function achievementUnlockSuffix(results) {
     const rewardIds = new Set(results.flatMap((result) =>
@@ -1444,7 +1474,9 @@
   );
 
   async function waitFor(fn, timeout = WAIT_MS) {
-    const start = Date.now();
+    let start = Date.now();
+    const hiddenEpochAtStart = pageHiddenEpoch;
+    const startedHidden = documentIsHidden();
 
     while (Date.now() - start < timeout) {
       const x = fn();
@@ -1454,6 +1486,22 @@
       }
 
       await sleep(100);
+    }
+
+    const hiddenDuringWait =
+      startedHidden ||
+      documentIsHidden() ||
+      pageHiddenEpoch !== hiddenEpochAtStart;
+
+    if (await waitForDocumentVisibleAfterTimeout(hiddenDuringWait)) {
+      start = Date.now();
+
+      while (Date.now() - start < timeout) {
+        const x = fn();
+
+        if (x) return x;
+        await sleep(100);
+      }
     }
 
     return null;
@@ -1485,12 +1533,32 @@
   }
 
   async function waitForExport(fn, timeout, operationId) {
-    const start = Date.now();
+    let start = Date.now();
+    const hiddenEpochAtStart = pageHiddenEpoch;
+    const startedHidden = documentIsHidden();
     while (Date.now() - start < timeout) {
       ensureExportNotCancelled(operationId);
       const result = fn();
       if (result) return result;
       await exportSleep(100, operationId);
+    }
+
+    const hiddenDuringWait =
+      startedHidden ||
+      documentIsHidden() ||
+      pageHiddenEpoch !== hiddenEpochAtStart;
+
+    if (
+      await waitForDocumentVisibleAfterTimeout(hiddenDuringWait, operationId)
+    ) {
+      start = Date.now();
+
+      while (Date.now() - start < timeout) {
+        ensureExportNotCancelled(operationId);
+        const result = fn();
+        if (result) return result;
+        await exportSleep(100, operationId);
+      }
     }
     ensureExportNotCancelled(operationId);
     return null;
@@ -1571,6 +1639,14 @@
   }
 
   function reloadForChapterRecovery(currentIdentity) {
+    if (documentIsHidden()) {
+      log(
+        "Chapter recovery reload deferred because the page is hidden:",
+        currentIdentity,
+      );
+      return false;
+    }
+
     const recovery = readChapterRecovery();
     const recoveryKey = JSON.stringify(currentIdentity);
 
