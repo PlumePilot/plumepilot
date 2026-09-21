@@ -19,16 +19,16 @@
   const PAGE_LESSON_SNAPSHOT = "STUDYWING_PAGE_LESSON_SNAPSHOT";
   const PAGE_LESSON_SNAPSHOT_REQUEST = "STUDYWING_PAGE_LESSON_SNAPSHOT_REQUEST";
   const PLATFORM_API_ORIGINS = Object.freeze([
-    ["pegaso.multiversity.click", "https://lms-api.prod.pegaso.multiversity.click"],
-    ["mercatorum.multiversity.click", "https://lms-api.prod.mercatorum.multiversity.click"],
-    ["utsr.multiversity.click", "https://lms-api.prod.utsr.multiversity.click"],
+    ["pegaso", "pegaso.multiversity.click", "https://lms-api.prod.pegaso.multiversity.click"],
+    ["mercatorum", "mercatorum.multiversity.click", "https://lms-api.prod.mercatorum.multiversity.click"],
+    ["utsr", "utsr.multiversity.click", "https://lms-api.prod.utsr.multiversity.click"],
   ]);
   const pageHostname = window.location.hostname.toLowerCase();
   const platformEntry = PLATFORM_API_ORIGINS.find(
-    ([pageDomain]) => pageHostname === pageDomain || pageHostname.endsWith(`.${pageDomain}`),
+    ([, pageDomain]) => pageHostname === pageDomain || pageHostname.endsWith(`.${pageDomain}`),
   );
   if (!platformEntry) return;
-  const [PLATFORM_DOMAIN, API_ORIGIN] = platformEntry;
+  const [PLATFORM_ID, PLATFORM_DOMAIN, API_ORIGIN] = platformEntry;
   const API_TIMEOUT_MS = 15000;
   const COMMISSION_CACHE_MS = 10 * 60 * 1000;
   let lastPayload = null;
@@ -564,7 +564,7 @@
   function publishBody(body, requestId = null) {
     if (!Array.isArray(body?.data)) return;
     const exams = body.data.slice(0, 200).map(normalizeExam).filter(Boolean);
-    lastPayload = { exams, capturedAt: Date.now() };
+    lastPayload = { platformId: PLATFORM_ID, exams, capturedAt: Date.now() };
     const resolvedRequestId = requestId || activeCommissionRequest?.id || pendingCommissionRequest?.id || null;
     if (!requestId && commissionController) commissionController.abort();
     pendingCommissionRequest = null;
@@ -578,6 +578,7 @@
     window.postMessage({
       type: RESPONSE_MESSAGE,
       payload: {
+        platformId: PLATFORM_ID,
         error: typeof error === "string" ? error.slice(0, 120) : "REQUEST_FAILED",
         requestId: requestId || activeCommissionRequest?.id || pendingCommissionRequest?.id || null,
       },
