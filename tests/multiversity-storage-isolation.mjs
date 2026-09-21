@@ -25,8 +25,21 @@ const commissionContext = vm.createContext({
   },
   storageSet: async (values) => Object.assign(stored, structuredClone(values)),
 });
+vm.runInContext(
+  sourceBetween(backgroundSource, "  function commissionStateApi(", "  function safeCommissionText("),
+  commissionContext,
+);
+assert.equal(
+  commissionContext.commissionStateApi(),
+  null,
+  "background startup must tolerate a commission-state helper that is not available yet",
+);
 vm.runInContext(commissionStateSource, commissionContext);
-commissionContext.commissionStates = commissionContext.StudyWingCommissionState;
+assert.equal(
+  commissionContext.commissionStateApi(),
+  commissionContext.StudyWingCommissionState,
+  "commission storage must resolve a helper that becomes available after background startup",
+);
 vm.runInContext(
   sourceBetween(backgroundSource, "  function serializedCommission(", "  function serializedCourseThreshold("),
   commissionContext,

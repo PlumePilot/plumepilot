@@ -19,7 +19,6 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
   const SOUND_EVENT_MEMORY_KEY = "plumepilotPlayedSoundEvents";
   const SOUND_EVENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
   const soundApi = globalThis.PlumePilotSounds;
-  const commissionStates = globalThis.StudyWingCommissionState;
   const whatsNewApi = globalThis.PlumePilotWhatsNew;
   const COMMISSION_CHECK_INTERVAL_MS = 10 * 60 * 1000;
   const COMMISSION_LEASE_MS = 45 * 1000;
@@ -48,6 +47,26 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
   function serializedCourseThreshold(task) { const next = courseThresholdQueue.then(task, task); courseThresholdQueue = next.catch(() => {}); return next; }
   function serializedAchievement(task) { const next = achievementQueue.then(task, task); achievementQueue = next.catch(() => {}); return next; }
   function serializedSound(task) { const next = soundQueue.then(task, task); soundQueue = next.catch(() => {}); return next; }
+
+  function commissionStateApi() {
+    if (!globalThis.StudyWingCommissionState && typeof importScripts === "function") {
+      try {
+        importScripts("commission-state.js");
+      } catch (error) {
+        console.warn(
+          "[PlumePilot Commissione] Modello di stato non ancora disponibile:",
+          error?.message || error,
+        );
+      }
+    }
+    const api = globalThis.StudyWingCommissionState;
+    return api &&
+      typeof api.createSnapshot === "function" &&
+      typeof api.normalizeStoredSnapshot === "function" &&
+      typeof api.shouldNotifyChange === "function"
+      ? api
+      : null;
+  }
 
   function safeCommissionText(value, maxLength = 800) {
     return typeof value === "string" ? value.slice(0, maxLength) : null;
@@ -87,6 +106,10 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
 
   function storeCommissionPayload(message) {
     return serializedCommission(async () => {
+      const commissionStates = commissionStateApi();
+      if (!commissionStates) {
+        return { accepted: false, reason: "commission-state-unavailable" };
+      }
       const platformId = normalizedPlatformId(message?.platformId);
       if (!platformId || !Array.isArray(message?.exams)) {
         return { accepted: false, reason: "invalid-payload" };
