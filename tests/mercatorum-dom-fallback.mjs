@@ -58,7 +58,7 @@ assert.ok(chapters.every((chapter) => chapter.sectionText === "Lezioni"));
 
 assert.match(
   floatingSource,
-  /PLATFORM_ID === "mercatorum" && Boolean\(currentCourseCode\(\)\)/,
+  /currentCourseCode\(\) &&[\s\S]+PLATFORM_ID === "mercatorum"/,
   "Mercatorum course routes must be sufficient to display the floating menu",
 );
 assert.match(contentSource, /if \(section\.static === true\)[\s\S]+return chapters\(\)\.some/);
