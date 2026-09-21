@@ -339,9 +339,13 @@
   const COMMISSION_STORAGE_KEYS = [
     "commissionExams",
     "commissionExamsCapturedAt",
+    "commissionExamsCapturedAtByPlatform",
     "commissionExamSnapshots",
     "commissionExamTrackingInitialized",
+    "commissionExamTrackingInitializedByPlatform",
     "commissionUnseenExamIds",
+    "commissionCheckLease",
+    "commissionCheckLeases",
   ];
 
   extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
@@ -1059,11 +1063,25 @@
       : "Esito non disponibile";
   }
 
+  function commissionExamKey(exam) {
+    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
+      ? exam.platformId
+      : "pegaso";
+    const examId = Number(exam?.exam_id);
+    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
+  }
+
+  function normalizeCommissionUnseenId(value) {
+    if (typeof value === "string" && /^(?:pegaso|mercatorum|utsr):\d+$/.test(value)) return value;
+    const legacyId = Number(value);
+    return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
+  }
+
   function sortCommissionExams(exams, unseenSet) {
     exams.sort((first, second) => {
       const unseenDifference =
-        Number(unseenSet.has(Number(second?.exam_id))) -
-        Number(unseenSet.has(Number(first?.exam_id)));
+        Number(unseenSet.has(commissionExamKey(second))) -
+        Number(unseenSet.has(commissionExamKey(first)));
       if (unseenDifference) return unseenDifference;
       const firstDate = new Date(first?.date_exam || 0).getTime() || 0;
       const secondDate = new Date(second?.date_exam || 0).getTime() || 0;
@@ -1075,7 +1093,7 @@
     if (!exam || !Number.isFinite(Number(exam.exam_id))) return null;
     const item = document.createElement("article");
     item.className = "commission-exam-card";
-    if (unseenSet.has(Number(exam.exam_id))) item.dataset.new = "true";
+    if (unseenSet.has(commissionExamKey(exam))) item.dataset.new = "true";
 
     const heading = document.createElement("div");
     heading.className = "commission-exam-title";
@@ -1133,7 +1151,7 @@
       : [];
     const unseenIds =
       enabled && Array.isArray(stored.commissionUnseenExamIds)
-        ? stored.commissionUnseenExamIds.map(Number).filter(Number.isFinite)
+        ? stored.commissionUnseenExamIds.map(normalizeCommissionUnseenId).filter(Boolean)
         : [];
     const unseenSet = new Set(unseenIds);
     const openExams = exams.filter(
@@ -1191,7 +1209,7 @@
       ? "Nessun esame in attesa o ancora da confermare."
       : "Non è stata ancora creata una situazione iniziale.";
     const loadedUnseen = loadedExams.filter((exam) =>
-      unseenSet.has(Number(exam?.exam_id)),
+      unseenSet.has(commissionExamKey(exam)),
     ).length;
     confirmedExamsToggle.hidden = loadedExams.length === 0;
     confirmedExamsLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
@@ -1765,7 +1783,7 @@
 
   clearCommissionDataButton.addEventListener("click", () => {
     const confirmed = window.confirm(
-      "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti su Pegaso non verranno modificati.",
+      "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.",
     );
     if (!confirmed) return;
 
