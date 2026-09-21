@@ -89,6 +89,7 @@
   let suppressLauncherClick = false;
   let lastUnseenAlertSignature = "";
   let activeMenuTab = null;
+  let lastCommissionOnlyPage = null;
   let courseProgressStatus = null;
   let progressOverlayHost = null;
   let progressOverlayUi = null;
@@ -821,13 +822,18 @@
     return isExamOnlinePage() || isHomePage();
   }
 
+  function courseSurfaceAvailable() {
+    return Boolean(
+      currentCourseCode() &&
+      (document.querySelector(COURSE_SELECTOR) || PLATFORM_ID === "mercatorum"),
+    );
+  }
+
   function selectMenuTab(
     requestedTab,
     { focus = false, acknowledge = true } = {},
   ) {
     if (!ui) return;
-    const courseAvailable = !isCommissionOnlyPage();
-    const examsAvailable = true;
     const achievementsAvailable =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     const selectedTab =
@@ -835,13 +841,9 @@
         ? "preferences"
         : requestedTab === "achievements" && achievementsAvailable
           ? "achievements"
-          : requestedTab === "exams" && examsAvailable
+          : requestedTab === "exams"
             ? "exams"
-            : courseAvailable
-              ? "course"
-              : examsAvailable
-                ? "exams"
-                : "preferences";
+            : "course";
 
     activeMenuTab = selectedTab;
     const tabEntries = [
@@ -1382,28 +1384,30 @@
   function renderCommissionExams() {
     if (!ui) return;
     const commissionOnlyPage = isCommissionOnlyPage();
+    const courseAvailable = courseSurfaceAvailable();
+    const routeSurfaceChanged =
+      lastCommissionOnlyPage !== null &&
+      lastCommissionOnlyPage !== commissionOnlyPage;
     const enabled = settings.commissionCheckEnabled === true;
     const achievementsEnabled =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
-    ui.courseTab.hidden = commissionOnlyPage;
+    ui.courseTab.hidden = false;
     ui.examsTab.hidden = false;
     ui.achievementsTab.hidden = !achievementsEnabled;
-    ui.tabList.dataset.count = String(
-      2 +
-        Number(!commissionOnlyPage) +
-        Number(achievementsEnabled),
-    );
+    ui.tabList.dataset.count = String(3 + Number(achievementsEnabled));
+    ui.coursePanel.dataset.courseAvailable = String(courseAvailable);
+    ui.courseUnavailable.hidden = courseAvailable;
+    ui.courseTools.inert = !courseAvailable;
+    ui.courseTools.setAttribute("aria-disabled", String(!courseAvailable));
     ui.commissionSection.hidden = false;
     ui.commissionEnabled.checked = enabled;
     ui.commissionDisabled.hidden = enabled;
     ui.commissionContent.hidden = !enabled;
-    ui.hide.textContent = commissionOnlyPage
-      ? "Disattiva il controllo commissione"
-      : "Nascondi il menu dalla pagina";
+    ui.hide.textContent = "Nascondi il menu dalla pagina";
 
     if (
       !activeMenuTab ||
-      (activeMenuTab === "course" && commissionOnlyPage) ||
+      routeSurfaceChanged ||
       (activeMenuTab === "achievements" && !achievementsEnabled)
     ) {
       selectMenuTab(
@@ -1411,6 +1415,7 @@
         { acknowledge: false },
       );
     }
+    lastCommissionOnlyPage = commissionOnlyPage;
 
     const unseenIds =
       enabled && Array.isArray(settings.commissionUnseenExamIds)
@@ -2490,6 +2495,30 @@
           text-align: center;
         }
         .menu-tab-panel { min-width: 0; }
+        .course-unavailable {
+          display: grid;
+          gap: 3px;
+          margin-bottom: 10px;
+          padding: 10px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          color: var(--sw-text);
+          background: var(--sw-elevated);
+        }
+        .course-unavailable strong {
+          color: var(--sw-heading);
+          font-size: 12px;
+        }
+        .course-unavailable span {
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        .menu-tab-panel[data-course-available="false"] [data-role="course-tools"] {
+          opacity: 0.46;
+          filter: grayscale(0.35);
+          pointer-events: none;
+          user-select: none;
+        }
         .preferences-panel {
           display: grid;
           gap: 10px;
@@ -3634,6 +3663,10 @@
             <button class="last-notification-dismiss" data-action="dismiss-last-notification" type="button" aria-label="Elimina definitivamente l’ultimo messaggio" title="Elimina messaggio">×</button>
           </section>
           <div id="studywing-course-panel" class="menu-tab-panel" data-role="course-panel" role="tabpanel" aria-labelledby="studywing-course-tab">
+            <div class="course-unavailable" data-role="course-unavailable" role="status" hidden>
+              <strong>Apri un corso per usare questi strumenti</strong>
+              <span>Progresso, autoplay, test, obiettivi e dispense saranno disponibili nella pagina del corso.</span>
+            </div>
             <div data-role="course-tools">
             <section class="course-progress" data-role="course-progress" aria-label="Progresso del corso">
               <div class="course-progress-heading"><span>Progresso del corso</span><strong class="course-progress-value" data-role="course-progress-value">—</strong></div>
@@ -3849,6 +3882,9 @@
       preferencesTab: shadow.querySelector('[data-tab="preferences"]'),
       examsTabBadge: shadow.querySelector('[data-role="exams-tab-badge"]'),
       coursePanel: shadow.querySelector('[data-role="course-panel"]'),
+      courseUnavailable: shadow.querySelector(
+        '[data-role="course-unavailable"]',
+      ),
       examsPanel: shadow.querySelector('[data-role="exams-panel"]'),
       achievementsPanel: shadow.querySelector(
         '[data-role="achievements-panel"]',
@@ -4332,12 +4368,7 @@
       ui.projectInfoToggle.setAttribute("aria-expanded", String(willOpen));
     });
     ui.hide.addEventListener("click", () =>
-      writeSetting(
-        isCommissionOnlyPage()
-          ? "commissionCheckEnabled"
-          : "floatingMenuEnabled",
-        false,
-      ),
+      writeSetting("floatingMenuEnabled", false),
     );
 
     renderSettings();
@@ -4364,18 +4395,14 @@
     ui = null;
     lastUnseenAlertSignature = "";
     activeMenuTab = null;
+    lastCommissionOnlyPage = null;
   }
 
   function applyVisibility() {
-    const courseSurfaceAvailable =
-      Boolean(document.querySelector(COURSE_SELECTOR)) ||
-      (PLATFORM_ID === "mercatorum" && Boolean(currentCourseCode()));
-    const courseMenu =
-      settings.floatingMenuEnabled === true &&
-      courseSurfaceAvailable;
-    const commissionMenu =
-      settings.commissionCheckEnabled === true && isCommissionOnlyPage();
-    const shouldShow = courseMenu || commissionMenu;
+    const supportedSurface =
+      courseSurfaceAvailable() || isCommissionOnlyPage();
+    const shouldShow =
+      settings.floatingMenuEnabled === true && supportedSurface;
     if (shouldShow) createMenu();
     else removeMenu();
     if (shouldShow) renderCommissionExams();
