@@ -43,6 +43,26 @@ const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta
 assert.match(popup, /claimAchievement\("customize-floating-menu"\)/);
 assert.match(floating, /function applyFloatingMenuLayout\(\)/);
 assert.equal((floating.match(/data-layout-item="/g) || []).length, 4);
+assert.match(
+  floating,
+  /\.achievement-mid-marker,\.achievement-end-marker \{[^}]*width:24px; height:24px;/,
+  "pending Gaming reward badges should remain legible in the floating menu",
+);
+assert.match(
+  floating,
+  /\.reward-card \{[^}]*grid-template-columns:36px minmax\(0,1fr\) auto;[^}]*min-height:42px;/,
+  "floating reward cards should reserve enough space for the larger preview",
+);
+assert.match(
+  floating,
+  /\.reward-preview \{ width:32px; height:32px;/,
+  "floating reward previews should match the popup's 32px preview scale",
+);
+assert.match(
+  floating,
+  /data-mid-unlocked="true"\] \.achievement-mid-marker \{ width:3px; height:12px;/,
+  "an unlocked midpoint should remain a compact completion tick",
+);
 assert.match(achievements, /title: "Su misura"[^\n]+exp: 20/);
 assert.ok(manifest.content_scripts.some((entry) => entry.js?.includes("floating-menu-layout.js")));
 

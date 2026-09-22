@@ -2390,7 +2390,7 @@
         .achievement-level { display:flex; justify-content:space-between; gap:8px; font-size:11px; margin-bottom:6px; }
         .achievement-progress { position:relative; height:28px; overflow:visible; background-color:#15111f; background-image:var(--sw-active-frame-left),var(--sw-active-frame-right),var(--sw-active-frame-center); background-position:left top,right top,left top; background-repeat:no-repeat,no-repeat,repeat-x; background-size:28px 28px,28px 28px,16px 28px; image-rendering:pixelated; }
         .achievement-progress-fill { position:absolute; left:20px; top:10px; display:block; max-width:calc(100% - 40px); height:10px; width:0; background-image:var(--sw-active-fill); background-repeat:repeat-x; background-size:16px 10px; image-rendering:pixelated; }
-        .achievement-mid-marker,.achievement-end-marker { position:absolute; z-index:3; top:50%; width:16px; height:16px; overflow:hidden; background:center/contain no-repeat; image-rendering:pixelated; transform:translate(-50%,-50%); }
+        .achievement-mid-marker,.achievement-end-marker { position:absolute; z-index:3; top:50%; width:24px; height:24px; overflow:hidden; background:center/contain no-repeat; image-rendering:pixelated; transform:translate(-50%,-50%); }
         .achievement-mid-marker { left:50%; }
         .achievement-end-marker { left:100%; }
         .achievement-progress[data-mid-unlocked="true"] .achievement-mid-marker { width:3px; height:12px; background-image:none !important; background-color:var(--sw-accent); box-shadow:0 0 0 1px #15111f; }
@@ -2398,9 +2398,9 @@
         .rewards-menu > summary { display:flex; justify-content:space-between; gap:8px; padding:7px; cursor:pointer; font-size:11px; font-weight:750; }
         .rewards-menu > summary small { color:var(--sw-muted); }
         .reward-list { display:grid; gap:5px; padding:0 6px 6px; }
-        .reward-card { display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:6px; padding:5px; border:1px solid var(--sw-exam-border); border-radius:6px; }
+        .reward-card { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:6px; min-height:42px; padding:5px; border:1px solid var(--sw-exam-border); border-radius:6px; }
         .reward-card[data-locked="true"] { opacity:.55; filter:saturate(.4); }
-        .reward-preview { width:24px; height:24px; background:center/contain no-repeat; image-rendering:pixelated; }
+        .reward-preview { width:32px; height:32px; background:center/contain no-repeat; image-rendering:pixelated; }
         .reward-copy { display:flex; min-width:0; flex-direction:column; gap:1px; }
         .reward-copy strong { overflow:hidden; font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
         .reward-copy small { color:var(--sw-muted); font-size:9px; }
