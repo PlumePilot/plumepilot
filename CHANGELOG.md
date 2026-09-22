@@ -10,6 +10,7 @@
 - Improves adaptive EPUB fidelity for formulas, tables and slide-like pages by selecting a more suitable page layout.
 - Enlarges Gaming reward frames in the floating launcher and clarifies the first-incomplete-activity achievement.
 - Rewrites commission explanations with platform-neutral wording for all supported universities.
+- Renames visible branding and generated PDF, EPUB and quiz signatures to **PlumePilot – Assistente per Multiversity**, with platform-specific status labels and updated public descriptions.
 - Refreshes the update-only **Novità** summary for this release.
 
 ## Fixed in 2.33.2: Firefox AMO review-safe package

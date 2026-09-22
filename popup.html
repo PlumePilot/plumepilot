@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PlumePilot – Assistente per Pegaso</title>
+  <title>PlumePilot – Assistente per Multiversity</title>
   <script src="theme.js"></script>
   <script src="commission-state.js"></script>
   <script src="achievements.js"></script>
@@ -24,7 +24,7 @@
         </span>
         <div class="brand-copy">
           <h1>PlumePilot</h1>
-          <p>Assistente per la piattaforma Pegaso</p>
+          <p>Assistente per Pegaso, Mercatorum e San Raffaele</p>
         </div>
         <button id="status" class="status" type="button" aria-live="polite" aria-pressed="true"></button>
       </header>
@@ -114,7 +114,7 @@
               <button id="findFirstIncomplete" class="secondary-button" type="button">Trova prima attività incompleta</button>
               <button class="expand-button" type="button" aria-label="Mostra informazioni sulla ricerca della prima attività incompleta" aria-controls="firstIncompleteInfo" aria-expanded="false"></button>
             </div>
-            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare e la apre come un segnalibro. La ricerca parte solo quando premi il pulsante e non modifica il punto ripristinato normalmente da Pegaso. Il video viene selezionato senza forzarne la riproduzione.</div>
+            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare e la apre come un segnalibro. La ricerca parte solo quando premi il pulsante e non modifica il punto ripristinato normalmente dalla piattaforma. Il video viene selezionato senza forzarne la riproduzione.</div>
             <div id="firstIncompleteStatus" class="action-status" aria-live="polite"></div>
           </div>
 
@@ -283,7 +283,7 @@
             <section aria-labelledby="launcherRewardsTitle"><h2 id="launcherRewardsTitle" class="section-title">Stili launcher</h2><div id="launcherRewards" class="reward-list"></div></section>
           </div>
         </details>
-        <p class="achievement-video-note">EXP, Traguardi e ricompense sono motivazionali, locali al browser e indipendenti dal progresso ufficiale Pegaso. Completare i video ancora incompiuti di un capitolo assegna 1 EXP per ogni video presente; i capitoli già completi al primo rilevamento non assegnano EXP retroattiva.</p>
+        <p class="achievement-video-note">EXP, Traguardi e ricompense sono motivazionali, locali al browser e indipendenti dal progresso ufficiale del corso. Completare i video ancora incompiuti di un capitolo assegna 1 EXP per ogni video presente; i capitoli già completi al primo rilevamento non assegnano EXP retroattiva.</p>
       </div>
       <footer class="achievement-footer">
         <div id="achievementProgress" class="achievement-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -354,7 +354,7 @@
             <label><input type="radio" name="visualStyle" value="standard"> <span>Standard</span></label>
             <label><input type="radio" name="visualStyle" value="gaming"> <span>Gaming</span></label>
           </div>
-          <div id="visualStyleInfo" class="info-panel" hidden>Lo stile Gaming modifica solo l’aspetto delle interfacce di PlumePilot e può essere combinato con Tema Sistema, Chiaro o Scuro. Non cambia le funzioni automatiche né l’aspetto delle pagine Pegaso.</div>
+          <div id="visualStyleInfo" class="info-panel" hidden>Lo stile Gaming modifica solo l’aspetto delle interfacce di PlumePilot e può essere combinato con Tema Sistema, Chiaro o Scuro. Non cambia le funzioni automatiche né l’aspetto delle pagine del corso.</div>
         </fieldset>
 
         <fieldset class="preference-choice theme-choice" aria-labelledby="themePreferenceTitle">
@@ -367,7 +367,7 @@
             <label><input type="radio" name="themePreference" value="light"> <span>Chiaro</span></label>
             <label><input type="radio" name="themePreference" value="dark"> <span>Scuro</span></label>
           </div>
-          <div id="themePreferenceInfo" class="info-panel" hidden>“Sistema” segue automaticamente il tema chiaro o scuro indicato dal browser e si aggiorna quando cambia. La scelta si applica al popup, al menu fluttuante e agli strumenti di creazione PDF, EPUB e raccolta test, senza modificare l’aspetto di Pegaso.</div>
+          <div id="themePreferenceInfo" class="info-panel" hidden>“Sistema” segue automaticamente il tema chiaro o scuro indicato dal browser e si aggiorna quando cambia. La scelta si applica al popup, al menu fluttuante e agli strumenti di creazione PDF, EPUB e raccolta test, senza modificare l’aspetto della piattaforma.</div>
         </fieldset>
 
         <fieldset class="preference-choice menu-size-choice" aria-labelledby="menuSizeTitle">
@@ -432,9 +432,9 @@
         </div>
         <div id="aboutInfo" class="info-panel about-info" hidden>
           <strong>PlumePilot <span id="extensionVersion"></span></strong>
-          <span>Progetto gratuito e open source creato per semplificare e rendere più accessibili le attività quotidiane sulla piattaforma Pegaso.</span>
+          <span>Progetto gratuito e open source creato per semplificare e rendere più accessibili le attività quotidiane sulle piattaforme Multiversity supportate.</span>
           <span>Nato inizialmente come strumento personale, PlumePilot è pensato per gli studenti che desiderano organizzare meglio la fruizione dei corsi e utilizzare strumenti aggiuntivi per lo studio.</span>
-          <span>Progetto indipendente, non affiliato, approvato o distribuito da Università Telematica Pegaso o Multiversity.</span>
+          <span>Progetto indipendente, non affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.</span>
           <span>PlumePilot non invia alcun dato allo sviluppatore.</span>
           <span class="about-links"><button id="openWhatsNewFromAbout" class="about-inline-button" type="button">Novità</button><a href="https://plumepilot.github.io/plumepilot/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/PlumePilot/plumepilot/issues" target="_blank" rel="noopener noreferrer">Supporto</a><a href="https://github.com/PlumePilot/plumepilot" target="_blank" rel="noopener noreferrer">Codice sorgente</a></span>
         </div>
