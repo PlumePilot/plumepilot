@@ -1077,7 +1077,7 @@
   function formatCommissionCapture(value) {
     const date = new Date(Number(value));
     if (!Number.isFinite(Number(value)) || Number.isNaN(date.getTime())) {
-      return "Apri una pagina Pegaso per creare la situazione iniziale.";
+      return "Apri una pagina di una piattaforma supportata per creare la situazione iniziale.";
     }
     return `Ultimo aggiornamento: ${new Intl.DateTimeFormat("it-IT", {
       day: "2-digit",

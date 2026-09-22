@@ -41,7 +41,7 @@ Privacy policy: <https://plumepilot.github.io/plumepilot/privacy/>
 
 ## Source and reproducible build
 
-The attached `plumepilot-v2.33.2-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
+The attached `plumepilot-v2.34.0-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
 
 ```bash
 node scripts/build-release.mjs

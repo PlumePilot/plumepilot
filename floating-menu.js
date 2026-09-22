@@ -3739,8 +3739,8 @@
               <p class="commission-disabled" data-role="commission-disabled">Il controllo automatico della commissione è disattivato.</p>
               <div class="commission-content" data-role="commission-content" hidden>
               <h2 class="commission-heading">Stato della commissione</h2>
-              <p class="commission-intro">Controllo automatico ogni 10 minuti mentre una pagina Pegaso è visibile. Gli esami restano qui durante la valutazione; gli esiti caricati da Pegaso sono raccolti nel sottomenù.</p>
-              <div class="commission-empty" data-role="commission-empty">Nessun esame da mostrare. Il controllo partirà quando l’autenticazione della pagina Pegaso sarà disponibile.</div>
+              <p class="commission-intro">Questo controllo riguarda il giudizio della commissione sull’esame svolto online. Dopo l’analisi del video, la prova viene considerata valida oppure no. Il verdetto arriva solitamente prima che sulla piattaforma compaia la possibilità di confermare o rifiutare il voto; gli esiti caricati sono raccolti nel sottomenù.</p>
+              <div class="commission-empty" data-role="commission-empty">Nessun esame da mostrare. Il controllo partirà quando l’autenticazione di una piattaforma supportata sarà disponibile.</div>
               <div class="commission-list" data-role="commission-list"></div>
               <button class="confirmed-toggle" data-action="toggle-confirmed" type="button" aria-expanded="false" aria-controls="studywing-confirmed-exams" hidden>
                 <span data-role="confirmed-label">Esiti caricati</span>
@@ -3760,7 +3760,7 @@
                   <div class="commission-list confirmed-list" data-role="loaded-other-list"></div>
                 </section>
               </div>
-              <p class="commission-note">L’elenco principale mostra gli esami il cui esito non è ancora stato caricato da Pegaso.</p>
+              <p class="commission-note">L’elenco principale mostra gli esami il cui esito non è ancora stato caricato dalla piattaforma.</p>
               </div>
             </section>
           </div>
