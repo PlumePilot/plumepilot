@@ -43,6 +43,11 @@ const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta
 assert.match(popup, /claimAchievement\("customize-floating-menu"\)/);
 assert.match(floating, /function applyFloatingMenuLayout\(\)/);
 assert.equal((floating.match(/data-layout-item="/g) || []).length, 4);
+assert.match(
+  floating,
+  /\.launcher-cosmetic-frame \{[^}]*inset:-1px;/,
+  "Gaming launcher frames should fill the icon without changing its hit area",
+);
 assert.match(achievements, /title: "Su misura"[^\n]+exp: 20/);
 assert.ok(manifest.content_scripts.some((entry) => entry.js?.includes("floating-menu-layout.js")));
 

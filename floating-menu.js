@@ -2246,7 +2246,7 @@
           image-rendering: pixelated;
           pointer-events: none;
         }
-        .launcher-cosmetic-frame { display:none; position:absolute; z-index:2; inset:2px; background:center/contain no-repeat var(--sw-launcher-frame, none); image-rendering:pixelated; pointer-events:none; }
+        .launcher-cosmetic-frame { display:none; position:absolute; z-index:2; inset:-1px; background:center/contain no-repeat var(--sw-launcher-frame, none); image-rendering:pixelated; pointer-events:none; }
         :host([data-visual-style="gaming"]:not([data-launcher-style="arcane"])) .launcher-cosmetic-frame { display:block; }
         :host([data-visual-style="gaming"]:not([data-launcher-style="arcane"])) .launcher-mascot { inset:3px; }
         :host([data-visual-style="gaming"]) .launcher-standard { display: none; }
