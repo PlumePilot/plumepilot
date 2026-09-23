@@ -3474,6 +3474,42 @@
     return response || { ok:false, error:"TEST_SOURCE_UNAVAILABLE" };
   }
 
+  async function requestExportTestIndex(courseCode, operationId) {
+    let response = null;
+    for (let attempt = 0; attempt <= COURSE_INDEX_RETRY_DELAYS_MS.length; attempt++) {
+      ensureExportNotCancelled(operationId);
+      response = await turboApiRequest("outline", { courseCode });
+      ensureExportNotCancelled(operationId);
+      if (response.ok && response.data?.entries?.length) return response.data.entries;
+
+      const error = response.ok ? "COURSE_OUTLINE_INCOMPLETE" : response.error;
+      const transient = error === "COURSE_OUTLINE_INCOMPLETE" ||
+        error === "REQUEST_FAILED" || /^API_5\d\d$/.test(error || "");
+      if (!transient || attempt === COURSE_INDEX_RETRY_DELAYS_MS.length) break;
+      setExportCollectionStatus(
+        `Indice del corso temporaneamente non disponibile. Nuovo tentativo ${attempt + 1}/${COURSE_INDEX_RETRY_DELAYS_MS.length}…`,
+        false,
+        operationId,
+      );
+      await exportSleep(COURSE_INDEX_RETRY_DELAYS_MS[attempt], operationId);
+    }
+
+    const error = response?.ok ? "COURSE_OUTLINE_INCOMPLETE" : response?.error;
+    if (error === "AUTH_UNAVAILABLE") {
+      throw new Error("Autorizzazione del corso non ancora disponibile. Ricarica la pagina del corso e riprova.");
+    }
+    if (error === "API_401" || error === "API_403") {
+      throw new Error("Accesso all’indice del corso rifiutato dalla piattaforma. Ricarica la pagina e verifica la sessione.");
+    }
+    if (error === "RESPONSE_TIMEOUT" || error === "REQUEST_ABORTED") {
+      throw new Error("Richiesta dell’indice del corso scaduta. Ricarica la pagina e riprova.");
+    }
+    if (error === "COURSE_OUTLINE_INCOMPLETE") {
+      throw new Error("La piattaforma ha restituito un indice master dei test vuoto o incompleto.");
+    }
+    throw new Error(`Indice master dei test non disponibile (${error || "errore sconosciuto"}).`);
+  }
+
   async function collectCourseTests(operationId) {
     if (collectingCourseMaterials || courseBatchRunning() || window !== window.top) {
       setExportCollectionStatus(
@@ -3523,9 +3559,7 @@
         materialOutlineCache.set(courseCode, { sectionSignature, outline });
       }
 
-      const masterResponse = await turboApiRequest("outline", { courseCode });
-      ensureExportNotCancelled(operationId);
-      const courseIndex = masterResponse.ok ? masterResponse.data?.entries : null;
+      const courseIndex = await requestExportTestIndex(courseCode, operationId);
       outline = await recoverCourseTestOutline(
         initialSections,
         outline,

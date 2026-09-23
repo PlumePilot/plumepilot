@@ -5,6 +5,7 @@
 - Adds Mercatorum and San Raffaele/UTSR support with platform-specific hosts, API origins, course state and commission data.
 - Shows the floating menu on supported home and exam pages, while clearly disabling course-only actions outside a course.
 - Speeds up recovery when cached course materials refer to unavailable `Dispensa` links.
+- Retries transient master-index failures during test collection and reports authorization, access, timeout and empty-index failures separately.
 - Defers page recovery while a course tab is hidden, preventing reload loops caused by background-tab timeouts.
 - Keeps a dismissed operation notification hidden across recovery reloads until a new terminal result is available.
 - Improves adaptive EPUB fidelity for formulas, tables and slide-like pages by selecting a more suitable page layout.
