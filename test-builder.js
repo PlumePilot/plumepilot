@@ -4,7 +4,7 @@
   const MARGIN = 54;
   const COLORS = { accent:[207,29,86], purple:[91,44,160], text:[40,29,50], muted:[111,100,121], line:[225,217,232] };
   const title = document.getElementById("courseTitle");
-  const GENERATED_SIGNATURE = "Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.";
+  const GENERATED_SIGNATURE = "Generato con PlumePilot - Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.";
   const summary = document.getElementById("summary");
   const status = document.getElementById("status");
   const progress = document.getElementById("progressBar");

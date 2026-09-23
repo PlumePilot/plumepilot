@@ -18,17 +18,7 @@
   const TURBO_API_CANCEL = "STUDYWING_TURBO_API_CANCEL";
   const PAGE_LESSON_SNAPSHOT = "STUDYWING_PAGE_LESSON_SNAPSHOT";
   const PAGE_LESSON_SNAPSHOT_REQUEST = "STUDYWING_PAGE_LESSON_SNAPSHOT_REQUEST";
-  const PLATFORM_API_ORIGINS = Object.freeze([
-    ["pegaso", "pegaso.multiversity.click", "https://lms-api.prod.pegaso.multiversity.click"],
-    ["mercatorum", "mercatorum.multiversity.click", "https://lms-api.prod.mercatorum.multiversity.click"],
-    ["utsr", "utsr.multiversity.click", "https://lms-api.prod.utsr.multiversity.click"],
-  ]);
-  const pageHostname = window.location.hostname.toLowerCase();
-  const platformEntry = PLATFORM_API_ORIGINS.find(
-    ([, pageDomain]) => pageHostname === pageDomain || pageHostname.endsWith(`.${pageDomain}`),
-  );
-  if (!platformEntry) return;
-  const [PLATFORM_ID, PLATFORM_DOMAIN, API_ORIGIN] = platformEntry;
+  const API_ORIGIN = "https://lms-api.prod.pegaso.multiversity.click";
   const API_TIMEOUT_MS = 15000;
   const COMMISSION_CACHE_MS = 10 * 60 * 1000;
   let lastPayload = null;
@@ -42,14 +32,13 @@
 
   function isTargetUrl(value) {
     try {
-      const url = new URL(String(value), window.location.href);
-      return url.origin === API_ORIGIN && url.pathname === TARGET_PATH;
+      return new URL(String(value), window.location.href).pathname === TARGET_PATH;
     } catch {
       return false;
     }
   }
 
-  function isCurrentPlatformApiUrl(value) {
+  function isPegasoApiUrl(value) {
     try {
       return new URL(String(value), window.location.href).origin === API_ORIGIN;
     } catch {
@@ -71,7 +60,7 @@
   }
 
   function rememberAuthorization(headers, requestUrl, flushCommission = true) {
-    if (!headers || !isCurrentPlatformApiUrl(requestUrl)) return;
+    if (!headers || !isPegasoApiUrl(requestUrl)) return;
     try {
       const authorization = new Headers(headers).get("authorization")?.trim();
       if (/^Bearer\s+\S+$/i.test(authorization || "")) {
@@ -297,11 +286,7 @@
       lessonNumber: Number.isFinite(Number(lesson.lessonNumber))
         ? Number(lesson.lessonNumber)
         : null,
-      url:
-        safePdfUrl(lesson.peg_BookUrl) ||
-        safePdfUrl(lesson.mercatorum_BookUrl) ||
-        safePdfUrl(lesson.utsr_BookUrl) ||
-        safePdfUrl(lesson.bookUrl),
+      url: safePdfUrl(lesson.peg_BookUrl) || safePdfUrl(lesson.bookUrl),
     };
   }
 
@@ -564,7 +549,7 @@
   function publishBody(body, requestId = null) {
     if (!Array.isArray(body?.data)) return;
     const exams = body.data.slice(0, 200).map(normalizeExam).filter(Boolean);
-    lastPayload = { platformId: PLATFORM_ID, exams, capturedAt: Date.now() };
+    lastPayload = { exams, capturedAt: Date.now() };
     const resolvedRequestId = requestId || activeCommissionRequest?.id || pendingCommissionRequest?.id || null;
     if (!requestId && commissionController) commissionController.abort();
     pendingCommissionRequest = null;
@@ -578,7 +563,6 @@
     window.postMessage({
       type: RESPONSE_MESSAGE,
       payload: {
-        platformId: PLATFORM_ID,
         error: typeof error === "string" ? error.slice(0, 120) : "REQUEST_FAILED",
         requestId: requestId || activeCommissionRequest?.id || pendingCommissionRequest?.id || null,
       },

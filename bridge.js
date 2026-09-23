@@ -17,40 +17,6 @@
   });
 
   const MAX_TRACKED_EXPORT_OPERATIONS = 20;
-  const PLATFORM_DOMAINS = Object.freeze({
-    pegaso: "pegaso.multiversity.click",
-    mercatorum: "mercatorum.multiversity.click",
-    utsr: "utsr.multiversity.click",
-  });
-  const currentHostname = window.location.hostname.toLowerCase();
-  const PLATFORM_ID = Object.entries(PLATFORM_DOMAINS).find(
-    ([, domain]) => currentHostname === domain || currentHostname.endsWith(`.${domain}`),
-  )?.[0] || null;
-  if (!PLATFORM_ID) return;
-
-  function courseStorageKey(courseCode, platformId = PLATFORM_ID) {
-    const course = typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
-      ? courseCode
-      : null;
-    return course && ["pegaso", "mercatorum", "utsr"].includes(platformId)
-      ? `${platformId}:${course}`
-      : null;
-  }
-
-  function currentPlatformCourseMap(source) {
-    const stored = source && typeof source === "object" ? source : {};
-    const scoped = {};
-    if (PLATFORM_ID === "pegaso") {
-      for (const [key, value] of Object.entries(stored)) {
-        if (/^[A-Za-z0-9_-]{3,80}$/.test(key)) scoped[key] = value;
-      }
-    }
-    const prefix = `${PLATFORM_ID}:`;
-    for (const [key, value] of Object.entries(stored)) {
-      if (key.startsWith(prefix)) scoped[key.slice(prefix.length)] = value;
-    }
-    return scoped;
-  }
   let turboTestsStatus = { running: false, stopping: false, message: "" };
   let turboOperationId = null;
   let objectivesStatus = { running: false, stopping: false, message: "" };
@@ -88,6 +54,7 @@
   const COMMISSION_CLEAR_MEMORY = "STUDYWING_COMMISSION_EXAMS_CLEAR_MEMORY";
   const COMMISSION_CHECK_INTERVAL_MS = 10 * 60 * 1000;
   const COMMISSION_RETRY_MS = 60 * 1000;
+  const commissionStates = globalThis.StudyWingCommissionState;
   const pageLoadedAt = Date.now();
   const extensionVersion = chrome.runtime.getManifest().version;
   const requestedExportOperationIds = new Set();
@@ -130,7 +97,6 @@
     if (leaseId) {
       chrome.runtime.sendMessage({
         type: "PEGASO_COMMISSION_CHECK_RELEASE",
-        platformId: PLATFORM_ID,
         leaseId,
       }, () => void chrome.runtime.lastError);
     }
@@ -155,7 +121,7 @@
   function runCommissionCheck() {
     commissionCheckTimer = null;
     if (!commissionCheckEnabled || !pageIsVisible()) return;
-    chrome.runtime.sendMessage({ type: "PEGASO_COMMISSION_CHECK_CLAIM", platformId: PLATFORM_ID }, (response) => {
+    chrome.runtime.sendMessage({ type: "PEGASO_COMMISSION_CHECK_CLAIM" }, (response) => {
       if (chrome.runtime.lastError || !commissionCheckEnabled) {
         scheduleCommissionCheck(COMMISSION_RETRY_MS);
         return;
@@ -177,12 +143,6 @@
 
   function safeText(value, maxLength = 800) {
     return typeof value === "string" ? value.slice(0, maxLength) : null;
-  }
-
-  function platformScopedSoundEventId(value) {
-    const eventId = safeText(value, 180);
-    const match = eventId?.match(/^(course-threshold|chapter-limit):(.+)$/);
-    return match ? `${match[1]}:${PLATFORM_ID}:${match[2]}` : eventId;
   }
 
   function safeNumber(value) {
@@ -216,50 +176,92 @@
   }
 
   function processCommissionPayload(payload) {
-    if (
-      !commissionCheckEnabled ||
-      payload?.platformId !== PLATFORM_ID ||
-      !Array.isArray(payload?.exams)
-    ) return;
+    if (!commissionCheckEnabled || !Array.isArray(payload?.exams)) return;
     if (commissionProcessing) {
       queuedCommissionPayload = payload;
       return;
     }
 
     commissionProcessing = true;
-    const platformExams = payload.exams
-      .slice(0, 200)
-      .map(normalizeCommissionExam)
-      .filter(Boolean);
-    chrome.runtime.sendMessage({
-      type: "PEGASO_COMMISSION_PAYLOAD_STORE",
-      platformId: PLATFORM_ID,
-      exams: platformExams,
-      capturedAt: Number(payload.capturedAt) || Date.now(),
-    }, (result) => {
-        const storageFailed = Boolean(chrome.runtime.lastError) || result?.accepted !== true;
-        if (storageFailed) {
-          console.warn(
-            "[PlumePilot Commissione] Salvataggio non riuscito:",
-            chrome.runtime.lastError?.message || result?.reason || "errore sconosciuto",
-          );
-        } else if (result.soundEventId) {
-          chrome.runtime.sendMessage({
-            type: "STUDYWING_SOUND_EVENT",
-            eventId: result.soundEventId,
-          }, (soundResult) => {
-            if (!chrome.runtime.lastError && soundResult?.achievement?.accepted) {
-              window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
-            }
-          });
+    const exams = payload.exams.slice(0, 200).map(normalizeCommissionExam).filter(Boolean);
+    chrome.storage.local.get({
+      commissionExamTrackingInitialized: false,
+      commissionExamSnapshots: {},
+      commissionUnseenExamIds: [],
+      commissionExams: [],
+    }, (stored) => {
+      const previous = stored.commissionExamSnapshots && typeof stored.commissionExamSnapshots === "object"
+        ? stored.commissionExamSnapshots
+        : {};
+      const initialized = stored.commissionExamTrackingInitialized === true;
+      const nextSnapshots = {};
+      const newlyChangedIds = [];
+      const soundChanges = [];
+      const previousExams = new Map(
+        (Array.isArray(stored.commissionExams) ? stored.commissionExams : [])
+          .map((exam) => [String(exam?.exam_id), exam]),
+      );
+
+      for (const exam of exams) {
+        const id = String(exam.exam_id);
+        const snapshot = commissionStates.createSnapshot(exam);
+        nextSnapshots[id] = snapshot;
+        if (!initialized) continue;
+
+        const previousSnapshot = commissionStates.normalizeStoredSnapshot(
+          previous[id],
+          previousExams.get(id),
+        );
+        if (commissionStates.shouldNotifyChange(previousSnapshot, snapshot)) {
+          newlyChangedIds.push(exam.exam_id);
         }
-        releaseCommissionLease(!storageFailed, result?.capturedAt);
+        if (previousSnapshot?.state === commissionStates.STATES.PENDING && snapshot.state !== commissionStates.STATES.PENDING) {
+          soundChanges.push(`${exam.exam_id}-${snapshot.state}`);
+        }
+      }
+
+      const stillPresent = new Set(exams.map((exam) => exam.exam_id));
+      const storedUnseen = Array.isArray(stored.commissionUnseenExamIds) ? stored.commissionUnseenExamIds : [];
+      const unseen = [...new Set([
+        ...storedUnseen.filter((id) => stillPresent.has(Number(id))).map(Number),
+        ...newlyChangedIds,
+      ])];
+
+      chrome.storage.local.set({
+        commissionExams: exams,
+        commissionExamsCapturedAt: Number(payload.capturedAt) || Date.now(),
+        commissionExamSnapshots: nextSnapshots,
+        commissionExamTrackingInitialized: true,
+        commissionUnseenExamIds: unseen,
+      }, () => {
+        const storageFailed = Boolean(chrome.runtime.lastError);
+        if (storageFailed) {
+          console.warn("[PlumePilot Commissione] Salvataggio non riuscito:", chrome.runtime.lastError.message);
+        } else {
+          debugLog("[PlumePilot Commissione] Esami aggiornati.", {
+            exams: exams.length,
+            newVerdicts: newlyChangedIds.length,
+            baselineCreated: !initialized,
+          });
+          if (soundChanges.length) {
+            chrome.runtime.sendMessage({
+              type: "STUDYWING_SOUND_EVENT",
+              eventId: `commission:${Number(payload.capturedAt) || Date.now()}:${soundChanges.sort().join(".")}`,
+            }, (result) => {
+              if (!chrome.runtime.lastError && result?.achievement?.accepted) {
+                window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
+              }
+            });
+          }
+        }
+        releaseCommissionLease(!storageFailed, Number(payload.capturedAt) || Date.now());
         commissionProcessing = false;
         if (queuedCommissionPayload) {
           const queued = queuedCommissionPayload;
           queuedCommissionPayload = null;
           processCommissionPayload(queued);
         }
+      });
     });
   }
   function sendState(
@@ -322,11 +324,11 @@
           autoEnabled,
           playbackErrorRecovery,
           result.autoplayChapterLimitEnabled === true,
-          currentPlatformCourseMap(result.autoplayChapterLimits),
-          currentPlatformCourseMap(result.autoplayChapterLimitSessions),
+          result.autoplayChapterLimits || {},
+          result.autoplayChapterLimitSessions || {},
           result.courseProgressOverlayEnabled === true,
           result.autoplayStopAt70Enabled === true,
-          currentPlatformCourseMap(result.autoplayStopAt70BypassedCourses),
+          result.autoplayStopAt70BypassedCourses || {},
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
         );
@@ -461,7 +463,7 @@
     if (event.source !== window || !event.data) return;
     if (event.data.type === "STUDYWING_SOUND_EVENT") {
       chrome.runtime.sendMessage(
-        { type: "STUDYWING_SOUND_EVENT", eventId: platformScopedSoundEventId(event.data.eventId) },
+        { type: "STUDYWING_SOUND_EVENT", eventId: safeText(event.data.eventId, 180) },
         (result) => {
           if (!chrome.runtime.lastError && result?.achievement?.accepted) {
             window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: result.achievement }, "*");
@@ -490,17 +492,14 @@
       return;
     }
     if (event.data.type === "PEGASO_CHAPTER_LIMIT_STATUS") {
-      chapterLimitStatus = event.data.status
-        ? { ...event.data.status, platformId: PLATFORM_ID }
-        : null;
+      chapterLimitStatus = event.data.status || null;
       const courseCode = String(chapterLimitStatus?.courseCode || "");
-      const storageKey = courseStorageKey(courseCode);
-      if (!storageKey) return;
+      if (!courseCode) return;
       chrome.storage.local.get({ autoplayChapterLimitStatuses: {} }, (result) => {
         chrome.storage.local.set({
           autoplayChapterLimitStatuses: {
             ...(result.autoplayChapterLimitStatuses || {}),
-            [storageKey]: chapterLimitStatus,
+            [courseCode]: chapterLimitStatus,
           },
         });
       });
@@ -513,7 +512,6 @@
         : "";
       const percent = Number(source?.percent);
       courseProgressStatus = courseCode ? {
-        platformId: PLATFORM_ID,
         courseCode,
         available: source.available === true && Number.isFinite(percent),
         percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, Math.floor(percent))) : null,
@@ -531,13 +529,12 @@
     }
     if (event.data.type === "PEGASO_CHAPTER_LIMIT_SESSION_UPDATE") {
       const courseCode = String(event.data.courseCode || "");
-      const storageKey = courseStorageKey(courseCode);
-      if (!storageKey) return;
+      if (!courseCode) return;
       chrome.storage.local.get({ autoplayChapterLimitSessions: {} }, (result) => {
         chrome.storage.local.set({
           autoplayChapterLimitSessions: {
             ...(result.autoplayChapterLimitSessions || {}),
-            [storageKey]: event.data.session || null,
+            [courseCode]: event.data.session || null,
           },
         });
       });
@@ -592,7 +589,6 @@
     if (event.data.type === "STUDYWING_CHAPTER_VIDEOS_CLAIM_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_CHAPTER_VIDEOS_CLAIM",
-        platformId: PLATFORM_ID,
         chapterKey: event.data.chapterKey,
         videos: event.data.videos,
       }, (result) => {
@@ -603,7 +599,6 @@
     if (event.data.type === "STUDYWING_LESSON_COMPLETION_CANDIDATE_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_LESSON_COMPLETION_CLAIM",
-        platformId: PLATFORM_ID,
         lessonKey: event.data.lessonKey,
         chapters: event.data.chapters,
         candidate: event.data.candidate === true,
@@ -617,7 +612,6 @@
     if (event.data.type === "STUDYWING_PENDING_LESSONS_REQUEST") {
       chrome.runtime.sendMessage({
         type: "STUDYWING_PENDING_LESSONS_GET",
-        platformId: PLATFORM_ID,
         courseCode: event.data.courseCode,
       }, (result) => {
         if (chrome.runtime.lastError || result?.accepted !== true) return;
@@ -713,15 +707,16 @@
       if (commissionCheckEnabled) scheduleCommissionCheck(0);
       else cancelCommissionCheck();
     }
-    if (changes.commissionExamsCapturedAtByPlatform && commissionCheckEnabled) {
-      scheduleCommissionCheckFromCapture(
-        changes.commissionExamsCapturedAtByPlatform.newValue?.[PLATFORM_ID],
-      );
+    if (changes.commissionExamsCapturedAt && commissionCheckEnabled) {
+      scheduleCommissionCheckFromCapture(changes.commissionExamsCapturedAt.newValue);
     }
-    if (changes.commissionCheckLeases && commissionCheckEnabled && pageIsVisible()) {
-      const before = changes.commissionCheckLeases.oldValue?.[PLATFORM_ID];
-      const after = changes.commissionCheckLeases.newValue?.[PLATFORM_ID];
-      if (before && !after) scheduleCommissionCheck(250);
+    if (
+      changes.commissionCheckLease &&
+      !changes.commissionCheckLease.newValue &&
+      commissionCheckEnabled &&
+      pageIsVisible()
+    ) {
+      scheduleCommissionCheck(250);
     }
   });
   document.addEventListener("visibilitychange", () => {

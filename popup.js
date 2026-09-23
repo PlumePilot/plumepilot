@@ -64,32 +64,6 @@
   let activeCourseTabId = null;
   let chapterLimitMaps = { limits: {}, sessions: {} };
   let chapterLimitStatuses = {};
-
-  function courseStorageKey(courseCode, platformId = "pegaso") {
-    const course = typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
-      ? courseCode
-      : null;
-    return course && ["pegaso", "mercatorum", "utsr"].includes(platformId)
-      ? `${platformId}:${course}`
-      : null;
-  }
-
-  function courseScopedValue(map, courseCode, platformId = "pegaso") {
-    const key = courseStorageKey(courseCode, platformId);
-    if (!key || !map || typeof map !== "object") return undefined;
-    if (Object.prototype.hasOwnProperty.call(map, key)) return map[key];
-    return platformId === "pegaso" ? map[courseCode] : undefined;
-  }
-
-  function setCourseScopedValue(map, courseCode, platformId, value) {
-    const key = courseStorageKey(courseCode, platformId);
-    const next = { ...(map || {}) };
-    if (!key) return next;
-    if (value === undefined) delete next[key];
-    else next[key] = value;
-    if (platformId === "pegaso") delete next[courseCode];
-    return next;
-  }
   const playbackErrorRecoveryRadios = [
     ...document.querySelectorAll('input[name="playbackErrorRecovery"]'),
   ];
@@ -365,13 +339,9 @@
   const COMMISSION_STORAGE_KEYS = [
     "commissionExams",
     "commissionExamsCapturedAt",
-    "commissionExamsCapturedAtByPlatform",
     "commissionExamSnapshots",
     "commissionExamTrackingInitialized",
-    "commissionExamTrackingInitializedByPlatform",
     "commissionUnseenExamIds",
-    "commissionCheckLease",
-    "commissionCheckLeases",
   ];
 
   extensionVersion.textContent = `v${chrome.runtime.getManifest().version}`;
@@ -791,7 +761,7 @@
       ready ? `${percent}%` : "Progresso non disponibile",
     );
     courseProgressMessage.textContent = ready
-      ? courseProgressStatus.message || "Sincronizzato con la piattaforma."
+      ? courseProgressStatus.message || "Sincronizzato con Pegaso."
       : "Apri un corso per visualizzare il progresso.";
     renderAutoplayStopAt70();
   }
@@ -843,21 +813,14 @@
       !autoplayStopAt70Enabled ||
       !courseCode ||
       !reached ||
-      courseScopedValue(
-        autoplayStopAt70BypassedCourses,
-        courseCode,
-        courseProgressStatus?.platformId,
-      ) === true;
+      autoplayStopAt70BypassedCourses[courseCode] === true;
   }
   function updateAutoplayStopAt70Bypass(bypassed) {
     const courseCode = courseProgressStatus?.courseCode;
     if (!courseCode) return;
-    const next = setCourseScopedValue(
-      autoplayStopAt70BypassedCourses,
-      courseCode,
-      courseProgressStatus?.platformId,
-      bypassed ? true : undefined,
-    );
+    const next = { ...autoplayStopAt70BypassedCourses };
+    if (bypassed) next[courseCode] = true;
+    else delete next[courseCode];
     autoplayStopAt70BypassedCourses = next;
     chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
     renderAutoplayStopAt70();
@@ -870,12 +833,7 @@
       1,
       Math.min(chapterLimitStatus.maximum, Math.round(numericValue)),
     );
-    chapterLimitMaps.limits = setCourseScopedValue(
-      chapterLimitMaps.limits,
-      chapterLimitStatus.courseCode,
-      chapterLimitStatus.platformId,
-      value,
-    );
+    chapterLimitMaps.limits[chapterLimitStatus.courseCode] = value;
     chrome.storage.local.set({
       autoplayChapterLimits: chapterLimitMaps.limits,
     });
@@ -1077,7 +1035,7 @@
   function formatCommissionCapture(value) {
     const date = new Date(Number(value));
     if (!Number.isFinite(Number(value)) || Number.isNaN(date.getTime())) {
-      return "Apri una pagina di una piattaforma supportata per creare la situazione iniziale.";
+      return "Apri una pagina Pegaso per creare la situazione iniziale.";
     }
     return `Ultimo aggiornamento: ${new Intl.DateTimeFormat("it-IT", {
       day: "2-digit",
@@ -1101,25 +1059,11 @@
       : "Esito non disponibile";
   }
 
-  function commissionExamKey(exam) {
-    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
-      ? exam.platformId
-      : "pegaso";
-    const examId = Number(exam?.exam_id);
-    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
-  }
-
-  function normalizeCommissionUnseenId(value) {
-    if (typeof value === "string" && /^(?:pegaso|mercatorum|utsr):\d+$/.test(value)) return value;
-    const legacyId = Number(value);
-    return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
-  }
-
   function sortCommissionExams(exams, unseenSet) {
     exams.sort((first, second) => {
       const unseenDifference =
-        Number(unseenSet.has(commissionExamKey(second))) -
-        Number(unseenSet.has(commissionExamKey(first)));
+        Number(unseenSet.has(Number(second?.exam_id))) -
+        Number(unseenSet.has(Number(first?.exam_id)));
       if (unseenDifference) return unseenDifference;
       const firstDate = new Date(first?.date_exam || 0).getTime() || 0;
       const secondDate = new Date(second?.date_exam || 0).getTime() || 0;
@@ -1131,7 +1075,7 @@
     if (!exam || !Number.isFinite(Number(exam.exam_id))) return null;
     const item = document.createElement("article");
     item.className = "commission-exam-card";
-    if (unseenSet.has(commissionExamKey(exam))) item.dataset.new = "true";
+    if (unseenSet.has(Number(exam.exam_id))) item.dataset.new = "true";
 
     const heading = document.createElement("div");
     heading.className = "commission-exam-title";
@@ -1189,7 +1133,7 @@
       : [];
     const unseenIds =
       enabled && Array.isArray(stored.commissionUnseenExamIds)
-        ? stored.commissionUnseenExamIds.map(normalizeCommissionUnseenId).filter(Boolean)
+        ? stored.commissionUnseenExamIds.map(Number).filter(Number.isFinite)
         : [];
     const unseenSet = new Set(unseenIds);
     const openExams = exams.filter(
@@ -1247,7 +1191,7 @@
       ? "Nessun esame in attesa o ancora da confermare."
       : "Non è stata ancora creata una situazione iniziale.";
     const loadedUnseen = loadedExams.filter((exam) =>
-      unseenSet.has(commissionExamKey(exam)),
+      unseenSet.has(Number(exam?.exam_id)),
     ).length;
     confirmedExamsToggle.hidden = loadedExams.length === 0;
     confirmedExamsLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
@@ -1429,11 +1373,9 @@
           };
           chapterLimitStatuses = result.autoplayChapterLimitStatuses || {};
           if (chapterLimitStatus?.courseCode) {
-            chapterLimitStatus = courseScopedValue(
-              chapterLimitStatuses,
-              chapterLimitStatus.courseCode,
-              chapterLimitStatus.platformId,
-            ) || chapterLimitStatus;
+            chapterLimitStatus =
+              chapterLimitStatuses[chapterLimitStatus.courseCode] ||
+              chapterLimitStatus;
           }
           if (chapterLimitStatus)
             chapterLimitStatus.enabled =
@@ -1591,18 +1533,13 @@
   );
   chapterLimitResume.addEventListener("click", () => {
     if (!chapterLimitStatus?.courseCode) return;
-    chapterLimitMaps.sessions = setCourseScopedValue(
-      chapterLimitMaps.sessions,
-      chapterLimitStatus.courseCode,
-      chapterLimitStatus.platformId,
-      {
+    chapterLimitMaps.sessions[chapterLimitStatus.courseCode] = {
       courseCode: chapterLimitStatus.courseCode,
       completed: 0,
       reached: false,
       lastChapterKey: "",
       soundSessionId: Date.now(),
-      },
-    );
+    };
     chrome.storage.local.set({
       autoplayChapterLimitSessions: chapterLimitMaps.sessions,
     });
@@ -1828,7 +1765,7 @@
 
   clearCommissionDataButton.addEventListener("click", () => {
     const confirmed = window.confirm(
-      "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.",
+      "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti su Pegaso non verranno modificati.",
     );
     if (!confirmed) return;
 
@@ -1957,7 +1894,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         turboTestsStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          "Apri prima la pagina di un corso UniPegaso.";
         turboTestsButton.disabled = false;
         return;
       }
@@ -2009,7 +1946,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         objectivesStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          "Apri prima la pagina di un corso UniPegaso.";
         objectivesButton.disabled = false;
         return;
       }
@@ -2090,7 +2027,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         materialsStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          "Apri prima la pagina di un corso UniPegaso.";
         return;
       }
       const response = await runtimeMessage({
@@ -2147,7 +2084,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         testCollectionStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          "Apri prima la pagina di un corso UniPegaso.";
         return;
       }
       const response = await runtimeMessage({
