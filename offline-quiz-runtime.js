@@ -108,6 +108,9 @@ function offlineQuizRuntime(DATA) {
         b.onclick = () => {
           current = index;
           render();
+          const heading = byId("chapterTitle");
+          heading.focus({ preventScroll: true });
+          heading.scrollIntoView({ block: "start" });
         };
         return b;
       }),

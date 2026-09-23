@@ -8,6 +8,7 @@
 - Defers page recovery while a course tab is hidden, preventing reload loops caused by background-tab timeouts.
 - Keeps a dismissed operation notification hidden across recovery reloads until a new terminal result is available.
 - Improves adaptive EPUB fidelity for formulas, tables and slide-like pages by selecting a more suitable page layout.
+- Moves keyboard focus and the reading position to the new chapter heading when selecting a chapter in an offline HTML quiz.
 - Enlarges Gaming reward frames in the floating launcher and clarifies the first-incomplete-activity achievement.
 - Rewrites commission explanations with platform-neutral wording for all supported universities.
 - Renames visible branding and generated PDF, EPUB and quiz signatures to **PlumePilot – Assistente per Multiversity**, with platform-specific status labels and updated public descriptions.
