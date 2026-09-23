@@ -68,6 +68,10 @@
   const PAGE_LESSON_SNAPSHOT_REQUEST = "STUDYWING_PAGE_LESSON_SNAPSHOT_REQUEST";
   const VIDEO_END_TOLERANCE_SECONDS = 0.75;
   const MAX_HANDLED_EXPORT_OPERATIONS = 20;
+  const IS_MERCATORUM = /(?:^|\.)mercatorum\.multiversity\.click$/i.test(
+    window.location.hostname,
+  );
+  const MERCATORUM_STATIC_SECTION = "Lezioni";
   const IS_CHROMIUM = /(?:Chrome|Chromium|Edg)\//.test(
     navigator.userAgent,
   );
@@ -1078,7 +1082,7 @@
     maintainWatchValidationRecovery();
   }
 
-  function sections() {
+  function pegasoStyleSections() {
     return [
       ...document.querySelectorAll("div.flex-wrap.bg-platform-light-gray"),
     ]
@@ -1095,8 +1099,45 @@
       .filter(Boolean);
   }
 
+  function mercatorumChapterRows() {
+    if (!IS_MERCATORUM) return [];
+    const seen = new Set();
+    return [...document.querySelectorAll("span")]
+      .filter((span) => /^\s*\d+\s*-\s+/.test(span.textContent || ""))
+      .map((span) => {
+        const clickable =
+          span.closest("div.cursor-pointer.relative.align-middle") ||
+          span.closest("div.cursor-pointer");
+        if (!clickable || seen.has(clickable)) return null;
+        seen.add(clickable);
+        return {
+          span,
+          clickable,
+          text: span.textContent.trim(),
+          sectionText: MERCATORUM_STATIC_SECTION,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function sections() {
+    const nativeSections = pegasoStyleSections();
+    if (nativeSections.length) return nativeSections;
+    const fallbackChapters = mercatorumChapterRows();
+    if (!fallbackChapters.length) return [];
+    return [{
+      outer: document.documentElement,
+      header: null,
+      span: fallbackChapters[0].clickable,
+      text: MERCATORUM_STATIC_SECTION,
+      static: true,
+    }];
+  }
+
   function chapters() {
-    return sections().flatMap((section) =>
+    const nativeSections = pegasoStyleSections();
+    if (!nativeSections.length) return mercatorumChapterRows();
+    return nativeSections.flatMap((section) =>
       [...section.outer.querySelectorAll("span")]
         .filter((span) => /^\s*\d+\s*-\s+/.test(span.textContent || ""))
         .filter(
@@ -1465,6 +1506,10 @@
     if (!section) {
       log("Course section not found:", sectionText);
       return false;
+    }
+
+    if (section.static === true) {
+      return chapters().some((chapter) => chapter.sectionText === sectionText);
     }
 
     if (isOpen()) {
@@ -1907,6 +1952,10 @@
 
     if (!section) {
       return false;
+    }
+
+    if (section.static === true) {
+      return hasVisibleChapters();
     }
 
     if (hasVisibleChapters()) {
