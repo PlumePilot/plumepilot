@@ -54,7 +54,7 @@ Il codice applicativo di PlumePilot è incluso in forma leggibile e non è minif
 
 Versioni, collegamenti ufficiali, licenze e SHA-256 sono riportati in `THIRD_PARTY_NOTICES.md`. Non vengono scaricate dipendenze durante l'esecuzione dell'estensione.
 
-La build `2.33.2` applica trasformazioni exact-match e fail-closed esclusivamente alle copie runtime Firefox. Vengono rimossi il valutatore legacy delle callback stringa di JSZip, due fallback eval-like inutilizzati di fontkit, il compilatore PostScript opzionale e gli import variabili di fallback di PDF.js, il riferimento source map non incluso di pdf-lib e il ramo audio Chromium `chrome.offscreen` non supportato. PDF.js mantiene l'interprete, il normale module worker e il percorso WebAssembly. Chrome ed Edge conservano i file ufficiali invariati. Il validator analizza l'intero ZIP Firefox e blocca `eval`, costruttori `Function`, import dinamici variabili e riferimenti `chrome.offscreen`.
+La build `2.34.0` applica trasformazioni exact-match e fail-closed esclusivamente alle copie runtime Firefox. Vengono rimossi il valutatore legacy delle callback stringa di JSZip, due fallback eval-like inutilizzati di fontkit, il compilatore PostScript opzionale e gli import variabili di fallback di PDF.js, il riferimento source map non incluso di pdf-lib e il ramo audio Chromium `chrome.offscreen` non supportato. PDF.js mantiene l'interprete, il normale module worker e il percorso WebAssembly. Chrome ed Edge conservano i file ufficiali invariati. Il validator analizza l'intero ZIP Firefox e blocca `eval`, costruttori `Function`, import dinamici variabili e riferimenti `chrome.offscreen`.
 
 I due template Shadow DOM ora contengono markup statico dell'estensione; URL locali e versione vengono assegnati successivamente tramite nodi e attributi DOM. Nessun contenuto del sito o input utente raggiunge tali valori.
 
@@ -72,7 +72,7 @@ La versione 2.32.10 sostituisce i precedenti bundle PDF.js legacy minificati con
 node scripts/build-release.mjs
 ```
 
-Lo stesso comando genera anche `plumepilot-v2.33.2-source.zip` e inserisce tutti e quattro gli archivi in `SHA256SUMS.txt`.
+Lo stesso comando genera anche `plumepilot-v2.34.0-source.zip` e inserisce tutti e quattro gli archivi in `SHA256SUMS.txt`.
 
 Per verificare la release:
 
