@@ -12,7 +12,7 @@ assert.equal(
   "https://chromewebstore.google.com/detail/plumepilot-%E2%80%93-assistente-p/cbkkkjekidcdjojlmnbihmjfohkdfcaa?hl=it&utm_source=ext_sidebar",
 );
 assert.equal(
-  links.reviewUrl({ default_locale: "it", name: "PlumePilot – Assistente per Multiversity" }),
+  links.reviewUrl({ default_locale: "it", name: "PlumePilot – Assistente per Pegaso" }),
   "https://microsoftedge.microsoft.com/addons/detail/plumepilot-%E2%80%93-assistant-fo/lboffgbgbnaecfcikjfmgcpnahnmhfjp",
 );
 assert.equal(

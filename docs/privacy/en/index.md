@@ -7,7 +7,7 @@ title: "PlumePilot Privacy Policy"
 
 [Versione italiana](../)
 
-Last updated: 22 September 2026.
+Last updated: 3 September 2026.
 
 ## 1. Controller and contact details
 
@@ -17,9 +17,9 @@ Privacy contact: [plumepilot@gmail.com](mailto:plumepilot@gmail.com).
 
 ## 2. Purpose of PlumePilot
 
-PlumePilot is an independent extension that adds local tools for accessing, organising and studying Pegaso, Mercatorum and San Raffaele courses that the user is already authorised to access.
+PlumePilot is an independent extension that adds local tools for accessing, organising and studying Pegaso courses that the user is already authorised to access.
 
-PlumePilot is not affiliated with, endorsed by or distributed by Multiversity or the supported universities.
+PlumePilot is not affiliated with, endorsed by or distributed by Università Telematica Pegaso or Multiversity.
 
 ## 3. Information processed
 
@@ -32,11 +32,11 @@ When required by features selected by the user, PlumePilot may read and process:
 - preferences and interactions with the extension's controls;
 - local data relating to Achievements, EXP and cosmetic rewards.
 
-PlumePilot does not directly request the user's name, email address, student ID or payment information. Any personal information contained in content from supported platforms is processed only within the browser to provide the requested features.
+PlumePilot does not directly request the user's name, email address, student ID or payment information. Any personal information contained in Pegaso content is processed only within the browser to provide the requested features.
 
-## 4. Authentication and requests to supported platforms
+## 4. Authentication and requests to Pegaso
 
-The supported platforms use a session token to authorise its requests. PlumePilot may temporarily detect in memory the authorisation header already used by the page and use it exclusively to communicate over HTTPS with the services of the current platform required by its features.
+The Pegaso platform uses a session token to authorise its requests. PlumePilot may temporarily detect in memory the authorisation header already used by the page and use it exclusively to communicate over HTTPS with the Pegaso services required by its features.
 
 The token:
 
@@ -51,15 +51,15 @@ Requests may include reading course structure, activities and test sources, as w
 
 When examination-board monitoring is enabled, PlumePilot may:
 
-1. observe and reuse a recent exam response already received by the current platform page;
-2. if necessary, make an additional HTTPS request to the same service of the current platform using the current session authorisation temporarily;
+1. observe and reuse a recent exam response already received by the Pegaso page;
+2. if necessary, make an additional HTTPS request to the same Pegaso service using the current session authorisation temporarily;
 3. store locally the fields required to display exam status and recognise changes.
 
-PlumePilot does not modify exam information held by the current platform or send it to the developer.
+PlumePilot does not modify exam information held by Pegaso or send it to the developer.
 
 ## 6. PDF, EPUB and HTML materials
 
-When the user starts an export, PlumePilot downloads only materials and images already accessible through the account on the current platform. Processing and file generation take place locally in the browser.
+When the user starts an export, PlumePilot downloads only materials and images already accessible through the Pegaso account currently in use. Processing and file generation take place locally in the browser.
 
 PlumePilot does not upload generated documents to its own servers or to third-party servers.
 
@@ -82,7 +82,7 @@ While exports are being prepared, data relating to materials or tests may be sto
 
 PlumePilot communicates only with services required by its declared features:
 
-- Multiversity services hosted on `*.pegaso.multiversity.click`, `*.mercatorum.multiversity.click` and `*.utsr.multiversity.click`, used for courses, activities and exams;
+- Pegaso and Multiversity services hosted on `*.pegaso.multiversity.click`, used for courses, activities and exams;
 - CloudFront and Amazon S3 resources authorised in the extension package and used by the platform to provide course materials and images.
 
 PlumePilot has no developer-operated servers. The developer does not receive data processed by the extension.
@@ -108,7 +108,7 @@ The user can:
 - reset Achievements to remove Achievements, EXP and rewards;
 - uninstall PlumePilot to request that the browser remove the local storage associated with the extension.
 
-Local deletion does not modify data stored by the current platform.
+Local deletion does not modify data stored by Pegaso.
 
 ## 11. Security
 

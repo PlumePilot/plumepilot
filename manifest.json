@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "PlumePilot – Assistente per Multiversity",
+  "name": "PlumePilot – Assistente per Pegaso",
   "short_name": "PlumePilot",
-  "version": "2.34.0",
-  "description": "Assistente per Pegaso, Mercatorum e San Raffaele: automatizza attività, crea materiali di studio e controlla gli esami online.",
+  "version": "2.33.2",
+  "description": "Assistente per Pegaso: automatizza lezioni e attività, crea materiali di studio e controlla lo stato degli esami online.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -37,7 +37,6 @@
   "background": {
     "scripts": [
       "achievements.js",
-      "commission-state.js",
       "sound-settings.js",
       "whats-new.js",
       "background.js"
@@ -45,7 +44,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "PlumePilot – Assistente per Multiversity",
+    "default_title": "PlumePilot – Assistente per Pegaso",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -76,22 +75,18 @@
         "assets/gaming/progress-arcane-frame-center.png",
         "assets/gaming/progress-arcane-frame-right.png",
         "assets/gaming/progress-arcane-fill.png",
-        "assets/gaming/rewards/*.png",
-        "assets/audio/*.mp3"
+        "assets/gaming/rewards/*.png"
+        ,"assets/audio/*.mp3"
       ],
       "matches": [
-        "*://*.pegaso.multiversity.click/*",
-        "*://*.mercatorum.multiversity.click/*",
-        "*://*.utsr.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*"
       ]
     }
   ],
   "content_scripts": [
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*",
-        "*://*.mercatorum.multiversity.click/*",
-        "*://*.utsr.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*"
       ],
       "js": [
         "commission-interceptor.js"
@@ -102,9 +97,7 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*",
-        "*://*.mercatorum.multiversity.click/*",
-        "*://*.utsr.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*"
       ],
       "js": [
         "commission-state.js",
@@ -116,9 +109,7 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*",
-        "*://*.mercatorum.multiversity.click/*",
-        "*://*.utsr.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*"
       ],
       "js": [
         "notification-manager.js",
@@ -130,9 +121,7 @@
     },
     {
       "matches": [
-        "*://*.pegaso.multiversity.click/*",
-        "*://*.mercatorum.multiversity.click/*",
-        "*://*.utsr.multiversity.click/*"
+        "*://*.pegaso.multiversity.click/*"
       ],
       "js": [
         "commission-state.js",

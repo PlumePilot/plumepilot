@@ -17,7 +17,7 @@
     { id: "complete-tests", title: "Maestro dei quiz", description: "Concludi una sessione di test automatici.", exp: 35, group: "primary" },
     { id: "create-test-collection", title: "Archivista dei quiz", description: "Genera una raccolta test utilizzabile.", exp: 25, group: "primary" },
     { id: "export-materials", title: "Sapienza da viaggio", description: "Genera almeno un PDF o EPUB.", exp: 30, group: "primary" },
-    { id: "find-first-incomplete", title: "Nessuna missione incompiuta", description: "Trova la prima attività non completata.", exp: 20, group: "primary" },
+    { id: "find-first-incomplete", title: "Nessuna missione incompiuta", description: "Apri una destinazione valida trovata da PlumePilot.", exp: 20, group: "primary" },
     { id: "complete-lesson", title: "Sapere è potere!", description: "Completa al 100% tutti i capitoli di una lezione.", exp: 100, group: "primary" },
     { id: "enable-commission-check", title: "Sentinella degli esami", description: "Scopri gli aggiornamenti degli esami online.", exp: 15, group: "secondary" },
     { id: "enable-progress-overlay", title: "HUD attivato!", description: "Attiva la barra del corso nella pagina.", exp: 10, group: "secondary" },

@@ -27,7 +27,7 @@ if(!html.includes('["auto", "Automatico"]')||!html.includes('["dark", "Scuro"]')
 if(!html.includes('@media(prefers-color-scheme:dark)'))throw new Error('automatic theme must follow the system');
 if(!html.includes('document.documentElement.dataset.theme = value'))throw new Error('selected theme must be stored in the downloaded HTML');
 if(!html.includes('Quanto vale α ≤ β?'))throw new Error('unicode lost');
-if(!html.includes('Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.'))throw new Error('missing visible PlumePilot signature');
+if(!html.includes('Generato con PlumePilot - Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.'))throw new Error('missing visible PlumePilot signature');
 const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
 new Function(scripts.at(-1));
 console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');

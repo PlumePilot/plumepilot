@@ -55,8 +55,6 @@
   const EPUB_LINK_TIMEOUT_MS = 15000;
   const EPUB_RETRY_DELAY_MS = 2000;
   const EPUB_CHAPTER_PACING_MS = 1000;
-  const MATERIAL_CONTENT_SETTLE_MS = 2500;
-  const MATERIAL_LINK_ABSENT = Symbol("material-link-absent");
   const API_MATERIAL_PACING_MS = 150;
   const TURBO_API_PACING_MS = 350;
   const COURSE_INDEX_RETRY_DELAYS_MS = [350, 750];
@@ -70,10 +68,6 @@
   const PAGE_LESSON_SNAPSHOT_REQUEST = "STUDYWING_PAGE_LESSON_SNAPSHOT_REQUEST";
   const VIDEO_END_TOLERANCE_SECONDS = 0.75;
   const MAX_HANDLED_EXPORT_OPERATIONS = 20;
-  const IS_MERCATORUM = /(?:^|\.)mercatorum\.multiversity\.click$/i.test(
-    window.location.hostname,
-  );
-  const MERCATORUM_STATIC_SECTION = "Lezioni";
   const IS_CHROMIUM = /(?:Chrome|Chromium|Edg)\//.test(
     navigator.userAgent,
   );
@@ -136,36 +130,6 @@
 
   const log = debugLog;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  let pageHiddenEpoch = 0;
-
-  function documentIsHidden() {
-    return document.visibilityState === "hidden";
-  }
-
-  async function waitForDocumentVisibleAfterTimeout(
-    hiddenDuringWait,
-    operationId = null,
-  ) {
-    if (!hiddenDuringWait && !documentIsHidden()) return false;
-
-    log(
-      "DOM wait expired while the page was hidden. Deferring recovery until the page is visible.",
-    );
-
-    while (documentIsHidden()) {
-      if (operationId) ensureExportNotCancelled(operationId);
-      await sleep(250);
-    }
-
-    if (operationId) ensureExportNotCancelled(operationId);
-    log("Page is visible again. Revalidating the DOM before recovery.");
-    return true;
-  }
-
-  document.addEventListener("visibilitychange", () => {
-    if (documentIsHidden()) pageHiddenEpoch += 1;
-    log("Page visibility changed:", document.visibilityState);
-  });
 
   function achievementUnlockSuffix(results) {
     const rewardIds = new Set(results.flatMap((result) =>
@@ -1114,7 +1078,7 @@
     maintainWatchValidationRecovery();
   }
 
-  function pegasoStyleSections() {
+  function sections() {
     return [
       ...document.querySelectorAll("div.flex-wrap.bg-platform-light-gray"),
     ]
@@ -1131,45 +1095,8 @@
       .filter(Boolean);
   }
 
-  function mercatorumChapterRows() {
-    if (!IS_MERCATORUM) return [];
-    const seen = new Set();
-    return [...document.querySelectorAll("span")]
-      .filter((span) => /^\s*\d+\s*-\s+/.test(span.textContent || ""))
-      .map((span) => {
-        const clickable =
-          span.closest("div.cursor-pointer.relative.align-middle") ||
-          span.closest("div.cursor-pointer");
-        if (!clickable || seen.has(clickable)) return null;
-        seen.add(clickable);
-        return {
-          span,
-          clickable,
-          text: span.textContent.trim(),
-          sectionText: MERCATORUM_STATIC_SECTION,
-        };
-      })
-      .filter(Boolean);
-  }
-
-  function sections() {
-    const nativeSections = pegasoStyleSections();
-    if (nativeSections.length) return nativeSections;
-    const fallbackChapters = mercatorumChapterRows();
-    if (!fallbackChapters.length) return [];
-    return [{
-      outer: document.documentElement,
-      header: null,
-      span: fallbackChapters[0].clickable,
-      text: MERCATORUM_STATIC_SECTION,
-      static: true,
-    }];
-  }
-
   function chapters() {
-    const nativeSections = pegasoStyleSections();
-    if (!nativeSections.length) return mercatorumChapterRows();
-    return nativeSections.flatMap((section) =>
+    return sections().flatMap((section) =>
       [...section.outer.querySelectorAll("span")]
         .filter((span) => /^\s*\d+\s*-\s+/.test(span.textContent || ""))
         .filter(
@@ -1474,9 +1401,7 @@
   );
 
   async function waitFor(fn, timeout = WAIT_MS) {
-    let start = Date.now();
-    const hiddenEpochAtStart = pageHiddenEpoch;
-    const startedHidden = documentIsHidden();
+    const start = Date.now();
 
     while (Date.now() - start < timeout) {
       const x = fn();
@@ -1486,22 +1411,6 @@
       }
 
       await sleep(100);
-    }
-
-    const hiddenDuringWait =
-      startedHidden ||
-      documentIsHidden() ||
-      pageHiddenEpoch !== hiddenEpochAtStart;
-
-    if (await waitForDocumentVisibleAfterTimeout(hiddenDuringWait)) {
-      start = Date.now();
-
-      while (Date.now() - start < timeout) {
-        const x = fn();
-
-        if (x) return x;
-        await sleep(100);
-      }
     }
 
     return null;
@@ -1533,32 +1442,12 @@
   }
 
   async function waitForExport(fn, timeout, operationId) {
-    let start = Date.now();
-    const hiddenEpochAtStart = pageHiddenEpoch;
-    const startedHidden = documentIsHidden();
+    const start = Date.now();
     while (Date.now() - start < timeout) {
       ensureExportNotCancelled(operationId);
       const result = fn();
       if (result) return result;
       await exportSleep(100, operationId);
-    }
-
-    const hiddenDuringWait =
-      startedHidden ||
-      documentIsHidden() ||
-      pageHiddenEpoch !== hiddenEpochAtStart;
-
-    if (
-      await waitForDocumentVisibleAfterTimeout(hiddenDuringWait, operationId)
-    ) {
-      start = Date.now();
-
-      while (Date.now() - start < timeout) {
-        ensureExportNotCancelled(operationId);
-        const result = fn();
-        if (result) return result;
-        await exportSleep(100, operationId);
-      }
     }
     ensureExportNotCancelled(operationId);
     return null;
@@ -1576,10 +1465,6 @@
     if (!section) {
       log("Course section not found:", sectionText);
       return false;
-    }
-
-    if (section.static === true) {
-      return chapters().some((chapter) => chapter.sectionText === sectionText);
     }
 
     if (isOpen()) {
@@ -1639,14 +1524,6 @@
   }
 
   function reloadForChapterRecovery(currentIdentity) {
-    if (documentIsHidden()) {
-      log(
-        "Chapter recovery reload deferred because the page is hidden:",
-        currentIdentity,
-      );
-      return false;
-    }
-
     const recovery = readChapterRecovery();
     const recoveryKey = JSON.stringify(currentIdentity);
 
@@ -1905,48 +1782,6 @@
     };
   }
 
-  async function waitForChapterDispensa(identity, timeout, operationId) {
-    let stableSince = null;
-    let lastSignature = null;
-
-    return waitForExport(() => {
-      const chapter = findChapter(identity);
-      const link = getChapterDispensa(chapter);
-
-      if (link) {
-        return link;
-      }
-
-      const container = getChapterContainer(chapter);
-      const rows = chapterRows(chapter);
-
-      if (!container || !isChapterOpen(identity) || rows.length === 0) {
-        stableSince = null;
-        lastSignature = null;
-        return null;
-      }
-
-      const signature = [
-        container.querySelectorAll("*").length,
-        container.querySelectorAll("a").length,
-        rows.length,
-        container.textContent?.replace(/\s+/g, " ").trim().length || 0,
-      ].join(":");
-
-      if (signature !== lastSignature) {
-        lastSignature = signature;
-        stableSince = Date.now();
-        return null;
-      }
-
-      if (Date.now() - stableSince >= MATERIAL_CONTENT_SETTLE_MS) {
-        return MATERIAL_LINK_ABSENT;
-      }
-
-      return null;
-    }, timeout, operationId);
-  }
-
   async function openSectionForEpub(sectionText, operationId) {
     const hasVisibleChapters = () =>
       chapters().some(
@@ -2033,19 +1868,11 @@
       const opened = await openChapter(identity, true, operationId);
 
       if (opened) {
-        const link = await waitForChapterDispensa(
-          identity,
+        const link = await waitForExport(
+          () => getChapterDispensa(findChapter(identity)),
           EPUB_LINK_TIMEOUT_MS,
           operationId,
         );
-
-        if (link === MATERIAL_LINK_ABSENT) {
-          log(
-            "EPUB collector: chapter rendered without a Dispensa:",
-            identity,
-          );
-          return null;
-        }
 
         if (link) {
           return link;
@@ -2080,10 +1907,6 @@
 
     if (!section) {
       return false;
-    }
-
-    if (section.static === true) {
-      return hasVisibleChapters();
     }
 
     if (hasVisibleChapters()) {
@@ -2231,14 +2054,14 @@
 
       const opened = await openChapter(item.identity, false, operationId);
       const link = opened
-        ? await waitForChapterDispensa(
-            item.identity,
+        ? await waitForExport(
+            () => getChapterDispensa(findChapter(item.identity)),
             WAIT_MS,
             operationId,
           )
         : null;
 
-      if (!link || link === MATERIAL_LINK_ABSENT) {
+      if (!link) {
         log("PDF recovery: Dispensa still unavailable:", item.chapter);
         continue;
       }
@@ -3232,14 +3055,14 @@
                 continue;
               }
 
-              link = await waitForChapterDispensa(
-                identity,
+              link = await waitForExport(
+                () => getChapterDispensa(findChapter(identity)),
                 WAIT_MS,
                 operationId,
               );
             }
 
-            if (!link || link === MATERIAL_LINK_ABSENT) {
+            if (!link) {
               const failure = {
                 chapter: qualifiedChapter,
                 reason: "Dispensa non trovata",
@@ -4357,7 +4180,7 @@
           ? "Calcolato sui dati completi del corso."
           : state.sessionDelta > 0
             ? "Aggiornato in tempo reale da PlumePilot."
-            : `Sincronizzato con ${window.location.hostname.includes("mercatorum.multiversity.click") ? "Mercatorum" : window.location.hostname.includes("utsr.multiversity.click") ? "San Raffaele" : "Pegaso"}.`,
+            : "Sincronizzato con Pegaso.",
       },
     }, "*");
   }
