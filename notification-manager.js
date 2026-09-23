@@ -5,11 +5,54 @@
 
   const TOAST_ID = "studywing-notification-toast";
   const FADE_DURATION_MS = 2500;
-  const hiddenProgressKeys = new Set();
+  const HIDDEN_PROGRESS_STORAGE_KEY =
+    "studywingHiddenProgressOperations";
+  const MAX_HIDDEN_PROGRESS_KEYS = 20;
+  const OPERATION_PROGRESS_KEY =
+    /^(?:export|turbo|objectives):[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const hiddenProgressKeys = loadHiddenProgressKeys();
   let fadeTimer = null;
   let current = null;
 
   const durations = { success: 8000, info: 8000, warning: 12000, error: 15000 };
+
+  function persistentProgressKey(key) {
+    return OPERATION_PROGRESS_KEY.test(String(key || ""));
+  }
+
+  function loadHiddenProgressKeys() {
+    try {
+      const parsed = JSON.parse(
+        sessionStorage.getItem(HIDDEN_PROGRESS_STORAGE_KEY) || "[]",
+      );
+      if (!Array.isArray(parsed)) return new Set();
+      return new Set(
+        parsed
+          .filter((key) => persistentProgressKey(key))
+          .slice(-MAX_HIDDEN_PROGRESS_KEYS),
+      );
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveHiddenProgressKeys() {
+    try {
+      const persisted = [...hiddenProgressKeys]
+        .filter((key) => persistentProgressKey(key))
+        .slice(-MAX_HIDDEN_PROGRESS_KEYS);
+      if (persisted.length) {
+        sessionStorage.setItem(
+          HIDDEN_PROGRESS_STORAGE_KEY,
+          JSON.stringify(persisted),
+        );
+      } else {
+        sessionStorage.removeItem(HIDDEN_PROGRESS_STORAGE_KEY);
+      }
+    } catch {
+      // Notification dismissal still works in memory if storage is unavailable.
+    }
+  }
 
   function ensureToast() {
     let toast = document.getElementById(TOAST_ID);
@@ -136,7 +179,10 @@
   function dismiss(byUser = false) {
     clearTimeout(fadeTimer);
     fadeTimer = null;
-    if (byUser && current?.progress && current.key) hiddenProgressKeys.add(current.key);
+    if (byUser && current?.progress && current.key) {
+      hiddenProgressKeys.add(current.key);
+      saveHiddenProgressKeys();
+    }
     document.getElementById(TOAST_ID)?.remove();
     current = null;
   }
@@ -159,7 +205,9 @@
     const normalizedKey = String(key || "");
     if (!normalizedMessage) return;
     if (progress && normalizedKey && hiddenProgressKeys.has(normalizedKey)) return;
-    if (terminal && normalizedKey) hiddenProgressKeys.delete(normalizedKey);
+    if (terminal && normalizedKey && hiddenProgressKeys.delete(normalizedKey)) {
+      saveHiddenProgressKeys();
+    }
     clearTimeout(fadeTimer);
     fadeTimer = null;
     const toast = ensureToast();

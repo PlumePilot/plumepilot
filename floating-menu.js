@@ -17,6 +17,16 @@
     "/student/home",
     "/student/dashboard",
   ]);
+  const PLATFORM_DOMAINS = Object.freeze({
+    pegaso: "pegaso.multiversity.click",
+    mercatorum: "mercatorum.multiversity.click",
+    utsr: "utsr.multiversity.click",
+  });
+  const currentHostname = window.location.hostname.toLowerCase();
+  const PLATFORM_ID = Object.entries(PLATFORM_DOMAINS).find(
+    ([, domain]) => currentHostname === domain || currentHostname.endsWith(`.${domain}`),
+  )?.[0] || null;
+  if (!PLATFORM_ID) return;
   const LAUNCHER_SIZES = Object.freeze({ small: 42, medium: 46, large: 50 });
   const EDGE_MARGIN = 18;
   const PANEL_GAP = 12;
@@ -79,6 +89,7 @@
   let suppressLauncherClick = false;
   let lastUnseenAlertSignature = "";
   let activeMenuTab = null;
+  let lastCommissionOnlyPage = null;
   let courseProgressStatus = null;
   let progressOverlayHost = null;
   let progressOverlayUi = null;
@@ -112,6 +123,29 @@
   }
   const pendingThresholdClaims = new Set();
   const silentlyAcknowledgedThresholds = new Set();
+
+  function courseStorageKey(courseCode) {
+    return typeof courseCode === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(courseCode)
+      ? `${PLATFORM_ID}:${courseCode}`
+      : null;
+  }
+
+  function courseScopedValue(map, courseCode) {
+    const key = courseStorageKey(courseCode);
+    if (!key || !map || typeof map !== "object") return undefined;
+    if (Object.prototype.hasOwnProperty.call(map, key)) return map[key];
+    return PLATFORM_ID === "pegaso" ? map[courseCode] : undefined;
+  }
+
+  function setCourseScopedValue(map, courseCode, value) {
+    const key = courseStorageKey(courseCode);
+    const next = { ...(map || {}) };
+    if (!key) return next;
+    if (value === undefined) delete next[key];
+    else next[key] = value;
+    if (PLATFORM_ID === "pegaso") delete next[courseCode];
+    return next;
+  }
 
   function currentCourseCode() {
     return String(
@@ -697,21 +731,23 @@
   }
 
   async function claimCourseThreshold(courseCode, silent = false) {
-    if (!courseCode || pendingThresholdClaims.has(courseCode)) return;
-    if (settings.courseProgressThresholdNotified?.[courseCode] === true) return;
-    pendingThresholdClaims.add(courseCode);
+    const storageKey = courseStorageKey(courseCode);
+    if (!storageKey || pendingThresholdClaims.has(storageKey)) return;
+    if (courseScopedValue(settings.courseProgressThresholdNotified, courseCode) === true) return;
+    pendingThresholdClaims.add(storageKey);
     const response = await runtimeMessage({
       type: "PEGASO_COURSE_THRESHOLD_CLAIM",
+      platformId: PLATFORM_ID,
       courseCode,
     });
-    pendingThresholdClaims.delete(courseCode);
+    pendingThresholdClaims.delete(storageKey);
     if (
       response?.accepted &&
       !silent &&
       settings.courseProgressThresholdEnabled === true
     ) {
       showCourseThresholdToast();
-      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${courseCode}` });
+      const soundResult = await runtimeMessage({ type: "STUDYWING_SOUND_EVENT", eventId: `course-threshold:${PLATFORM_ID}:${courseCode}` });
       if (soundResult?.achievement?.accepted) {
         window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
       }
@@ -786,13 +822,18 @@
     return isExamOnlinePage() || isHomePage();
   }
 
+  function courseSurfaceAvailable() {
+    return Boolean(
+      currentCourseCode() &&
+      (document.querySelector(COURSE_SELECTOR) || PLATFORM_ID === "mercatorum"),
+    );
+  }
+
   function selectMenuTab(
     requestedTab,
     { focus = false, acknowledge = true } = {},
   ) {
     if (!ui) return;
-    const courseAvailable = !isCommissionOnlyPage();
-    const examsAvailable = true;
     const achievementsAvailable =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
     const selectedTab =
@@ -800,13 +841,9 @@
         ? "preferences"
         : requestedTab === "achievements" && achievementsAvailable
           ? "achievements"
-          : requestedTab === "exams" && examsAvailable
+          : requestedTab === "exams"
             ? "exams"
-            : courseAvailable
-              ? "course"
-              : examsAvailable
-                ? "exams"
-                : "preferences";
+            : "course";
 
     activeMenuTab = selectedTab;
     const tabEntries = [
@@ -1062,8 +1099,10 @@
           ? "Stop ai test"
           : "Test ignorati";
     const currentCode = currentCourseCode();
-    const limitStatus =
-      settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+    const limitStatus = courseScopedValue(
+      settings.autoplayChapterLimitStatuses,
+      currentCode,
+    ) || null;
     const limitReady = Boolean(limitStatus?.courseCode === currentCode);
     const limit = Math.max(1, Number(limitStatus?.limit) || 1);
     const maximum = Math.max(1, Number(limitStatus?.maximum) || 1);
@@ -1111,7 +1150,7 @@
     ui.autoplayStopAt70Resume.hidden =
       settings.autoplayStopAt70Enabled !== true ||
       !thresholdReached ||
-      settings.autoplayStopAt70BypassedCourses?.[currentCode] === true;
+      courseScopedValue(settings.autoplayStopAt70BypassedCourses, currentCode) === true;
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
@@ -1261,11 +1300,25 @@
       : "Esito non disponibile";
   }
 
+  function commissionExamKey(exam) {
+    const platformId = ["pegaso", "mercatorum", "utsr"].includes(exam?.platformId)
+      ? exam.platformId
+      : "pegaso";
+    const examId = Number(exam?.exam_id);
+    return Number.isFinite(examId) ? `${platformId}:${examId}` : null;
+  }
+
+  function normalizeCommissionUnseenId(value) {
+    if (typeof value === "string" && /^(?:pegaso|mercatorum|utsr):\d+$/.test(value)) return value;
+    const legacyId = Number(value);
+    return Number.isFinite(legacyId) ? `pegaso:${legacyId}` : null;
+  }
+
   function sortCommissionExams(exams, unseenSet) {
     exams.sort((first, second) => {
       const unseenDifference =
-        Number(unseenSet.has(Number(second?.exam_id))) -
-        Number(unseenSet.has(Number(first?.exam_id)));
+        Number(unseenSet.has(commissionExamKey(second))) -
+        Number(unseenSet.has(commissionExamKey(first)));
       if (unseenDifference) return unseenDifference;
       const firstDate = new Date(first?.date_exam || 0).getTime() || 0;
       const secondDate = new Date(second?.date_exam || 0).getTime() || 0;
@@ -1277,7 +1330,7 @@
     if (!exam || !Number.isFinite(Number(exam.exam_id))) return null;
     const item = document.createElement("article");
     item.className = "exam-card";
-    if (unseenSet.has(Number(exam.exam_id))) item.dataset.new = "true";
+    if (unseenSet.has(commissionExamKey(exam))) item.dataset.new = "true";
 
     const heading = document.createElement("div");
     heading.className = "exam-title";
@@ -1331,28 +1384,30 @@
   function renderCommissionExams() {
     if (!ui) return;
     const commissionOnlyPage = isCommissionOnlyPage();
+    const courseAvailable = courseSurfaceAvailable();
+    const routeSurfaceChanged =
+      lastCommissionOnlyPage !== null &&
+      lastCommissionOnlyPage !== commissionOnlyPage;
     const enabled = settings.commissionCheckEnabled === true;
     const achievementsEnabled =
       normalizeVisualStyle(settings.visualStyle) === "gaming";
-    ui.courseTab.hidden = commissionOnlyPage;
+    ui.courseTab.hidden = false;
     ui.examsTab.hidden = false;
     ui.achievementsTab.hidden = !achievementsEnabled;
-    ui.tabList.dataset.count = String(
-      2 +
-        Number(!commissionOnlyPage) +
-        Number(achievementsEnabled),
-    );
+    ui.tabList.dataset.count = String(3 + Number(achievementsEnabled));
+    ui.coursePanel.dataset.courseAvailable = String(courseAvailable);
+    ui.courseUnavailable.hidden = courseAvailable;
+    ui.courseTools.inert = !courseAvailable;
+    ui.courseTools.setAttribute("aria-disabled", String(!courseAvailable));
     ui.commissionSection.hidden = false;
     ui.commissionEnabled.checked = enabled;
     ui.commissionDisabled.hidden = enabled;
     ui.commissionContent.hidden = !enabled;
-    ui.hide.textContent = commissionOnlyPage
-      ? "Disattiva il controllo commissione"
-      : "Nascondi il menu dalla pagina";
+    ui.hide.textContent = "Nascondi il menu dalla pagina";
 
     if (
       !activeMenuTab ||
-      (activeMenuTab === "course" && commissionOnlyPage) ||
+      routeSurfaceChanged ||
       (activeMenuTab === "achievements" && !achievementsEnabled)
     ) {
       selectMenuTab(
@@ -1360,10 +1415,11 @@
         { acknowledge: false },
       );
     }
+    lastCommissionOnlyPage = commissionOnlyPage;
 
     const unseenIds =
       enabled && Array.isArray(settings.commissionUnseenExamIds)
-        ? settings.commissionUnseenExamIds.map(Number).filter(Number.isFinite)
+        ? settings.commissionUnseenExamIds.map(normalizeCommissionUnseenId).filter(Boolean)
         : [];
     const unseenSet = new Set(unseenIds);
     const allExams = Array.isArray(settings.commissionExams)
@@ -1377,12 +1433,12 @@
       unseenIds.length > 9 ? "9+" : String(unseenIds.length || "!");
 
     const unseenAlertSignature = JSON.stringify(
-      unseenIds.map((examId) => {
+      unseenIds.map((examKey) => {
         const exam = allExams.find(
-          (candidate) => Number(candidate?.exam_id) === examId,
+          (candidate) => commissionExamKey(candidate) === examKey,
         );
         return [
-          examId,
+          examKey,
           String(exam?.commission || ""),
           String(exam?.result || ""),
           commissionStates.rejectMotivationText(exam),
@@ -1430,7 +1486,7 @@
     ui.commissionEmpty.hidden = openExams.length > 0;
     ui.commissionEmpty.textContent = settings.commissionExamsCapturedAt
       ? "Nessun esame in attesa o ancora da confermare."
-      : "Nessun esame da mostrare. Il controllo partirà quando Pegaso renderà disponibile la sessione autenticata.";
+      : "Nessun esame da mostrare. Il controllo partirà quando la piattaforma renderà disponibile la sessione autenticata.";
     for (const exam of openExams) {
       const card = createCommissionExamCard(exam, unseenSet);
       if (card) ui.commissionList.append(card);
@@ -1447,7 +1503,7 @@
     }
 
     const loadedUnseen = loadedExams.filter((exam) =>
-      unseenSet.has(Number(exam?.exam_id)),
+      unseenSet.has(commissionExamKey(exam)),
     ).length;
     ui.confirmedToggle.hidden = loadedExams.length === 0;
     ui.confirmedLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
@@ -2190,7 +2246,7 @@
           image-rendering: pixelated;
           pointer-events: none;
         }
-        .launcher-cosmetic-frame { display:none; position:absolute; z-index:2; inset:2px; background:center/contain no-repeat var(--sw-launcher-frame, none); image-rendering:pixelated; pointer-events:none; }
+        .launcher-cosmetic-frame { display:none; position:absolute; z-index:2; inset:-1px; background:center/contain no-repeat var(--sw-launcher-frame, none); image-rendering:pixelated; pointer-events:none; }
         :host([data-visual-style="gaming"]:not([data-launcher-style="arcane"])) .launcher-cosmetic-frame { display:block; }
         :host([data-visual-style="gaming"]:not([data-launcher-style="arcane"])) .launcher-mascot { inset:3px; }
         :host([data-visual-style="gaming"]) .launcher-standard { display: none; }
@@ -2439,6 +2495,30 @@
           text-align: center;
         }
         .menu-tab-panel { min-width: 0; }
+        .course-unavailable {
+          display: grid;
+          gap: 3px;
+          margin-bottom: 10px;
+          padding: 10px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          color: var(--sw-text);
+          background: var(--sw-elevated);
+        }
+        .course-unavailable strong {
+          color: var(--sw-heading);
+          font-size: 12px;
+        }
+        .course-unavailable span {
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        .menu-tab-panel[data-course-available="false"] [data-role="course-tools"] {
+          opacity: 0.46;
+          filter: grayscale(0.35);
+          pointer-events: none;
+          user-select: none;
+        }
         .preferences-panel {
           display: grid;
           gap: 10px;
@@ -3583,6 +3663,10 @@
             <button class="last-notification-dismiss" data-action="dismiss-last-notification" type="button" aria-label="Elimina definitivamente l’ultimo messaggio" title="Elimina messaggio">×</button>
           </section>
           <div id="studywing-course-panel" class="menu-tab-panel" data-role="course-panel" role="tabpanel" aria-labelledby="studywing-course-tab">
+            <div class="course-unavailable" data-role="course-unavailable" role="status" hidden>
+              <strong>Apri un corso per usare questi strumenti</strong>
+              <span>Progresso, autoplay, test, obiettivi e dispense saranno disponibili nella pagina del corso.</span>
+            </div>
             <div data-role="course-tools">
             <section class="course-progress" data-role="course-progress" aria-label="Progresso del corso">
               <div class="course-progress-heading"><span>Progresso del corso</span><strong class="course-progress-value" data-role="course-progress-value">—</strong></div>
@@ -3798,6 +3882,9 @@
       preferencesTab: shadow.querySelector('[data-tab="preferences"]'),
       examsTabBadge: shadow.querySelector('[data-role="exams-tab-badge"]'),
       coursePanel: shadow.querySelector('[data-role="course-panel"]'),
+      courseUnavailable: shadow.querySelector(
+        '[data-role="course-unavailable"]',
+      ),
       examsPanel: shadow.querySelector('[data-role="exams-panel"]'),
       achievementsPanel: shadow.querySelector(
         '[data-role="achievements-panel"]',
@@ -4193,9 +4280,11 @@
     const resetThresholdBypassForCurrentCourse = (bypassed) => {
       const currentCode = currentCourseCode();
       if (!currentCode) return;
-      const next = { ...(settings.autoplayStopAt70BypassedCourses || {}) };
-      if (bypassed) next[currentCode] = true;
-      else delete next[currentCode];
+      const next = setCourseScopedValue(
+        settings.autoplayStopAt70BypassedCourses,
+        currentCode,
+        bypassed ? true : undefined,
+      );
       chrome.storage.local.set({ autoplayStopAt70BypassedCourses: next });
     };
     ui.autoplayStopAt70Enabled.addEventListener("change", () => {
@@ -4209,15 +4298,20 @@
     });
     const setLimit = (nextValue) => {
       const currentCode = currentCourseCode();
-      const status =
-        settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+      const status = courseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        currentCode,
+      ) || null;
       if (!status?.courseCode) return;
       const numericValue = Number(nextValue);
       if (!Number.isFinite(numericValue)) return;
-      const limits = { ...(settings.autoplayChapterLimits || {}) };
-      limits[status.courseCode] = Math.max(
+      const limits = setCourseScopedValue(
+        settings.autoplayChapterLimits,
+        status.courseCode,
+        Math.max(
         1,
         Math.min(status.maximum, Math.round(numericValue)),
+        ),
       );
       chrome.storage.local.set({ autoplayChapterLimits: limits });
     };
@@ -4228,8 +4322,8 @@
       }
       setLimit(ui.chapterLimitValue.value);
     };
-    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) - 1));
-    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(settings.autoplayChapterLimitStatuses?.[currentCourseCode()]?.limit) || 1) + 1));
+    ui.chapterLimitMinus.addEventListener("click", () => setLimit((Number(courseScopedValue(settings.autoplayChapterLimitStatuses, currentCourseCode())?.limit) || 1) - 1));
+    ui.chapterLimitPlus.addEventListener("click", () => setLimit((Number(courseScopedValue(settings.autoplayChapterLimitStatuses, currentCourseCode())?.limit) || 1) + 1));
     ui.chapterLimitValue.addEventListener("change", commitLimitInput);
     ui.chapterLimitValue.addEventListener("blur", commitLimitInput);
     ui.chapterLimitValue.addEventListener("keydown", (event) => {
@@ -4245,20 +4339,23 @@
     ui.chapterLimitSlider.addEventListener("change", () => setLimit(ui.chapterLimitSlider.value));
     ui.chapterLimitResume.addEventListener("click", () => {
       const currentCode = currentCourseCode();
-      const status =
-        settings.autoplayChapterLimitStatuses?.[currentCode] || null;
+      const status = courseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        currentCode,
+      ) || null;
       if (!status?.courseCode) return;
       chrome.storage.local.set({
-        autoplayChapterLimitSessions: {
-          ...(settings.autoplayChapterLimitSessions || {}),
-          [status.courseCode]: {
+        autoplayChapterLimitSessions: setCourseScopedValue(
+          settings.autoplayChapterLimitSessions,
+          status.courseCode,
+          {
             courseCode: status.courseCode,
             completed: 0,
             reached: false,
             lastChapterKey: "",
             soundSessionId: Date.now(),
           },
-        },
+        ),
       });
     });
     ui.turbo.addEventListener("click", toggleTurboTests);
@@ -4271,12 +4368,7 @@
       ui.projectInfoToggle.setAttribute("aria-expanded", String(willOpen));
     });
     ui.hide.addEventListener("click", () =>
-      writeSetting(
-        isCommissionOnlyPage()
-          ? "commissionCheckEnabled"
-          : "floatingMenuEnabled",
-        false,
-      ),
+      writeSetting("floatingMenuEnabled", false),
     );
 
     renderSettings();
@@ -4303,15 +4395,14 @@
     ui = null;
     lastUnseenAlertSignature = "";
     activeMenuTab = null;
+    lastCommissionOnlyPage = null;
   }
 
   function applyVisibility() {
-    const courseMenu =
-      settings.floatingMenuEnabled === true &&
-      Boolean(document.querySelector(COURSE_SELECTOR));
-    const commissionMenu =
-      settings.commissionCheckEnabled === true && isCommissionOnlyPage();
-    const shouldShow = courseMenu || commissionMenu;
+    const supportedSurface =
+      courseSurfaceAvailable() || isCommissionOnlyPage();
+    const shouldShow =
+      settings.floatingMenuEnabled === true && supportedSurface;
     if (shouldShow) createMenu();
     else removeMenu();
     if (shouldShow) renderCommissionExams();
@@ -4361,10 +4452,11 @@
       const status = event.data.status || null;
       const courseCode = String(status?.courseCode || "");
       if (!courseCode) return;
-      settings.autoplayChapterLimitStatuses = {
-        ...(settings.autoplayChapterLimitStatuses || {}),
-        [courseCode]: status,
-      };
+      settings.autoplayChapterLimitStatuses = setCourseScopedValue(
+        settings.autoplayChapterLimitStatuses,
+        courseCode,
+        { ...status, platformId: PLATFORM_ID },
+      );
       if (ui && courseCode === currentCourseCode()) renderSettings();
       return;
     }
