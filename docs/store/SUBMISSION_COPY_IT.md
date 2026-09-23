@@ -6,17 +6,17 @@ Questi testi costituiscono la sorgente unica per Chrome Web Store, Microsoft Edg
 
 **Nome**
 
-> PlumePilot – Assistente per Pegaso
+> PlumePilot – Assistente per Multiversity
 
 **Descrizione breve**
 
-> Assistente per Pegaso: automatizza lezioni e attività, crea materiali di studio e controlla lo stato degli esami online.
+> Assistente per Pegaso, Mercatorum e San Raffaele: automatizza attività, crea materiali di studio e controlla gli esami online.
 
 La descrizione breve coincide intenzionalmente con `manifest.json`; su Edge può essere modificata soltanto caricando un nuovo pacchetto.
 
 ## Descrizione estesa
 
-PlumePilot è un assistente locale e open source pensato per rendere più pratica la fruizione e l'organizzazione dei corsi Pegaso ai quali l'utente è già autorizzato ad accedere.
+PlumePilot è un assistente locale e open source pensato per rendere più pratica la fruizione e l'organizzazione dei corsi Pegaso, Mercatorum e San Raffaele ai quali l'utente è già autorizzato ad accedere.
 
 L'estensione integra nella piattaforma controlli per avanzare tra video, capitoli e sezioni, trovare la prima attività incompleta e impostare un limite alle sessioni di riproduzione automatica. L'utente può inoltre scegliere di completare le attività supportate, raccogliere i test di autovalutazione in un PDF o in un quiz HTML interattivo e creare localmente dispense complete in PDF o EPUB.
 
@@ -29,15 +29,15 @@ Privacy e controllo rimangono centrali:
 - l'elaborazione dei test e dei materiali avviene nel browser;
 - i documenti generati non vengono caricati su server PlumePilot;
 - preferenze, cache operative e progressi restano nello storage locale;
-- il token della sessione Pegaso viene usato soltanto temporaneamente per le richieste necessarie e non viene salvato;
+- il token della sessione della piattaforma in uso viene usato soltanto temporaneamente per le richieste necessarie e non viene salvato;
 - non sono presenti analytics, pubblicità, profilazione o vendita di dati;
 - PlumePilot non esegue codice remoto.
 
-PlumePilot non accelera i video e non concede accesso a contenuti che non siano già disponibili all'utente. È un progetto indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
+PlumePilot non accelera i video e non concede accesso a contenuti che non siano già disponibili all'utente. È un progetto indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.
 
 ## Scopo unico
 
-> Integrare nella piattaforma Pegaso strumenti locali per agevolare la fruizione, l'organizzazione e lo studio dei corsi ai quali l'utente è già autorizzato ad accedere.
+> Integrare nelle piattaforme Pegaso, Mercatorum e San Raffaele strumenti locali per agevolare la fruizione, l'organizzazione e lo studio dei corsi ai quali l'utente è già autorizzato ad accedere.
 
 ## Categoria e parole chiave
 
@@ -45,7 +45,7 @@ PlumePilot non accelera i video e non concede accesso a contenuti che non siano 
 
 **Termini Edge proposti:**
 
-> Pegaso; studio; università telematica; dispense; EPUB; test; produttività
+> Multiversity; Pegaso; Mercatorum; San Raffaele; studio; dispense; EPUB; test
 
 Verificare nel portale il limite corrente prima dell'inserimento. Evitare varianti ripetitive o nomi di prodotti non pertinenti.
 

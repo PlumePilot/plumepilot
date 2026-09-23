@@ -1,8 +1,8 @@
 # PlumePilot
 
-PlumePilot è un assistente locale e open source per la fruizione, l'organizzazione e lo studio dei corsi Pegaso ai quali l'utente è già autorizzato ad accedere.
+PlumePilot è un assistente locale e open source per la fruizione, l'organizzazione e lo studio dei corsi Pegaso, Mercatorum e San Raffaele ai quali l'utente è già autorizzato ad accedere.
 
-Il progetto è indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
+Il progetto è indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.
 
 ## Perché PlumePilot
 
@@ -43,9 +43,9 @@ Le release per i tre browser sono generate dalla stessa base sorgente. Ogni stor
 
 ## Privacy
 
-PlumePilot opera sulle pagine e sui servizi Pegaso necessari alle funzionalità richieste. Preferenze, stato operativo, dati della commissione e progressi Gaming vengono conservati nel browser.
+PlumePilot opera sulle pagine e sui servizi delle piattaforme supportate necessari alle funzionalità richieste. Preferenze, stato operativo, dati della commissione e progressi Gaming vengono conservati nel browser.
 
-Il token di sessione già utilizzato dalla piattaforma può essere letto temporaneamente in memoria per effettuare richieste HTTPS verso i servizi Pegaso. Non viene salvato nello storage, inserito nei log o trasmesso allo sviluppatore.
+Il token di sessione già utilizzato dalla piattaforma può essere letto temporaneamente in memoria per effettuare richieste HTTPS verso i servizi della stessa piattaforma. Non viene salvato nello storage, inserito nei log o trasmesso allo sviluppatore.
 
 Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vendita di dati. Consulta l’[informativa sulla privacy](https://plumepilot.github.io/plumepilot/privacy/) completa.
 
@@ -53,7 +53,7 @@ Non sono presenti server PlumePilot, analytics, pubblicità, profilazione o vend
 
 - `storage`: conserva localmente impostazioni, cache operative, stato commissione, Traguardi ed EXP;
 - `offscreen` (solo Chrome ed Edge): mantiene la riproduzione degli avvisi locali compatibile con le regole autoplay di Chromium;
-- pagine `*.pegaso.multiversity.click`: integra i controlli PlumePilot e comunica con le API Pegaso già accessibili all'utente autenticato;
+- pagine `*.pegaso.multiversity.click`, `*.mercatorum.multiversity.click` e `*.utsr.multiversity.click`: integra i controlli PlumePilot e comunica con le API già accessibili all'utente autenticato;
 - `*.cloudfront.net` e `ita01.s3.eu-west-1.amazonaws.com`: scarica, su richiesta, dispense e immagini necessarie alla creazione locale dei materiali.
 
 PlumePilot non esegue codice JavaScript ospitato in remoto.
