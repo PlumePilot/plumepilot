@@ -5,7 +5,7 @@ title: PlumePilot
 
 # PlumePilot
 
-Assistente indipendente e open source per la piattaforma Pegaso.
+Assistente indipendente e open source per Pegaso, Mercatorum e San Raffaele.
 
 - [Domande frequenti e messaggi di PlumePilot](faq/)
 - [Informativa sulla privacy](privacy/) · [Privacy policy (English)](privacy/en/)
@@ -18,4 +18,4 @@ PlumePilot è gratuito e open source. Se vuoi sostenere lo sviluppo, puoi [offri
 
 Le donazioni sono facoltative e non sbloccano funzionalità.
 
-PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito dall’Università Telematica Pegaso o da Multiversity.
+PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.

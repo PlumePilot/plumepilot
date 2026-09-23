@@ -7,7 +7,7 @@ title: "Informativa sulla privacy di PlumePilot"
 
 [English version](en/)
 
-Ultimo aggiornamento: 3 settembre 2026.
+Ultimo aggiornamento: 22 settembre 2026.
 
 ## 1. Titolare e contatti
 
@@ -17,9 +17,9 @@ Contatto privacy: [plumepilot@gmail.com](mailto:plumepilot@gmail.com).
 
 ## 2. Scopo di PlumePilot
 
-PlumePilot è un'estensione indipendente che aggiunge strumenti locali per la fruizione, l'organizzazione e lo studio dei corsi Pegaso ai quali l'utente è già autorizzato ad accedere.
+PlumePilot è un'estensione indipendente che aggiunge strumenti locali per la fruizione, l'organizzazione e lo studio dei corsi Pegaso, Mercatorum e San Raffaele ai quali l'utente è già autorizzato ad accedere.
 
-PlumePilot non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
+PlumePilot non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.
 
 ## 3. Informazioni trattate
 
@@ -32,11 +32,11 @@ Quando necessario per le funzioni scelte dall'utente, PlumePilot può leggere ed
 - preferenze e interazioni con i controlli dell'estensione;
 - dati locali relativi a Traguardi, EXP e ricompense cosmetiche.
 
-PlumePilot non richiede direttamente nome, email, matricola o dati di pagamento. Eventuali informazioni personali presenti nel contenuto Pegaso vengono trattate soltanto nel browser per fornire le funzioni richieste.
+PlumePilot non richiede direttamente nome, email, matricola o dati di pagamento. Eventuali informazioni personali presenti nei contenuti delle piattaforme supportate vengono trattate soltanto nel browser per fornire le funzioni richieste.
 
-## 4. Autenticazione e richieste verso Pegaso
+## 4. Autenticazione e richieste verso le piattaforme supportate
 
-La piattaforma Pegaso utilizza un token di sessione per autorizzare le proprie richieste. PlumePilot può rilevare temporaneamente in memoria l'header di autorizzazione già usato dalla pagina e utilizzarlo esclusivamente per comunicare tramite HTTPS con i servizi Pegaso necessari alle proprie funzioni.
+Le piattaforme supportate utilizzano un token di sessione per autorizzare le proprie richieste. PlumePilot può rilevare temporaneamente in memoria l'header di autorizzazione già usato dalla pagina e utilizzarlo esclusivamente per comunicare tramite HTTPS con i servizi della piattaforma in uso necessari alle proprie funzioni.
 
 Il token:
 
@@ -51,15 +51,15 @@ Le richieste possono comprendere la lettura della struttura del corso, delle att
 
 Quando il controllo della commissione è abilitato, PlumePilot può:
 
-1. osservare e riutilizzare una risposta recente sugli esami già ricevuta dalla pagina Pegaso;
-2. se necessario, effettuare una richiesta HTTPS aggiuntiva allo stesso servizio Pegaso usando temporaneamente l'autorizzazione della sessione corrente;
+1. osservare e riutilizzare una risposta recente sugli esami già ricevuta dalla pagina della piattaforma in uso;
+2. se necessario, effettuare una richiesta HTTPS aggiuntiva allo stesso servizio della piattaforma in uso usando temporaneamente l'autorizzazione della sessione corrente;
 3. conservare localmente i campi necessari a mostrare lo stato degli esami e riconoscere eventuali variazioni.
 
-PlumePilot non modifica le informazioni degli esami presenti su Pegaso e non le invia allo sviluppatore.
+PlumePilot non modifica le informazioni degli esami presenti sulla piattaforma in uso e non le invia allo sviluppatore.
 
 ## 6. Materiali PDF, EPUB e HTML
 
-Quando l'utente avvia un'esportazione, PlumePilot scarica soltanto materiali e immagini già accessibili attraverso l'account Pegaso in uso. L'elaborazione e la generazione del file avvengono localmente nel browser.
+Quando l'utente avvia un'esportazione, PlumePilot scarica soltanto materiali e immagini già accessibili attraverso l'account della piattaforma in uso. L'elaborazione e la generazione del file avvengono localmente nel browser.
 
 PlumePilot non carica i documenti generati su server propri o di terze parti.
 
@@ -83,7 +83,7 @@ Questi dati temporanei vengono rimossi al termine o all’annullamento dell’op
 
 PlumePilot comunica soltanto con i servizi necessari alle funzioni dichiarate:
 
-- servizi Pegaso e Multiversity ospitati sui domini `*.pegaso.multiversity.click`, utilizzati per corsi, attività ed esami;
+- servizi Multiversity ospitati sui domini `*.pegaso.multiversity.click`, `*.mercatorum.multiversity.click` e `*.utsr.multiversity.click`, utilizzati per corsi, attività ed esami;
 - risorse CloudFront e Amazon S3 autorizzate nel pacchetto dell’estensione, utilizzate dalla piattaforma per fornire dispense e immagini.
 
 Non esistono server PlumePilot. Lo sviluppatore non riceve i dati trattati dall'estensione.
@@ -109,7 +109,7 @@ L'utente può:
 - usare il reset dei Traguardi per rimuovere Traguardi, EXP e ricompense;
 - disinstallare PlumePilot per richiedere al browser la rimozione dello storage locale associato all’estensione.
 
-La cancellazione locale non modifica i dati conservati da Pegaso.
+La cancellazione locale non modifica i dati conservati dalla piattaforma in uso.
 
 ## 11. Sicurezza
 

@@ -27,6 +27,7 @@
     ([, domain]) => currentHostname === domain || currentHostname.endsWith(`.${domain}`),
   )?.[0] || null;
   if (!PLATFORM_ID) return;
+  const PLATFORM_NAME = { pegaso: "Pegaso", mercatorum: "Mercatorum", utsr: "San Raffaele" }[PLATFORM_ID];
   const LAUNCHER_SIZES = Object.freeze({ small: 42, medium: 46, large: 50 });
   const EDGE_MARGIN = 18;
   const PANEL_GAP = 12;
@@ -1215,7 +1216,7 @@
       ui.courseProgressThreshold.hidden =
         settings.courseProgressThresholdEnabled !== true;
       ui.courseProgressMessage.textContent = progress.ready
-        ? courseProgressStatus.message || "Sincronizzato con Pegaso."
+        ? courseProgressStatus.message || `Sincronizzato con ${PLATFORM_NAME}.`
         : "Progresso disponibile dopo il caricamento del corso.";
     }
     renderCourseProgressOverlay();
@@ -3643,7 +3644,7 @@
           </span>
           <div class="identity">
             <div class="name">PlumePilot</div>
-            <div class="subtitle">Assistente per la piattaforma Pegaso</div>
+            <div class="subtitle" data-role="platform-subtitle"></div>
             <div class="state" data-role="state"></div>
           </div>
           <button class="close" type="button" aria-label="Riduci il menu" title="Riduci">−</button>
@@ -3834,7 +3835,7 @@
               <a class="project-link" href="__PP_REVIEW_URL__" target="_blank" rel="noopener noreferrer">Vota</a>
               <a class="project-link" href="__PP_DONATE_URL__" target="_blank" rel="noopener noreferrer">Dona</a>
             </div>
-            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot __PP_VERSION__ è un progetto gratuito, open source e indipendente, non affiliato a Pegaso o Multiversity. Nessun dato viene inviato allo sviluppatore.</p>
+            <p id="plumepilot-project-info" class="project-info" data-role="project-info" hidden>PlumePilot __PP_VERSION__ è un progetto gratuito, open source e indipendente, non affiliato, approvato o distribuito da Multiversity o dagli atenei supportati. Nessun dato viene inviato allo sviluppatore.</p>
           </div>
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
@@ -3865,6 +3866,7 @@
       __PP_DONATE_URL__: donateUrl,
       __PP_VERSION__: extensionManifest.version,
     });
+    shadow.querySelector('[data-role="platform-subtitle"]').textContent = `Assistente per ${PLATFORM_NAME}`;
 
     document.documentElement.appendChild(host);
     ui = {
