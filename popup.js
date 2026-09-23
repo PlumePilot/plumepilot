@@ -791,7 +791,7 @@
       ready ? `${percent}%` : "Progresso non disponibile",
     );
     courseProgressMessage.textContent = ready
-      ? courseProgressStatus.message || "Sincronizzato con Pegaso."
+      ? courseProgressStatus.message || "Sincronizzato con la piattaforma."
       : "Apri un corso per visualizzare il progresso.";
     renderAutoplayStopAt70();
   }
@@ -1957,7 +1957,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         turboTestsStatus.textContent =
-          "Apri prima la pagina di un corso UniPegaso.";
+          "Apri prima la pagina di un corso supportato.";
         turboTestsButton.disabled = false;
         return;
       }
@@ -2009,7 +2009,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         objectivesStatus.textContent =
-          "Apri prima la pagina di un corso UniPegaso.";
+          "Apri prima la pagina di un corso supportato.";
         objectivesButton.disabled = false;
         return;
       }
@@ -2090,7 +2090,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         materialsStatus.textContent =
-          "Apri prima la pagina di un corso UniPegaso.";
+          "Apri prima la pagina di un corso supportato.";
         return;
       }
       const response = await runtimeMessage({
@@ -2147,7 +2147,7 @@
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         testCollectionStatus.textContent =
-          "Apri prima la pagina di un corso UniPegaso.";
+          "Apri prima la pagina di un corso supportato.";
         return;
       }
       const response = await runtimeMessage({

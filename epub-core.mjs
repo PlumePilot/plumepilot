@@ -22,7 +22,7 @@ const VISUAL_CUT_SEARCH_RADIUS = 100;
 const VISUAL_BLANK_BAND_HEIGHT = 10;
 const EPUB_CONVERSION_PERCENT = 92;
 const STUDYWING_SIGNATURE =
-  "Generato con PlumePilot – Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.";
+  "Generato con PlumePilot – Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.";
 
 const IMAGE_OPERATION_NAMES = [
   "paintImageMaskXObject",
@@ -98,7 +98,7 @@ const slug = (value) =>
     .toLowerCase();
 
 const filenameFor = (title) =>
-  `${slug(title) || "unipegaso-course"}-dispense.epub`;
+  `${slug(title) || "corso"}-dispense.epub`;
 
 function abortError(message = "Creazione EPUB annullata.") {
   return new DOMException(message, "AbortError");
