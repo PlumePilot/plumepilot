@@ -8,7 +8,7 @@ Il progetto è indipendente e non è affiliato, approvato o distribuito da Multi
 
 PlumePilot è nato inizialmente come strumento personale, dalla necessità di rendere più pratica la fruizione quotidiana dei corsi e di aggiungere alcune funzionalità che ritengo necessarie.
 
-Lavorare e studiare contemporaneamente non è facile. Molti studenti che frequentano l’Università Telematica Pegaso sono anche lavoratori, e riuscire a studiare durante il tragitto casa-lavoro diventa quasi obbligatorio per prepararsi a un esame. Scaricare una dispensa alla volta è estremamente tedioso e il formato PDF non si adatta bene allo schermo di tablet e telefoni. La funzionalità che consente di scaricare un’unica dispensa, sia in formato PDF sia in EPUB, è pensata proprio per questo.
+Lavorare e studiare contemporaneamente non è facile. Molti studenti degli atenei supportati sono anche lavoratori, e studiare durante il tragitto casa-lavoro può diventare importante per prepararsi a un esame. Scaricare una dispensa alla volta è tedioso e il PDF non si adatta sempre bene allo schermo di tablet e telefoni. La possibilità di riunire i materiali di un corso in un unico PDF o EPUB è pensata proprio per questo.
 
 Questo è solo un esempio, ma penso che racconti perfettamente lo spirito che ha portato alla creazione di questo strumento, che spero possa essere utile anche ad altri e che, grazie alle vostre esperienze, potremo migliorare ulteriormente.
 
@@ -24,11 +24,13 @@ Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissu
 - limite configurabile per le sessioni autoplay;
 - completamento facoltativo di test di autovalutazione e Obiettivi;
 - raccolta dei test in PDF o HTML interattivo;
+- quiz HTML navigabile per capitoli, con spazio per spiegazioni e osservazioni personali;
 - creazione locale di dispense complete in PDF ed EPUB;
 - barra di progressione del corso e avviso della soglia del 70%;
 - controllo dello stato della commissione degli esami online;
 - notifiche sonore locali facoltative per soglia del 70%, limite autoplay e cambi della commissione;
 - menu fluttuante, tema chiaro/scuro e dimensioni adattive;
+- menu fluttuante disponibile anche dalla home e dalla pagina esami, con le azioni del corso disabilitate fuori da un corso;
 - modalità Gaming con Traguardi, EXP e ricompense cosmetiche locali.
 
 PlumePilot non accelera i video, non concede accesso a contenuti non disponibili all'utente e non invia dati allo sviluppatore.
@@ -39,7 +41,7 @@ PlumePilot non accelera i video, non concede accesso a contenuti non disponibili
 - Mozilla Firefox 140 o successivo;
 - Microsoft Edge.
 
-Le release per i tre browser sono generate dalla stessa base sorgente. Ogni store riceve un pacchetto con il manifest adatto al proprio browser.
+Le release per i tre browser sono generate dalla stessa base sorgente. Ogni store riceve un pacchetto con il manifest adatto al proprio browser. Le funzioni che operano su un corso richiedono un corso accessibile e aperto nella piattaforma selezionata.
 
 ## Privacy
 
@@ -77,7 +79,7 @@ release/plumepilot-vX.Y.Z-edge.zip
 
 ## Installazione per lo sviluppo
 
-Il `manifest.json` nella repository è la base usata dal builder e contiene le configurazioni necessarie a produrre entrambe le varianti. Prima dei test esegui la build e usa sempre il pacchetto specifico del browser.
+Il `manifest.json` nella repository è la base usata dal builder e contiene le configurazioni necessarie a produrre le varianti per i tre browser. Prima dei test esegui la build e usa sempre il pacchetto specifico del browser.
 
 ### Firefox
 

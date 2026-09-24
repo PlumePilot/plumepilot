@@ -4,7 +4,7 @@ Documento modello per i campi privati di Chrome Web Store, Microsoft Edge Add-on
 
 ## Note comuni
 
-PlumePilot integra strumenti locali nelle pagine Pegaso accessibili all'utente autenticato. Non dispone di un server proprio e non offre una schermata utile fuori dalla piattaforma supportata.
+PlumePilot integra strumenti locali nelle pagine Pegaso, Mercatorum e San Raffaele accessibili all'utente autenticato. Non dispone di un server proprio e non offre una schermata utile fuori dalle piattaforme supportate.
 
 Per la revisione è quindi necessaria l'utenza DEMO fornita dalla piattaforma:
 
@@ -37,7 +37,7 @@ Se uno o più test non sono disponibili dopo i tentativi automatici, la raccolta
 - Il permesso `storage` conserva esclusivamente dati locali necessari all'interfaccia e alle funzioni scelte.
 - Le pagine `*.pegaso.multiversity.click` sono l'ambiente in cui l'estensione opera.
 - CloudFront e Amazon S3 forniscono materiali e immagini già disponibili all'utente e vengono contattati soltanto durante le esportazioni richieste.
-- Il token della sessione Pegaso può essere usato temporaneamente in memoria per richieste HTTPS verso gli stessi servizi della piattaforma; non viene salvato o inviato allo sviluppatore.
+- Il token della sessione della piattaforma in uso può essere usato temporaneamente in memoria per richieste HTTPS verso gli stessi servizi della piattaforma; non viene salvato o inviato allo sviluppatore.
 - Nessun codice JavaScript remoto viene scaricato o eseguito.
 - Non sono presenti analytics, advertising o telemetria.
 
