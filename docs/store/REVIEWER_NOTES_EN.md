@@ -48,7 +48,7 @@ node scripts/build-release.mjs
 node scripts/validate-release.mjs
 ```
 
-Expected Firefox package SHA-256: `[INSERT HASH FROM FINAL 2.34.0 SHA256SUMS.txt]`
+Expected Firefox package SHA-256: `a6edccd018ddefa6ac07b0e438f39469909369f5e461768de2139231b6340e2e`
 
 ## Third-party libraries
 
