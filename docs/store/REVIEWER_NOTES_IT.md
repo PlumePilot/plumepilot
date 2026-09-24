@@ -58,7 +58,7 @@ La build `2.34.0` applica trasformazioni exact-match e fail-closed esclusivament
 
 I due template Shadow DOM ora contengono markup statico dell'estensione; URL locali e versione vengono assegnati successivamente tramite nodi e attributi DOM. Nessun contenuto del sito o input utente raggiunge tali valori.
 
-`web-ext lint 10.6.0` restituisce **0 errori, 0 notice, 0 warning** e una lista `unknownMinifiedFiles` vuota per il pacchetto Firefox generato.
+Prima dell'invio, eseguire `web-ext lint` sul pacchetto Firefox 2.34.0 definitivo e annotare il risultato effettivo. Valutare e documentare gli eventuali warning: non è necessario ottenere zero warning perché AMO possa approvare la versione. Il lint locale non sostituisce la revisione automatica o manuale di AMO.
 
 Firefox Desktop minimo è `140.0`. `gecko_android.strict_min_version` è impostato a `142.0` soltanto per rendere coerente il manifest con l'introduzione del consenso dati integrato su Android; la versione AMO va distribuita esclusivamente per **Firefox Desktop**.
 
