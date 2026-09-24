@@ -4,7 +4,7 @@ Replace every bracketed placeholder immediately before submission. Store real cr
 
 ## Test account
 
-PlumePilot adds local study and course-management tools to Pegaso pages that are accessible to the signed-in user. It has no developer-operated backend and does not provide meaningful functionality outside the supported platform. A Pegaso DEMO account is therefore required for functional testing.
+PlumePilot adds local study and course-management tools to Pegaso, Mercatorum and San Raffaele pages that are accessible to the signed-in user. It has no developer-operated backend and does not provide meaningful functionality outside the supported platforms. A DEMO account for one supported platform is therefore required for functional testing.
 
 - Login URL: `[DEMO URL]`
 - Username/student ID: `[DEMO USERNAME]`
@@ -29,9 +29,9 @@ Automatic completion of Tests and Objectives is disabled by default and runs onl
 ## Network access and data handling
 
 - `storage` stores only local preferences, operational cache/state, normalized exam-commission information, and optional local Gaming progress.
-- `*.pegaso.multiversity.click` is the supported page and API environment.
+- `*.pegaso.multiversity.click`, `*.mercatorum.multiversity.click` and `*.utsr.multiversity.click` are the supported page and API environments.
 - CloudFront and Amazon S3 are contacted only when the user requests materials or images needed for local exports.
-- A Pegaso session token may be used temporarily in memory for HTTPS requests to the platform's own services. It is not persisted and is never sent to the developer.
+- A session token for the active platform may be used temporarily in memory for HTTPS requests to the platform's own services. It is not persisted and is never sent to the developer.
 - PlumePilot has no analytics, advertising, profiling, telemetry, or developer-operated data server.
 - No remote JavaScript is downloaded or executed.
 
@@ -41,14 +41,14 @@ Privacy policy: <https://plumepilot.github.io/plumepilot/privacy/>
 
 ## Source and reproducible build
 
-The attached `plumepilot-v2.33.2-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
+The attached `plumepilot-v2.34.0-source.zip` contains readable first-party source and `AMO_SOURCE_README.md`. Recommended environment: Ubuntu 24.04 LTS and Node.js 24.x. No npm install or network access is required.
 
 ```bash
 node scripts/build-release.mjs
 node scripts/validate-release.mjs
 ```
 
-Expected Firefox package SHA-256: `13abff570c415b603608483123bfd2d1fee09a6412080220b7c5f426eabbdb10`
+Expected Firefox package SHA-256: `[INSERT HASH FROM FINAL 2.34.0 SHA256SUMS.txt]`
 
 ## Third-party libraries
 

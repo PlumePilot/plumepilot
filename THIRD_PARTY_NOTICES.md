@@ -2,7 +2,7 @@
 
 PlumePilot è distribuito sotto GPL-3.0-only. I componenti elencati in questo documento rimangono soggetti alle rispettive licenze.
 
-I checksum si riferiscono ai file ufficiali inclusi nella release sorgente PlumePilot 2.33.2. Le copie runtime nel pacchetto Firefox ricevono esclusivamente le trasformazioni deterministiche documentate in `AMO_SOURCE_README.md`; Chrome ed Edge mantengono i file byte-per-byte ufficiali.
+I checksum si riferiscono ai file ufficiali inclusi nella release sorgente PlumePilot 2.34.0. Le copie runtime nel pacchetto Firefox ricevono esclusivamente le trasformazioni deterministiche documentate in `AMO_SOURCE_README.md`; Chrome ed Edge mantengono i file byte-per-byte ufficiali.
 
 ## pdf-lib 1.17.1
 
@@ -71,4 +71,4 @@ I font nella cartella `vendor/standard_fonts/` provengono dalla distribuzione `p
 
 ## Verifica per la revisione AMO
 
-Prima di ogni invio a Firefox Add-ons occorre verificare che le copie sorgente siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**. Le copie sorgente della candidata PlumePilot 2.33.2 devono essere verificate con `npm pack` e `cmp` contro i percorsi elencati prima dell’upload definitivo; il pacchetto Firefox risultante deve inoltre superare lo scan review-safe di `scripts/validate-release.mjs`.
+Prima di ogni invio a Firefox Add-ons occorre verificare che le copie sorgente siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**. Le copie sorgente della candidata PlumePilot 2.34.0 devono essere verificate con `npm pack` e `cmp` contro i percorsi elencati prima dell’upload definitivo; il pacchetto Firefox risultante deve inoltre superare lo scan review-safe di `scripts/validate-release.mjs`.

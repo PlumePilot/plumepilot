@@ -1,6 +1,6 @@
 # Supporto PlumePilot
 
-PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
+PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.
 
 ## Segnalare un problema
 
@@ -21,4 +21,4 @@ Per problemi che contengono dati personali, informazioni di autenticazione o det
 
 ## Limiti del supporto
 
-Il progetto non può fornire assistenza sull'account, sulla carriera universitaria, sugli esami o sui servizi ufficiali Pegaso. Per tali richieste occorre rivolgersi ai canali ufficiali della piattaforma.
+Il progetto non può fornire assistenza sull'account, sulla carriera universitaria, sugli esami o sui servizi ufficiali delle piattaforme supportate. Per tali richieste occorre rivolgersi ai canali ufficiali del proprio ateneo.

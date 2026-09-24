@@ -13,14 +13,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const PDF_DOWNLOAD_TIMEOUT_MS = 30000;
 const PDF_DOWNLOAD_RETRY_DELAYS_MS = [1000, 2500];
 const VISUAL_RENDER_WIDTH = 1200;
+const VISUAL_DETAIL_WIDTH = 1800;
+const VISUAL_MAX_PIXELS = 5000000;
+const VISUAL_MAX_DIMENSION = 8192;
 const VISUAL_TARGET_HEIGHT = 1150;
 const VISUAL_MIN_BLOCK_HEIGHT = 350;
 const VISUAL_CUT_SEARCH_RADIUS = 100;
-const VISUAL_CUT_SCAN_STEP = 4;
-const VISUAL_CUT_OVERLAP = 18;
+const VISUAL_BLANK_BAND_HEIGHT = 10;
 const EPUB_CONVERSION_PERCENT = 92;
 const STUDYWING_SIGNATURE =
-  "Generato con PlumePilot – Assistente per Pegaso, disponibile su Chrome, Edge e Firefox.";
+  "Generato con PlumePilot – Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.";
 
 const IMAGE_OPERATION_NAMES = [
   "paintImageMaskXObject",
@@ -96,7 +98,7 @@ const slug = (value) =>
     .toLowerCase();
 
 const filenameFor = (title) =>
-  `${slug(title) || "unipegaso-course"}-dispense.epub`;
+  `${slug(title) || "corso"}-dispense.epub`;
 
 function abortError(message = "Creazione EPUB annullata.") {
   return new DOMException(message, "AbortError");
@@ -630,11 +632,8 @@ function hasSuspiciousText(content) {
   const combined = meaningful.map((item) => item.str).join("");
   const invalidCharacters =
     combined.match(/[\uFFFD\uE000-\uF8FF]/gu) || [];
-  if (
-    invalidCharacters.length >= 3 ||
-    (invalidCharacters.length >= 2 &&
-      invalidCharacters.length / Math.max(1, combined.length) >= 0.01)
-  ) {
+  // Even one missing relation/operator can change the meaning of a formula.
+  if (invalidCharacters.length > 0) {
     return true;
   }
 
@@ -645,6 +644,49 @@ function hasSuspiciousText(content) {
   }).length;
 
   return mathFontItems >= 3 || mathCharacters.length >= 3;
+}
+
+function hasPositionedScript(content, viewport) {
+  const items = meaningfulTextItems(content, viewport).map(textItem);
+  const bodySize = estimateBodySize(items, viewport);
+  // Reuse the existing prose-footnote recognition before checking math scripts.
+  const prepared = attachFootnoteReferences(items, bodySize);
+  return prepared.some((script) => {
+    if (!/^[\p{L}\p{N}+−-]{1,4}$/u.test(script.text.trim())) return false;
+    return prepared.some((base) => {
+      if (base === script || script.size > base.size * 0.85 ||
+          script.size < base.size * 0.35) return false;
+      const rise = Math.abs(script.y - base.y);
+      const gap = script.x - (base.x + base.width);
+      return /[\p{L}\p{N})\]}]$/u.test(base.text.trim()) &&
+        rise >= base.size * 0.18 && rise <= base.size * 0.85 &&
+        gap >= -base.size * 0.2 && gap <= base.size * 0.65;
+    });
+  });
+}
+
+function hasSmallTable(content, viewport) {
+  const items = meaningfulTextItems(content, viewport).map(textItem);
+  // Complement the full-page column detector with compact, aligned cell rows.
+  const rows = [];
+  for (const item of items) {
+    let row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 2.5);
+    if (!row) rows.push(row = { y: item.y, items: [] });
+    row.items.push(item);
+  }
+  const pairs = rows.flatMap((row) => {
+    const cells = [...row.items].sort((a, b) => a.x - b.x);
+    if (cells.length < 2 || cells.length > 4 ||
+        cells.some((cell) => cell.text.trim().length > 24)) return [];
+    const [left, right] = cells;
+    if (right.x - left.x - left.width < Math.max(24, left.size * 2)) return [];
+    return [{ y: row.y, left: left.x, right: right.x, size: left.size }];
+  });
+  return pairs.some((pair) => pairs.filter((other) =>
+    Math.abs(pair.left - other.left) <= 5 &&
+    Math.abs(pair.right - other.right) <= 5 &&
+    Math.abs(pair.y - other.y) <= pair.size * 6,
+  ).length >= 3);
 }
 
 function hasSignificantRotatedText(content, viewport) {
@@ -777,30 +819,43 @@ function vectorOperationStats(operations) {
 
 async function pageNeedsVisual(page, content) {
   const viewport = page.getViewport({ scale: 1 });
+  const meaningful = meaningfulTextItems(content, viewport);
+  const meaningfulContent = { ...content, items: meaningful };
+  const characters = meaningful.reduce((sum, item) => sum + item.str.trim().length, 0);
   if (viewport.width > viewport.height) {
+    const vectors = vectorOperationStats(await page.getOperatorList());
+    const dense = characters >= 650 || vectors.paintOperations >= 8 ||
+      vectors.complexPathSegments >= 18 || hasSmallTable(content, viewport);
     return {
       visual: true,
       reason: "pagina orizzontale",
       preserveWhole: true,
+      renderWidth: dense ? VISUAL_DETAIL_WIDTH : VISUAL_RENDER_WIDTH,
     };
   }
 
-  const meaningful = meaningfulTextItems(content, viewport);
   if (meaningful.length < 5) {
+    const operations = await page.getOperatorList();
+    const images = imageOperationStats(operations, viewport);
+    const vectors = vectorOperationStats(operations);
+    // Textless portrait pages can contain outlined text, not just covers/scans.
+    const outlined = !images.significant &&
+      (vectors.paintOperations >= 8 || vectors.complexPathSegments >= 18);
     return {
       visual: true,
       reason: "testo insufficiente",
-      preserveWhole: true,
+      preserveWhole: !outlined,
+      renderWidth: outlined ? VISUAL_DETAIL_WIDTH : VISUAL_RENDER_WIDTH,
     };
   }
   if (hasSignificantRotatedText(content, viewport)) {
-    return { visual: true, reason: "testo ruotato" };
+    return { visual: true, reason: "testo ruotato", renderWidth: VISUAL_DETAIL_WIDTH };
   }
-  if (hasParallelColumns(content, viewport)) {
-    return { visual: true, reason: "layout a colonne o tabella" };
+  if (hasParallelColumns(content, viewport) || hasSmallTable(content, viewport)) {
+    return { visual: true, reason: "layout a colonne o tabella", renderWidth: VISUAL_DETAIL_WIDTH };
   }
-  if (hasSuspiciousText(content)) {
-    return { visual: true, reason: "notazione matematica complessa" };
+  if (hasSuspiciousText(meaningfulContent) || hasPositionedScript(content, viewport)) {
+    return { visual: true, reason: "notazione matematica complessa", renderWidth: VISUAL_DETAIL_WIDTH };
   }
 
   const operations = await page.getOperatorList();
@@ -822,7 +877,7 @@ async function pageNeedsVisual(page, content) {
     vectors.complexPathSegments >= 18 ||
     vectors.paintOperations >= 8
   ) {
-    return { visual: true, reason: "grafica vettoriale complessa" };
+    return { visual: true, reason: "grafica vettoriale complessa", renderWidth: VISUAL_DETAIL_WIDTH };
   }
 
   return { visual: false, reason: "testo lineare" };
@@ -862,43 +917,47 @@ function visualBlockRanges(
   if (bottom <= top) return [];
   if (preserveWhole) return [{ start: top, end: bottom }];
 
+  // Scale cut geometry with raster resolution so sharper images do not create
+  // more fragments of the same source page.
+  const ratio = width / VISUAL_RENDER_WIDTH;
   const targetHeight = Math.min(
-    VISUAL_TARGET_HEIGHT,
+    Math.round(VISUAL_TARGET_HEIGHT * ratio),
     Math.floor(width * 1.15),
   );
+  const minimumHeight = Math.round(VISUAL_MIN_BLOCK_HEIGHT * ratio);
+  const radius = Math.round(VISUAL_CUT_SEARCH_RADIUS * ratio);
+  const bandHeight = Math.max(6, Math.round(VISUAL_BLANK_BAND_HEIGHT * ratio));
   const ranges = [];
   let start = top;
 
   while (start < bottom) {
     let end = Math.min(bottom, start + targetHeight);
-    let leastInk = 0;
-
     if (end < bottom) {
-      let best = end;
-      leastInk = Infinity;
-      for (
-        let y = Math.max(
-          start + VISUAL_MIN_BLOCK_HEIGHT,
-          end - VISUAL_CUT_SEARCH_RADIUS,
-        );
-        y <= Math.min(bottom, end + VISUAL_CUT_SEARCH_RADIUS);
-        y += VISUAL_CUT_SCAN_STEP
-      ) {
-        const ink = inkAtRow(y);
-        if (ink < leastInk) {
-          leastInk = ink;
-          best = y;
+      const desired = end;
+      let blankStart = null;
+      let best = null;
+      // Search near the target first, then extend forward if necessary. Never
+      // cut a formula/table merely because one row has less ink than another.
+      for (let y = Math.max(start + minimumHeight, desired - radius);
+        y < bottom - minimumHeight; y++) {
+        if (inkAtRow(y) === 0) {
+          blankStart ??= y;
+          if (y - blankStart + 1 >= bandHeight) {
+            const candidate = y - Math.floor(bandHeight / 2);
+            if (best === null || Math.abs(candidate - desired) < Math.abs(best - desired)) {
+              best = candidate;
+            }
+          }
+        } else {
+          blankStart = null;
         }
+        if (y > desired + radius && best !== null) break;
       }
-      if (!Number.isFinite(leastInk)) leastInk = 0;
-      end = best;
+      end = best ?? bottom;
     }
 
     ranges.push({ start, end });
-    const needsOverlap =
-      end < bottom && leastInk > Math.max(4, width * 0.012);
-    const nextStart = needsOverlap ? end - VISUAL_CUT_OVERLAP : end;
-    start = Math.max(start + 1, nextStart);
+    start = end;
   }
 
   return ranges;
@@ -987,24 +1046,33 @@ async function renderPage(page, canvas, viewport, signal) {
   return context;
 }
 
+function visualRenderScale(viewport, renderWidth = VISUAL_RENDER_WIDTH) {
+  return Math.min(
+    renderWidth / viewport.width,
+    Math.sqrt(VISUAL_MAX_PIXELS / (viewport.width * viewport.height)),
+    VISUAL_MAX_DIMENSION / Math.max(viewport.width, viewport.height),
+  );
+}
+
 async function renderVisualBlocks(
   page,
   chapterIndex,
   pageNumber,
   signal,
-  { preserveWhole = false } = {},
+  { preserveWhole = false, renderWidth = VISUAL_RENDER_WIDTH } = {},
 ) {
   const base = page.getViewport({ scale: 1 });
-  const scale = Math.max(0.25, Math.min(3, VISUAL_RENDER_WIDTH / base.width));
+  const scale = visualRenderScale(base, renderWidth);
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil(viewport.width);
   canvas.height = Math.ceil(viewport.height);
   const context = await renderPage(page, canvas, viewport, signal);
-  const left = Math.floor(canvas.width * 0.015);
-  const top = Math.floor(canvas.height * 0.015);
-  const width = Math.max(1, canvas.width - left * 2);
-  const bottom = Math.floor(canvas.height * 0.985);
+  // Keep the complete source bounds: slide tables can reach the bottom edge.
+  const left = 0;
+  const top = 0;
+  const width = canvas.width;
+  const bottom = canvas.height;
   const ranges = visualBlockRanges(
     top,
     bottom,
@@ -1206,7 +1274,7 @@ async function convertMaterial(
             chapterIndex,
             pageNumber,
             signal,
-            { preserveWhole },
+            { preserveWhole, renderWidth: classification.renderWidth },
           );
           images.push(...blocks);
           pages.push(
@@ -1539,6 +1607,8 @@ export const __testing = {
   filenameFor,
   groupBySection,
   hasParallelColumns,
+  hasSmallTable,
+  hasPositionedScript,
   hasSignificantRotatedText,
   hasSuspiciousText,
   imageOperationStats,
@@ -1552,4 +1622,5 @@ export const __testing = {
   textPageToHtml,
   vectorOperationStats,
   visualBlockRanges,
+  visualRenderScale,
 };

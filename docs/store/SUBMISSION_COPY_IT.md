@@ -6,17 +6,19 @@ Questi testi costituiscono la sorgente unica per Chrome Web Store, Microsoft Edg
 
 **Nome**
 
-> PlumePilot – Assistente per Pegaso
+> PlumePilot – Assistente per Multiversity
 
 **Descrizione breve**
 
-> Assistente per Pegaso: automatizza lezioni e attività, crea materiali di studio e controlla lo stato degli esami online.
+> Assistente per Pegaso, Mercatorum e San Raffaele: automatizza attività, crea materiali di studio e controlla gli esami online.
 
 La descrizione breve coincide intenzionalmente con `manifest.json`; su Edge può essere modificata soltanto caricando un nuovo pacchetto.
 
 ## Descrizione estesa
 
-PlumePilot è un assistente locale e open source pensato per rendere più pratica la fruizione e l'organizzazione dei corsi Pegaso ai quali l'utente è già autorizzato ad accedere.
+Il testo narrativo aggiornato per i campi pubblici è in [LISTING_DESCRIPTION_IT.md](LISTING_DESCRIPTION_IT.md); la versione inglese per Edge è in [LISTING_DESCRIPTION_EN.md](LISTING_DESCRIPTION_EN.md). I paragrafi seguenti restano la sintesi funzionale per i moduli di revisione.
+
+PlumePilot è un assistente locale e open source pensato per rendere più pratica la fruizione e l'organizzazione dei corsi Pegaso, Mercatorum e San Raffaele ai quali l'utente è già autorizzato ad accedere.
 
 L'estensione integra nella piattaforma controlli per avanzare tra video, capitoli e sezioni, trovare la prima attività incompleta e impostare un limite alle sessioni di riproduzione automatica. L'utente può inoltre scegliere di completare le attività supportate, raccogliere i test di autovalutazione in un PDF o in un quiz HTML interattivo e creare localmente dispense complete in PDF o EPUB.
 
@@ -29,15 +31,15 @@ Privacy e controllo rimangono centrali:
 - l'elaborazione dei test e dei materiali avviene nel browser;
 - i documenti generati non vengono caricati su server PlumePilot;
 - preferenze, cache operative e progressi restano nello storage locale;
-- il token della sessione Pegaso viene usato soltanto temporaneamente per le richieste necessarie e non viene salvato;
+- il token della sessione della piattaforma in uso viene usato soltanto temporaneamente per le richieste necessarie e non viene salvato;
 - non sono presenti analytics, pubblicità, profilazione o vendita di dati;
 - PlumePilot non esegue codice remoto.
 
-PlumePilot non accelera i video e non concede accesso a contenuti che non siano già disponibili all'utente. È un progetto indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity.
+PlumePilot non accelera i video e non concede accesso a contenuti che non siano già disponibili all'utente. È un progetto indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati.
 
 ## Scopo unico
 
-> Integrare nella piattaforma Pegaso strumenti locali per agevolare la fruizione, l'organizzazione e lo studio dei corsi ai quali l'utente è già autorizzato ad accedere.
+> Integrare nelle piattaforme Pegaso, Mercatorum e San Raffaele strumenti locali per agevolare la fruizione, l'organizzazione e lo studio dei corsi ai quali l'utente è già autorizzato ad accedere.
 
 ## Categoria e parole chiave
 
@@ -45,7 +47,7 @@ PlumePilot non accelera i video e non concede accesso a contenuti che non siano 
 
 **Termini Edge proposti:**
 
-> Pegaso; studio; università telematica; dispense; EPUB; test; produttività
+> Multiversity; Pegaso; Mercatorum; San Raffaele; studio; dispense; EPUB; test
 
 Verificare nel portale il limite corrente prima dell'inserimento. Evitare varianti ripetitive o nomi di prodotti non pertinenti.
 
@@ -63,9 +65,9 @@ Verificare nel portale il limite corrente prima dell'inserimento. Evitare varian
 
 > Necessario per conservare nel profilo del browser preferenze, cache operative, stato delle operazioni, informazioni normalizzate della commissione e, quando la modalità Gaming è attiva, Traguardi, EXP e ricompense. I dati non vengono inviati allo sviluppatore.
 
-### `https://*.pegaso.multiversity.click/*`
+### `https://*.pegaso.multiversity.click/*`, `https://*.mercatorum.multiversity.click/*`, `https://*.utsr.multiversity.click/*`
 
-> Necessario per mostrare i controlli di PlumePilot nelle pagine Pegaso e comunicare con le API della piattaforma già accessibili all'utente autenticato. Le operazioni riguardano corsi, attività, test, materiali ed esami online e avvengono nell'ambito della sessione corrente.
+> Necessario per mostrare i controlli di PlumePilot nelle pagine Pegaso, Mercatorum e San Raffaele e comunicare con le API della piattaforma in uso, già accessibili all'utente autenticato. Le operazioni riguardano corsi, attività, test, materiali ed esami online e avvengono nell'ambito della sessione corrente.
 
 ### `https://*.cloudfront.net/*`
 
@@ -81,15 +83,15 @@ Verificare nel portale il limite corrente prima dell'inserimento. Evitare varian
 
 **Nota facoltativa:**
 
-> Tutto il codice JavaScript eseguito è incluso nel pacchetto dell'estensione. Le richieste di rete recuperano dati e materiali Pegaso, non codice eseguibile. Le librerie di terze parti sono incluse localmente nel pacchetto con le rispettive licenze.
+> Tutto il codice JavaScript eseguito è incluso nel pacchetto dell'estensione. Le richieste di rete recuperano dati e materiali delle piattaforme supportate, non codice eseguibile. Le librerie di terze parti sono incluse localmente nel pacchetto con le rispettive licenze.
 
 ## Matrice delle dichiarazioni dati
 
-La selezione deve essere prudente e coerente sui tre store. “Trattato” non significa che lo sviluppatore riceva il dato: PlumePilot lo usa per fornire la funzione richiesta e comunica esclusivamente con i servizi Pegaso necessari.
+La selezione deve essere prudente e coerente sui tre store. “Trattato” non significa che lo sviluppatore riceva il dato: PlumePilot lo usa per fornire la funzione richiesta e comunica esclusivamente con i servizi della piattaforma in uso necessari.
 
 | Categoria funzionale | Chrome/Edge | Firefox | Motivo |
 |---|---|---|---|
-| Informazioni di autenticazione | dichiarare | `authenticationInfo` | il token di sessione può essere usato temporaneamente verso i servizi Pegaso; non è salvato |
+| Informazioni di autenticazione | dichiarare | `authenticationInfo` | il token di sessione può essere usato temporaneamente verso i servizi della piattaforma in uso; non è salvato |
 | Contenuto dei siti web | dichiarare | `websiteContent` | corsi, test, materiali, percentuali e dati mostrati dalla piattaforma vengono letti per le funzioni richieste |
 | Attività/interazioni sul sito | dichiarare come attività utente | `websiteActivity` | vengono elaborate azioni quali avanzamento, completamento, salvataggio e download |
 | Dati tecnici/telemetria | non dichiarare | non dichiarare | nessuna telemetria o diagnostica viene inviata |
@@ -103,18 +105,18 @@ Certificazioni da confermare nei moduli Chrome ed Edge:
 - il trattamento è limitato alle funzionalità visibili e richieste dall'utente;
 - le dichiarazioni coincidono con la privacy policy pubblica.
 
-Non selezionare “nessun dato” senza una nuova valutazione: l'estensione tratta contenuti e autenticazione e invia richieste ai servizi Pegaso, anche se non dispone di server propri e lo sviluppatore non riceve tali informazioni.
+Non selezionare “nessun dato” senza una nuova valutazione: l'estensione tratta contenuti e autenticazione e invia richieste ai servizi delle piattaforme supportate, anche se non dispone di server propri e lo sviluppatore non riceve tali informazioni.
 
 ## Informazioni commerciali e contenuti
 
 - Pagamenti richiesti: No.
-- Servizi non gratuiti aggiuntivi: PlumePilot è gratuito, ma funziona soltanto sui contenuti Pegaso ai quali l'utente possiede già un accesso valido.
+- Servizi non gratuiti aggiuntivi: PlumePilot è gratuito, ma funziona soltanto sui contenuti delle piattaforme supportate ai quali l'utente possiede già un accesso valido.
 - Pubblicità: No.
 - Acquisti in-app: No.
 - Contenuti maturi: No.
-- Affiliazione ufficiale con Pegaso o Multiversity: No.
+- Affiliazione ufficiale con Multiversity o con gli atenei supportati: No.
 - Disponibilità proposta: pubblica, tutti i mercati; interfaccia e descrizione iniziale in italiano.
 
 ## Nota breve sull'indipendenza
 
-> PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito dall'Università Telematica Pegaso o da Multiversity. Per funzionare richiede che l'utente acceda autonomamente alla piattaforma con un account valido.
+> PlumePilot è un progetto indipendente e non è affiliato, approvato o distribuito da Multiversity o dagli atenei supportati. Per funzionare richiede che l'utente acceda autonomamente a una piattaforma supportata con un account valido.
