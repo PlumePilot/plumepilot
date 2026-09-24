@@ -6,16 +6,17 @@ Il progetto è indipendente e non è affiliato, approvato o distribuito da Multi
 
 ## Perché PlumePilot
 
-PlumePilot è nato inizialmente come strumento personale, dalla necessità di rendere più pratica la fruizione quotidiana dei corsi e di aggiungere alcune funzionalità che ritengo necessarie.
+PlumePilot nasce prima di tutto da alcune esigenze che incontravo ogni giorno come studente.
 
-Lavorare e studiare contemporaneamente non è facile. Molti studenti degli atenei supportati sono anche lavoratori, e studiare durante il tragitto casa-lavoro può diventare importante per prepararsi a un esame. Scaricare una dispensa alla volta è tedioso e il PDF non si adatta sempre bene allo schermo di tablet e telefoni. La possibilità di riunire i materiali di un corso in un unico PDF o EPUB è pensata proprio per questo.
+Trovavo tedioso dover cliccare manualmente su ogni video per proseguire, scaricare le dispense una alla volta e, soprattutto, consultarle dal telefono mentre andavo al lavoro. E poi c’era l’attesa dopo un esame online: giorni, a volte settimane, trascorsi controllando ripetutamente la piattaforma in cerca di aggiornamenti dalla commissione.
 
-Questo è solo un esempio, ma penso che racconti perfettamente lo spirito che ha portato alla creazione di questo strumento, che spero possa essere utile anche ad altri e che, grazie alle vostre esperienze, potremo migliorare ulteriormente.
+Da queste piccole frustrazioni sono nate le funzioni principali di PlumePilot: l’autoplay, la possibilità di riunire le dispense di un intero corso in un unico PDF o EPUB, i test interattivi in HTML per esercitarsi e aggiungere le proprie osservazioni, e il controllo dello stato della commissione per accorgersi il prima possibile di ogni cambiamento.
 
-Scoprirete che PlumePilot offre anche una modalità particolare, che forse alcuni di voi gradiranno più di altri: la modalità **Gaming**! A cosa serve? Non aggiunge alcuna funzione extra, se non quel tono giocoso che personalmente apprezzo. Il nostro percorso richiede impegno, ma un po’ di leggerezza non guasta.
+Sono strumenti che ho creato perché servivano prima di tutto a me. Condividerli è stato il passo successivo, nella speranza che possano rendere un po’ più semplice anche il percorso di altri studenti.
+
+La modalità Gaming aggiunge invece un tocco leggero al percorso di studio attraverso EXP, traguardi e ricompense estetiche, senza modificare le funzionalità principali.
 
 Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissuta come un gioco».
-
 
 ## Funzionalità principali
 
