@@ -75,7 +75,7 @@ The readable distribution files in the source archive and in the Chrome/Edge pac
 
 Before this submission, every source vendor file was compared byte for byte with the corresponding official release. No dependency or executable code is downloaded at extension runtime.
 
-Before submission, the generated 2.34.0 Firefox package must be checked with `web-ext lint 10.6.0` and produce **0 errors, 0 notices, 0 warnings, and an empty `unknownMinifiedFiles` list**.
+Before submission, run `web-ext lint` on the generated Firefox 2.34.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
 
 ## Runtime/source separation
 
