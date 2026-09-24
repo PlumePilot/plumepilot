@@ -65,7 +65,7 @@ The build applies exact-match, fail-closed transformations only to the Firefox r
 
 The two Shadow DOM templates now contain static extension-owned markup. Packaged URLs and the version string are assigned afterward through DOM text nodes and attributes; no website content or user input reaches them.
 
-Before submitting, run `web-ext lint` against the final Firefox 2.34.0 package and record its actual results here. A local lint result does not replace AMO's own automated or manual review.
+Before submitting, run `web-ext lint` against the final Firefox 2.34.0 package and record its actual results here. Warnings should be reviewed and documented; zero warnings are not a requirement for approval. A local lint result does not replace AMO's own automated or manual review.
 
 ## Optional reviewer video
 
