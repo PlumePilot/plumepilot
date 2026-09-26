@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pausa? · PlumePilot</title>
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <main class="shell">
+    <header><div><span class="eyebrow">PLUMEPILOT · PRIMA PROVA</span><h1>Pausa?</h1></div>
+      <div class="actions"><button id="sound" type="button" aria-label="Attiva audio" title="Audio">🔇</button><button id="close" type="button">Torna a studiare</button></div>
+    </header>
+    <div class="hud" aria-live="off"><span>📚 <b id="dispensa">0</b>/30</span><span>📝 <b id="test">0</b>/30</span><span>🎯 <b id="obiettivo">0</b>/30</span><span id="time" class="time">90 s</span></div>
+    <div class="stage"><canvas id="game" width="960" height="540" aria-label="Plume vola verso destra raccogliendo dispense, test e obiettivi"></canvas>
+      <div id="overlay" class="overlay"><section class="card" id="card"></section></div></div>
+    <p class="hint">Spazio, clic o tocco per salire · P per mettere in pausa · Il livello dura 90 secondi</p>
+  </main>
+  <script src="level.js"></script><script src="game.js"></script>
+</body>
+</html>

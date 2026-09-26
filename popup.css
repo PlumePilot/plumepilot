@@ -139,6 +139,9 @@ html[data-visual-style="gaming"] .chapter-limit-slider::-moz-range-thumb { width
 .sound-controls output { color: var(--sw-text-muted); font-variant-numeric: tabular-nums; }
 .sound-controls .secondary-button, .sound-controls .action-status { grid-column: 1 / -1; }
 .sound-preference[data-disabled="true"] .sound-controls { opacity: .55; }
+.pause-entry { display:flex; align-items:center; gap:10px; padding:10px 4px; font-size:var(--sw-control-font-size); color:var(--sw-text-muted); }
+.pause-entry button { padding:2px 0; border:0; background:none; color:inherit; font:inherit; font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.pause-entry button:hover,.pause-entry button:focus-visible { color:var(--sw-text); }
 
 .brand-header {
   display: flex;
