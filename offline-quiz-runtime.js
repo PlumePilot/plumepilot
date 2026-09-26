@@ -17,6 +17,62 @@ function offlineQuizRuntime(DATA) {
   const notes = new Map(
     Object.entries(decodeNotes(byId("notes-data").textContent || "e30=")),
   );
+  const statuses = { verified: "🟢 Verificata", review: "🟡 Da rivedere", verify: "🔴 Da verificare" };
+  let filter = "all";
+  const hasText = (value) => Boolean(value && value.replace(/<[^>]*>/g, "").trim());
+  const hasNotes = (note) => Boolean(note && (
+    hasText(note.explanationHtml || note.explanation) ||
+    hasText(note.observationsHtml || note.observations)
+  ));
+  function cleanHtml(source) {
+    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "SUP", "SUB", "BR", "DIV", "P", "SPAN"]);
+    const styles = new Set(["yellow", "green", "blue", "pink"]);
+    const blocks = new Set(["important", "attention", "review"]);
+    const doc = new DOMParser().parseFromString("<body>" + source + "</body>", "text/html");
+    function clean(node) {
+      if (node.nodeType === 3) return document.createTextNode(node.textContent);
+      if (node.nodeType !== 1) return document.createDocumentFragment();
+      const fragment = document.createDocumentFragment();
+      if (!allowed.has(node.tagName)) {
+        // Unknown markup is discarded along with its content.
+        return fragment;
+      }
+      const element = document.createElement(node.tagName.toLowerCase());
+      if (node.tagName === "SPAN") {
+        if (node.classList.contains("study-mask")) element.className = "study-mask";
+        else if (node.classList.contains("highlight") && styles.has(node.dataset.color)) {
+          element.className = "highlight";
+          element.dataset.color = node.dataset.color;
+        }
+      }
+      if (node.tagName === "DIV" && node.classList.contains("callout") && blocks.has(node.dataset.kind)) {
+        element.className = "callout";
+        element.dataset.kind = node.dataset.kind;
+      }
+      if (node.tagName === "UL" && node.classList.contains("checklist")) element.className = "checklist";
+      if (node.tagName === "LI" && node.classList.contains("checked")) element.className = "checked";
+      for (const child of node.childNodes) element.appendChild(clean(child));
+      return element;
+    }
+    const result = document.createElement("div");
+    for (const child of doc.body.childNodes) result.appendChild(clean(child));
+    return result.innerHTML;
+  }
+  function updateReview() {
+    const counts = { verified: 0, review: 0, verify: 0, plain: 0, observations: 0 };
+    for (const test of DATA.tests) for (const question of test.questions) {
+      const entry = notes.get(question.noteKey) || {};
+      if (statuses[entry.status]) counts[entry.status]++;
+      else counts.plain++;
+      if (hasText(entry.observationsHtml || entry.observations)) counts.observations++;
+    }
+    byId("reviewCounts").textContent = DATA.tests.reduce((sum, test) => sum + test.questions.length, 0) +
+      " domande · " + counts.verified + " verificate · " + counts.review +
+      " da rivedere · " + counts.verify + " da verificare · " + counts.plain + " normali";
+    byId("reviewFilter").value = filter;
+    byId("reviewFilter").querySelector('[value="observations"]').textContent =
+      "Con osservazioni (" + counts.observations + ")";
+  }
   const symbols = [
     "α",
     "β",
@@ -139,10 +195,37 @@ function offlineQuizRuntime(DATA) {
       observations: "",
     };
     const next = { ...previous, [field]: value };
-    const hasNotes = Boolean(next.explanation || next.observations);
-    if (hasNotes) notes.set(question.noteKey, next);
+    if (field.endsWith("Html")) next[field.slice(0, -4)] = "";
+    const present = hasNotes(next);
+    if (present || statuses[next.status]) notes.set(question.noteKey, next);
     else notes.delete(question.noteKey);
-    return hasNotes;
+    updateReview();
+    return present;
+  }
+  function reviewControl(question) {
+    const label = document.createElement("label");
+    label.className = "review-control";
+    label.append("Stato personale ");
+    const select = document.createElement("select");
+    for (const [value, text] of [["", "Normale"], ...Object.entries(statuses)]) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = text;
+      select.appendChild(option);
+    }
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.setAttribute("aria-hidden", "true");
+    label.appendChild(dot);
+    select.value = notes.get(question.noteKey)?.status || "";
+    label.dataset.status = select.value;
+    select.onchange = () => {
+      label.dataset.status = select.value;
+      saveNote(question, "status", select.value);
+      if (filter !== "all") render();
+    };
+    label.appendChild(select);
+    return label;
   }
   function noteEditor(question) {
     const saved = notes.get(question.noteKey) || {
@@ -152,9 +235,7 @@ function offlineQuizRuntime(DATA) {
     const details = document.createElement("details");
     details.className = "personal-notes";
     details.open = false;
-    details.dataset.hasNotes = String(
-      Boolean(saved.explanation || saved.observations),
-    );
+    details.dataset.hasNotes = String(hasNotes(saved));
     const summary = document.createElement("summary");
     summary.append("Spiegazione e osservazioni");
     const indicator = document.createElement("span");
@@ -163,31 +244,125 @@ function offlineQuizRuntime(DATA) {
     summary.appendChild(indicator);
     details.appendChild(summary);
     let activeField = null;
-    for (const [field, labelText] of [
-      ["explanation", "Spiegazione"],
-      ["observations", "Osservazioni"],
-    ]) {
-      const label = document.createElement("label");
-      label.className = "note-field";
-      label.append(labelText);
-      const textarea = document.createElement("textarea");
-      textarea.value = saved[field] || "";
-      textarea.placeholder =
-        field === "explanation"
-          ? "Scrivi il procedimento o il motivo della risposta…"
-          : "Aggiungi dubbi, collegamenti o promemoria…";
-      textarea.addEventListener("focus", () => {
-        activeField = textarea;
-      });
-      textarea.addEventListener("input", () => {
-        details.dataset.hasNotes = String(
-          saveNote(question, field, textarea.value),
-        );
-      });
-      label.appendChild(textarea);
-      details.appendChild(label);
-      if (!activeField) activeField = textarea;
+    let selectedRange = null;
+    const rememberSelection = () => {
+      const selection = window.getSelection();
+      if (activeField && selection.rangeCount && activeField.contains(selection.anchorNode) &&
+          activeField.contains(selection.focusNode)) selectedRange = selection.getRangeAt(0).cloneRange();
+    };
+    function runCommand(editor, command, value) {
+      editor.focus();
+      if (selectedRange && editor.contains(selectedRange.commonAncestorContainer)) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+      }
+      document.execCommand(command, false, value);
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+      rememberSelection();
     }
+    function wrapSelection(editor, className, key, value) {
+      if (!selectedRange || selectedRange.collapsed || !editor.contains(selectedRange.commonAncestorContainer)) return;
+      const range = selectedRange.cloneRange();
+      if (range.startContainer.parentElement?.closest("div,li,p") !==
+          range.endContainer.parentElement?.closest("div,li,p")) return;
+      if (className === "highlight") {
+        const startHighlight = range.startContainer.parentElement?.closest(".highlight");
+        const endHighlight = range.endContainer.parentElement?.closest(".highlight");
+        if (startHighlight && startHighlight === endHighlight &&
+            editor.contains(startHighlight) && range.toString() === startHighlight.textContent) {
+          startHighlight.dataset.color = value;
+          editor.dispatchEvent(new Event("input", { bubbles: true }));
+          selectedRange = null;
+          return;
+        }
+      }
+      const wrapper = document.createElement("span");
+      wrapper.className = className;
+      if (key) wrapper.dataset[key] = value;
+      try {
+        const contents = range.extractContents();
+        if (className === "highlight") {
+          // Keep bold/italic and other markup, but discard older colors in this selection.
+          for (const old of contents.querySelectorAll("span.highlight")) {
+            old.replaceWith(...old.childNodes);
+          }
+        }
+        wrapper.appendChild(contents);
+        range.insertNode(wrapper);
+        // If the selection was inside one existing highlight, split it around
+        // the replacement so the old color does not remain underneath it.
+        const oldParent = wrapper.parentElement;
+        if (className === "highlight" && oldParent?.classList.contains("highlight")) {
+          const before = oldParent.cloneNode(false);
+          const after = oldParent.cloneNode(false);
+          while (oldParent.firstChild !== wrapper) before.appendChild(oldParent.firstChild);
+          wrapper.remove();
+          while (oldParent.firstChild) after.appendChild(oldParent.firstChild);
+          oldParent.replaceWith(
+            ...(before.hasChildNodes() ? [before] : []),
+            wrapper,
+            ...(after.hasChildNodes() ? [after] : []),
+          );
+        }
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+        selectedRange = null;
+      } catch { /* Selection crossed incompatible blocks. */ }
+    }
+    function button(bar, title, action) {
+      const item = document.createElement("button");
+      item.type = "button";
+      const short = {
+        Grassetto: "B", Corsivo: "I", Sottolineato: "U", Barrato: "S",
+        "Elenco puntato": "•", "Elenco numerato": "1.", Apice: "x²",
+        Pedice: "x₂", Annulla: "↶", Ripristina: "↷",
+        "Rimuovi formattazione": "Tx", "Nascondi per ripasso": "🙈 Nascondi",
+        Checklist: "☐", "Callout Importante": "💡", "Callout Attenzione": "⚠",
+        "Callout Da ripassare": "🔁", "Evidenzia yellow": "🖍 Giallo",
+        "Evidenzia green": "Verde", "Evidenzia blue": "Azzurro",
+        "Evidenzia pink": "Rosa",
+      };
+      item.textContent = short[title] || title;
+      item.title = title;
+      item.setAttribute("aria-label", title);
+      item.addEventListener("mousedown", (event) => event.preventDefault());
+      item.onclick = () => { if (activeField) action(activeField); };
+      bar.appendChild(item);
+    }
+    const activeCaption = document.createElement("p");
+    activeCaption.className = "active-note-field";
+    activeCaption.textContent = "Formattazione: Spiegazione";
+    details.appendChild(activeCaption);
+    const tools = document.createElement("div");
+    tools.className = "editor-tools";
+    tools.setAttribute("aria-label", "Formattazione degli appunti");
+    for (const [name, command] of [
+      ["Grassetto", "bold"], ["Corsivo", "italic"], ["Sottolineato", "underline"],
+      ["Barrato", "strikeThrough"], ["Elenco puntato", "insertUnorderedList"],
+      ["Elenco numerato", "insertOrderedList"], ["Apice", "superscript"], ["Pedice", "subscript"],
+      ["Annulla", "undo"], ["Ripristina", "redo"], ["Rimuovi formattazione", "removeFormat"],
+    ]) button(tools, name, (target) => runCommand(target, command));
+    for (const color of ["yellow", "green", "blue", "pink"]) {
+      button(tools, "Evidenzia " + color, (target) => wrapSelection(target, "highlight", "color", color));
+    }
+    button(tools, "Nascondi per ripasso", (target) => wrapSelection(target, "study-mask"));
+    button(tools, "Checklist", (target) => {
+      runCommand(target, "insertUnorderedList");
+      const list = target.querySelector("ul:last-of-type");
+      if (list) { list.classList.add("checklist"); target.dispatchEvent(new Event("input", { bubbles: true })); }
+    });
+    for (const [kind, title] of [["important", "Importante"], ["attention", "Attenzione"], ["review", "Da ripassare"]]) {
+      button(tools, "Callout " + title, (target) => {
+        runCommand(target, "formatBlock", "div");
+        const block = window.getSelection()?.anchorNode?.parentElement?.closest("div");
+        if (block && target.contains(block) && block !== target) {
+          block.className = "callout";
+          block.dataset.kind = kind;
+          target.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+    }
+    details.appendChild(tools);
     const bar = document.createElement("div");
     bar.className = "symbol-bar";
     bar.setAttribute("aria-label", "Simboli matematici");
@@ -200,15 +375,72 @@ function offlineQuizRuntime(DATA) {
       button.addEventListener("click", () => {
         const field = activeField;
         if (!field) return;
-        const start = field.selectionStart;
-        const end = field.selectionEnd;
-        field.setRangeText(symbol, start, end, "end");
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-        field.focus();
+        runCommand(field, "insertText", symbol);
       });
       bar.appendChild(button);
     }
     details.appendChild(bar);
+    for (const [field, labelText] of [
+      ["explanation", "Spiegazione"],
+      ["observations", "Osservazioni"],
+    ]) {
+      const label = document.createElement("div");
+      label.className = "note-field";
+      const heading = document.createElement("span");
+      heading.textContent = labelText;
+      label.appendChild(heading);
+      const editor = document.createElement("div");
+      editor.className = "note-editor";
+      editor.contentEditable = "true";
+      editor.setAttribute("role", "textbox");
+      editor.setAttribute("aria-label", labelText);
+      editor.setAttribute("aria-multiline", "true");
+      editor.dataset.placeholder =
+        field === "explanation"
+          ? "Scrivi il procedimento o il motivo della risposta…"
+          : "Aggiungi dubbi, collegamenti o promemoria…";
+      if (saved[field + "Html"]) editor.innerHTML = cleanHtml(saved[field + "Html"]);
+      else editor.textContent = saved[field] || "";
+      editor.addEventListener("focus", () => {
+        activeField = editor;
+        activeCaption.textContent = "Formattazione: " + labelText;
+      });
+      editor.addEventListener("keyup", rememberSelection);
+      editor.addEventListener("mouseup", rememberSelection);
+      editor.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+        const command = { b: "bold", i: "italic", u: "underline" }[event.key.toLowerCase()];
+        if (!command) return;
+        event.preventDefault();
+        activeField = editor;
+        rememberSelection();
+        runCommand(editor, command);
+      });
+      editor.addEventListener("paste", (event) => {
+        event.preventDefault();
+        document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+      });
+      editor.addEventListener("click", (event) => {
+        const mask = event.target.closest(".study-mask");
+        if (mask && editor.contains(mask)) {
+          mask.classList.toggle("revealed");
+          return;
+        }
+        const item = event.target.closest(".checklist > li");
+        if (item && editor.contains(item) && event.clientX < item.getBoundingClientRect().left) {
+          item.classList.toggle("checked");
+          editor.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+      editor.addEventListener("input", () => {
+        details.dataset.hasNotes = String(
+          saveNote(question, field + "Html", cleanHtml(editor.innerHTML)),
+        );
+      });
+      label.appendChild(editor);
+      details.appendChild(label);
+      if (!activeField) activeField = editor;
+    }
     return details;
   }
   function render() {
@@ -218,12 +450,31 @@ function offlineQuizRuntime(DATA) {
     const questions = byId("shuffleQuestions").checked
       ? shuffled(test.questions)
       : [...test.questions];
+    const visible = filter === "all" ? questions.map((question) => ({ question, chapter: test.chapterTitle }))
+      : DATA.tests.flatMap((part) => part.questions.filter((question) => {
+          const entry = notes.get(question.noteKey) || {};
+          return filter === "observations" ? hasText(entry.observationsHtml || entry.observations) : entry.status === filter;
+        }).map((question) => ({ question, chapter: part.chapterTitle })));
+    if (filter !== "all") byId("chapterTitle").textContent = "Domande filtrate — " + byId("reviewFilter").selectedOptions[0].textContent;
+    byId("check").disabled = filter !== "all";
+    byId("reset").disabled = filter !== "all";
     const container = byId("questions");
     container.replaceChildren();
-    questions.forEach((question, qIndex) => {
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.textContent = "Nessuna domanda per questo filtro.";
+      container.appendChild(empty);
+    }
+    visible.forEach(({ question, chapter }, qIndex) => {
       const card = document.createElement("section");
       card.className = "question";
       card.dataset.correct = question.correctPosition;
+      if (filter !== "all") {
+        const location = document.createElement("small");
+        location.className = "question-chapter";
+        location.textContent = chapter;
+        card.appendChild(location);
+      }
       const h = document.createElement("h3");
       h.textContent =
         qIndex + 1 + ". " + (question.question || "Domanda in immagine");
@@ -257,10 +508,12 @@ function offlineQuizRuntime(DATA) {
       const feedback = document.createElement("div");
       feedback.className = "feedback";
       card.appendChild(feedback);
+      card.appendChild(reviewControl(question));
       card.appendChild(noteEditor(question));
       container.appendChild(card);
     });
     if (byId("showSolutions").checked) reveal(false);
+    updateReview();
     score();
   }
   function reveal(record = true) {
@@ -323,6 +576,7 @@ function offlineQuizRuntime(DATA) {
     byId("showSolutions").checked ? reveal(false) : render();
   byId("shuffleQuestions").onchange = render;
   byId("shuffleAnswers").onchange = render;
+  byId("reviewFilter").onchange = (event) => { filter = event.target.value; render(); };
   mountThemeControl();
   render();
 }
