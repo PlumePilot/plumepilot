@@ -266,12 +266,45 @@ function offlineQuizRuntime(DATA) {
       const range = selectedRange.cloneRange();
       if (range.startContainer.parentElement?.closest("div,li,p") !==
           range.endContainer.parentElement?.closest("div,li,p")) return;
+      if (className === "highlight") {
+        const startHighlight = range.startContainer.parentElement?.closest(".highlight");
+        const endHighlight = range.endContainer.parentElement?.closest(".highlight");
+        if (startHighlight && startHighlight === endHighlight &&
+            editor.contains(startHighlight) && range.toString() === startHighlight.textContent) {
+          startHighlight.dataset.color = value;
+          editor.dispatchEvent(new Event("input", { bubbles: true }));
+          selectedRange = null;
+          return;
+        }
+      }
       const wrapper = document.createElement("span");
       wrapper.className = className;
       if (key) wrapper.dataset[key] = value;
       try {
-        wrapper.appendChild(range.extractContents());
+        const contents = range.extractContents();
+        if (className === "highlight") {
+          // Keep bold/italic and other markup, but discard older colors in this selection.
+          for (const old of contents.querySelectorAll("span.highlight")) {
+            old.replaceWith(...old.childNodes);
+          }
+        }
+        wrapper.appendChild(contents);
         range.insertNode(wrapper);
+        // If the selection was inside one existing highlight, split it around
+        // the replacement so the old color does not remain underneath it.
+        const oldParent = wrapper.parentElement;
+        if (className === "highlight" && oldParent?.classList.contains("highlight")) {
+          const before = oldParent.cloneNode(false);
+          const after = oldParent.cloneNode(false);
+          while (oldParent.firstChild !== wrapper) before.appendChild(oldParent.firstChild);
+          wrapper.remove();
+          while (oldParent.firstChild) after.appendChild(oldParent.firstChild);
+          oldParent.replaceWith(
+            ...(before.hasChildNodes() ? [before] : []),
+            wrapper,
+            ...(after.hasChildNodes() ? [after] : []),
+          );
+        }
         editor.dispatchEvent(new Event("input", { bubbles: true }));
         selectedRange = null;
       } catch { /* Selection crossed incompatible blocks. */ }
@@ -374,6 +407,15 @@ function offlineQuizRuntime(DATA) {
       });
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
+      editor.addEventListener("keydown", (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+        const command = { b: "bold", i: "italic", u: "underline" }[event.key.toLowerCase()];
+        if (!command) return;
+        event.preventDefault();
+        activeField = editor;
+        rememberSelection();
+        runCommand(editor, command);
+      });
       editor.addEventListener("paste", (event) => {
         event.preventDefault();
         document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
