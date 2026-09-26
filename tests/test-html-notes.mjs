@@ -26,6 +26,9 @@ if(!html.includes('cleanHtml(saved[field + "Html"])'))throw new Error('formatted
 if(!html.includes('editor.textContent = saved[field] || ""'))throw new Error('legacy plain text notes not supported');
 if(!html.includes('filter === "observations"'))throw new Error('observations filter missing');
 if(!html.includes('Nascondi per ripasso'))throw new Error('study mask missing');
+if((runtimeSource.match(/document\.createElement\("div"\);\s*tools\.className = "editor-tools"/g)||[]).length!==1)throw new Error('expected one shared note toolbar');
+if(!html.includes('activeCaption.textContent = "Formattazione: " + labelText'))throw new Error('active note field not indicated');
+if(!html.includes('🟢 Verificata')||!html.includes('🟡 Da rivedere')||!html.includes('🔴 Da verificare'))throw new Error('colored personal review options missing');
 if(!html.includes('--note-border:#4f8a68'))throw new Error('missing sage-green saved-note style');
 if(!html.includes('data-theme="auto"'))throw new Error('automatic theme must be the default');
 if(!html.includes('["auto", "Automatico"]')||!html.includes('["dark", "Scuro"]'))throw new Error('missing theme choices');

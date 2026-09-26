@@ -17,7 +17,7 @@ function offlineQuizRuntime(DATA) {
   const notes = new Map(
     Object.entries(decodeNotes(byId("notes-data").textContent || "e30=")),
   );
-  const statuses = { verified: "Verificata", review: "Da rivedere", verify: "Da verificare" };
+  const statuses = { verified: "🟢 Verificata", review: "🟡 Da rivedere", verify: "🔴 Da verificare" };
   let filter = "all";
   const hasText = (value) => Boolean(value && value.replace(/<[^>]*>/g, "").trim());
   const hasNotes = (note) => Boolean(note && (
@@ -213,8 +213,14 @@ function offlineQuizRuntime(DATA) {
       option.textContent = text;
       select.appendChild(option);
     }
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.setAttribute("aria-hidden", "true");
+    label.appendChild(dot);
     select.value = notes.get(question.noteKey)?.status || "";
+    label.dataset.status = select.value;
     select.onchange = () => {
+      label.dataset.status = select.value;
       saveNote(question, "status", select.value);
       if (filter !== "all") render();
     };
@@ -290,6 +296,57 @@ function offlineQuizRuntime(DATA) {
       item.onclick = () => { if (activeField) action(activeField); };
       bar.appendChild(item);
     }
+    const activeCaption = document.createElement("p");
+    activeCaption.className = "active-note-field";
+    activeCaption.textContent = "Formattazione: Spiegazione";
+    details.appendChild(activeCaption);
+    const tools = document.createElement("div");
+    tools.className = "editor-tools";
+    tools.setAttribute("aria-label", "Formattazione degli appunti");
+    for (const [name, command] of [
+      ["Grassetto", "bold"], ["Corsivo", "italic"], ["Sottolineato", "underline"],
+      ["Barrato", "strikeThrough"], ["Elenco puntato", "insertUnorderedList"],
+      ["Elenco numerato", "insertOrderedList"], ["Apice", "superscript"], ["Pedice", "subscript"],
+      ["Annulla", "undo"], ["Ripristina", "redo"], ["Rimuovi formattazione", "removeFormat"],
+    ]) button(tools, name, (target) => runCommand(target, command));
+    for (const color of ["yellow", "green", "blue", "pink"]) {
+      button(tools, "Evidenzia " + color, (target) => wrapSelection(target, "highlight", "color", color));
+    }
+    button(tools, "Nascondi per ripasso", (target) => wrapSelection(target, "study-mask"));
+    button(tools, "Checklist", (target) => {
+      runCommand(target, "insertUnorderedList");
+      const list = target.querySelector("ul:last-of-type");
+      if (list) { list.classList.add("checklist"); target.dispatchEvent(new Event("input", { bubbles: true })); }
+    });
+    for (const [kind, title] of [["important", "Importante"], ["attention", "Attenzione"], ["review", "Da ripassare"]]) {
+      button(tools, "Callout " + title, (target) => {
+        runCommand(target, "formatBlock", "div");
+        const block = window.getSelection()?.anchorNode?.parentElement?.closest("div");
+        if (block && target.contains(block) && block !== target) {
+          block.className = "callout";
+          block.dataset.kind = kind;
+          target.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      });
+    }
+    details.appendChild(tools);
+    const bar = document.createElement("div");
+    bar.className = "symbol-bar";
+    bar.setAttribute("aria-label", "Simboli matematici");
+    for (const symbol of symbols) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = symbol;
+      button.title = "Inserisci " + symbol;
+      button.addEventListener("mousedown", (event) => event.preventDefault());
+      button.addEventListener("click", () => {
+        const field = activeField;
+        if (!field) return;
+        runCommand(field, "insertText", symbol);
+      });
+      bar.appendChild(button);
+    }
+    details.appendChild(bar);
     for (const [field, labelText] of [
       ["explanation", "Spiegazione"],
       ["observations", "Osservazioni"],
@@ -313,6 +370,7 @@ function offlineQuizRuntime(DATA) {
       else editor.textContent = saved[field] || "";
       editor.addEventListener("focus", () => {
         activeField = editor;
+        activeCaption.textContent = "Formattazione: " + labelText;
       });
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
@@ -337,56 +395,10 @@ function offlineQuizRuntime(DATA) {
           saveNote(question, field + "Html", cleanHtml(editor.innerHTML)),
         );
       });
-      const tools = document.createElement("div");
-      tools.className = "editor-tools";
-      tools.setAttribute("aria-label", "Formattazione " + labelText);
-      for (const [name, command] of [
-        ["Grassetto", "bold"], ["Corsivo", "italic"], ["Sottolineato", "underline"],
-        ["Barrato", "strikeThrough"], ["Elenco puntato", "insertUnorderedList"],
-        ["Elenco numerato", "insertOrderedList"], ["Apice", "superscript"], ["Pedice", "subscript"],
-        ["Annulla", "undo"], ["Ripristina", "redo"], ["Rimuovi formattazione", "removeFormat"],
-      ]) button(tools, name, (target) => runCommand(target, command));
-      for (const color of ["yellow", "green", "blue", "pink"]) {
-        button(tools, "Evidenzia " + color, (target) => wrapSelection(target, "highlight", "color", color));
-      }
-      button(tools, "Nascondi per ripasso", (target) => wrapSelection(target, "study-mask"));
-      button(tools, "Checklist", (target) => {
-        runCommand(target, "insertUnorderedList");
-        const list = target.querySelector("ul:last-of-type");
-        if (list) { list.classList.add("checklist"); target.dispatchEvent(new Event("input", { bubbles: true })); }
-      });
-      for (const [kind, title] of [["important", "Importante"], ["attention", "Attenzione"], ["review", "Da ripassare"]]) {
-        button(tools, "Callout " + title, (target) => {
-          runCommand(target, "formatBlock", "div");
-          const block = window.getSelection()?.anchorNode?.parentElement?.closest("div");
-          if (block && target.contains(block) && block !== target) {
-            block.className = "callout";
-            block.dataset.kind = kind;
-            target.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        });
-      }
-      label.append(tools, editor);
+      label.appendChild(editor);
       details.appendChild(label);
       if (!activeField) activeField = editor;
     }
-    const bar = document.createElement("div");
-    bar.className = "symbol-bar";
-    bar.setAttribute("aria-label", "Simboli matematici");
-    for (const symbol of symbols) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = symbol;
-      button.title = "Inserisci " + symbol;
-      button.addEventListener("mousedown", (event) => event.preventDefault());
-      button.addEventListener("click", () => {
-        const field = activeField;
-        if (!field) return;
-        runCommand(field, "insertText", symbol);
-      });
-      bar.appendChild(button);
-    }
-    details.appendChild(bar);
     return details;
   }
   function render() {
