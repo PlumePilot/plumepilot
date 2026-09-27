@@ -261,6 +261,85 @@ function offlineQuizRuntime(DATA) {
       editor.dispatchEvent(new Event("input", { bubbles: true }));
       rememberSelection();
     }
+    function currentNode(editor) {
+      const selection = window.getSelection();
+      if (!selection.rangeCount || !editor.contains(selection.anchorNode)) return null;
+      const node = selection.anchorNode;
+      return node.nodeType === 1 ? node : node.parentElement;
+    }
+    function splitChecklist(editor) {
+      const item = currentNode(editor)?.closest("li");
+      const list = item?.parentElement;
+      if (!list?.matches("ul.checklist") || !editor.contains(list)) return;
+      const normal = document.createElement("ul");
+      const remainder = list.cloneNode(false);
+      let sibling = item.nextSibling;
+      while (sibling) {
+        const next = sibling.nextSibling;
+        remainder.appendChild(sibling);
+        sibling = next;
+      }
+      item.classList.remove("checked");
+      normal.appendChild(item);
+      list.after(normal);
+      if (remainder.hasChildNodes()) normal.after(remainder);
+      if (!list.hasChildNodes()) list.remove();
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    function insertNormalBlock(editor, block) {
+      const paragraph = document.createElement("div");
+      paragraph.appendChild(document.createElement("br"));
+      block.after(paragraph);
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(paragraph);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      selectedRange = range.cloneRange();
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    function applyCallout(editor, kind) {
+      editor.focus();
+      if (selectedRange && editor.contains(selectedRange.commonAncestorContainer)) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+      }
+      const selection = window.getSelection();
+      if (!selection.rangeCount || !editor.contains(selection.anchorNode)) return;
+      const node = currentNode(editor);
+      const existing = node?.closest(".callout");
+      if (existing && editor.contains(existing)) {
+        if (existing.dataset.kind === kind) {
+          existing.classList.remove("callout");
+          delete existing.dataset.kind;
+        } else existing.dataset.kind = kind;
+      } else if (selection.isCollapsed) {
+        // An empty selection creates a new callout; it never formats a previous block.
+        const block = node.closest("div,p,ul,ol");
+        const callout = document.createElement("div");
+        callout.className = "callout";
+        callout.dataset.kind = kind;
+        callout.appendChild(document.createElement("br"));
+        if (block && block !== editor && editor.contains(block)) block.after(callout);
+        else editor.appendChild(callout);
+        const range = document.createRange();
+        range.selectNodeContents(callout);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        document.execCommand("formatBlock", false, "div");
+        const block = currentNode(editor)?.closest("div");
+        if (block && block !== editor && editor.contains(block)) {
+          block.className = "callout";
+          block.dataset.kind = kind;
+        }
+      }
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+      rememberSelection();
+    }
     function wrapSelection(editor, className, key, value) {
       if (!selectedRange || selectedRange.collapsed || !editor.contains(selectedRange.commonAncestorContainer)) return;
       const range = selectedRange.cloneRange();
@@ -341,26 +420,25 @@ function offlineQuizRuntime(DATA) {
       ["Barrato", "strikeThrough"], ["Elenco puntato", "insertUnorderedList"],
       ["Elenco numerato", "insertOrderedList"], ["Apice", "superscript"], ["Pedice", "subscript"],
       ["Annulla", "undo"], ["Ripristina", "redo"], ["Rimuovi formattazione", "removeFormat"],
-    ]) button(tools, name, (target) => runCommand(target, command));
+    ]) button(tools, name, (target) => {
+      if (command === "insertUnorderedList" && currentNode(target)?.closest("ul.checklist")) {
+        splitChecklist(target);
+        return;
+      }
+      runCommand(target, command);
+      if (command === "insertUnorderedList") splitChecklist(target);
+    });
     for (const color of ["yellow", "green", "blue", "pink"]) {
       button(tools, "Evidenzia " + color, (target) => wrapSelection(target, "highlight", "color", color));
     }
     button(tools, "Nascondi per ripasso", (target) => wrapSelection(target, "study-mask"));
     button(tools, "Checklist", (target) => {
-      runCommand(target, "insertUnorderedList");
-      const list = target.querySelector("ul:last-of-type");
+      if (!currentNode(target)?.closest("ul")) runCommand(target, "insertUnorderedList");
+      const list = currentNode(target)?.closest("ul");
       if (list) { list.classList.add("checklist"); target.dispatchEvent(new Event("input", { bubbles: true })); }
     });
     for (const [kind, title] of [["important", "Importante"], ["attention", "Attenzione"], ["review", "Da ripassare"]]) {
-      button(tools, "Callout " + title, (target) => {
-        runCommand(target, "formatBlock", "div");
-        const block = window.getSelection()?.anchorNode?.parentElement?.closest("div");
-        if (block && target.contains(block) && block !== target) {
-          block.className = "callout";
-          block.dataset.kind = kind;
-          target.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-      });
+      button(tools, "Callout " + title, (target) => applyCallout(target, kind));
     }
     details.appendChild(tools);
     const bar = document.createElement("div");
@@ -386,7 +464,7 @@ function offlineQuizRuntime(DATA) {
     shortcutSummary.textContent = "Scorciatoie da tastiera";
     shortcutHelp.appendChild(shortcutSummary);
     const shortcutList = document.createElement("p");
-    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Esc interrompe formati e colore. Elenchi e altri strumenti sono disponibili nella barra.";
+    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Esc interrompe formati e colore. Un altro clic sullo stesso callout lo rimuove; Invio alla fine del callout apre un paragrafo normale. Elenchi e altri strumenti sono disponibili nella barra.";
     shortcutHelp.appendChild(shortcutList);
     details.appendChild(shortcutHelp);
     for (const [field, labelText] of [
@@ -417,6 +495,19 @@ function offlineQuizRuntime(DATA) {
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
       editor.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+          const block = currentNode(editor)?.closest(".callout");
+          if (block && editor.contains(block)) {
+            const selection = window.getSelection();
+            const remaining = selection.getRangeAt(0).cloneRange();
+            remaining.setEnd(block, block.childNodes.length);
+            if (!remaining.toString().trim()) {
+              event.preventDefault();
+              insertNormalBlock(editor, block);
+              return;
+            }
+          }
+        }
         if (event.key === "Escape") {
           const selection = window.getSelection();
           if (selection.rangeCount && editor.contains(selection.anchorNode)) {
