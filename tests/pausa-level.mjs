@@ -31,12 +31,12 @@ for (const [name, width, height] of [
 
 // The course may offer risky pickups, but no collectible should sit inside
 // the opaque area of a hazard at the moment both reach the same x.
-const H = 540, PX = 226, SPEED = 198;
+const H = 400, PX = 226, SPEED = 198;
 for (const hazard of hazards) {
   const bounds = hazard.type === "books"
-    ? [PX - 26, 509 - hazard.count * 36, 52, hazard.count * 36]
+    ? [PX - 32.5, 382 - hazard.count * 45, 65, hazard.count * 45]
     : hazard.type === "cloud"
-      ? [PX - 26, 55, 52, hazard.count * 36]
+      ? [PX - 32.5, 18, 65, hazard.count * 45]
       : [PX - 20, ({ high: .27, middle: .5, low: .73 })[hazard.lane] * H - 20, 40, 40];
   for (const item of collectibles) {
     const x = PX + (item.time - hazard.time) * SPEED, y = item.y * H;
@@ -47,8 +47,8 @@ for (const hazard of hazards) {
 }
 for (const book of hazards.filter((item) => item.type === "books")) {
   for (const cloud of hazards.filter((item) => item.type === "cloud" && Math.abs(item.time - book.time) < 1.2)) {
-    const gap = 509 - book.count * 36 - (55 + cloud.count * 36);
-    assert.ok(gap >= 180, `Narrow corridor near ${book.time}s / ${cloud.time}s`);
+    const gap = 382 - book.count * 45 - (18 + cloud.count * 45);
+    assert.ok(gap >= 100, `Narrow corridor near ${book.time}s / ${cloud.time}s`);
   }
 }
 console.log("Pausa? deterministic level: 18 beats, 90 objects, 30 per type, safe intro and clear pickups.");

@@ -4,7 +4,7 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height, PX = 226, SPEED = 198;
-  const UNIT_W = 52, UNIT_H = 36, SKY_TOP = 55, FLOOR = H - 31;
+  const UNIT_W = 65, UNIT_H = 45, SKY_TOP = 18, FLOOR = H - 18;
   const PENCIL_Y = { high: H * .27, middle: H * .50, low: H * .73 };
   const CHIRP_TIMES = [13.5, 39, 64, 83];
   const overlay = document.getElementById("overlay");
@@ -116,7 +116,7 @@
     for (const kind of Object.keys(totals)) totals[kind] = 0;
     updateHud(); state = "playing"; overlay.hidden = true;
   }
-  function close() { window.close(); }
+  function close() { state = "closed"; audioContext?.close(); window.close(); }
   function pause() {
     if (state === "playing") {
       state = "paused";
@@ -140,11 +140,14 @@
     document.getElementById("time").textContent = `${Math.max(0, Math.ceil(level.duration - elapsed))} s`;
   }
   function flap() { if (state === "playing") velocity = Math.max(-245, velocity - 175); }
-  function collide(x, cy, radius = 22) { return Math.hypot(x - PX, cy - y) < radius + 17; }
-  function circleRect(x0, y0, width, height, radius = 17) {
+  function collide(x, cy, radius = 22) { return Math.hypot(x - PX, cy - y) < radius + 14; }
+  function circleRect(x0, y0, width, height, radius = 14) {
     const nearestX = Math.max(x0, Math.min(PX, x0 + width));
     const nearestY = Math.max(y0, Math.min(y, y0 + height));
     return Math.hypot(PX - nearestX, y - nearestY) < radius;
+  }
+  function hazardX(item) {
+    return PX + (item.time - elapsed) * (item.type === "pencil" ? 280 : SPEED);
   }
   function hazardBounds(item, x, frame = 0) {
     if (item.type === "books") return [x - UNIT_W / 2, FLOOR - item.count * UNIT_H, UNIT_W, item.count * UNIT_H];
@@ -168,8 +171,8 @@
     }
     velocity = Math.min(260, velocity + 450 * dt);
     y += velocity * dt;
-    if (y < 82) { y = 82; velocity = Math.max(0, velocity); }
-    if (y > H - 75) { y = H - 75; velocity = 0; }
+    if (y < 42) { y = 42; velocity = Math.max(0, velocity); }
+    if (y > FLOOR - 25) { y = FLOOR - 25; velocity = 0; }
     invulnerable = Math.max(0, invulnerable - dt);
     level.collectibles.forEach((item, index) => {
       if (taken.has(index)) return;
@@ -182,7 +185,7 @@
       }
     });
     level.hazards.forEach((item, index) => {
-      const x = PX + (item.time - elapsed) * SPEED;
+      const x = hazardX(item);
       if (x < PX - 60 || x > PX + 80 || hitHazards.has(index)) return;
       const bounds = hazardBounds(item, x, Math.floor(elapsed * 7) % 4);
       if (circleRect(...bounds)) hit(index);
@@ -209,9 +212,9 @@
     ctx.fillStyle = dark ? "#29375d" : "#d5ecfa";
     for (let i = 0; i < 7; i += 1) {
       const x = ((i * 257 - elapsed * 18) % 1250 + 1250) % 1250 - 120;
-      ctx.beginPath(); ctx.ellipse(x, 360 + i % 3 * 52, 110, 28, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x, H * .67 + i % 3 * 38, 110, 28, 0, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = dark ? "#4a5d82" : "#83bfc2"; ctx.fillRect(0, H - 31, W, 31);
+    ctx.fillStyle = dark ? "#4a5d82" : "#83bfc2"; ctx.fillRect(0, FLOOR, W, H - FLOOR);
     level.collectibles.forEach((item, index) => {
       if (taken.has(index)) return;
       const x = PX + (item.time - elapsed) * SPEED, cy = item.y * H;
@@ -223,7 +226,7 @@
       } else rounded(x - 20, cy - 20, 40, 40, 5, "#f8de78");
     });
     level.hazards.forEach((item, index) => {
-      const x = PX + (item.time - elapsed) * SPEED;
+      const x = hazardX(item);
       if (x < -70 || x > W + 70) return;
       ctx.globalAlpha = hitHazards.has(index) ? .4 : 1;
       const sprite = art[item.type];
@@ -250,7 +253,7 @@
     const sprite = sprites[dark ? "dark" : "light"];
     if (sprite.complete && sprite.naturalWidth) {
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sprite, Math.floor(elapsed * 7) % 5 * 32, 0, 32, 32, PX - 42, y - 42, 84, 84);
+      ctx.drawImage(sprite, Math.floor(elapsed * 7) % 5 * 32, 0, 32, 32, PX - 32, y - 32, 64, 64);
     } else { rounded(PX - 20, y - 20, 40, 40, 10, "#7655b9"); }
     ctx.globalAlpha = 1;
     if (flash && flashUntil > elapsed) {
@@ -265,7 +268,9 @@
   }
   function frame(now) {
     const dt = Math.min(.05, (now - (lastFrame || now)) / 1000);
-    lastFrame = now; tick(dt); render(); requestAnimationFrame(frame);
+    lastFrame = now;
+    if (state === "closed") return;
+    tick(dt); render(); requestAnimationFrame(frame);
   }
   document.addEventListener("visibilitychange", () => { if (document.hidden && state === "playing") pause(); lastFrame = performance.now(); });
   window.addEventListener("keydown", (event) => {

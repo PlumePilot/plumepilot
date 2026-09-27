@@ -37,7 +37,7 @@
     }
   }
   // Books rise from the ground, clouds descend from the sky. Each unit is a
-  // 13×9 sprite shown at 4× (52×36). Pencil flies straight in one of three
+  // 13×9 sprite shown at 5× (65×45). Pencil flies straight in one of three
   // lanes; its rotation changes appearance, never its route.
   const hazards = [
     { time: 18.2, type: "books", count: 2 },

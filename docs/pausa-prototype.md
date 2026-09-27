@@ -1,4 +1,4 @@
-# Pausa? — seconda prova giocabile
+# Pausa? — terza prova giocabile
 
 Questa prova parte da PlumePilot `main` 2.34.0 e dal primo graybox. Si apre da **Preferenze → Pausa?** nel popup. È un livello unico da 90 secondi, senza EXP, salvataggio del risultato o Game Over.
 
@@ -44,3 +44,7 @@ Il tema segue la preferenza dell'estensione. Sole/luna partono davanti a Plume e
 ## Prossimo playtest
 
 Valutare la leggibilità degli sprite alla scala scelta, il margine del passaggio fra libri e nuvole a 76–77 s, la quota della matita centrale a 74,7 s, la frequenza degli urti e la raggiungibilità delle curve di collezionabili. Se la parte finale risulta troppo affollata, spostare tempi e altezze senza cambiare i totali 30/30/30.
+
+## Ritocco dopo il secondo playtest
+
+Campo logico 960×400 (prima 960×540), Plume 64×64 con raggio di collisione 14, unità libro/nuvola 65×45. Questo dà maggiore peso agli ostacoli. La matita percorre lo schermo a 280 px/s mentre il resto scorre a 198 px/s; la sua quota rimane fissa. Gli elementi fuori schermo non vengono disegnati, mentre i dati finiti del livello restano disponibili per Riprova. La chiusura ferma il loop e chiude l'audio; la pagina chiusa libera lo stato della partita.
