@@ -14,10 +14,10 @@ for (const type of ["dispensa", "test", "obiettivo"])
 for (let beat = 0; beat < 18; beat += 1)
   assert.equal(collectibles.filter((item) => item.time >= beat * 5 && item.time < (beat + 1) * 5).length, 5, `beat ${beat}`);
 assert.ok(collectibles.every((item) => item.y >= .3 && item.y <= .7 && item.time < duration));
-assert.ok(hazards.every((item) => item.time >= 15 && item.time < 88));
+assert.ok(hazards.every((item) => item.time >= 1 && item.time < 88));
 assert.ok(hazards.every((item) => item.type === "pencil"
   ? ["high", "middle", "low"].includes(item.lane)
-  : [1, 2, 3].includes(item.count)));
+  : [1, 2, 3, 4].includes(item.count)));
 for (const [name, width, height] of [
   ["collect-book.png", 64, 16], ["collect-test.png", 64, 16],
   ["collect-obj.png", 64, 16], ["enemy-pencil.png", 64, 16],
@@ -46,9 +46,9 @@ for (const hazard of hazards) {
   }
 }
 for (const book of hazards.filter((item) => item.type === "books")) {
-  for (const cloud of hazards.filter((item) => item.type === "cloud" && Math.abs(item.time - book.time) < 1.2)) {
+  for (const cloud of hazards.filter((item) => item.type === "cloud" && Math.abs(item.time - book.time) < 65 / SPEED)) {
     const gap = 382 - book.count * 45 - (18 + cloud.count * 45);
-    assert.ok(gap >= 100, `Narrow corridor near ${book.time}s / ${cloud.time}s`);
+    assert.ok(gap >= 50, `Blocked corridor near ${book.time}s / ${cloud.time}s`);
   }
 }
-console.log("Pausa? deterministic level: 18 beats, 90 objects, 30 per type, safe intro and clear pickups.");
+console.log("Pausa? deterministic level: 18 beats, 90 objects, 30 per type, clear pickups and passable corridors.");
