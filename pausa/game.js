@@ -4,6 +4,9 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height, PX = 226, SPEED = 198;
+  const UNIT_W = 52, UNIT_H = 36, SKY_TOP = 55, FLOOR = H - 31;
+  const PENCIL_Y = { high: H * .27, middle: H * .50, low: H * .73 };
+  const CHIRP_TIMES = [13.5, 39, 64, 83];
   const overlay = document.getElementById("overlay");
   const card = document.getElementById("card");
   const soundButton = document.getElementById("sound");
@@ -11,12 +14,29 @@
   const sprites = { light: new Image(), dark: new Image() };
   sprites.light.src = "../assets/gaming/mascot-idle-light.png";
   sprites.dark.src = "../assets/gaming/mascot-idle-dark.png";
+  const art = Object.fromEntries(Object.entries({
+    dispensa: "collect-book.png", test: "collect-test.png", obiettivo: "collect-obj.png",
+    books: "enemy-books.png", cloud: "enemy-cloud.png", pencil: "enemy-pencil.png",
+  }).map(([name, filename]) => {
+    const sprite = new Image(); sprite.src = `assets/${filename}`; return [name, sprite];
+  }));
+  // Fixed, uneven star positions; no random jump between animation frames.
+  const stars = [];
+  let seed = 3079;
+  while (stars.length < 29) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const sx = 28 + (seed % 905);
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const sy = 24 + (seed % 225);
+    if (stars.every(([x, y]) => Math.hypot(x - sx, y - sy) > 24)) stars.push([sx, sy]);
+  }
   const totals = { dispensa: 0, test: 0, obiettivo: 0 };
   const collected = [];
   let themePreference = "system", dark = systemTheme.matches;
   let soundEnabled = false, audioContext = null;
   let state = "ready", elapsed = 0, lastFrame = 0, y = H * .48, velocity = 0;
   let invulnerable = 0, flash = "", flashUntil = 0;
+  let nextChirp = 0;
   const hitHazards = new Set(), taken = new Set();
 
   function resolveTheme() {
@@ -67,6 +87,7 @@
     if (name === "test") tone(620, .055, "triangle");
     if (name === "obiettivo") { tone(660, .09); tone(880, .10, "sine", .07); }
     if (name === "hit") tone(150, .13, "triangle", 0, .05);
+    if (name === "chirp") { tone(1240, .045, "sine", 0, .032); tone(1580, .055, "sine", .052, .026); }
     if (name === "finish") { tone(523, .13); tone(659, .13, "sine", .13); tone(784, .22, "sine", .26); }
   }
   function show(title, body, buttons) {
@@ -90,7 +111,7 @@
         if (audioContext.state === "suspended") audioContext.resume();
       } catch { /* Audio is optional. */ }
     }
-    elapsed = 0; y = H * .48; velocity = 0; invulnerable = 0; flash = "";
+    elapsed = 0; y = H * .48; velocity = 0; invulnerable = 0; flash = ""; nextChirp = 0;
     taken.clear(); hitHazards.clear(); collected.length = 0;
     for (const kind of Object.keys(totals)) totals[kind] = 0;
     updateHud(); state = "playing"; overlay.hidden = true;
@@ -120,6 +141,17 @@
   }
   function flap() { if (state === "playing") velocity = Math.max(-245, velocity - 175); }
   function collide(x, cy, radius = 22) { return Math.hypot(x - PX, cy - y) < radius + 17; }
+  function circleRect(x0, y0, width, height, radius = 17) {
+    const nearestX = Math.max(x0, Math.min(PX, x0 + width));
+    const nearestY = Math.max(y0, Math.min(y, y0 + height));
+    return Math.hypot(PX - nearestX, y - nearestY) < radius;
+  }
+  function hazardBounds(item, x, frame = 0) {
+    if (item.type === "books") return [x - UNIT_W / 2, FLOOR - item.count * UNIT_H, UNIT_W, item.count * UNIT_H];
+    if (item.type === "cloud") return [x - UNIT_W / 2, SKY_TOP, UNIT_W, item.count * UNIT_H];
+    const vertical = frame % 2 === 1;
+    return [x - (vertical ? 6 : 20), PENCIL_Y[item.lane] - (vertical ? 20 : 6), vertical ? 12 : 40, vertical ? 40 : 12];
+  }
   function hit(index) {
     if (invulnerable > 0) return;
     hitHazards.add(index); invulnerable = 1.7; velocity = -155;
@@ -131,6 +163,9 @@
   function tick(dt) {
     if (state !== "playing") return;
     elapsed = Math.min(level.duration, elapsed + dt);
+    if (nextChirp < CHIRP_TIMES.length && elapsed >= CHIRP_TIMES[nextChirp]) {
+      effect("chirp"); nextChirp += 1;
+    }
     velocity = Math.min(260, velocity + 450 * dt);
     y += velocity * dt;
     if (y < 82) { y = 82; velocity = Math.max(0, velocity); }
@@ -140,7 +175,7 @@
       if (taken.has(index)) return;
       const x = PX + (item.time - elapsed) * SPEED;
       if (x < -30) { taken.add(index); return; }
-      if (collide(x, item.y * H, 21)) {
+      if (collide(x, item.y * H, 20)) {
         taken.add(index); totals[item.type] += 1; collected.push(item);
         flash = `+1 ${item.type}`; flashUntil = elapsed + .6;
         effect(item.type);
@@ -149,8 +184,8 @@
     level.hazards.forEach((item, index) => {
       const x = PX + (item.time - elapsed) * SPEED;
       if (x < PX - 60 || x > PX + 80 || hitHazards.has(index)) return;
-      const cy = item.type === "bug" ? (item.y + .045 * Math.sin(elapsed * 3 + index)) * H : item.y * H;
-      if (collide(x, cy, item.type === "bug" ? 17 : 36)) hit(index);
+      const bounds = hazardBounds(item, x, Math.floor(elapsed * 7) % 4);
+      if (circleRect(...bounds)) hit(index);
     });
     updateHud();
     if (elapsed >= level.duration) finish();
@@ -161,8 +196,8 @@
   function render() {
     ctx.fillStyle = dark ? "#1c2449" : "#a9def5"; ctx.fillRect(0, 0, W, H);
     if (dark) {
-      for (let i = 0; i < 25; i += 1) {
-        const sx = (i * 197 + 89) % W, sy = 35 + (i * 83) % 210;
+      for (let i = 0; i < stars.length; i += 1) {
+        const [sx, sy] = stars[i];
         ctx.fillStyle = i % 4 ? "#b9c8ff" : "#fff"; ctx.fillRect(sx, sy, i % 3 ? 2 : 3, i % 3 ? 2 : 3);
       }
     }
@@ -180,33 +215,34 @@
     level.collectibles.forEach((item, index) => {
       if (taken.has(index)) return;
       const x = PX + (item.time - elapsed) * SPEED, cy = item.y * H;
-      if (x < -35 || x > W + 35) return;
-      const colors = { dispensa: "#f7eee0", test: "#fae17e", obiettivo: "#a6efb0" };
-      rounded(x - 19, cy - 19, 38, 38, 7, colors[item.type]);
-      ctx.strokeStyle = "#4b527c"; ctx.lineWidth = 3; ctx.strokeRect(x - 18, cy - 18, 36, 36);
-      ctx.font = "23px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "#354063"; ctx.fillText({ dispensa: "▤", test: "✎", obiettivo: "★" }[item.type], x, cy + 1);
+      if (x < -40 || x > W + 40) return;
+      const sprite = art[item.type];
+      if (sprite.complete && sprite.naturalWidth) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sprite, Math.floor(elapsed * 6) % 4 * 16, 0, 16, 16, x - 26, cy - 26, 52, 52);
+      } else rounded(x - 20, cy - 20, 40, 40, 5, "#f8de78");
     });
     level.hazards.forEach((item, index) => {
       const x = PX + (item.time - elapsed) * SPEED;
-      if (x < -90 || x > W + 90) return;
-      const cy = item.type === "bug" ? (item.y + .045 * Math.sin(elapsed * 3 + index)) * H : item.y * H;
+      if (x < -70 || x > W + 70) return;
       ctx.globalAlpha = hitHazards.has(index) ? .4 : 1;
-      if (item.type === "books") {
-        for (let n = 0; n < 3; n += 1) rounded(x - 40 + n * 4, cy - 34 + n * 20, 78 - n * 8, 20, 3, ["#7b62a8", "#b46174", "#536fba"][n]);
-      } else if (item.type === "cloud") {
-        ctx.fillStyle = dark ? "#987ca8" : "#8a71a3";
-        for (const [dx, dy, rx, ry] of [[-27,7,29,23],[0,-9,33,31],[29,9,27,22]]) {
-          ctx.beginPath(); ctx.ellipse(x + dx, cy + dy, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+      const sprite = art[item.type];
+      if (item.type === "books" || item.type === "cloud") {
+        for (let n = 0; n < item.count; n += 1) {
+          const top = item.type === "books" ? FLOOR - (n + 1) * UNIT_H : SKY_TOP + n * UNIT_H;
+          if (sprite.complete && sprite.naturalWidth) {
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(sprite, x - UNIT_W / 2, top, UNIT_W, UNIT_H);
+          } else rounded(x - UNIT_W / 2, top, UNIT_W, UNIT_H, 4, "#785894");
         }
-        ctx.strokeStyle = "#554778"; ctx.lineWidth = 3; ctx.strokeRect(x - 43, cy - 19, 86, 47);
       } else {
-        ctx.fillStyle = "#785894"; ctx.beginPath(); ctx.ellipse(x, cy, 20, 15, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#392c5e"; ctx.lineWidth = 3;
-        for (const side of [-1, 1]) for (let n = -1; n <= 1; n += 1) {
-          ctx.beginPath(); ctx.moveTo(x + side * 15, cy + n * 5); ctx.lineTo(x + side * 28, cy + n * 11); ctx.stroke();
+        const cy = PENCIL_Y[item.lane];
+        if (sprite.complete && sprite.naturalWidth) {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(sprite, Math.floor(elapsed * 7) % 4 * 16, 0, 16, 16, x - 32, cy - 32, 64, 64);
+        } else {
+          rounded(x - 20, cy - 6, 40, 12, 3, "#785894");
         }
-        ctx.fillStyle = "#fff"; ctx.fillRect(x + 6, cy - 5, 4, 4);
       }
       ctx.globalAlpha = 1;
     });

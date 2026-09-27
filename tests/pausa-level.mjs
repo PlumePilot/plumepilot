@@ -14,5 +14,41 @@ for (const type of ["dispensa", "test", "obiettivo"])
 for (let beat = 0; beat < 18; beat += 1)
   assert.equal(collectibles.filter((item) => item.time >= beat * 5 && item.time < (beat + 1) * 5).length, 5, `beat ${beat}`);
 assert.ok(collectibles.every((item) => item.y >= .3 && item.y <= .7 && item.time < duration));
-assert.ok(hazards.every((item) => item.time >= 15 && item.time < 85));
-console.log("Pausa? deterministic level: 18 beats, 90 objects, 30 per type, safe intro.");
+assert.ok(hazards.every((item) => item.time >= 15 && item.time < 88));
+assert.ok(hazards.every((item) => item.type === "pencil"
+  ? ["high", "middle", "low"].includes(item.lane)
+  : [1, 2, 3].includes(item.count)));
+for (const [name, width, height] of [
+  ["collect-book.png", 64, 16], ["collect-test.png", 64, 16],
+  ["collect-obj.png", 64, 16], ["enemy-pencil.png", 64, 16],
+  ["enemy-books.png", 13, 9], ["enemy-cloud.png", 13, 9],
+]) {
+  const png = readFileSync(new URL(`../pausa/assets/${name}`, import.meta.url));
+  assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", name);
+  assert.equal(png.readUInt32BE(16), width, name);
+  assert.equal(png.readUInt32BE(20), height, name);
+}
+
+// The course may offer risky pickups, but no collectible should sit inside
+// the opaque area of a hazard at the moment both reach the same x.
+const H = 540, PX = 226, SPEED = 198;
+for (const hazard of hazards) {
+  const bounds = hazard.type === "books"
+    ? [PX - 26, 509 - hazard.count * 36, 52, hazard.count * 36]
+    : hazard.type === "cloud"
+      ? [PX - 26, 55, 52, hazard.count * 36]
+      : [PX - 20, ({ high: .27, middle: .5, low: .73 })[hazard.lane] * H - 20, 40, 40];
+  for (const item of collectibles) {
+    const x = PX + (item.time - hazard.time) * SPEED, y = item.y * H;
+    const dx = Math.max(bounds[0] - x, 0, x - bounds[0] - bounds[2]);
+    const dy = Math.max(bounds[1] - y, 0, y - bounds[1] - bounds[3]);
+    assert.ok(Math.hypot(dx, dy) >= 25, `Item at ${item.time}s overlaps ${hazard.type} at ${hazard.time}s`);
+  }
+}
+for (const book of hazards.filter((item) => item.type === "books")) {
+  for (const cloud of hazards.filter((item) => item.type === "cloud" && Math.abs(item.time - book.time) < 1.2)) {
+    const gap = 509 - book.count * 36 - (55 + cloud.count * 36);
+    assert.ok(gap >= 180, `Narrow corridor near ${book.time}s / ${cloud.time}s`);
+  }
+}
+console.log("Pausa? deterministic level: 18 beats, 90 objects, 30 per type, safe intro and clear pickups.");
