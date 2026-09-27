@@ -380,6 +380,15 @@ function offlineQuizRuntime(DATA) {
       bar.appendChild(button);
     }
     details.appendChild(bar);
+    const shortcutHelp = document.createElement("details");
+    shortcutHelp.className = "shortcut-help";
+    const shortcutSummary = document.createElement("summary");
+    shortcutSummary.textContent = "Scorciatoie da tastiera";
+    shortcutHelp.appendChild(shortcutSummary);
+    const shortcutList = document.createElement("p");
+    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · Maiusc+X barrato · Maiusc+7 elenco numerato · Maiusc+8 elenco puntato · Maiusc+6 apice · Maiusc+- pedice. Esc torna alla scrittura normale. Le altre opzioni sono nella barra degli strumenti.";
+    shortcutHelp.appendChild(shortcutList);
+    details.appendChild(shortcutHelp);
     for (const [field, labelText] of [
       ["explanation", "Spiegazione"],
       ["observations", "Osservazioni"],
@@ -408,8 +417,24 @@ function offlineQuizRuntime(DATA) {
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
       editor.addEventListener("keydown", (event) => {
-        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-        const command = { b: "bold", i: "italic", u: "underline" }[event.key.toLowerCase()];
+        if (event.key === "Escape") {
+          const selection = window.getSelection();
+          if (selection.rangeCount && editor.contains(selection.anchorNode)) {
+            const range = selection.getRangeAt(0);
+            if (!range.collapsed) selection.collapseToEnd();
+            for (const command of ["bold", "italic", "underline", "strikeThrough", "superscript", "subscript"]) {
+              if (document.queryCommandState(command)) document.execCommand(command, false, null);
+            }
+            selectedRange = null;
+            event.preventDefault();
+          }
+          return;
+        }
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+        const key = event.key.toLowerCase();
+        const command = event.shiftKey
+          ? { KeyX: "strikeThrough", Digit7: "insertOrderedList", Digit8: "insertUnorderedList", Digit6: "superscript", Minus: "subscript" }[event.code]
+          : { b: "bold", i: "italic", u: "underline" }[key];
         if (!command) return;
         event.preventDefault();
         activeField = editor;
