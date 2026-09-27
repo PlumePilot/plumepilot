@@ -386,7 +386,7 @@ function offlineQuizRuntime(DATA) {
     shortcutSummary.textContent = "Scorciatoie da tastiera";
     shortcutHelp.appendChild(shortcutSummary);
     const shortcutList = document.createElement("p");
-    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · Maiusc+X barrato · Maiusc+7 elenco numerato · Maiusc+8 elenco puntato · Maiusc+6 apice · Maiusc+- pedice. Esc torna alla scrittura normale. Le altre opzioni sono nella barra degli strumenti.";
+    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Esc interrompe formati e colore. Elenchi e altri strumenti sono disponibili nella barra.";
     shortcutHelp.appendChild(shortcutList);
     details.appendChild(shortcutHelp);
     for (const [field, labelText] of [
@@ -425,6 +425,28 @@ function offlineQuizRuntime(DATA) {
             for (const command of ["bold", "italic", "underline", "strikeThrough", "superscript", "subscript"]) {
               if (document.queryCommandState(command)) document.execCommand(command, false, null);
             }
+            const caret = selection.getRangeAt(0);
+            const node = caret.startContainer.nodeType === 1 ? caret.startContainer : caret.startContainer.parentElement;
+            const highlight = node?.closest(".highlight");
+            if (highlight && editor.contains(highlight)) {
+              const suffix = caret.cloneRange();
+              suffix.setEnd(highlight, highlight.childNodes.length);
+              const rest = suffix.extractContents();
+              const parent = highlight.parentNode;
+              const next = highlight.nextSibling;
+              if (rest.hasChildNodes()) {
+                const trailing = highlight.cloneNode(false);
+                trailing.appendChild(rest);
+                parent.insertBefore(trailing, next);
+              }
+              const position = document.createRange();
+              position.setStart(parent, Array.prototype.indexOf.call(parent.childNodes, highlight) + 1);
+              position.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(position);
+              if (!highlight.hasChildNodes()) highlight.remove();
+              editor.dispatchEvent(new Event("input", { bubbles: true }));
+            }
             selectedRange = null;
             event.preventDefault();
           }
@@ -432,9 +454,8 @@ function offlineQuizRuntime(DATA) {
         }
         if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
         const key = event.key.toLowerCase();
-        const command = event.shiftKey
-          ? { KeyX: "strikeThrough", Digit7: "insertOrderedList", Digit8: "insertUnorderedList", Digit6: "superscript", Minus: "subscript" }[event.code]
-          : { b: "bold", i: "italic", u: "underline" }[key];
+        if (event.shiftKey) return;
+        const command = { b: "bold", i: "italic", u: "underline", g: "strikeThrough", e: "superscript", d: "subscript" }[key];
         if (!command) return;
         event.preventDefault();
         activeField = editor;
