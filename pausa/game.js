@@ -7,15 +7,14 @@
   const UNIT_W = 65, UNIT_H = 45, SKY_TOP = 18, FLOOR = H - 18;
   const PENCIL_Y = { high: H * .27, middle: H * .50, low: H * .73 };
   // Plume's body, excluding the candle; change these four values after visual tests.
-  const PLUME_HITBOX = { left: -20, top: -26, width: 40, height: 50 };
+  const PLUME_HITBOX = { left: -20, top: -20, width: 40, height: 46 };
   const overlay = document.getElementById("overlay");
   const card = document.getElementById("card");
   const soundButton = document.getElementById("sound");
-  const hitboxButton = document.getElementById("hitbox");
   const systemTheme = matchMedia("(prefers-color-scheme: dark)");
   const sprites = { light: new Image(), dark: new Image() };
   sprites.light.src = "../assets/gaming/mascot-idle-light.png";
-  sprites.dark.src = "../assets/gaming/mascot-idle-dark.png";
+  sprites.dark.src = "assets/plume-dark.png";
   const art = Object.fromEntries(Object.entries({
     dispensa: "collect-book.png", test: "collect-test.png", obiettivo: "collect-obj.png",
     books: "enemy-books.png", cloud: "enemy-cloud.png", pencil: "enemy-pencil.png",
@@ -38,7 +37,7 @@
   let soundEnabled = false, audioContext = null;
   let state = "ready", elapsed = 0, lastFrame = 0, y = H * .48, velocity = 0;
   let invulnerable = 0, flash = "", flashUntil = 0;
-  let showHitbox = false;
+  const showHitbox = new URLSearchParams(window.location.search).get("hitbox") === "1";
   const hitHazards = new Set(), taken = new Set();
 
   function resolveTheme() {
@@ -299,11 +298,6 @@
     if (event.code === "KeyP" || event.code === "Escape") { event.preventDefault(); pause(); }
   });
   canvas.addEventListener("pointerdown", (event) => { event.preventDefault(); flap(); });
-  hitboxButton.addEventListener("click", () => {
-    showHitbox = !showHitbox;
-    hitboxButton.textContent = showHitbox ? "Nascondi hitbox" : "Mostra hitbox";
-    hitboxButton.setAttribute("aria-pressed", String(showHitbox));
-  });
   soundButton.addEventListener("click", () => { setSound(!soundEnabled, true); if (soundEnabled) effect("doubleChirp"); });
   document.getElementById("close").addEventListener("click", close);
   show("Una piccola pausa", "<p>Vola con Plume, raccogli dispense, test e obiettivi. Puoi fermarti quando vuoi.</p><p><strong>Spazio, clic o tocco</strong> per salire.</p>", [

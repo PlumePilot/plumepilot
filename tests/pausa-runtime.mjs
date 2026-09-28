@@ -33,6 +33,7 @@ element("game").height = 400;
 element("game").getContext = () => canvasContext;
 const sandbox = {
   console,
+  URLSearchParams,
   Image: class { complete = true; naturalWidth = 64; set src(value) { this.url = value; } },
   matchMedia: () => ({ matches: false, addEventListener() {} }),
   localStorage: { getItem: () => null, setItem() {} },
@@ -41,7 +42,7 @@ const sandbox = {
       addEventListener(type, fn) { this.listeners[type] = fn; },
       append(...children) { this.children.push(...children); },
     }), addEventListener() {} },
-  window: { addEventListener() {}, close() {} },
+  window: { location: { search: "?hitbox=1" }, addEventListener() {}, close() {} },
   requestAnimationFrame: (fn) => { nextFrame = fn; },
 };
 sandbox.globalThis = sandbox;
@@ -49,8 +50,6 @@ runInNewContext(readFileSync(new URL("../pausa/level.js", import.meta.url), "utf
 runInNewContext(readFileSync(new URL("../pausa/game.js", import.meta.url), "utf8"), sandbox);
 const start = element("card").children[2].children.find((button) => button.textContent === "Inizia");
 assert.ok(start);
-element("hitbox").listeners.click();
-assert.equal(element("hitbox").textContent, "Nascondi hitbox");
 start.listeners.click();
 for (let now = 0; now < 91_000; now += 50) {
   const frame = nextFrame; assert.equal(typeof frame, "function"); frame(now);
@@ -61,5 +60,5 @@ assert.ok(pencilPositions[5] < pencilPositions[0] - 50, "Pencil must travel left
 assert.ok(draws > 100, "Sprite render branch was not exercised");
 assert.ok(hitboxOutlines.length > 100);
 assert.equal(hitboxOutlines[0][2], 38);
-assert.equal(hitboxOutlines[0][3], 48);
+assert.equal(hitboxOutlines[0][3], 44);
 console.log("Pausa? runtime smoke: rendered sprites and reached the final summary.");

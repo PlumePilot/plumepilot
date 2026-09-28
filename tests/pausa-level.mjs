@@ -22,6 +22,7 @@ for (const [name, width, height] of [
   ["collect-book.png", 64, 16], ["collect-test.png", 64, 16],
   ["collect-obj.png", 64, 16], ["enemy-pencil.png", 64, 16],
   ["enemy-books.png", 13, 9], ["enemy-cloud.png", 13, 9],
+  ["plume-dark.png", 160, 32],
 ]) {
   const png = readFileSync(new URL(`../pausa/assets/${name}`, import.meta.url));
   assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", name);
