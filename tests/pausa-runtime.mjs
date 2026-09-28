@@ -15,9 +15,11 @@ const element = (id) => {
   return elements.get(id);
 };
 let draws = 0, nextFrame = null;
+const hitboxOutlines = [];
 const pencilPositions = [];
 const canvasContext = new Proxy({}, {
   get(_target, property) {
+    if (property === "strokeRect") return (...args) => hitboxOutlines.push(args);
     if (property === "drawImage") return (...args) => {
       draws += 1;
       if (args[0].url?.endsWith("enemy-pencil.png")) pencilPositions.push(args[5]);
@@ -47,6 +49,8 @@ runInNewContext(readFileSync(new URL("../pausa/level.js", import.meta.url), "utf
 runInNewContext(readFileSync(new URL("../pausa/game.js", import.meta.url), "utf8"), sandbox);
 const start = element("card").children[2].children.find((button) => button.textContent === "Inizia");
 assert.ok(start);
+element("hitbox").listeners.click();
+assert.equal(element("hitbox").textContent, "Nascondi hitbox");
 start.listeners.click();
 for (let now = 0; now < 91_000; now += 50) {
   const frame = nextFrame; assert.equal(typeof frame, "function"); frame(now);
@@ -55,4 +59,7 @@ assert.equal(element("card").children[0].textContent, "Ecco come è andata");
 assert.ok(pencilPositions.length > 10);
 assert.ok(pencilPositions[5] < pencilPositions[0] - 50, "Pencil must travel left while rotating");
 assert.ok(draws > 100, "Sprite render branch was not exercised");
+assert.ok(hitboxOutlines.length > 100);
+assert.equal(hitboxOutlines[0][2], 38);
+assert.equal(hitboxOutlines[0][3], 48);
 console.log("Pausa? runtime smoke: rendered sprites and reached the final summary.");

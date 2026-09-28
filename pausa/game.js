@@ -6,10 +6,12 @@
   const W = canvas.width, H = canvas.height, PX = 226, SPEED = 198;
   const UNIT_W = 65, UNIT_H = 45, SKY_TOP = 18, FLOOR = H - 18;
   const PENCIL_Y = { high: H * .27, middle: H * .50, low: H * .73 };
-  const CHIRP_TIMES = [13.5, 39, 64, 83];
+  // Plume's body, excluding the candle; change these four values after visual tests.
+  const PLUME_HITBOX = { left: -20, top: -26, width: 40, height: 50 };
   const overlay = document.getElementById("overlay");
   const card = document.getElementById("card");
   const soundButton = document.getElementById("sound");
+  const hitboxButton = document.getElementById("hitbox");
   const systemTheme = matchMedia("(prefers-color-scheme: dark)");
   const sprites = { light: new Image(), dark: new Image() };
   sprites.light.src = "../assets/gaming/mascot-idle-light.png";
@@ -36,7 +38,7 @@
   let soundEnabled = false, audioContext = null;
   let state = "ready", elapsed = 0, lastFrame = 0, y = H * .48, velocity = 0;
   let invulnerable = 0, flash = "", flashUntil = 0;
-  let nextChirp = 0;
+  let showHitbox = false;
   const hitHazards = new Set(), taken = new Set();
 
   function resolveTheme() {
@@ -57,12 +59,14 @@
       themePreference = ["system", "light", "dark"].includes(values.themePreference) ? values.themePreference : "system";
       resolveTheme();
       setSound(values.pausaSoundEnabled === null ? values.soundNotificationsEnabled : values.pausaSoundEnabled);
+      effect("doubleChirp");
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local" && changes.themePreference) { themePreference = changes.themePreference.newValue; resolveTheme(); }
     });
   } else {
     setSound(localStorage.getItem("pausaSoundEnabled") === "true");
+    effect("doubleChirp");
   }
   systemTheme.addEventListener("change", resolveTheme);
   resolveTheme();
@@ -87,7 +91,12 @@
     if (name === "test") tone(620, .055, "triangle");
     if (name === "obiettivo") { tone(660, .09); tone(880, .10, "sine", .07); }
     if (name === "hit") tone(150, .13, "triangle", 0, .05);
-    if (name === "chirp") { tone(1240, .045, "sine", 0, .032); tone(1580, .055, "sine", .052, .026); }
+    if (name === "doubleChirp") {
+      for (const delay of [0, .23]) {
+        tone(1240, .045, "sine", delay, .032);
+        tone(1580, .055, "sine", delay + .052, .026);
+      }
+    }
     if (name === "finish") { tone(523, .13); tone(659, .13, "sine", .13); tone(784, .22, "sine", .26); }
   }
   function show(title, body, buttons) {
@@ -111,10 +120,10 @@
         if (audioContext.state === "suspended") audioContext.resume();
       } catch { /* Audio is optional. */ }
     }
-    elapsed = 0; y = H * .48; velocity = 0; invulnerable = 0; flash = ""; nextChirp = 0;
+    elapsed = 0; y = H * .48; velocity = 0; invulnerable = 0; flash = "";
     taken.clear(); hitHazards.clear(); collected.length = 0;
     for (const kind of Object.keys(totals)) totals[kind] = 0;
-    updateHud(); state = "playing"; overlay.hidden = true;
+    updateHud(); state = "playing"; overlay.hidden = true; effect("doubleChirp");
   }
   function close() { state = "closed"; audioContext?.close(); window.close(); }
   function pause() {
@@ -140,11 +149,18 @@
     document.getElementById("time").textContent = `${Math.max(0, Math.ceil(level.duration - elapsed))} s`;
   }
   function flap() { if (state === "playing") velocity = Math.max(-245, velocity - 175); }
-  function collide(x, cy, radius = 22) { return Math.hypot(x - PX, cy - y) < radius + 14; }
-  function circleRect(x0, y0, width, height, radius = 14) {
-    const nearestX = Math.max(x0, Math.min(PX, x0 + width));
-    const nearestY = Math.max(y0, Math.min(y, y0 + height));
-    return Math.hypot(PX - nearestX, y - nearestY) < radius;
+  function plumeBounds() {
+    return [PX + PLUME_HITBOX.left, y + PLUME_HITBOX.top,
+      PLUME_HITBOX.width, PLUME_HITBOX.height];
+  }
+  function circleRect(cx, cy, radius, [x0, y0, width, height]) {
+    const nearestX = Math.max(x0, Math.min(cx, x0 + width));
+    const nearestY = Math.max(y0, Math.min(cy, y0 + height));
+    return Math.hypot(cx - nearestX, cy - nearestY) < radius;
+  }
+  function collide(x, cy, radius = 20) { return circleRect(x, cy, radius, plumeBounds()); }
+  function rectsOverlap([ax, ay, aw, ah], [bx, by, bw, bh]) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
   }
   function hazardX(item) {
     return PX + (item.time - elapsed) * (item.type === "pencil" ? 280 : SPEED);
@@ -166,9 +182,6 @@
   function tick(dt) {
     if (state !== "playing") return;
     elapsed = Math.min(level.duration, elapsed + dt);
-    if (nextChirp < CHIRP_TIMES.length && elapsed >= CHIRP_TIMES[nextChirp]) {
-      effect("chirp"); nextChirp += 1;
-    }
     velocity = Math.min(260, velocity + 450 * dt);
     y += velocity * dt;
     if (y < 42) { y = 42; velocity = Math.max(0, velocity); }
@@ -188,7 +201,7 @@
       const x = hazardX(item);
       if (x < PX - 60 || x > PX + 80 || hitHazards.has(index)) return;
       const bounds = hazardBounds(item, x, Math.floor(elapsed * 7) % 4);
-      if (circleRect(...bounds)) hit(index);
+      if (rectsOverlap(plumeBounds(), bounds)) hit(index);
     });
     updateHud();
     if (elapsed >= level.duration) finish();
@@ -256,6 +269,14 @@
       ctx.drawImage(sprite, Math.floor(elapsed * 7) % 5 * 32, 0, 32, 32, PX - 32, y - 32, 64, 64);
     } else { rounded(PX - 20, y - 20, 40, 40, 10, "#7655b9"); }
     ctx.globalAlpha = 1;
+    if (showHitbox) {
+      const [bx, by, bw, bh] = plumeBounds();
+      ctx.fillStyle = "#ff334433";
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = "#ff3040";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
+    }
     if (flash && flashUntil > elapsed) {
       rounded(W / 2 - 108, 14, 216, 38, 10, dark ? "#303958" : "#fff");
       ctx.fillStyle = dark ? "#fff" : "#354063"; ctx.font = "bold 16px system-ui";
@@ -278,7 +299,12 @@
     if (event.code === "KeyP" || event.code === "Escape") { event.preventDefault(); pause(); }
   });
   canvas.addEventListener("pointerdown", (event) => { event.preventDefault(); flap(); });
-  soundButton.addEventListener("click", () => { setSound(!soundEnabled, true); if (soundEnabled) effect("test"); });
+  hitboxButton.addEventListener("click", () => {
+    showHitbox = !showHitbox;
+    hitboxButton.textContent = showHitbox ? "Nascondi hitbox" : "Mostra hitbox";
+    hitboxButton.setAttribute("aria-pressed", String(showHitbox));
+  });
+  soundButton.addEventListener("click", () => { setSound(!soundEnabled, true); if (soundEnabled) effect("doubleChirp"); });
   document.getElementById("close").addEventListener("click", close);
   show("Una piccola pausa", "<p>Vola con Plume, raccogli dispense, test e obiettivi. Puoi fermarti quando vuoi.</p><p><strong>Spazio, clic o tocco</strong> per salire.</p>", [
     { label: "Inizia", primary: true, onClick: reset }, { label: "Torna a studiare", onClick: close },
