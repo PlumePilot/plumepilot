@@ -2524,6 +2524,10 @@
           display: grid;
           gap: 10px;
         }
+        .pause-entry { display: flex; align-items: center; gap: 8px; padding: 4px 2px; color: var(--sw-text-muted); font-size: 11px; }
+        .pause-entry button { padding: 2px 0; border: 0; background: none; color: var(--sw-accent-strong); font: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+        .pause-entry button:hover { color: var(--sw-heading); }
+        .pause-entry button:focus-visible { outline: 2px solid var(--sw-accent); outline-offset: 2px; }
         .preferences-section {
           min-width: 0;
           padding: 9px;
@@ -3829,6 +3833,7 @@
               </fieldset>
               </div>
             </details>
+            <div class="pause-entry"><button data-action="open-pausa" type="button">Pausa?</button><span>Una breve parentesi con Plume</span></div>
             <div class="project-links" aria-label="Collegamenti di PlumePilot">
               <button class="project-link" data-action="toggle-project-info" type="button" aria-controls="plumepilot-project-info" aria-expanded="false">Informazioni</button>
               <a class="project-link" href="__PP_FAQ_URL__" target="_blank" rel="noopener noreferrer">FAQ</a>
@@ -3932,6 +3937,7 @@
       notificationVolumeValue: shadow.querySelector('[data-role="notification-volume-value"]'),
       soundControls: shadow.querySelector('[data-role="sound-controls"]'),
       previewNotificationSound: shadow.querySelector('[data-action="preview-notification-sound"]'),
+      openPausa: shadow.querySelector('[data-action="open-pausa"]'),
       state: shadow.querySelector('[data-role="state"]'),
       status: shadow.querySelector('[data-role="status"]'),
       lastNotification: shadow.querySelector('[data-role="last-notification"]'),
@@ -4213,6 +4219,10 @@
     ui.previewNotificationSound.addEventListener("click", async () => {
       const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound: ui.notificationSound.value, volume: ui.notificationVolume.value });
       setFeedback(response?.played === true ? "Anteprima riprodotta." : (response?.reason || "Anteprima non disponibile."), response?.played !== true);
+    });
+    ui.openPausa.addEventListener("click", async () => {
+      const response = await runtimeMessage({ type: "STUDYWING_OPEN_PAUSA" });
+      if (response?.accepted !== true) setFeedback(response?.reason || "Impossibile aprire Pausa?.", true);
     });
     ui.enabled.addEventListener("change", () => {
       writeSetting("enabled", ui.enabled.checked);

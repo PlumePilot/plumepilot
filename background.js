@@ -903,6 +903,18 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     const volume = soundApi.normalizeVolume(message?.volume);
     return playNotificationSound(sound, volume, sourceTabId);
   }
+  async function openPausa() {
+    const url = chrome.runtime.getURL("pausa/index.html");
+    return new Promise((resolve, reject) => {
+      chrome.windows.create({ url, type: "popup", width: 1060, height: 730 }, () => {
+        if (!chrome.runtime.lastError) { resolve({ accepted: true }); return; }
+        chrome.tabs.create({ url }, () => {
+          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+          else resolve({ accepted: true });
+        });
+      });
+    });
+  }
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let action = null;
     const sourceTabId = Number.isInteger(message?.sourceTabId) ? message.sourceTabId : sender.tab?.id;
@@ -927,6 +939,7 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     else if (message?.type === "STUDYWING_PENDING_LESSONS_GET") action = pendingLessonCompletions(message.platformId, message.courseCode);
     else if (message?.type === "STUDYWING_SOUND_EVENT") action = serializedSound(() => playSoundEvent(message, sourceTabId));
     else if (message?.type === "STUDYWING_SOUND_PREVIEW") action = previewSound(message, sourceTabId);
+    else if (message?.type === "STUDYWING_OPEN_PAUSA") action = openPausa();
     if (!action) return undefined;
     action.then(sendResponse).catch((error) => { console.error("[PlumePilot] Background operation failed:", error); sendResponse({ accepted: false, reason: error.message }); });
     return true;
