@@ -11,10 +11,10 @@ const floatingMenu = readFileSync(new URL("../floating-menu.js", import.meta.url
 assert.match(manifest.version, /^2\.3[45]\.0$/);
 assert.match(changelog, /^## Added in 2\.34\.0:/m);
 assert.match(releaseNotes, /Mercatorum and San Raffaele\/UTSR/);
-assert.match(sourceReadme, /^# PlumePilot 2\.34\.0/m);
-assert.match(sourceReadme, /plumepilot-v2\.34\.0-firefox\.zip/);
+assert.match(sourceReadme, new RegExp(`^# PlumePilot ${manifest.version.replaceAll(".", "\\.")}`, "m"));
+assert.ok(sourceReadme.includes(`plumepilot-v${manifest.version}-firefox.zip`));
 assert.match(popupHtml, new RegExp(`Novità in PlumePilot ${manifest.version.replaceAll(".", "\\.")}`));
 assert.doesNotMatch(popupHtml, /quando Pegaso carica l’esito ufficiale/);
 assert.doesNotMatch(floatingMenu, /esiti caricati da Pegaso/);
 
-console.log("PASS: 2.34.0 version, release notes, Novità and platform-neutral commission copy are aligned");
+console.log("PASS: version, release notes, Novità and platform-neutral commission copy are aligned");
