@@ -1,4 +1,4 @@
-# PlumePilot 2.34.0 — AMO source submission
+# PlumePilot 2.35.0 — AMO source submission
 
 This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process selects runtime files, creates the browser-specific manifest, applies the documented Firefox-only review-safety transformations below, and writes deterministic ZIP archives.
 
@@ -23,7 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.34.0-firefox.zip
+release/plumepilot-v2.35.0-firefox.zip
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -75,7 +75,7 @@ The readable distribution files in the source archive and in the Chrome/Edge pac
 
 Before this submission, every source vendor file was compared byte for byte with the corresponding official release. No dependency or executable code is downloaded at extension runtime.
 
-Before submission, run `web-ext lint` on the generated Firefox 2.34.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
+Before submission, run `web-ext lint` on the generated Firefox 2.35.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
 
 ## Runtime/source separation
 
