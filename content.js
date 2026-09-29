@@ -80,6 +80,7 @@
   let timer = null;
   let lastVideo = null;
   let playbackContext = null;
+  let objectivesSelectionEpoch = 0;
   let busy = false;
   let enabled = true;
   let stopAtTests = false;
@@ -1417,6 +1418,8 @@
 
   function resumeFromObjectives(objectiveRow) {
     const identity = chapterIdentity(currentChapter(objectiveRow));
+    const courseCode = courseCodeFromUrl();
+    const selectionEpoch = objectivesSelectionEpoch;
 
     if (!identity) {
       log("Could not determine the chapter opened from Obiettivi.");
@@ -1433,7 +1436,9 @@
     timer = setTimeout(async () => {
       timer = null;
 
-      if (!enabled || collectingCourseMaterials || courseBatchRunning()) {
+      if (!enabled || collectingCourseMaterials || courseBatchRunning() ||
+          courseCode !== courseCodeFromUrl() ||
+          selectionEpoch !== objectivesSelectionEpoch) {
         log("Obiettivi handoff cancelled because PlumePilot is not available.");
         return;
       }
@@ -1475,7 +1480,18 @@
         }
       }
 
-      const unfinished = firstUnfinishedVideo(identity);
+      let unfinished = firstUnfinishedVideo(identity);
+      const chapter = findChapter(identity);
+      if (!unfinished && (!chapter || chapterRows(chapter).length === 0)) {
+        if (await openChapter(identity)) {
+          if (!enabled || collectingCourseMaterials || courseBatchRunning() ||
+              courseCode !== courseCodeFromUrl() ||
+              selectionEpoch !== objectivesSelectionEpoch) return;
+          const selected = currentLesson();
+          if (selected && lessonName(selected).toLowerCase() !== "obiettivi") return;
+          unfinished = firstUnfinishedVideo(identity);
+        }
+      }
 
       if (!unfinished) {
         log("No unfinished video was found after Obiettivi:", identity);
@@ -1509,7 +1525,9 @@
 
       const row = event.target.closest?.("div.border-t");
 
-      if (!row || lessonName(row).toLowerCase() !== "obiettivi") {
+      if (!row) return;
+      if (lessonName(row).toLowerCase() !== "obiettivi") {
+        objectivesSelectionEpoch++;
         return;
       }
 
