@@ -53,4 +53,10 @@ assert.equal(requested[7], 203, "the detailed route must use the target's paragr
 // justify skipping a chapter as complete.
 const ambiguous = master.map((route) => ({ ...route, masterOrder: null, title: "Other" }));
 assert.equal(context.playbackCourseRouteMap(ambiguous, outline).size, 0);
+const partlyStale = master.map((route, index) => index === 3
+  ? { ...route, title: "Renamed elsewhere" }
+  : route);
+const safeMatches = context.playbackCourseRouteMap(partlyStale, outline);
+assert.equal(safeMatches.size, 3);
+assert.equal(safeMatches.has(4), false, "a stale title cannot justify a 100% skip");
 console.log("PASS: repeated display_order values use verified master identities and skip completed chapters");
