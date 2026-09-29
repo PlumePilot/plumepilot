@@ -3193,6 +3193,7 @@
     }
 
     const initialSections = sections().map((section) => section.text);
+    const collectionCourseTitle = courseTitle();
 
     if (initialSections.length === 0) {
       setExportCollectionStatus(
@@ -3448,7 +3449,7 @@
           format,
           operationId,
           payload: {
-            courseTitle: courseTitle(),
+            courseTitle: collectionCourseTitle,
             materials,
             missing,
           },
@@ -3581,6 +3582,7 @@
 
     const courseCode = courseCodeFromUrl();
     const initialSections = sections().map((section) => section.text);
+    const collectionCourseTitle = courseTitle();
     if (!courseCode || !initialSections.length) {
       setExportCollectionStatus(
         "Apri prima la pagina dei contenuti di un corso.",
@@ -3709,7 +3711,7 @@
       window.postMessage({
         type: "PEGASO_COURSE_TESTS_COLLECTED",
         operationId,
-        payload: { courseTitle: courseTitle(), tests: collected, missing },
+        payload: { courseTitle: collectionCourseTitle, tests: collected, missing },
       }, "*");
       removeExportCollectionToastAfter(completedMessage, 5000);
     } catch (error) {

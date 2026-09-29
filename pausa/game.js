@@ -14,7 +14,7 @@
   const systemTheme = matchMedia("(prefers-color-scheme: dark)");
   const sprites = { light: new Image(), dark: new Image() };
   sprites.light.src = "../assets/gaming/mascot-idle-light.png";
-  sprites.dark.src = "../assets/gaming/mascot-idle-dark.png";
+  sprites.dark.src = "assets/mascot-idle-dark.png";
   const art = Object.fromEntries(Object.entries({
     dispensa: "collect-book.png", test: "collect-test.png", obiettivo: "collect-obj.png",
     books: "enemy-books.png", cloud: "enemy-cloud.png", pencil: "enemy-pencil.png",
