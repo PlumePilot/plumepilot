@@ -2,6 +2,11 @@
   "use strict";
 
   const checkbox = document.getElementById("enabled");
+  document.getElementById("openPausa")?.addEventListener("click", () => {
+    chrome.windows.create({ url: chrome.runtime.getURL("pausa/index.html"), type: "popup", width: 1060, height: 730 }, () => {
+      if (chrome.runtime.lastError) chrome.tabs.create({ url: chrome.runtime.getURL("pausa/index.html") });
+    });
+  });
   const autoplayOptions = document.getElementById("autoplayOptions");
   const autoplayOptionsSummary = document.getElementById(
     "autoplayOptionsSummary",

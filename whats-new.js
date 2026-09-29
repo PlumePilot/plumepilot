@@ -2,16 +2,14 @@
   "use strict";
 
   const RELEASE = Object.freeze({
-    version: "2.34.0",
-    title: "Nuove rotte, materiali migliori",
-    summary: "PlumePilot arriva su Mercatorum e San Raffaele, migliora gli EPUB e rende più robuste le operazioni sui corsi.",
+    version: "2.35.0",
+    title: "Una pausa con Plume, appunti più ricchi",
+    summary: "Vola con Plume in Pausa? e organizza meglio lo studio nei test HTML offline.",
     items: Object.freeze([
-      Object.freeze({ title: "Più università supportate", text: "Usa PlumePilot anche su Mercatorum e San Raffaele, con dati e controlli separati per ogni piattaforma." }),
-      Object.freeze({ title: "Menu disponibile dalla home", text: "Apri Esami, Traguardi e Preferenze anche fuori dai corsi; le azioni che richiedono un corso restano chiaramente disattivate." }),
-      Object.freeze({ title: "EPUB più fedeli", text: "Formule, tabelle e dispense in stile presentazione vengono riconosciute meglio e adattate con il layout più adatto." }),
-      Object.freeze({ title: "Recupero dispense più rapido", text: "I materiali mancanti vengono verificati senza lunghe attese e senza bloccare inutilmente l’esportazione." }),
-      Object.freeze({ title: "Operazioni più robuste", text: "Le schede nascoste non innescano cicli di recupero e le notifiche chiuse restano nascoste fino alla fine dell’operazione." }),
-      Object.freeze({ title: "Gaming più leggibile", text: "Le cornici premio riempiono meglio l’icona del menu fluttuante e i testi dei Traguardi sono più chiari." }),
+      Object.freeze({ title: "Pausa?", text: "Concediti 90 secondi di volo con Plume: raccogli dispense, test e obiettivi. Trovi il gioco nelle Preferenze del popup e del menu fluttuante." }),
+      Object.freeze({ title: "Appunti nei test HTML", text: "Scrivi Spiegazioni e Osservazioni con elenchi, evidenziatori, richiami e altri strumenti di formattazione. Scarica l’HTML con gli appunti per conservarli offline." }),
+      Object.freeze({ title: "Domande da ripassare", text: "Segna ogni domanda come Verificata, Da rivedere o Da verificare e usa i filtri per concentrarti su quelle che ti servono." }),
+      Object.freeze({ title: "Plume in volo", text: "I nuovi sprite animati di Plume accompagnano il tema chiaro e quello scuro, anche durante Pausa?." }),
     ]),
   });
 

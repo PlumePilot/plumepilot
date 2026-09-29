@@ -79,6 +79,7 @@
   );
   let timer = null;
   let lastVideo = null;
+  let playbackContext = null;
   let busy = false;
   let enabled = true;
   let stopAtTests = false;
@@ -654,6 +655,50 @@
         ),
       ) || null
     );
+  }
+
+  function rememberPlaybackLesson(row, videoElement = video()) {
+    if (!row || !videoElement) return;
+    const chapter = currentChapter(row);
+    const identity = chapterIdentity(chapter);
+    const rows = chapterRows(chapter);
+    const index = rows.indexOf(row);
+    if (!identity || index < 0) return;
+    playbackContext = {
+      videoElement,
+      courseCode: courseCodeFromUrl(),
+      lessonNumber: lessonNumberFromUrl(),
+      identity,
+      name: lessonName(row),
+      index,
+    };
+  }
+
+  function playbackLessonRow(context) {
+    if (!context || context.courseCode !== courseCodeFromUrl() ||
+        context.lessonNumber !== lessonNumberFromUrl()) return null;
+    const chapter = findChapter(context.identity);
+    const rows = chapterRows(chapter);
+    const indexed = rows[context.index];
+    if (indexed && lessonName(indexed) === context.name) return indexed;
+    const matches = rows.filter((row) => lessonName(row) === context.name);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  async function recoverPlaybackLesson(videoElement) {
+    const visible = currentLesson();
+    if (visible) {
+      rememberPlaybackLesson(visible, videoElement);
+      return visible;
+    }
+    const context = playbackContext;
+    if (!context || context.videoElement !== videoElement ||
+        context.courseCode !== courseCodeFromUrl() ||
+        context.lessonNumber !== lessonNumberFromUrl()) return null;
+    if (!(await openChapter(context.identity))) return null;
+    const row = await waitFor(() => playbackLessonRow(context));
+    if (row) rememberPlaybackLesson(row, videoElement);
+    return row;
   }
 
   function lessonName(row) {
@@ -4749,10 +4794,12 @@
   }
 
   async function captureEndedVideoProgress(videoElement) {
-    const initialRow = currentLesson();
+    const initialRow = currentLesson() ||
+      (playbackContext?.videoElement === videoElement ? playbackLessonRow(playbackContext) : null);
     if (!initialRow) return;
     const registered = await waitFor(() => {
-      const row = currentLesson();
+      const row = currentLesson() ||
+        (playbackContext?.videoElement === videoElement ? playbackLessonRow(playbackContext) : null);
       if (!row || video() !== videoElement) return null;
       const percentage = getProgress(row);
       return percentage > 0 ? { row, percentage } : null;
@@ -6474,12 +6521,13 @@
     busy = true;
 
     try {
-      const cur = currentLesson();
+      const cur = await recoverPlaybackLesson(v);
 
       if (!cur) {
         log("Could not determine current lesson.");
         return;
       }
+      if (!enabled || v !== lastVideo) return;
 
       const completed = await waitForLessonCompletion(cur, v);
 
@@ -6831,6 +6879,10 @@
   function attach(v) {
     if (!v || v.dataset.pegasoAutoNextAttached === "1") return;
     v.dataset.pegasoAutoNextAttached = "1";
+    v.addEventListener("play", () => {
+      const row = currentLesson();
+      if (row) rememberPlaybackLesson(row, v);
+    });
     v.addEventListener("ended", () => {
       void captureEndedVideoProgress(v);
       if (!enabled) {
@@ -6853,6 +6905,8 @@
 
   function scan() {
     document.querySelectorAll("video").forEach(attach);
+    const activeRow = currentLesson();
+    if (activeRow) rememberPlaybackLesson(activeRow);
     scheduleSessionConflictScan();
     if (!courseProgressState || courseProgressState.baselinePercent === null) {
       scheduleCourseProgressInitialization(250);
@@ -6863,6 +6917,16 @@
     childList: true,
     subtree: true,
   });
+  document.addEventListener("click", (event) => {
+    const row = event.target?.closest?.("div.border-t");
+    if (row && row.querySelector(":scope > div.cursor-pointer")) {
+      // The player may be reused; bind this selection after the page updates it.
+      setTimeout(() => {
+        const selected = currentLesson();
+        if (selected) rememberPlaybackLesson(selected);
+      }, 0);
+    }
+  }, true);
   scan();
   verifySessionConflictRecoveryAfterReload();
   verifyWatchValidationRecoveryAfterReload();
