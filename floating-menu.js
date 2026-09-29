@@ -2927,7 +2927,8 @@
         .autoplay-options-content.disabled input { cursor: not-allowed; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
         .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
+        .chapter-limit-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; }
+        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; width: max-content; flex: 0 0 auto; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
         .chapter-limit-stepper button { border: 0; min-height: 28px; color: var(--sw-heading); background: var(--sw-surface-elevated); }
         .chapter-limit-stepper input { width: 100%; min-width: 0; min-height: 28px; padding: 0 2px; border: 0; border-inline: 1px solid var(--sw-border); color: var(--sw-heading); background: var(--sw-surface); font: inherit; font-weight: 750; text-align: center; -moz-appearance: textfield; }
         .chapter-limit-stepper input::-webkit-inner-spin-button,
@@ -3717,10 +3718,13 @@
                   </div>
                   <div class="chapter-limit">
                     <label class="chapter-limit-row"><span>Limite sessione autoplay</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
-                    <div class="chapter-limit-stepper">
-                      <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
-                      <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
-                      <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
+                    <div class="chapter-limit-controls">
+                      <span>Capitoli</span>
+                      <div class="chapter-limit-stepper">
+                        <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
+                        <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
+                        <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
+                      </div>
                     </div>
                     <input class="chapter-limit-slider" data-role="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
                     <p class="chapter-limit-progress" data-role="chapter-limit-progress"></p>
