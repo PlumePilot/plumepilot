@@ -67,3 +67,45 @@ await context.resumeIfVideoAlreadyEnded();
 await pendingTimer();
 assert.equal(advanced, null, "resume must not advance a different selected lesson");
 console.log("PASS: collapsed accordion resume and sidebar re-render during completion");
+
+// Obiettivi handoff must restore an accordion closed during its settle delay,
+// while a newer manual selection cancels the pending handoff.
+let objectiveTimer = null;
+let chapterOpen = false;
+let objectiveClicks = 0;
+const objectiveRow = { name: "Obiettivi" };
+const objectiveContext = vm.createContext({
+  objectivesSelectionEpoch: 0,
+  timer: null, enabled: true, collectingCourseMaterials: false,
+  courseBatchRunning: () => false,
+  currentChapter: () => ({ text: "1 - Capitolo", sectionText: "Modulo" }),
+  chapterIdentity: (chapter) => ({ chapterText: chapter.text, sectionText: chapter.sectionText }),
+  courseCodeFromUrl: () => "COURSE",
+  lessonNumberFromUrl: () => 1,
+  clearTimeout() {}, setTimeout: (fn) => { objectiveTimer = fn; return 1; },
+  OBJECTIVES_SETTLE_DELAY_MS: 1,
+  currentLesson: () => chapterOpen ? objectiveRow : null,
+  lessonName: (row) => row?.name || "",
+  getProgress: () => 0,
+  lessonApiCache: new Map(),
+  lessonApiCacheKey: () => "COURSE:1",
+  firstUnfinishedVideo: () => chapterOpen ? nextRow : null,
+  findChapter: () => chapterOpen ? {} : null,
+  chapterRows: () => chapterOpen ? [objectiveRow, nextRow] : [],
+  openChapter: async () => { chapterOpen = true; return true; },
+  clickRow: () => { objectiveClicks++; },
+  waitFor: async () => videoElement,
+  video: () => videoElement,
+  attach() {}, log() {},
+});
+vm.runInContext(extract("  function resumeFromObjectives(objectiveRow)", "  document.addEventListener(\n    \"click\""), objectiveContext);
+objectiveContext.resumeFromObjectives(objectiveRow);
+await objectiveTimer();
+assert.equal(objectiveClicks, 1, "Obiettivi must find its video after reopening a collapsed chapter");
+
+chapterOpen = false;
+objectiveContext.resumeFromObjectives(objectiveRow);
+objectiveContext.objectivesSelectionEpoch++;
+await objectiveTimer();
+assert.equal(chapterOpen, false, "a later manual selection must cancel Obiettivi recovery");
+console.log("PASS: Obiettivi handoff restores collapsed rows without overriding another selection");
