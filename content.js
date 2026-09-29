@@ -2850,6 +2850,37 @@
     return routes;
   }
 
+  function playbackCourseRouteMap(courseIndex, outline) {
+    const routes = courseIndexRouteMap(courseIndex, outline);
+    const titleKey = (value) => normalizedText(value)
+      .replace(/^\d+\s*-\s*/, "")
+      .toLocaleLowerCase("it");
+
+    // A matching course-wide order is stronger than a display_order, which
+    // can restart at 1 in each folder. Use it only when every title agrees.
+    const ordered = [...(courseIndex || [])].sort(
+      (first, second) => first.masterOrder - second.masterOrder,
+    );
+    if (ordered.length === outline.length && ordered.every((route, index) =>
+      Number.isInteger(route.masterOrder) && route.masterOrder === index &&
+      titleKey(route.title) &&
+      titleKey(route.title) === titleKey(outline[index].identity.chapterText),
+    )) {
+      return new Map(outline.map((entry, index) => [entry.lessonNumber, ordered[index]]));
+    }
+
+    // Otherwise use only unambiguous title/number matches. A stale label
+    // must never make us skip a genuinely unfinished chapter as "100%".
+    for (const entry of outline) {
+      const route = routes.get(entry.lessonNumber);
+      if (route && titleKey(route.title) &&
+          titleKey(route.title) !== titleKey(entry.identity.chapterText)) {
+        routes.delete(entry.lessonNumber);
+      }
+    }
+    return routes;
+  }
+
   // Display numbers are local labels, never chapter identities.
   function testRouteKey(route) {
     return [route.folderId, route.lpId, route.id].join(":");
@@ -5721,6 +5752,14 @@
         return {
           displayOrder,
           percentage: Number.isFinite(percentage) ? percentage : 0,
+          masterOrder: entry?.masterOrder != null &&
+            Number.isInteger(Number(entry.masterOrder))
+            ? Number(entry.masterOrder)
+            : null,
+          folderId: entry?.folderId != null &&
+            Number.isInteger(Number(entry.folderId))
+            ? Number(entry.folderId)
+            : null,
           id: Number.isInteger(Number(entry?.id)) ? Number(entry.id) : null,
           lpId: Number.isInteger(Number(entry?.lpId))
             ? Number(entry.lpId)
@@ -5790,9 +5829,7 @@
       removeResumeDiscoveryStatus();
       return { status: "cancelled" };
     }
-    const completionByOrder = new Map(
-      (courseIndex || []).map((entry) => [entry.displayOrder, entry]),
-    );
+    const routeByLessonNumber = playbackCourseRouteMap(courseIndex, outline);
 
     const currentIndex = outline.findIndex((entry) =>
       sameChapterIdentity(entry.identity, currentIdentity),
@@ -5821,7 +5858,7 @@
         }
 
         const entry = outline[index];
-        const indexedChapter = completionByOrder.get(entry.lessonNumber);
+        const indexedChapter = routeByLessonNumber.get(entry.lessonNumber);
 
         if (!indexedChapter) {
           masterIndexComplete = false;
@@ -5887,7 +5924,17 @@
       }
 
       const entry = outline[index];
-      const indexedChapter = completionByOrder.get(entry.lessonNumber);
+      const indexedChapter = routeByLessonNumber.get(entry.lessonNumber);
+
+      if (courseIndex?.length && !indexedChapter) {
+        log(`Course index cannot safely map module ${entry.lessonNumber}; verifying it visually.`);
+        return {
+          status: "target",
+          entry,
+          unfinishedItem: null,
+          visualVerification: true,
+        };
+      }
       const lessonLpId = indexedChapter?.lpId || entry.lessonNumber;
 
       if (indexedChapter && Number(indexedChapter.percentage) >= 100) {
