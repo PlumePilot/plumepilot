@@ -6521,13 +6521,18 @@
     busy = true;
 
     try {
-      const cur = await recoverPlaybackLesson(v);
+      let cur = await recoverPlaybackLesson(v);
 
       if (!cur) {
         log("Could not determine current lesson.");
         return;
       }
       if (!enabled || v !== lastVideo) return;
+
+      // Completion can update the sidebar or the user can close its accordion
+      // while we wait. Keep the identity so a detached row is never used for
+      // finding the next activity after the wait.
+      const completedLesson = playbackContext;
 
       const completed = await waitForLessonCompletion(cur, v);
 
@@ -6538,6 +6543,14 @@
         return;
       }
 
+      const stableCur = await recoverPlaybackLesson(v);
+      if (!enabled || v !== lastVideo || video() !== v ||
+          !stableCur || playbackLessonRow(completedLesson) !== stableCur) {
+        log("Advance cancelled because the completed lesson changed or disappeared.");
+        return;
+      }
+
+      cur = stableCur;
       const next = nextLesson(cur);
 
       log(
@@ -6811,6 +6824,10 @@
       log("Resume requested, but no video was found.");
       return;
     }
+    if (activeRow) rememberPlaybackLesson(activeRow, v);
+    const resumedLesson = playbackContext?.videoElement === v
+      ? playbackContext
+      : null;
 
     const playerReachedEnd =
       v.ended ||
@@ -6842,28 +6859,16 @@
         return;
       }
 
-      const stableLesson = await waitFor(() => {
-        const lesson = currentLesson();
-        const currentVideo = video();
-
-        if (!lesson || !currentVideo) {
-          return null;
-        }
-
-        /*
-         * Make sure the page still considers the same video finished or its
-         * lesson registered at 100% before attempting the transition.
-         */
-        const stillFinished =
-          currentVideo === v &&
-          (currentVideo.ended ||
-            (Number.isFinite(currentVideo.duration) &&
-              currentVideo.duration > 0 &&
-              currentVideo.currentTime >= currentVideo.duration - 0.5) ||
-            getProgress(lesson) >= 100);
-
-        return stillFinished ? lesson : null;
-      });
+      const lesson = await recoverPlaybackLesson(v);
+      const stillFinished = video() === v && lesson &&
+        (v.ended ||
+          (Number.isFinite(v.duration) && v.duration > 0 &&
+            v.currentTime >= v.duration - 0.5) ||
+          getProgress(lesson) >= 100);
+      const stableLesson = stillFinished &&
+        (!resumedLesson || playbackLessonRow(resumedLesson) === lesson)
+        ? lesson
+        : null;
 
       if (!stableLesson) {
         log("Resume cancelled: page state did not stabilize.");
