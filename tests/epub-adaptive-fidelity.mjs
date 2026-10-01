@@ -10,6 +10,7 @@ const ops = Object.fromEntries([
 ].map((name, index) => [name, index + 1]));
 const source = readFileSync(new URL("../epub-core.mjs", import.meta.url), "utf8")
   .replace('import * as pdfjsLib from "./vendor/pdf.mjs";', "")
+  .replace('import { inkBands, intersectsBand, inkIsCovered } from "./epub-regions.mjs";', "")
   .replaceAll("import.meta.url", '"file:///epub-core.mjs"')
   .replace("export async function", "async function")
   .replace("export const __testing =", "globalThis.api =");

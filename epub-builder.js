@@ -127,6 +127,8 @@ async function start() {
     setProgress,
     {
       generatorVersion: chrome.runtime.getManifest().version,
+      // Developer trial only; normal exports retain the stable page strategy.
+      regionalPreservation: new URLSearchParams(location.search).get("epubRegional") === "1",
       signal: buildController.signal,
     },
   );

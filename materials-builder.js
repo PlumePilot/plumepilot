@@ -147,6 +147,8 @@ async function build(format) {
       ? await globalThis.PegasoPdfCore.buildCoursePdf(job.courseTitle, job.materials, setProgress)
       : await buildCourseEpub(job.courseTitle, job.materials, setProgress, {
         generatorVersion: chrome.runtime.getManifest().version,
+        // Developer trial only; normal exports retain the stable page strategy.
+        regionalPreservation: new URLSearchParams(location.search).get("epubRegional") === "1",
         signal: buildController.signal,
       });
     const failures = [...(job.missing || []), ...(result.failures || [])];

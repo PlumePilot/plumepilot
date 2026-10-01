@@ -1,5 +1,7 @@
 import * as pdfjsLib from "./vendor/pdf.mjs";
 
+import { inkBands, intersectsBand, inkIsCovered } from "./epub-regions.mjs";
+
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
   if (STUDYWING_DEBUG) console.info(...values);
@@ -1067,7 +1069,30 @@ async function renderVisualBlocks(
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil(viewport.width);
   canvas.height = Math.ceil(viewport.height);
-  const context = await renderPage(page, canvas, viewport, signal);
+  try {
+    const context = await renderPage(page, canvas, viewport, signal);
+    return await encodeVisualBlocks(
+      canvas,
+      context,
+      chapterIndex,
+      pageNumber,
+      signal,
+      { preserveWhole },
+    );
+  } finally {
+    canvas.width = 1;
+    canvas.height = 1;
+  }
+}
+
+async function encodeVisualBlocks(
+  canvas,
+  context,
+  chapterIndex,
+  pageNumber,
+  signal,
+  { preserveWhole = false } = {},
+) {
   // Keep the complete source bounds: slide tables can reach the bottom edge.
   const left = 0;
   const top = 0;
@@ -1090,33 +1115,36 @@ async function renderVisualBlocks(
       const output = document.createElement("canvas");
       output.width = width;
       output.height = Math.max(1, end - start);
-      const outputContext = output.getContext("2d", { alpha: false });
-      outputContext.fillStyle = "#ffffff";
-      outputContext.fillRect(0, 0, output.width, output.height);
-      outputContext.drawImage(
-        canvas,
-        left,
-        start,
-        width,
-        end - start,
-        0,
-        0,
-        width,
-        end - start,
-      );
+      try {
+        const outputContext = output.getContext("2d", { alpha: false });
+        outputContext.fillStyle = "#ffffff";
+        outputContext.fillRect(0, 0, output.width, output.height);
+        outputContext.drawImage(
+          canvas,
+          left,
+          start,
+          width,
+          end - start,
+          0,
+          0,
+          width,
+          end - start,
+        );
 
-      const encoded = await encodeCanvas(output);
-      const name =
-        `images/chapter-${String(chapterIndex).padStart(3, "0")}` +
-        `-page-${String(pageNumber).padStart(3, "0")}` +
-        `-${++blockIndex}.${encoded.extension}`;
-      blocks.push({
-        name,
-        bytes: encoded.bytes,
-        mediaType: encoded.mediaType,
-      });
-      output.width = 1;
-      output.height = 1;
+        const encoded = await encodeCanvas(output);
+        const name =
+          `images/chapter-${String(chapterIndex).padStart(3, "0")}` +
+          `-page-${String(pageNumber).padStart(3, "0")}` +
+          `-${++blockIndex}.${encoded.extension}`;
+        blocks.push({
+          name,
+          bytes: encoded.bytes,
+          mediaType: encoded.mediaType,
+        });
+      } finally {
+        output.width = 1;
+        output.height = 1;
+      }
       await yieldToBrowser(signal);
     }
   } finally {
@@ -1125,6 +1153,340 @@ async function renderVisualBlocks(
   }
 
   return blocks;
+}
+// Opt-in prototype. The stable page converter remains the default.
+async function renderRegionalPage(
+  page,
+  content,
+  classification,
+  chapterIndex,
+  pageNumber,
+  signal,
+) {
+  const base = page.getViewport({ scale: 1 });
+  const fallback = (reason) => ({ fallback: reason });
+  if (
+    classification.preserveWhole ||
+    base.rotation !== 0 ||
+    base.viewBox?.[0] !== 0 ||
+    base.viewBox?.[1] !== 0
+  ) {
+    return fallback("whole-page, rotation or crop offset");
+  }
+  const meaningful = meaningfulTextItems(content, base);
+  if (meaningful.length < 5) return fallback("insufficient reflow text");
+  const operations = await page.getOperatorList();
+  const vectors = vectorOperationStats(operations);
+  if (vectors.shadingOperations) return fallback("unbounded shading geometry");
+  if (
+    hasSignificantRotatedText(content, base) ||
+    hasParallelColumns(content, base)
+  ) {
+    return fallback("rotated text or parallel columns");
+  }
+  const graphicsBoxes = [];
+  let lineWidth = 1,
+    miterLimit = 10;
+  let transform = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  for (let i = 0; i < operations.fnArray.length; i++) {
+    const op = operations.fnArray[i],
+      args = operations.argsArray[i] || [];
+    if (op === pdfjsLib.OPS.save)
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "save",
+      });
+    else if (op === pdfjsLib.OPS.restore) {
+      if (stack.at(-1)?.kind !== "save")
+        return fallback("unbalanced graphics state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.transform) {
+      if (args.length !== 6 || !Array.from(args).every(Number.isFinite))
+        return fallback("invalid transform");
+      transform = multiplyTransform(transform, args);
+    } else if (op === pdfjsLib.OPS.paintFormXObjectBegin) {
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "form",
+      });
+      if (args[0]) {
+        if (args[0].length !== 6 || !Array.from(args[0]).every(Number.isFinite))
+          return fallback("invalid form transform");
+        transform = multiplyTransform(transform, args[0]);
+      }
+    } else if (op === pdfjsLib.OPS.paintFormXObjectEnd) {
+      if (stack.at(-1)?.kind !== "form")
+        return fallback("unbalanced form state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.beginGroup) {
+      const group = args[0];
+      if (
+        !group ||
+        group.smask ||
+        group.knockout ||
+        (group.matrix &&
+          ![1, 0, 0, 1, 0, 0].every((v, i) => group.matrix[i] === v))
+      ) {
+        return fallback("masked, knockout or transformed group");
+      }
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "group",
+      });
+    } else if (op === pdfjsLib.OPS.endGroup) {
+      if (stack.at(-1)?.kind !== "group")
+        return fallback("unbalanced group state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.setGState) {
+      for (const [key, value] of args[0] || []) {
+        if (key === "LW" || key === "ML") {
+          if (!Number.isFinite(value))
+            return fallback("invalid graphics state");
+          if (key === "LW") lineWidth = Math.abs(value);
+          else miterLimit = Math.max(1, value);
+        } else if (
+          !["LC", "LJ", "D", "RI", "FL", "CA", "ca"].includes(key) &&
+          !(key === "BM" && value === "source-over") &&
+          !(key === "SMask" && !value)
+        ) {
+          return fallback("unsupported graphics state: " + key);
+        }
+      }
+    } else if (op === pdfjsLib.OPS.setLineWidth) {
+      if (!Number.isFinite(args[0])) return fallback("invalid stroke width");
+      lineWidth = Math.abs(args[0]);
+    } else if (op === pdfjsLib.OPS.setMiterLimit) {
+      if (!Number.isFinite(args[0])) return fallback("invalid miter limit");
+      miterLimit = Math.max(1, args[0]);
+    } else if (VECTOR_PAINT_OPERATIONS.has(op))
+      return fallback("legacy unbounded vector operation");
+    else if (op === pdfjsLib.OPS.constructPath) {
+      // PDF.js 5.6 emits [paintOp, [pathBuffer], minMax]. Only this bounded
+      // representation is accepted; future/legacy formats fail closed.
+      if (!VECTOR_PAINT_OPERATIONS.has(args[0])) {
+        if (args[0] === pdfjsLib.OPS.endPath) continue;
+        return fallback("unknown path operation");
+      }
+      const bounds = args[2];
+      if (
+        !bounds ||
+        bounds.length !== 4 ||
+        !Array.from(bounds).every(Number.isFinite)
+      ) {
+        return fallback("unknown vector bounds");
+      }
+      const m = multiplyTransform(base.transform, transform);
+      const pad =
+        2 + (lineWidth * miterLimit * Math.hypot(...m.slice(0, 4))) / 2;
+      const points = [
+        [bounds[0], bounds[1]],
+        [bounds[0], bounds[3]],
+        [bounds[2], bounds[1]],
+        [bounds[2], bounds[3]],
+      ].map(([x, y]) => [
+        m[0] * x + m[2] * y + m[4],
+        m[1] * x + m[3] * y + m[5],
+      ]);
+      graphicsBoxes.push({
+        left: Math.min(...points.map((p) => p[0])) - pad,
+        right: Math.max(...points.map((p) => p[0])) + pad,
+        top: Math.min(...points.map((p) => p[1])) - pad,
+        bottom: Math.max(...points.map((p) => p[1])) + pad,
+      });
+    } else if (IMAGE_OPERATIONS.has(op)) {
+      if (GROUPED_IMAGE_OPERATIONS.has(op))
+        return fallback("grouped image geometry");
+      const m = multiplyTransform(base.transform, transform);
+      const points = [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ].map(([x, y]) => [
+        m[0] * x + m[2] * y + m[4],
+        m[1] * x + m[3] * y + m[5],
+      ]);
+      const box = {
+        left: Math.min(...points.map((p) => p[0])),
+        right: Math.max(...points.map((p) => p[0])),
+        top: Math.min(...points.map((p) => p[1])),
+        bottom: Math.max(...points.map((p) => p[1])),
+      };
+      if (box.right - box.left < 2 || box.bottom - box.top < 2)
+        return fallback("unknown image geometry");
+      graphicsBoxes.push(box);
+    }
+  }
+  if (stack.length) return fallback("unbalanced graphics state");
+  const scale = visualRenderScale(
+    base,
+    classification.renderWidth || VISUAL_RENDER_WIDTH,
+  );
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  try {
+    const context = await renderPage(page, canvas, viewport, signal);
+    const bodySize = estimateBodySize(meaningful.map(textItem), base);
+    const boxes = content.items
+      .filter((item) => item.str?.trim())
+      .map((item) => {
+        const m = multiplyTransform(viewport.transform, item.transform);
+        const size = Math.hypot(m[2], m[3]);
+        const style = content.styles?.[item.fontName] || {};
+        const ascent = Number.isFinite(style.ascent) ? style.ascent : 1;
+        const descent = Number.isFinite(style.descent) ? style.descent : -0.3;
+        return {
+          item,
+          left: m[4] - 2,
+          right: m[4] + item.width * scale + 2,
+          top: m[5] - size * ascent - 2,
+          bottom: m[5] - size * descent + 2,
+        };
+      });
+    let bands = inkBands(
+      canvas.height,
+      Math.ceil(Math.max(24, bodySize * 2) * scale),
+      (y) => rowInk(context, y, 0, canvas.width),
+    );
+    // Expand regions to include connected vector extents, stroke joins and
+    // intersecting text. Remove unsafe cuts rather than clipping those objects.
+    const allBoxes = [
+      ...boxes,
+      ...graphicsBoxes.map((b) =>
+        Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v * scale])),
+      ),
+    ];
+    const cuts = [
+      0,
+      ...bands
+        .slice(0, -1)
+        .map((b) => b.end)
+        .filter(
+          (cut) => !allBoxes.some((box) => box.top < cut && box.bottom > cut),
+        ),
+      canvas.height,
+    ];
+    bands = cuts.slice(1).map((end, i) => ({ start: cuts[i], end }));
+    const plans = [];
+    for (const band of bands) {
+      throwIfAborted(signal);
+      const pixels = context.getImageData(
+        0,
+        band.start,
+        canvas.width,
+        band.end - band.start,
+      ).data;
+      if (!pixels.some((v, i) => i % 4 !== 3 && v < 242)) continue;
+      const members = boxes.filter((box) => intersectsBand(box, band));
+      const regionContent = {
+        ...content,
+        items: members.map((box) => box.item),
+      };
+      const hasGraphics = allBoxes
+        .slice(boxes.length)
+        .some((box) => intersectsBand(box, band));
+      const unsafeText =
+        hasGraphics ||
+        hasSuspiciousText(regionContent) ||
+        hasPositionedScript(regionContent, base) ||
+        hasSmallTable(regionContent, base) ||
+        hasParallelColumns(regionContent, base);
+      let converted = null;
+      if (!unsafeText && members.length) {
+        converted = textPageToHtml(regionContent, base);
+        if (
+          textConversionLooksIncomplete(converted) ||
+          !inkIsCovered(pixels, canvas.width, band.start, members)
+        )
+          converted = null;
+      }
+      plans.push({ band, converted });
+      await yieldToBrowser(signal);
+    }
+    if (!plans.some((p) => p.converted) || !plans.some((p) => !p.converted)) {
+      // Reuse the existing raster instead of rendering this fallback a second time.
+      return {
+        ...fallback("no reliable mixed-content separation"),
+        blocks: await encodeVisualBlocks(
+          canvas,
+          context,
+          chapterIndex,
+          pageNumber,
+          signal,
+        ),
+      };
+    }
+    const parts = [],
+      images = [],
+      regionBounds = [];
+    let textRegions = 0;
+    for (const { band, converted } of plans) {
+      throwIfAborted(signal);
+      if (converted) {
+        parts.push(`<section class="text-page">${converted.html}</section>`);
+        textRegions++;
+      } else {
+        const output = document.createElement("canvas");
+        output.width = canvas.width;
+        output.height = band.end - band.start;
+        try {
+          output
+            .getContext("2d", { alpha: false })
+            .drawImage(
+              canvas,
+              0,
+              band.start,
+              canvas.width,
+              output.height,
+              0,
+              0,
+              canvas.width,
+              output.height,
+            );
+          const encoded = await encodeCanvas(output);
+          const name = `images/chapter-${chapterIndex}-page-${pageNumber}-region-${images.length + 1}.${encoded.extension}`;
+          images.push({
+            name,
+            bytes: encoded.bytes,
+            mediaType: encoded.mediaType,
+          });
+          regionBounds.push({
+            name,
+            start: band.start,
+            end: band.end,
+            scale,
+            width: canvas.width,
+          });
+          parts.push(
+            `<section class="visual-page"><img src="../${escapeXml(name)}" alt="${escapeXml(`Pagina ${pageNumber}, regione ${images.length}`)}"/></section>`,
+          );
+        } finally {
+          output.width = 1;
+          output.height = 1;
+        }
+      }
+      await yieldToBrowser(signal);
+    }
+    return {
+      html: parts.join("\n"),
+      images,
+      textRegions,
+      visualRegions: images.length,
+      regionBounds,
+    };
+  } finally {
+    canvas.width = 1;
+    canvas.height = 1;
+  }
 }
 
 async function fetchPdfWithRetry(
@@ -1186,7 +1548,7 @@ async function convertMaterial(
   chapterIndex,
   materialCount,
   onProgress,
-  { signal } = {},
+  { signal, regionalPreservation = false, diagnostics } = {},
 ) {
   const bytes = await fetchPdfWithRetry(material.url, globalThis.fetch, {
     signal,
@@ -1267,9 +1629,21 @@ async function convertMaterial(
           }
         }
 
-        if (visual) {
+        let regional = null;
+        if (visual && regionalPreservation) {
+          regional = await renderRegionalPage(page, content, classification, chapterIndex, pageNumber, signal);
+        }
+        const record = { chapterIndex, pageNumber, mode: regional?.html ? "regional" : visual ? "visual" : "text",
+          reason: regional?.fallback || classification.reason, textRegions: regional?.textRegions || 0 };
+        if (regional?.html) {
+          images.push(...regional.images);
+          pages.push(regional.html);
+          record.regionBounds = regional.regionBounds;
+          record.imageCount = regional.images.length;
+          record.imageBytes = regional.images.reduce((sum, image) => sum + image.bytes.length, 0);
+        } else if (visual) {
           const preserveWhole = Boolean(classification.preserveWhole);
-          const blocks = await renderVisualBlocks(
+          const blocks = regional?.blocks || await renderVisualBlocks(
             page,
             chapterIndex,
             pageNumber,
@@ -1277,6 +1651,8 @@ async function convertMaterial(
             { preserveWhole, renderWidth: classification.renderWidth },
           );
           images.push(...blocks);
+          record.imageCount = blocks.length;
+          record.imageBytes = blocks.reduce((sum, image) => sum + image.bytes.length, 0);
           pages.push(
             `<section class="visual-page${preserveWhole ? " visual-page-whole" : ""}" ` +
               `aria-label="Pagina ${pageNumber}">` +
@@ -1293,6 +1669,7 @@ async function convertMaterial(
         } else {
           pages.push(`<section class="text-page">${converted.html}</section>`);
         }
+        diagnostics?.pages.push(record);
       } finally {
         page.cleanup();
       }
@@ -1371,9 +1748,11 @@ export async function buildCourseEpub(
   courseTitle,
   materials,
   onProgress = () => {},
-  { generatorVersion = "versione sconosciuta", signal } = {},
+  { generatorVersion = "versione sconosciuta", signal, regionalPreservation = false, diagnostics } = {},
 ) {
   throwIfAborted(signal);
+  if (diagnostics) diagnostics.pages = [];
+  const startedAt = performance.now();
   const zip = new globalThis.JSZip();
   const included = [];
   const failures = [];
@@ -1431,7 +1810,7 @@ export async function buildCourseEpub(
         index + 1,
         materials.length,
         onProgress,
-        { signal },
+        { signal, regionalPreservation, diagnostics },
       );
       const file = `text/chapter-${String(index + 1).padStart(3, "0")}.xhtml`;
       zip.file(
@@ -1521,7 +1900,7 @@ export async function buildCourseEpub(
       const sectionPlayOrder = ncxPlayOrder++;
       const childPoints = group.items
         .map((item, chapterIndex) => {
-          const chapterPlayOrder = ncxPlayOrder++;
+          const chapterPlayOrder = chapterIndex === 0 ? sectionPlayOrder : ncxPlayOrder++;
           return (
             `<navPoint id="nav-chapter-${sectionIndex + 1}-${chapterIndex + 1}" ` +
             `playOrder="${chapterPlayOrder}">` +
@@ -1562,6 +1941,7 @@ export async function buildCourseEpub(
       `<manifest><item id="title" href="${titleName}" media-type="application/xhtml+xml"/>` +
       `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>` +
       `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>` +
+      `<item id="book-style" href="styles/book.css" media-type="text/css"/>` +
       `${chapterManifest}${imageManifest}</manifest><spine toc="ncx">` +
       `<itemref idref="title"/>${spine}</spine></package>`,
   );
@@ -1596,6 +1976,10 @@ export async function buildCourseEpub(
       }),
   );
 
+  if (diagnostics) {
+    diagnostics.epubBytes = bytes.length;
+    diagnostics.elapsedMs = performance.now() - startedAt;
+  }
   return { bytes, filename: filenameFor(courseTitle), included, failures };
 }
 
