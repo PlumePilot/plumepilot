@@ -85,6 +85,7 @@
   let enabled = true;
   let stopAtTests = false;
   let autoCompleteTests = false;
+  let autoplaySkipCompletedVideos = false;
   let chapterLimitEnabled = false;
   let chapterLimit = 1;
   let chapterLimitMaximum = 1;
@@ -452,6 +453,7 @@
 
     enabled = event.data.enabled !== false;
     autoCompleteTests = event.data.autoCompleteTests === true;
+    autoplaySkipCompletedVideos = event.data.autoplaySkipCompletedVideos === true;
     chapterLimitEnabled = event.data.autoplayChapterLimitEnabled === true;
     courseProgressOverlayEnabled = event.data.courseProgressOverlayEnabled === true;
     autoplayStopAt70Enabled = event.data.autoplayStopAt70Enabled === true;
@@ -732,7 +734,8 @@
 
       if (lessonName(candidate).toLowerCase() === "obiettivi") continue;
 
-      if (lessonName(candidate)) return candidate;
+      if (lessonName(candidate) &&
+          (!autoplaySkipCompletedVideos || getProgress(candidate) < 100)) return candidate;
     }
 
     // No more videos in this chapter.
@@ -1383,6 +1386,21 @@
     return firstVideoInChapter(identity, true);
   }
 
+  function visibleIncompleteActivity(identity) {
+    const chapter = findChapter(identity);
+    if (!chapter) return null;
+    const row = chapterRows(chapter).find((candidate) =>
+      lessonName(candidate) && getProgress(candidate) < 100);
+    if (row) return {
+      contentType: lessonName(row).toLowerCase() === "obiettivi" ? "intro" : "video",
+      title: lessonName(row), percentage: getProgress(row),
+    };
+    const test = getEndOfLessonTest(chapter);
+    return test && !isEndOfLessonTestCompleted(test)
+      ? {contentType: "test", title: "Test di autovalutazione", percentage: 0}
+      : null;
+  }
+
   function firstVideoInChapter(identity, incompleteOnly = false) {
     const chapter = findChapter(identity);
 
@@ -1481,7 +1499,7 @@
         }
       }
 
-      let unfinished = firstVideoInChapter(identity);
+      let unfinished = firstVideoInChapter(identity, autoplaySkipCompletedVideos);
       const chapter = findChapter(identity);
       if (!unfinished && (!chapter || chapterRows(chapter).length === 0)) {
         if (await openChapter(identity)) {
@@ -1490,12 +1508,17 @@
               selectionEpoch !== objectivesSelectionEpoch) return;
           const selected = currentLesson();
           if (selected && lessonName(selected).toLowerCase() !== "obiettivi") return;
-          unfinished = firstVideoInChapter(identity);
+          unfinished = firstVideoInChapter(identity, autoplaySkipCompletedVideos);
         }
       }
 
       if (!unfinished) {
         log("No video was found after Obiettivi:", identity);
+        if (autoplaySkipCompletedVideos && chapterRows(findChapter(identity)).length > 0) {
+          await openNextAvailableChapter(identity, video(), false, {
+            sequential: true, includeCurrent: true,
+          });
+        }
         return;
       }
 
@@ -1527,6 +1550,7 @@
       const row = event.target.closest?.("div.border-t");
 
       if (!row) return;
+      if (smartResumeRunning) smartResumeGeneration++;
       if (lessonName(row).toLowerCase() !== "obiettivi") {
         objectivesSelectionEpoch++;
         return;
@@ -2684,8 +2708,9 @@
     lessonLpId = lessonNumber,
     allowStaleMutableCache = false,
     lessonParagraphId = lessonLpId,
+    forceFresh = false,
   ) {
-    const cachedResponse = cachedLessonResponse(
+    const cachedResponse = forceFresh ? null : cachedLessonResponse(
       courseCode,
       lessonNumber,
       requiredData,
@@ -5829,7 +5854,9 @@
       return { status: "fallback" };
     }
 
-    const courseIndex = await getPlaybackCourseIndex(courseCode, options);
+    const courseIndex = await getPlaybackCourseIndex(courseCode, {
+      ...options, forceRefresh: options.bookmarkSearch === true && options.masterRefreshed !== true,
+    });
     if (playbackDiscoveryCancelled(options)) {
       removeResumeDiscoveryStatus();
       return { status: "cancelled" };
@@ -5853,75 +5880,6 @@
 
     const firstIndex = includeCurrent ? currentIndex : currentIndex + 1;
 
-    if (options.bookmarkSearch && courseIndex?.length) {
-      let masterIndexComplete = true;
-
-      for (let index = firstIndex; index < outline.length; index++) {
-        if (playbackDiscoveryCancelled(options)) {
-          removeResumeDiscoveryStatus();
-          return { status: "cancelled" };
-        }
-
-        const entry = outline[index];
-        const indexedChapter = routeByLessonNumber.get(entry.lessonNumber);
-
-        if (!indexedChapter) {
-          masterIndexComplete = false;
-          log(
-            `Master course index has no display_order ${entry.lessonNumber}; ` +
-              "using detailed discovery from that chapter.",
-          );
-          break;
-        }
-
-        if (Number(indexedChapter.percentage) >= 100) {
-          log(
-            `Master course index: display_order ${entry.lessonNumber} is 100%; skipping it.`,
-          );
-          continue;
-        }
-
-        const visibleTitle = normalizedText(entry.identity.chapterText)
-          .replace(/^\d+\s*-\s*/, "")
-          .toLowerCase();
-        const indexedTitle = normalizedText(indexedChapter.title).toLowerCase();
-
-        log(
-          "First-incomplete bookmark selected the first below-100% master-index entry.",
-          {
-            displayOrder: indexedChapter.displayOrder,
-            lpId: indexedChapter.lpId,
-            percentage: indexedChapter.percentage,
-            indexedTitle: indexedChapter.title,
-            visibleChapter: entry.identity,
-            titleMatches:
-              !indexedTitle || indexedTitle === visibleTitle,
-          },
-        );
-        setResumeDiscoveryStatus(
-          `Primo capitolo incompleto — modulo ${indexedChapter.displayOrder} (${Math.round(indexedChapter.percentage)}%)\n${entry.identity.chapterText}`,
-          "success",
-        );
-        return {
-          status: "target",
-          entry,
-          unfinishedItem: null,
-          visualVerification: true,
-          masterIndexTarget: true,
-          lessonLpId: indexedChapter.lpId || entry.lessonNumber,
-          lessonParagraphId: indexedChapter.id || entry.lessonNumber,
-        };
-      }
-
-      if (masterIndexComplete) {
-        setResumeDiscoveryStatus(
-          "Ricerca completata: tutti i capitoli risultano al 100%.",
-          "success",
-        );
-        return { status: "end" };
-      }
-    }
-
     for (let index = firstIndex; index < outline.length; index++) {
       if (playbackDiscoveryCancelled(options)) {
         removeResumeDiscoveryStatus();
@@ -5930,6 +5888,18 @@
 
       const entry = outline[index];
       const indexedChapter = routeByLessonNumber.get(entry.lessonNumber);
+
+      const currentCheck = options.currentActivityCheck;
+      if (options.bookmarkSearch && currentCheck?.activity &&
+          sameChapterIdentity(entry.identity, currentCheck.identity)) {
+        const activity = currentCheck.activity;
+        return {
+          status: "target", entry,
+          unfinishedItem: activity.contentType === "test" ? null : activity,
+          testTarget: activity.contentType === "test" ? activity : null,
+          visualVerification: true,
+        };
+      }
 
       if (courseIndex?.length && !indexedChapter) {
         log(`Course index cannot safely map module ${entry.lessonNumber}; verifying it visually.`);
@@ -5942,7 +5912,7 @@
       }
       const lessonLpId = indexedChapter?.lpId || entry.lessonNumber;
 
-      if (indexedChapter && Number(indexedChapter.percentage) >= 100) {
+      if (!options.bookmarkSearch && indexedChapter && Number(indexedChapter.percentage) >= 100) {
         log(
           `Course index: module ${entry.lessonNumber} is 100%; skipping its detailed API call.`,
         );
@@ -5965,6 +5935,7 @@
         lessonLpId,
         false,
         indexedChapter?.id || entry.lessonNumber,
+        options.bookmarkSearch === true,
       );
 
       if (playbackDiscoveryCancelled(options)) {
@@ -5991,21 +5962,28 @@
         };
       }
 
-      const unfinishedItem = lesson.data.playbackItems.find(
-        (item) => Number(item.percentage) < 100,
-      );
-      const test = lesson.data.test;
+      const playbackItems = lesson.data.playbackItems || [];
+      const objective = playbackItems.find((item) => item.contentType === "intro") ||
+        lesson.data.objective;
+      const unfinishedItem = objective && Number(objective.percentage) < 100
+        ? { ...objective, contentType: "intro" }
+        : playbackItems.find((item) => item.contentType === "video" && Number(item.percentage) < 100);
+      const test = lesson.data.test || (options.bookmarkSearch
+        ? lesson.data.progressItems?.find((item) => item.contentType === "test")
+        : null);
       const pendingTest = test && Number(test.percentage) < 100;
       const testNeedsAttention =
         Boolean(test) &&
-        ((!ignoreStopAtTests &&
-          stopAtTests &&
-          (!options.pendingTestsOnly || pendingTest)) ||
-          (autoCompleteTests && pendingTest));
+        (options.bookmarkSearch ? pendingTest :
+          ((!ignoreStopAtTests && stopAtTests &&
+            (!options.pendingTestsOnly || pendingTest)) ||
+            (autoCompleteTests && pendingTest)));
 
       if (
         !unfinishedItem &&
-        (autoCompleteTests || (!ignoreStopAtTests && stopAtTests)) &&
+        (options.bookmarkSearch
+          ? lesson.data.progressDataComplete !== true
+          : autoCompleteTests || (!ignoreStopAtTests && stopAtTests)) &&
         !test
       ) {
         log(
@@ -6206,6 +6184,7 @@
 
     if (
       apiTestTarget &&
+      options.bookmarkSearch !== true &&
       autoCompleteTests &&
       Number(apiTestTarget.percentage) < 100
     ) {
@@ -6328,6 +6307,40 @@
       return false;
     }
 
+    if (options.bookmarkSearch) {
+      const activity = visibleIncompleteActivity(nextIdentity) || apiUnfinishedItem ||
+        (apiTestTarget ? { ...apiTestTarget, contentType: "test" } : null);
+      if (activity?.contentType === "test") {
+        const test = getEndOfLessonTest(chapterReady);
+        if (!test) {
+          setResumeDiscoveryStatus("Test incompleto individuato, ma la sua riga non è disponibile. Riprova dopo il caricamento.", "fallback");
+          return false;
+        }
+        test.scrollIntoView({block: "center", behavior: "smooth"});
+        setResumeDiscoveryStatus(`Test da completare\n${nextIdentity.chapterText}`, "success");
+        return true;
+      }
+      if (activity) {
+        const candidates = chapterRows(chapterReady);
+        const row = activity.contentType === "intro"
+          ? candidates.find((candidate) => lessonName(candidate).toLowerCase() === "obiettivi")
+          : candidates.find((candidate) => normalizedText(lessonName(candidate)) === normalizedText(activity.title)) ||
+            firstUnfinishedVideo(nextIdentity);
+        if (!row || !clickRow(row)) {
+          setResumeDiscoveryStatus("Attività incompleta individuata, ma non ancora selezionabile. Riprova dopo il caricamento.", "fallback");
+          return false;
+        }
+        if (activity.contentType === "video") {
+          const player = await waitFor(() => video());
+          if (player) attach(player);
+        }
+        setResumeDiscoveryStatus(`Prima attività incompleta\n${lessonName(row)}`, "success");
+        return true;
+      }
+      return await openNextAvailableChapter(nextIdentity, oldVideo, false,
+        { ...options, includeCurrent: false, currentActivityCheck: null });
+    }
+
     if (apiTestTarget) {
       const renderedTest = getEndOfLessonTest(chapterReady);
 
@@ -6427,7 +6440,7 @@
      * Explicit incomplete discovery keeps its progress-based selection.
      */
     const unfinished = sequential
-      ? firstVideoInChapter(nextIdentity)
+      ? firstVideoInChapter(nextIdentity, autoplaySkipCompletedVideos)
       : firstUnfinishedVideo(nextIdentity);
 
     if (!unfinished) {
@@ -6519,9 +6532,6 @@
     }
 
     clickRow(unfinished);
-    if (options.bookmarkSearch) {
-      removeResumeDiscoveryStatus();
-    }
 
     /*
      * Wait for UniPegaso to load the video.
@@ -6545,12 +6555,6 @@
 
     attach(v);
     removeResumeDiscoveryStatus();
-    if (options.bookmarkSearch) {
-      log(
-        "First-incomplete bookmark opened the target video without forcing playback:",
-        lessonName(unfinished),
-      );
-    }
 
     return true;
   }
@@ -6811,6 +6815,9 @@
 
     smartResumeRunning = true;
     const generation = ++smartResumeGeneration;
+    clearTimeout(timer);
+    timer = null;
+    objectivesSelectionEpoch++;
 
     try {
       log("Starting first-incomplete discovery:", reason);
@@ -6818,10 +6825,15 @@
         "Preparazione del segnalibro: ricerca dall’inizio del corso…",
       );
 
+      const currentIdentity = chapterIdentity(currentChapter(currentLesson()));
+      const currentActivityCheck = currentIdentity
+        ? { identity: currentIdentity, activity: visibleIncompleteActivity(currentIdentity) }
+        : null;
       const isCancelled = () =>
         generation !== smartResumeGeneration ||
-        !enabled ||
-        busy;
+        courseCode !== courseCodeFromUrl() || !enabled || busy;
+      await getPlaybackCourseIndex(courseCode, {forceRefresh: true, isCancelled});
+      if (isCancelled()) return;
 
       const courseReady = await waitFor(
         () => (sections().length > 0 ? true : null),
@@ -6871,6 +6883,8 @@
           skipCurrentTestBoundary: true,
           pendingTestsOnly: true,
           bookmarkSearch: true,
+          masterRefreshed: true,
+          currentActivityCheck,
           isCancelled,
         },
       );
@@ -6889,6 +6903,7 @@
   }
 
   async function resumeIfVideoAlreadyEnded() {
+    if (smartResumeRunning) return;
     const v = video();
     const activeRow = currentLesson();
 
@@ -6964,8 +6979,8 @@
     });
     v.addEventListener("ended", () => {
       void captureEndedVideoProgress(v);
-      if (!enabled) {
-        log("Video ended, but extension is paused.");
+      if (!enabled || smartResumeRunning) {
+        log("Video ended while automatic progression is paused.");
         return;
       }
 

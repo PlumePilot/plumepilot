@@ -49,6 +49,7 @@
     enabled: true,
     stopAtTests: false,
     autoCompleteTests: false,
+    autoplaySkipCompletedVideos: false,
     autoplayChapterLimitEnabled: false,
     autoplayChapterLimits: {},
     autoplayChapterLimitSessions: {},
@@ -1079,6 +1080,8 @@
           ? "stop"
           : "ignore";
     ui.enabled.checked = settings.enabled !== false;
+    ui.autoplaySkipCompletedVideos.checked = settings.autoplaySkipCompletedVideos === true;
+    ui.autoplaySkipCompletedVideos.disabled = autoplayDisabled;
     ui.findFirstIncomplete.disabled =
       autoplayDisabled || Boolean(settings.pegasoActiveOperation);
     ui.autoplayOptionsContent.classList.toggle("disabled", autoplayDisabled);
@@ -1126,10 +1129,13 @@
         : `Sessione: ${limitStatus.completed || 0} di ${limit} · massimo ${maximum}.`;
     ui.chapterLimitResume.hidden = !limitStatus?.reached;
     ui.chapterLimitResume.textContent = `Riprendi per altri ${limit}`;
-    ui.autoplayOptionsSummary.textContent =
+    const autoplaySummary =
       settings.autoplayChapterLimitEnabled === true
         ? `${testSummary} · limite ${limit}`
         : testSummary;
+    ui.autoplayOptionsSummary.textContent = settings.autoplaySkipCompletedVideos === true
+      ? `${autoplaySummary} · salta video completati`
+      : autoplaySummary;
     ui.courseProgressOverlayEnabled.checked =
       settings.courseProgressOverlayEnabled === true;
     const progressPosition = normalizedCourseProgressPosition(
@@ -2925,6 +2931,7 @@
           opacity: 0.55;
         }
         .autoplay-options-content.disabled input { cursor: not-allowed; }
+        .autoplay-options-content .setting-hint { margin: 4px 0 8px; color: var(--sw-text-muted); font-size: 11px; line-height: 1.4; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
         .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .chapter-limit-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; }
@@ -3710,6 +3717,8 @@
               <div class="autoplay-options-overflow">
                 <div class="autoplay-options-content" data-role="autoplay-options-content">
                   <button class="bookmark-action" data-action="find-first-incomplete" type="button">Trova prima attività incompleta</button>
+                  <label class="course-progress-setting"><span>Salta videolezioni completate</span><input data-setting="autoplay-skip-completed-videos" type="checkbox"></label>
+                  <div class="setting-hint">Salta i video già al 100% mantenendo l’ordine del corso. Disattiva per ripassarli tutti.</div>
                   <div class="test-choice-heading">Quando raggiunge un test</div>
                   <div class="test-choice-list">
                     <label><input type="radio" name="studywing-test-behavior" value="ignore"> <span>Ignora e continua</span></label>
@@ -4006,6 +4015,9 @@
       findFirstIncomplete: shadow.querySelector(
         '[data-action="find-first-incomplete"]',
       ),
+      autoplaySkipCompletedVideos: shadow.querySelector(
+        '[data-setting="autoplay-skip-completed-videos"]',
+      ),
       autoplayOptionsButton: shadow.querySelector(
         '[data-action="toggle-autoplay-options"]',
       ),
@@ -4252,6 +4264,9 @@
         "*",
       );
       setTimeout(renderSettings, 1500);
+    });
+    ui.autoplaySkipCompletedVideos.addEventListener("change", () => {
+      writeSetting("autoplaySkipCompletedVideos", ui.autoplaySkipCompletedVideos.checked);
     });
     for (const radio of ui.testBehaviorRadios)
       radio.addEventListener("change", () => {
@@ -4544,6 +4559,7 @@
       changes.enabled ||
       changes.stopAtTests ||
       changes.autoCompleteTests ||
+      changes.autoplaySkipCompletedVideos ||
       changes.autoplayChapterLimitEnabled ||
       changes.autoplayChapterLimits ||
       changes.autoplayChapterLimitSessions ||

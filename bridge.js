@@ -275,12 +275,14 @@
     autoplayStopAt70BypassedCourses,
     visualStyle,
     initialSync = false,
+    autoplaySkipCompletedVideos = false,
   ) {
     window.postMessage({
       type: "PEGASO_AUTONEXT_STATE",
       enabled,
       stopAtTests,
       autoCompleteTests,
+      autoplaySkipCompletedVideos,
       playbackErrorRecovery,
       autoplayChapterLimitEnabled,
       autoplayChapterLimits,
@@ -299,6 +301,7 @@
         enabled: true,
         stopAtTests: false,
         autoCompleteTests: false,
+        autoplaySkipCompletedVideos: false,
         playbackErrorRecovery: "automatic",
         commissionCheckEnabled: false,
         autoplayChapterLimitEnabled: false,
@@ -329,6 +332,7 @@
           currentPlatformCourseMap(result.autoplayStopAt70BypassedCourses),
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
+          result.autoplaySkipCompletedVideos === true,
         );
         commissionCheckEnabled = result.commissionCheckEnabled === true;
         if (commissionCheckEnabled) scheduleCommissionCheck(0);
@@ -697,6 +701,7 @@
       changes.enabled ||
       changes.stopAtTests ||
       changes.autoCompleteTests ||
+      changes.autoplaySkipCompletedVideos ||
       changes.autoplayChapterLimitEnabled ||
       changes.autoplayChapterLimits ||
       changes.autoplayChapterLimitSessions ||

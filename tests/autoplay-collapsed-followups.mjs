@@ -15,6 +15,7 @@ let pendingTimer = null;
 let expectedRow = restoredRow;
 
 const context = vm.createContext({
+  smartResumeRunning: false,
   enabled: true, busy: false, lastVideo: videoElement, timer: null,
   playbackContext: { lesson: "Video 1" },
   collectingCourseMaterials: false,
@@ -75,6 +76,7 @@ let chapterOpen = false;
 let objectiveClicks = 0;
 const objectiveRow = { name: "Obiettivi" };
 const objectiveContext = vm.createContext({
+  autoplaySkipCompletedVideos: false,
   objectivesSelectionEpoch: 0,
   timer: null, enabled: true, collectingCourseMaterials: false,
   courseBatchRunning: () => false,
@@ -109,3 +111,17 @@ objectiveContext.objectivesSelectionEpoch++;
 await objectiveTimer();
 assert.equal(chapterOpen, false, "a later manual selection must cancel Obiettivi recovery");
 console.log("PASS: Obiettivi handoff restores collapsed rows without overriding another selection");
+
+let skippedHandoff;
+chapterOpen = true;
+objectiveContext.autoplaySkipCompletedVideos = true;
+objectiveContext.firstVideoInChapter = () => null;
+objectiveContext.openNextAvailableChapter = async (_identity, _player, _recovering, options) => {
+  skippedHandoff = options;
+  return true;
+};
+objectiveContext.resumeFromObjectives(objectiveRow);
+await objectiveTimer();
+assert.equal(skippedHandoff.sequential, true);
+assert.equal(skippedHandoff.includeCurrent, true, "when all videos are skipped, preserve the current test boundary before continuing");
+console.log("PASS: optional skip after Obiettivi continues through existing sequential test handling");
