@@ -263,6 +263,11 @@
     return { text: decodeHtmlEntities(withoutTags, maxLength), images };
   }
 
+  function activityPercentageKnown(item) {
+    return (typeof item?.percentage === "number" || typeof item?.percentage === "string") &&
+      String(item.percentage).trim() !== "" && Number.isFinite(Number(item.percentage));
+  }
+
   function lessonObjective(body) {
     if (!Array.isArray(body?.data)) return null;
     const item = body.data.find((entry) => entry?.contentType === "intro");
@@ -271,6 +276,7 @@
       lp_item_id: Number(item.lp_item_id),
       lp_id: Number(item.lp_id),
       percentage: Number.isFinite(Number(item.percentage)) ? Number(item.percentage) : 0,
+      percentageKnown: activityPercentageKnown(item),
       title: safeString(item.title, 120),
     };
   }
@@ -331,6 +337,7 @@
         percentage: Number.isFinite(Number(item.percentage))
           ? Number(item.percentage)
           : 0,
+        percentageKnown: activityPercentageKnown(item),
         paragNumber: Number.isFinite(Number(item.paragNumber))
           ? Number(item.paragNumber)
           : null,

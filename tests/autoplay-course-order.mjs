@@ -33,9 +33,11 @@ async function transition({crossSection = false, sequential = true, missingCurre
     autoplaySkipCompletedVideos: skipCompleted,
     playbackDiscoveryCancelled: () => false,
     stopAtCurrentTestBeforeDiscovery: async () => stopAtTest,
-    findNextPlaybackTargetViaApi: async () => {
+    findNextPlaybackTargetViaApi: async (_identity, options) => {
       apiCalls++;
-      return {status: "target", entry: {identity: {sectionText: next.sectionText, chapterText: next.text}}, unfinishedItem: {contentType: "video"}};
+      assert.equal(options.forwardVideoSearch, skipCompleted);
+      const target = completeNext ? following : next;
+      return {status: "target", entry: {identity: {sectionText: target.sectionText, chapterText: target.text}}, unfinishedItem: {contentType: "video"}};
     },
     sections: () => [{text: "A"}, {text: "B"}, {text: "C"}],
     openSection: async text => { openedSections.push(text); activeSection = text; return true; },
@@ -70,7 +72,7 @@ for (const crossSection of [false, true]) {
   assert.equal(result.openedChapters.length, 1);
   const skipping = await transition({crossSection, skipCompleted: true});
   assert.equal(skipping.clicked[0], third, "optional skip also applies when entering the next chapter");
-  assert.equal(skipping.apiCalls, 0, "skip mode is sequential and does not use global incomplete discovery");
+  assert.equal(skipping.apiCalls, 1, "skip mode locates its forward target before opening a chapter");
 }
 const bookmark = await transition({sequential: false});
 assert.equal(bookmark.apiCalls, 1);
@@ -78,8 +80,8 @@ assert.equal(bookmark.clicked[0], third);
 const completedChapter = await transition({skipCompleted: true, completeNext: true});
 assert.equal(completedChapter.result, true);
 assert.equal(completedChapter.clicked[0].name, "Video 5", "a fully completed chapter is traversed in order when skip is enabled");
-assert.deepEqual(completedChapter.openedChapters.map(ch => ch.chapterText), ["4 - Next", "5 - Following"]);
-assert.equal(completedChapter.apiCalls, 0);
+assert.deepEqual(completedChapter.openedChapters.map(ch => ch.chapterText), ["5 - Following"], "do not open completed intermediate chapters");
+assert.equal(completedChapter.apiCalls, 1);
 const missing = await transition({missingCurrent: true});
 assert.equal(missing.result, false, "ambiguous current chapter must not jump to another section");
 assert.equal(missing.openedChapters.length, 0);
