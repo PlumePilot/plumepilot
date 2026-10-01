@@ -726,16 +726,13 @@
     }
 
     // Only search inside the current chapter.
-    // "Obiettivi" and videos already registered at 100% are deliberately
-    // ignored, so resuming autoplay cannot reopen completed activities.
+    // Autoplay follows the course order, including videos being replayed.
     for (let i = index + 1; i < rows.length; i++) {
       const candidate = rows[i];
 
       if (lessonName(candidate).toLowerCase() === "obiettivi") continue;
 
-      if (getProgress(candidate) < 100) return candidate;
-
-      log("Skipping already completed video:", lessonName(candidate));
+      if (lessonName(candidate)) return candidate;
     }
 
     // No more videos in this chapter.
@@ -1383,6 +1380,10 @@
   }
 
   function firstUnfinishedVideo(identity) {
+    return firstVideoInChapter(identity, true);
+  }
+
+  function firstVideoInChapter(identity, incompleteOnly = false) {
     const chapter = findChapter(identity);
 
     if (!chapter) {
@@ -1402,7 +1403,7 @@
 
         log("Checking:", lessonName(row), "Progress:", progress + "%");
 
-        return progress < 100;
+        return !incompleteOnly || progress < 100;
       }) || null
     );
   }
@@ -1480,7 +1481,7 @@
         }
       }
 
-      let unfinished = firstUnfinishedVideo(identity);
+      let unfinished = firstVideoInChapter(identity);
       const chapter = findChapter(identity);
       if (!unfinished && (!chapter || chapterRows(chapter).length === 0)) {
         if (await openChapter(identity)) {
@@ -1489,16 +1490,16 @@
               selectionEpoch !== objectivesSelectionEpoch) return;
           const selected = currentLesson();
           if (selected && lessonName(selected).toLowerCase() !== "obiettivi") return;
-          unfinished = firstUnfinishedVideo(identity);
+          unfinished = firstVideoInChapter(identity);
         }
       }
 
       if (!unfinished) {
-        log("No unfinished video was found after Obiettivi:", identity);
+        log("No video was found after Obiettivi:", identity);
         return;
       }
 
-      log("Opening the first unfinished video after Obiettivi.");
+      log("Opening the first video after Obiettivi in course order.");
       clickRow(unfinished);
 
       const nextVideo = await waitFor(() => video());
@@ -1701,7 +1702,7 @@
     sessionStorage.removeItem(CHAPTER_RECOVERY_KEY);
   }
 
-  function reloadForChapterRecovery(currentIdentity) {
+  function reloadForChapterRecovery(currentIdentity, options = {}) {
     if (documentIsHidden()) {
       log(
         "Chapter recovery reload deferred because the page is hidden:",
@@ -1729,6 +1730,7 @@
       CHAPTER_RECOVERY_KEY,
       JSON.stringify({
         currentIdentity,
+        sequential: options.sequential === true,
         recoveryKey,
         attempts: attempts + 1,
       }),
@@ -1829,6 +1831,7 @@
       recovery.currentIdentity,
       oldVideo,
       true,
+      { sequential: recovery.sequential === true },
     );
 
     if (result === "reloaded") {
@@ -6072,6 +6075,7 @@
     recovering = false,
     options = {},
   ) {
+    const sequential = options.sequential === true;
     if (playbackDiscoveryCancelled(options)) {
       return false;
     }
@@ -6098,10 +6102,9 @@
     let apiVisualVerification = false;
     let apiLessonLpId = null;
     let apiLessonParagraphId = null;
-    const apiDiscovery = await findNextPlaybackTargetViaApi(
-      currentIdentity,
-      options,
-    );
+    const apiDiscovery = sequential
+      ? { status: "sequential" }
+      : await findNextPlaybackTargetViaApi(currentIdentity, options);
 
     if (apiDiscovery.status === "cancelled") {
       log(
@@ -6141,7 +6144,8 @@
         return false;
       }
 
-      await openSection(currentIdentity.sectionText);
+      const sectionOpened = await openSection(currentIdentity.sectionText);
+      if (sequential && !sectionOpened) return false;
 
       const currentSectionChapters = chapters().filter(
         (chapter) => chapter.sectionText === currentIdentity.sectionText,
@@ -6149,6 +6153,10 @@
       const currentChapterIndex = currentSectionChapters.findIndex(
         (chapter) => chapter.text === currentIdentity.chapterText,
       );
+      if (sequential && currentChapterIndex < 0) {
+        log("Sequential autoplay could not identify the current chapter safely.");
+        return false;
+      }
 
       if (
         currentChapterIndex >= 0 &&
@@ -6309,7 +6317,7 @@
       }
 
       if (!chapterReady) {
-        const reloading = reloadForChapterRecovery(currentIdentity);
+        const reloading = reloadForChapterRecovery(currentIdentity, options);
 
         return reloading ? "reloaded" : false;
       }
@@ -6415,12 +6423,15 @@
     }
 
     /*
-     * Find the first unfinished video.
+     * Normal autoplay starts with the first video, including completed ones.
+     * Explicit incomplete discovery keeps its progress-based selection.
      */
-    const unfinished = firstUnfinishedVideo(nextIdentity);
+    const unfinished = sequential
+      ? firstVideoInChapter(nextIdentity)
+      : firstUnfinishedVideo(nextIdentity);
 
     if (!unfinished) {
-      log("All videos completed in chapter:", nextIdentity);
+      log(sequential ? "No video in chapter:" : "All videos completed in chapter:", nextIdentity);
 
       /*
        * Videos are complete, but the chapter may still contain
@@ -6492,10 +6503,10 @@
     }
 
     /*
-     * We found something below 100%.
+     * The requested playback activity is ready.
      */
     log(
-      "First unfinished video:",
+      sequential ? "First video in course order:" : "First unfinished video:",
       lessonName(unfinished),
       getProgress(unfinished) + "%",
     );
@@ -6554,7 +6565,7 @@
 
     log("End of chapter:", chapterIdentity(current));
 
-    return await openNextAvailableChapter(chapterIdentity(current), oldVideo);
+    return await openNextAvailableChapter(chapterIdentity(current), oldVideo, false, { sequential: true });
   }
 
   async function advance(v) {
@@ -6751,7 +6762,7 @@
 
       log("Continuing after the test boundary:", context.identity);
 
-      await openNextAvailableChapter(context.identity, context.oldVideo);
+      await openNextAvailableChapter(context.identity, context.oldVideo, false, { sequential: true });
     }, RESUME_DELAY_MS);
   }
 
@@ -6901,21 +6912,12 @@
       (Number.isFinite(v.duration) &&
         v.duration > 0 &&
         v.currentTime >= v.duration - 0.5);
-    const lessonRegisteredComplete =
-      Boolean(activeRow) && getProgress(activeRow) >= 100;
-
-    if (!playerReachedEnd && !lessonRegisteredComplete) {
+    if (!playerReachedEnd) {
       log("Extension resumed. Current video is still in progress.");
       return;
     }
 
-    if (lessonRegisteredComplete && !playerReachedEnd) {
-      log(
-        "Extension resumed. UniPegaso already registered the current video at 100%; searching for the next unfinished activity.",
-      );
-    } else {
-      log("Extension resumed with an already completed video.");
-    }
+    log("Extension resumed with a player that has reached its end.");
 
     lastVideo = v;
 
@@ -6930,8 +6932,7 @@
       const stillFinished = video() === v && lesson &&
         (v.ended ||
           (Number.isFinite(v.duration) && v.duration > 0 &&
-            v.currentTime >= v.duration - 0.5) ||
-          getProgress(lesson) >= 100);
+            v.currentTime >= v.duration - 0.5));
       const stableLesson = stillFinished &&
         (!resumedLesson || playbackLessonRow(resumedLesson) === lesson)
         ? lesson
@@ -6954,6 +6955,12 @@
     v.addEventListener("play", () => {
       const row = currentLesson();
       if (row) rememberPlaybackLesson(row, v);
+      // The platform may reuse the player for another video or a replay.
+      // An old ended event must not suppress the next genuine video end.
+      if (lastVideo === v && !v.ended &&
+          (!Number.isFinite(v.duration) || v.currentTime < v.duration - 0.5)) {
+        lastVideo = null;
+      }
     });
     v.addEventListener("ended", () => {
       void captureEndedVideoProgress(v);

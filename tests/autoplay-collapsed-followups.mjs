@@ -89,7 +89,7 @@ const objectiveContext = vm.createContext({
   getProgress: () => 0,
   lessonApiCache: new Map(),
   lessonApiCacheKey: () => "COURSE:1",
-  firstUnfinishedVideo: () => chapterOpen ? nextRow : null,
+  firstVideoInChapter: () => chapterOpen ? nextRow : null,
   findChapter: () => chapterOpen ? {} : null,
   chapterRows: () => chapterOpen ? [objectiveRow, nextRow] : [],
   openChapter: async () => { chapterOpen = true; return true; },
