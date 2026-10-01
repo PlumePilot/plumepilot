@@ -2316,6 +2316,7 @@
         :host([data-visual-style="gaming"]) .autoplay-options-toggle,
         :host([data-visual-style="gaming"]) .test-choice-list label,
         :host([data-visual-style="gaming"]) .chapter-limit-row,
+        :host([data-visual-style="gaming"]) .chapter-limit-controls > span,
         :host([data-visual-style="gaming"]) .course-progress-options-menu summary,
         :host([data-visual-style="gaming"]) .course-progress-setting,
         :host([data-visual-style="gaming"]) .course-progress-position-title,
@@ -2933,8 +2934,9 @@
         .autoplay-options-content.disabled input { cursor: not-allowed; }
         .autoplay-options-content .setting-hint { margin: 4px 0 8px; color: var(--sw-text-muted); font-size: 11px; line-height: 1.4; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
-        .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--sw-control-text); font-size: 10px; }
         .chapter-limit-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; }
+        .chapter-limit-controls > span { color: var(--sw-control-text); font-size: 10px; }
         .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; width: max-content; flex: 0 0 auto; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
         .chapter-limit-stepper button { border: 0; min-height: 28px; color: var(--sw-heading); background: var(--sw-surface-elevated); }
         .chapter-limit-stepper input { width: 100%; min-width: 0; min-height: 28px; padding: 0 2px; border: 0; border-inline: 1px solid var(--sw-border); color: var(--sw-heading); background: var(--sw-surface); font: inherit; font-weight: 750; text-align: center; -moz-appearance: textfield; }
@@ -3054,6 +3056,8 @@
         :host([data-menu-size="medium"]) .course-progress-message,
         :host([data-menu-size="medium"]) .course-progress-options-menu summary,
         :host([data-menu-size="medium"]) .course-progress-setting,
+        :host([data-menu-size="medium"]) .chapter-limit-row,
+        :host([data-menu-size="medium"]) .chapter-limit-controls > span,
         :host([data-menu-size="medium"]) .course-progress-position-title,
         :host([data-menu-size="medium"]) .course-progress-position-list label,
         :host([data-menu-size="medium"]) .chapter-limit-progress,
@@ -3065,6 +3069,8 @@
         :host([data-menu-size="large"]) .course-progress-message,
         :host([data-menu-size="large"]) .course-progress-options-menu summary,
         :host([data-menu-size="large"]) .course-progress-setting,
+        :host([data-menu-size="large"]) .chapter-limit-row,
+        :host([data-menu-size="large"]) .chapter-limit-controls > span,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label,
         :host([data-menu-size="large"]) .chapter-limit-progress,
@@ -3074,6 +3080,8 @@
         :host([data-menu-size="large"]) .course-progress-options-menu summary,
         :host([data-menu-size="large"]) .autoplay-options-title,
         :host([data-menu-size="large"]) .course-progress-setting,
+        :host([data-menu-size="large"]) .chapter-limit-row,
+        :host([data-menu-size="large"]) .chapter-limit-controls > span,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label { font-size: 12px; }
         :host([data-menu-size="medium"]) .course-progress-options-menu summary small,
