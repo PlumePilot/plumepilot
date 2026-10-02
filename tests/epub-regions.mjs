@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { inkBands, intersectsBand, inkIsCovered } from "../epub-regions.mjs";
+import { inkBands, intersectsBand, inkIsCovered, refineInkBands } from "../epub-regions.mjs";
 const ranges = inkBands(140, 24, (y) => (y < 40 || y >= 100 ? 1 : 0));
 assert.deepEqual(ranges, [
   { start: 0, end: 70 },
@@ -25,6 +25,19 @@ assert.equal(inkIsCovered(pixels, 10, 10, boxes), true);
 dark(8, 8);
 assert.equal(inkIsCovered(pixels, 10, 10, boxes), false);
 assert.equal(inkIsCovered(pixels, 10, 10, []), false);
+const ink = (y) => y < 30 || (y >= 40 && y < 58) || y >= 68 ? 1 : 0;
+const coarse = inkBands(100, 24, ink);
+assert.equal(coarse.length, 1);
+const proseRows = [{ top: 0, bottom: 30, prose: true },
+  { top: 40, bottom: 58, prose: false }, { top: 68, bottom: 100, prose: true }];
+assert.deepEqual(refineInkBands(100, 8, ink, proseRows, proseRows, coarse),
+  [{ start: 0, end: 35 }, { start: 35, end: 63 }, { start: 63, end: 100 }]);
+// Never introduce a small cut between numerator/denominator or diagram labels.
+const mathRows = proseRows.map((row) => ({ ...row, prose: false }));
+assert.deepEqual(refineInkBands(100, 8, ink, mathRows, mathRows, coarse), coarse);
+// A vertical table border or connected shape spanning a blank band owns both sides.
+assert.deepEqual(refineInkBands(100, 8, ink,
+  [...proseRows, { top: 20, bottom: 80 }], proseRows, coarse), coarse);
 console.log(
   "PASS: wide blank separators, fraction containment, band ownership and unknown-ink fallback",
 );

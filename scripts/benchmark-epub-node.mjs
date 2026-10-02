@@ -60,7 +60,7 @@ globalThis.fetch = async (url, options) => {
   );
 };
 globalThis.JSZip = require(path.join(root, "vendor/jszip.js"));
-let source = await readFile(path.join(root, "epub-core.mjs"), "utf8");
+let source = await readFile(process.env.EPUB_BENCH_CORE_FILE || path.join(root, "epub-core.mjs"), "utf8");
 source = source
   .replace(
     '"./vendor/pdf.mjs"',
@@ -70,6 +70,8 @@ source = source
     '"./epub-regions.mjs"',
     JSON.stringify(pathToFileURL(path.join(root, "epub-regions.mjs")).href),
   )
+  .replace('"./epub-math.mjs"', JSON.stringify(pathToFileURL(path.join(root, "epub-math.mjs")).href))
+  .replace('"./epub-assets.mjs"', JSON.stringify(pathToFileURL(path.join(root, "epub-assets.mjs")).href))
   .replace(
     /standardFontDataUrl: new URL\([\s\S]*?\)\.href,/,
     `standardFontDataUrl: ${JSON.stringify(path.join(root, "vendor/standard_fonts/") + path.sep)},`,
@@ -80,7 +82,7 @@ source = source
   );
 await mkdir(output, { recursive: true });
 await writeFile(path.join(output, "core.mjs"), source);
-const { buildCourseEpub } = await import(
+const { buildCourseEpub, __testing } = await import(
   pathToFileURL(path.join(output, "core.mjs"))
 );
 const files = process.argv.slice(2).length
@@ -90,11 +92,12 @@ const results = [];
 for (const [label, regionalPreservation] of [
   ["baseline", false],
   ["regional", true],
-]) {
+].filter(([label]) => !process.env.EPUB_BENCH_MODES || process.env.EPUB_BENCH_MODES.split(",").includes(label))) {
   const diagnostics = {};
   const result = await buildCourseEpub(
-    "Original regional fixtures",
-    files.map((url, i) => ({ url, chapter: `Fixture ${i + 1}` })),
+    process.env.EPUB_BENCH_TITLE || "Original regional fixtures",
+    files.map((url, i) => ({ url, chapter: process.env.EPUB_BENCH_USE_FILENAMES === "1"
+      ? path.basename(url, ".pdf") : `Fixture ${i + 1}` })),
     () => {},
     { generatorVersion: "prototype", regionalPreservation, diagnostics },
   );
@@ -112,6 +115,36 @@ await writeFile(
   path.join(output, "results.json"),
   JSON.stringify(results, null, 2) + "\n",
 );
+// Optional pixel references are rendered AFTER measured exports. They validate
+// newly protected rules on pages the baseline classified as plain text too.
+if (process.env.EPUB_BENCH_REFERENCES === "1") {
+  const { getDocument } = await import(pathToFileURL(path.join(root, "vendor/pdf.mjs")));
+  const regional = results.find((result) => result.label === "regional");
+  for (let index = 0; index < files.length; index++) {
+    const pdf = await getDocument({
+      data: new Uint8Array(await readFile(path.resolve(root, files[index]))),
+      isEvalSupported: false,
+      standardFontDataUrl: path.join(root, "vendor/standard_fonts/") + path.sep,
+    }).promise;
+    try {
+      for (const record of regional?.pages || []) {
+        if (record.chapterIndex !== index + 1 || !record.regionBounds?.length) continue;
+        const page = await pdf.getPage(record.pageNumber);
+        const canvas = createCanvas(1, 1);
+        try {
+          const viewport = page.getViewport({ scale: record.regionBounds[0].scale });
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          await __testing.renderPage(page, canvas, viewport);
+          await writeFile(path.join(output, `source-chapter-${index + 1}-page-${record.pageNumber}.png`), canvas.toBuffer("image/png"));
+        } finally {
+          canvas.width = canvas.height = 1;
+          page.cleanup();
+        }
+      }
+    } finally { await pdf.destroy(); }
+  }
+}
 if (process.env.EPUB_BENCH_CHECKS !== "0") {
   const { default: assert } = await import("node:assert/strict");
   const controller = new AbortController();

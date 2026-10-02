@@ -21,6 +21,21 @@ export function intersectsBand(box, band) {
   return box.bottom > band.start && box.top < band.end;
 }
 
+// Add smaller whitespace cuts only next to a complete ordinary prose line.
+// A cut between two formula/label lines must retain the old conservative gap.
+export function refineInkBands(height, blankHeight, inkAtRow, boxes, rows, coarse) {
+  const cuts = new Set(coarse.slice(0, -1).map((band) => band.end));
+  for (const band of inkBands(height, blankHeight, inkAtRow).slice(0, -1)) {
+    const cut = band.end;
+    if (boxes.some((box) => box.top < cut && box.bottom > cut)) continue;
+    const above = rows.filter((row) => row.bottom <= cut).at(-1);
+    const below = rows.find((row) => row.top >= cut);
+    if (above?.prose || below?.prose) cuts.add(cut);
+  }
+  const edges = [0, ...[...cuts].sort((a, b) => a - b), height];
+  return edges.slice(1).map((end, index) => ({ start: edges[index], end }));
+}
+
 // A proposed text region must account for every dark raster pixel. Unknown
 // ink (rules, labels, diagrams, extraction failures) forces image preservation.
 export function inkIsCovered(data, width, start, boxes) {

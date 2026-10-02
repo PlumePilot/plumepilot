@@ -5,6 +5,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from PIL import Image, ImageDraw
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import DecodedStreamObject, NameObject, DictionaryObject
 
 root = Path(__file__).parent
 out = BytesIO()
@@ -43,7 +44,33 @@ c.setPageSize((960,540));heading('6. Landscape slide');prose(470);c.drawImage(Im
 c.setPageSize((600,800));c.drawImage(ImageReader(b),0,0,600,800);end()
 heading('8. Rotated page');prose(680);end()
 heading('9. Cropped image page');prose(680);c.drawImage(ImageReader(b),60,350,150,90);prose(260);end()
+heading('10. Tight inline formula');prose(680,'Before tight formula')
+c.setFont('Helvetica',12);c.drawString(60,555,'Inline formula x');c.setFont('Helvetica',8);c.drawString(147,561,'2')
+c.setFont('Helvetica',12);c.drawString(160,555,'= 4 and short adjacent text')
+prose(530,'After tight formula');end()
+heading('11. Tight fraction');prose(680,'Before tight fraction')
+c.setFont('Helvetica',12);c.drawString(265,555,'a + b');c.line(255,547,315,547);c.drawString(275,533,'c')
+prose(500,'After tight fraction');end()
+heading('12. Unicode mathematical letters');prose(680,'Math-font prose')
+c.setFont('Helvetica-Oblique',12);c.drawString(60,470,'2b = 2 * 3c = 6c')
+c.setFont('Helvetica',12);prose(400,'After mathematical letters');end()
 c.save()
 r=PdfReader(out);r.pages[7].rotate(90);r.pages[8].cropbox.lower_left=(20,20)
+# The original italic b/c glyphs retain their appearance; their Unicode text
+# mapping reproduces supplementary-plane math letters emitted by real PDFs.
+fonts=r.pages[11]['/Resources']['/Font']
+for name, reference in list(fonts.items()):
+ font=reference.get_object()
+ if str(font.get('/BaseFont'))!='/Helvetica-Oblique':continue
+ mapped=DictionaryObject(font)
+ cmap=DecodedStreamObject()
+ cmap.set_data(b'/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n'
+   b'/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n'
+   b'/CMapName /OriginalMathFixture def /CMapType 2 def\n'
+   b'1 begincodespacerange <00> <FF> endcodespacerange\n'
+   b'2 beginbfchar <62> <D835DC4F> <63> <D835DC50> endbfchar\n'
+   b'endcmap CMapName currentdict /CMap defineresource pop end end')
+ mapped[NameObject('/ToUnicode')]=cmap
+ fonts[NameObject(name)]=mapped
 w=PdfWriter();[w.add_page(p) for p in r.pages]
 with (root/'epub-regions.pdf').open('wb') as f:w.write(f)

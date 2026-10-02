@@ -2,7 +2,8 @@
 
 Based on future 2.35.1 draft PR #39, `fix/autoplay-collapsed-followups`
 at `ceedf31db535a2e6539ed8ad4492b84179b5e548`. This separate feature branch
-implements the first increment of the 1 October improvement plan. The installed
+implements the regional preservation experiment and its 2 October font,
+segmentation and asset-reuse follow-up. The installed
 manifest remains 2.35.0; no release number or store submission is changed.
 
 ## Behavior and limits
@@ -16,13 +17,31 @@ this developer trial parameter. There is no new persistent preference.
 Eligible portrait pages are rendered once at the existing resolution and pixel
 limits. Text boxes, image transforms and PDF.js 5.6 bounded vector paths are
 mapped into the displayed raster coordinates. Completely blank horizontal
-bands at least two body-line heights apart propose regions. Cuts intersecting
+bands at least two body-line heights apart propose initial regions. Smaller
+blank gaps may add cuts immediately next to ordinary prose rows; gaps between
+formula/label rows are not refined. Cuts intersecting
 text or connected graphic bounds are removed; stroke widths/miter joins are
 included conservatively. Crops retain full page width rather than risking
 horizontal clipping. Ordinary regions become XHTML only if every dark pixel
 lies inside extracted text boxes and the existing math/table/column/text
 coverage checks allow reflow. Other regions remain images. Reading order is
 vertical; each item belongs to one region. Blank margins add no empty assets.
+
+Textual mathematical characters retain their exact Unicode values. The
+experiment wraps supported runs in a dedicated font span and embeds one
+440,520-byte PlumePilot Math font, derived from pinned STIX Two Math under
+OFL 1.1, plus its license. Books without such runs carry neither asset. Actual
+glyph coverage is checked; unsupported math, replacement characters and
+private-use codes retain raster fallback. A narrow detector also preserves
+simple horizontal-rule fractions that the existing classifier can miss.
+It requires short text above and below the rule, avoiding a general
+small-vector fallback that would rasterize ordinary prose pages.
+
+Final encoded images are reused within one export when their SHA-256,
+media type and extension match. All referring chapters use one canonical
+manifest asset. The registry retains only metadata, and packaging releases
+each page's redundant byte references after ZIP registration. JSZip still
+owns the stored encoded assets and final buffers; this is not a streaming ZIP.
 
 Save/restore, nested forms and unmasked groups with identity matrices are
 tracked. Unknown geometry, shading, soft masks, knockout/transformed groups,
@@ -41,7 +60,7 @@ implemented; existing chapter/section nav and NCX destinations are retained.
 PNG/JPEG encoding quality, print-intent rendering, download retries, material
 ordering, operation locking and final-package cancellation policy remain.
 
-## Same-input results
+## Same-input results — first increment, 1 October
 
 Bundled PDF.js 5.6.205 and JSZip, Node 24.19 with native canvas. Both comparison
 paths use the original page converter plus the two shared packaging repairs
@@ -63,34 +82,71 @@ from the public repository and store packages.
 RelIns improves about 21.2%; the combined export improves about 8.2%.
 The other three documents gain essentially nothing: outlined/scanned text,
 slides and uncertain layouts stay visual. RelIns has more, smaller image
-assets (50 versus 30); asset deduplication is not implemented. The course run
+assets (50 versus 30); asset deduplication was not implemented in that run. The course run
 is about 4.5% slower in this harness because regional raster analysis adds
 work. This is a measured tradeoff, not a speed or memory improvement claim.
-Repeated assets are currently stored with unique names, without reuse.
-The earlier private `epub-regional-evidence/study-results.json` is not committed
-to this repository; the table above records that run, rather than promising
-that its private evidence directory is available in a fresh checkout.
+Repeated assets were stored with unique names, without reuse.
+The historical summary is committed as
+`docs/epub-regional-evidence/study-results.json`; the study PDFs and derived
+study rasters/EPUBs remain private. Committed example crops come only from
+the original public fixture.
+
+## Same-input results — follow-up, 2 October
+
+The same four-document corpus, renderer, raster resolution and encoding
+settings were compared again. File sizes below are bytes, not RAM. The
+previous experimental converter was run independently on the same input;
+its timings are not compared to the fresh consecutive default/candidate run.
+
+| Export | Default EPUB | Previous regional EPUB | Updated regional EPUB |
+| --- | ---: | ---: | ---: |
+| Four documents, 86 pages | 19,969,804 | 18,323,608 | 14,496,472 |
+| RelIns, 19 pages | 7,777,836 | 6,131,548 (historical) | 3,841,965 |
+| Termini, 15 pages | 4,513,200 | Essentially unchanged | 4,513,204 |
+
+The combined export is 20.9% smaller than the previous experiment and 27.4%
+smaller than the default. RelIns improves approximately 37.3% further;
+its tighter safe cuts yield more prose outside images. The individual run
+uses readable chapter/title metadata, accounting for a few bytes versus
+historical metadata. Other study documents retain their existing page strategy,
+including all 12 ordinary text pages in IntProSof. No additional reduction is
+promised for a different book or the user's 190-to-140 MB export.
+
+The candidate has 14 regional pages and 135 image uses but only 133 stored
+images. Two identical covers save 1,537,174 encoded bytes across chapters.
+Stored image bytes fall from 15,628,070 to 14,090,896 before ZIP compression;
+the font is embedded once. A repeated public-fixture export separately
+verifies 22 image uses share 11 assets. The registry is export-local.
+
+The fresh four-document run took 19,438 ms default / 19,415 ms candidate.
+These single harness runs establish no speed improvement or browser-memory
+claim. A sanitized numeric summary is in
+`docs/epub-regional-evidence/follow-up-results.json`.
 
 ## Validation and public fixtures
 
-`tests/fixtures/make-epub-regions.py` reproduces nine original public pages:
+`tests/fixtures/make-epub-regions.py` reproduces twelve original public pages:
 prose, isolated diagram, fraction/exponent, wide merged table, positioned
-scripts, landscape slide, image-only scan, rotation and crop offset. Their
+scripts, landscape slide, image-only scan, rotation, crop offset, a tight
+inline formula, a tight horizontal-rule fraction, and Unicode math letters. Their
 source and generated PDF contain no third-party study material. Regenerate
 fixture EPUB/JSON evidence with the harness commands below.
 
-- 27 Node suites and syntax/diff checks pass.
+- 28 Node suites and syntax/diff checks pass; font coverage/name/license and
+  pinned checksums match.
 - Actual fixture EPUB XML parses; images decode; manifest IDs/assets are valid;
   prose appears once and in order; nav/NCX targets and fallback rasters match.
 - Fixture crops match complete baseline pixels exactly. Known fraction
   numerator/rule/denominator and the entire merged table fit inside one crop.
-- All 44 lossless RelIns crops match the corresponding full baseline raster
-  pixels exactly. Representative real crops and original fixture pages were
-  visually inspected. This does not replace a full reader review.
+- All 58 lossless study crops and six public fixture crops match complete
+  source rasters exactly. The tight fraction stays inside one crop and the
+  Unicode letters remain unchanged inside math-font spans. The earlier
+  increment's representative crops were visually inspected; current pixel
+  and structural checks do not replace a full reader review.
 - Cancellation during regional encoding releases tracked temporary canvases;
   a subsequent export succeeds in the renderer harness.
-- EPUBCheck 5.3.0 reports no errors/warnings for fixture, four individual study
-  candidates and the combined candidate export.
+- EPUBCheck 5.3.0 reports no errors/warnings for the latest fixture and
+  combined study candidates. Earlier individual study candidates also passed.
 - Chrome/Edge/Firefox/source packages build and pass repository validation.
   They are internal checks with the unchanged manifest, not store release kits.
 
@@ -119,6 +175,11 @@ Node script for private materials, using paths outside the repository. Set
 cancellation/repeat checks. `validate-epub-raster-regions.py OUTPUT_DIRECTORY`
 checks lossless region pixels; JPEG comparisons are explicitly skipped.
 The browser harness defaults to the original public fixture only.
+Set `EPUB_BENCH_REFERENCES=1` in the Node harness to render full source images
+for candidate regional pages after measurements. These references allow
+validation of newly protected formulas that the default exported as text.
+`EPUB_BENCH_MODES=regional` selects a single path and
+`EPUB_BENCH_CORE_FILE=/path/to/previous-core.mjs` compares a saved converter.
 
 ### Resume validation with an installed browser
 
@@ -150,7 +211,7 @@ Chromium installation failed again with `End of central directory record
 signature not found` after receiving a truncated archive. Browser validation
 therefore remains open; no browser performance result is claimed for this run.
 
-## Remaining gates and next increment
+## Remaining gates
 
 Browser installation here failed with a truncated download; no Chromium,
 Edge or Firefox run is claimed. Do not enable regions by default until the
@@ -159,7 +220,7 @@ cancellation, full-course export and Flo's Kindle/phone review pass. Real
 browser process memory remains unmeasured: JS heap/canvas bounds would not
 prove peak RAM. JSZip still retains encoded assets and final package buffers.
 
-The next increment is measured encoded-asset reuse and resource/buffer
-lifetime work. Limited semantic HTML tables remain optional afterward.
+Further resource/buffer lifetime work and limited semantic HTML tables remain
+optional follow-ups.
 Broader rotation/crop support and masked/transformed groups require their own
 geometric fixtures and validation before expanding eligibility.

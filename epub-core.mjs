@@ -1,6 +1,8 @@
 import * as pdfjsLib from "./vendor/pdf.mjs";
 
-import { inkBands, intersectsBand, inkIsCovered } from "./epub-regions.mjs";
+import { inkBands, intersectsBand, inkIsCovered, refineInkBands } from "./epub-regions.mjs";
+import { hasUnsupportedMathText, wrapMathText } from "./epub-math.mjs";
+import { createImageAssetRegistry } from "./epub-assets.mjs";
 
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
@@ -85,11 +87,13 @@ const footnoteToken = (number) => `{{STUDYWING_FOOTNOTE:${number}}}`;
 const inlineTextToPlainText = (value) =>
   String(value ?? "").replace(FOOTNOTE_TOKEN_PATTERN, "$1");
 
-const inlineTextToHtml = (value) =>
-  escapeXml(value).replace(
+const inlineTextToHtml = (value, mathFont = false) => {
+  const escaped = escapeXml(value);
+  return (mathFont ? wrapMathText(escaped) : escaped).replace(
     FOOTNOTE_TOKEN_PATTERN,
     '<sup class="footnote-ref">$1</sup>',
   );
+};
 
 const slug = (value) =>
   String(value)
@@ -448,7 +452,7 @@ function joinParagraphLines(lines) {
   return paragraph.replace(/\s+/g, " ").trim();
 }
 
-function textPageToHtml(content, viewport) {
+function textPageToHtml(content, viewport, { mathFont = false } = {}) {
   const meaningful = meaningfulTextItems(content, viewport);
   const sourceCharacters = meaningful.reduce(
     (total, item) => total + cleanExtractedText(item.str).trim().length,
@@ -505,7 +509,7 @@ function textPageToHtml(content, viewport) {
     if (!paragraph.length) return;
     const text = joinParagraphLines(paragraph);
     if (text) {
-      blocks.push(`<p>${inlineTextToHtml(text)}</p>`);
+      blocks.push(`<p>${inlineTextToHtml(text, mathFont)}</p>`);
       capturedText.push(inlineTextToPlainText(text));
     }
     paragraph = [];
@@ -515,7 +519,7 @@ function textPageToHtml(content, viewport) {
     if (!listItems.length) return;
     blocks.push(
       `<ul>${listItems
-        .map((item) => `<li>${inlineTextToHtml(item)}</li>`)
+        .map((item) => `<li>${inlineTextToHtml(item, mathFont)}</li>`)
         .join("")}</ul>`,
     );
     capturedText.push(...listItems.map(inlineTextToPlainText));
@@ -536,7 +540,7 @@ function textPageToHtml(content, viewport) {
       flushParagraph();
       flushList();
       const level = line.size >= bodySize * 1.7 ? "h2" : "h3";
-      blocks.push(`<${level}>${inlineTextToHtml(text)}</${level}>`);
+      blocks.push(`<${level}>${inlineTextToHtml(text, mathFont)}</${level}>`);
       capturedText.push(inlineTextToPlainText(text));
       continue;
     }
@@ -646,6 +650,52 @@ function hasSuspiciousText(content) {
   }).length;
 
   return mathFontItems >= 3 || mathCharacters.length >= 3;
+}
+
+function hasSimpleFractionRule(operations, content, viewport) {
+  const rows = [];
+  for (const item of meaningfulTextItems(content, viewport).map(textItem)) {
+    let row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 2.5);
+    if (!row) rows.push(row = { y: item.y, items: [] });
+    row.items.push(item);
+  }
+  const shortMathRows = rows.map((row) => ({ ...row, text: joinLine(row.items),
+    left: Math.min(...row.items.map((item) => item.x)),
+    right: Math.max(...row.items.map((item) => item.x + item.width)),
+    size: Math.max(...row.items.map((item) => item.size)),
+  })).filter((row) => row.text.length <= 24 &&
+    /^[\p{L}\p{N}\p{Sm}()+−*/ .-]+$/u.test(row.text) &&
+    (row.text.replace(/\s/g, "").length <= 3 || /[\p{Sm}+−*/=]/u.test(row.text)));
+  if (shortMathRows.length < 2) return false;
+  let transform = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  for (let index = 0; index < operations.fnArray.length; index++) {
+    const op = operations.fnArray[index], args = operations.argsArray[index] || [];
+    if (op === pdfjsLib.OPS.save) stack.push([...transform]);
+    else if (op === pdfjsLib.OPS.restore) {
+      if (!stack.length) return false;
+      transform = stack.pop();
+    } else if (op === pdfjsLib.OPS.transform) {
+      if (args.length !== 6 || !Array.from(args).every(Number.isFinite)) return false;
+      transform = multiplyTransform(transform, args);
+    } else if ([pdfjsLib.OPS.paintFormXObjectBegin, pdfjsLib.OPS.beginGroup].includes(op)) {
+      return false; // This small detector does not guess nested geometry.
+    } else if (op === pdfjsLib.OPS.constructPath && VECTOR_PAINT_OPERATIONS.has(args[0])) {
+      const bounds = args[2];
+      if (!bounds || bounds.length !== 4 || !Array.from(bounds).every(Number.isFinite)) continue;
+      const points = [[bounds[0], bounds[1]], [bounds[2], bounds[3]]]
+        .map(([x, y]) => [transform[0] * x + transform[2] * y + transform[4],
+          transform[1] * x + transform[3] * y + transform[5]]);
+      const left = Math.min(points[0][0], points[1][0]), right = Math.max(points[0][0], points[1][0]);
+      const top = Math.max(points[0][1], points[1][1]), bottom = Math.min(points[0][1], points[1][1]);
+      if (right - left < 12 || top - bottom > 2) continue;
+      const nearRule = (row) => row.left >= left - 3 && row.right <= right + 3 &&
+        Math.abs(row.y - (top + bottom) / 2) <= row.size * 3;
+      if (shortMathRows.some((row) => row.y > top && nearRule(row)) &&
+          shortMathRows.some((row) => row.y < bottom && nearRule(row))) return true;
+    }
+  }
+  return false;
 }
 
 function hasPositionedScript(content, viewport) {
@@ -1335,6 +1385,11 @@ async function renderRegionalPage(
   canvas.height = Math.ceil(viewport.height);
   try {
     const context = await renderPage(page, canvas, viewport, signal);
+    const rowInkCache = new Int32Array(canvas.height).fill(-1);
+    const cachedRowInk = (y) => {
+      if (rowInkCache[y] < 0) rowInkCache[y] = rowInk(context, y, 0, canvas.width);
+      return rowInkCache[y];
+    };
     const bodySize = estimateBodySize(meaningful.map(textItem), base);
     const boxes = content.items
       .filter((item) => item.str?.trim())
@@ -1355,7 +1410,7 @@ async function renderRegionalPage(
     let bands = inkBands(
       canvas.height,
       Math.ceil(Math.max(24, bodySize * 2) * scale),
-      (y) => rowInk(context, y, 0, canvas.width),
+      cachedRowInk,
     );
     // Expand regions to include connected vector extents, stroke joins and
     // intersecting text. Remove unsafe cuts rather than clipping those objects.
@@ -1376,6 +1431,24 @@ async function renderRegionalPage(
       canvas.height,
     ];
     bands = cuts.slice(1).map((end, i) => ({ start: cuts[i], end }));
+    const rows = [];
+    for (const box of [...boxes].sort((a, b) => a.top - b.top)) {
+      const row = rows.at(-1);
+      if (row && box.top < row.bottom) {
+        row.bottom = Math.max(row.bottom, box.bottom);
+        row.members.push(box);
+      } else rows.push({ top: box.top, bottom: box.bottom, members: [box] });
+    }
+    for (const row of rows) {
+      const rowContent = { ...content, items: row.members.map((box) => box.item) };
+      const text = rowContent.items.map((item) => item.str).join(" ").trim();
+      row.prose = text.length >= 40 && text.split(/\s+/u).length >= 6 &&
+        !hasSuspiciousText(rowContent) && !hasUnsupportedMathText(text) &&
+        !hasPositionedScript(rowContent, base);
+    }
+    bands = refineInkBands(canvas.height,
+      Math.ceil(Math.max(8, bodySize * 0.45) * scale),
+      cachedRowInk, allBoxes, rows, bands);
     const plans = [];
     for (const band of bands) {
       throwIfAborted(signal);
@@ -1397,12 +1470,13 @@ async function renderRegionalPage(
       const unsafeText =
         hasGraphics ||
         hasSuspiciousText(regionContent) ||
+        regionContent.items.some((item) => hasUnsupportedMathText(item.str)) ||
         hasPositionedScript(regionContent, base) ||
         hasSmallTable(regionContent, base) ||
         hasParallelColumns(regionContent, base);
       let converted = null;
       if (!unsafeText && members.length) {
-        converted = textPageToHtml(regionContent, base);
+        converted = textPageToHtml(regionContent, base, { mathFont: true });
         if (
           textConversionLooksIncomplete(converted) ||
           !inkIsCovered(pixels, canvas.width, band.start, members)
@@ -1611,6 +1685,18 @@ async function convertMaterial(
       try {
         const content = await page.getTextContent();
         const classification = await pageNeedsVisual(page, content);
+        if (regionalPreservation && !classification.visual) {
+          const unresolved = meaningfulTextItems(content, page.getViewport({ scale: 1 }))
+            .some((item) => hasUnsupportedMathText(item.str));
+          // A single fraction rule/small graphic can evade the old page-wide
+          // complexity threshold. The regional raster guard accounts for it.
+          const smallVectors = hasSimpleFractionRule(await page.getOperatorList(), content,
+            page.getViewport({ scale: 1 }));
+          if (unresolved || smallVectors) Object.assign(classification, {
+            visual: true, renderWidth: VISUAL_DETAIL_WIDTH,
+            reason: unresolved ? "unsupported mathematical character" : "isolated fraction rule",
+          });
+        }
         let visual = classification.visual;
         let converted = null;
 
@@ -1618,6 +1704,7 @@ async function convertMaterial(
           converted = textPageToHtml(
             content,
             page.getViewport({ scale: 1 }),
+            { mathFont: regionalPreservation },
           );
           visual = textConversionLooksIncomplete(converted);
           if (visual) {
@@ -1757,6 +1844,9 @@ export async function buildCourseEpub(
   const included = [];
   const failures = [];
   const generator = `PlumePilot ${generatorVersion}`;
+  const assetRegistry = regionalPreservation
+    ? createImageAssetRegistry(zip, signal, diagnostics) : null;
+  let usesMathFont = false;
 
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
   zip.file(
@@ -1768,6 +1858,10 @@ export async function buildCourseEpub(
   );
   zip.file(
     "OEBPS/styles/book.css",
+    (regionalPreservation
+      ? '@font-face{font-family:"PlumePilot Math";src:url("../fonts/plumepilot-math.otf") format("opentype");font-weight:normal;font-style:normal}' +
+        '.math-symbol{font-family:"PlumePilot Math",serif;font-weight:normal;font-style:normal}'
+      : "") +
     `body{font-family:serif;line-height:1.55;margin:4%;color:#202124}` +
       `h1,h2,h3{font-family:sans-serif;line-height:1.25;color:#421f7c;page-break-after:avoid;break-after:avoid}` +
       `h1{font-size:1.8em}h2{font-size:1.4em}.subtitle{color:#666}` +
@@ -1813,6 +1907,28 @@ export async function buildCourseEpub(
         { signal, regionalPreservation, diagnostics },
       );
       const file = `text/chapter-${String(index + 1).padStart(3, "0")}.xhtml`;
+      const chapterImages = [];
+      const aliases = new Map();
+      if (assetRegistry) {
+        for (const image of converted.images) {
+          const asset = await assetRegistry.register(image);
+          aliases.set(image.name, asset.name);
+          chapterImages.push(asset);
+          // Release duplicate buffers; JSZip retains only the canonical bytes.
+          image.bytes = null;
+        }
+        converted.html = converted.html.replace(/src="\.\.\/([^"]+)"/g,
+          (attribute, name) => aliases.has(name)
+            ? `src="../${escapeXml(aliases.get(name))}"` : attribute);
+        for (const record of diagnostics?.pages || []) {
+          if (record.chapterIndex !== index + 1) continue;
+          for (const region of record.regionBounds || []) {
+            region.sourceName = region.name;
+            region.name = aliases.get(region.name) || region.name;
+          }
+        }
+        usesMathFont ||= converted.html.includes('<span class="math-symbol">');
+      }
       zip.file(
         `OEBPS/${file}`,
         xhtml(
@@ -1824,10 +1940,10 @@ export async function buildCourseEpub(
             `${converted.html}</main>`,
         ),
       );
-      for (const image of converted.images) {
+      if (!assetRegistry) for (const image of converted.images) {
         zip.file(`OEBPS/${image.name}`, image.bytes, { compression: "STORE" });
       }
-      included.push({ ...material, file, images: converted.images });
+      included.push({ ...material, file, images: assetRegistry ? chapterImages : converted.images });
     } catch (error) {
       if (error?.name === "AbortError") throw error;
       console.error(
@@ -1849,6 +1965,29 @@ export async function buildCourseEpub(
         .map((failure) => `${failure.chapter}: ${failure.reason}`)
         .join("; ")}`,
     );
+  }
+
+  let fontManifest = "";
+  if (usesMathFont) {
+    throwIfAborted(signal);
+    const fontUrl = new URL("./assets/fonts/plumepilot-math.otf", import.meta.url).href;
+    const licenseUrl = new URL("./assets/fonts/STIX-OFL.txt", import.meta.url).href;
+    const fontResponse = await fetch(fontUrl, { signal });
+    if (!fontResponse.ok) throw new Error("Il font matematico locale non è disponibile.");
+    const font = new Uint8Array(await fontResponse.arrayBuffer());
+    const licenseResponse = await fetch(licenseUrl, { signal });
+    if (!licenseResponse.ok) throw new Error("La licenza del font matematico non è disponibile.");
+    const license = await licenseResponse.text();
+    throwIfAborted(signal);
+    zip.file("OEBPS/fonts/plumepilot-math.otf", font);
+    zip.file("OEBPS/fonts/STIX-OFL.txt", license);
+    fontManifest = '<item id="math-font" href="fonts/plumepilot-math.otf" media-type="font/otf"/>' +
+      '<item id="math-font-license" href="fonts/STIX-OFL.txt" media-type="text/plain"/>';
+    if (diagnostics) diagnostics.mathFontBytes = font.byteLength;
+  } else if (regionalPreservation) {
+    // Avoid a dangling font URL and font overhead for books without math text.
+    const css = await zip.file("OEBPS/styles/book.css").async("string");
+    zip.file("OEBPS/styles/book.css", css.replace(/@font-face\{[^}]+\}\.math-symbol\{[^}]+\}/, ""));
   }
 
   const sectionGroups = groupBySection(included);
@@ -1883,8 +2022,7 @@ export async function buildCourseEpub(
         `media-type="application/xhtml+xml"/>`,
     )
     .join("");
-  const imageManifest = included
-    .flatMap((item) => item.images)
+  const imageManifest = (assetRegistry ? assetRegistry.images : included.flatMap((item) => item.images))
     .map(
       (image, index) =>
         `<item id="image-${index + 1}" href="${escapeXml(image.name)}" ` +
@@ -1942,7 +2080,7 @@ export async function buildCourseEpub(
       `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>` +
       `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>` +
       `<item id="book-style" href="styles/book.css" media-type="text/css"/>` +
-      `${chapterManifest}${imageManifest}</manifest><spine toc="ncx">` +
+      `${chapterManifest}${imageManifest}${fontManifest}</manifest><spine toc="ncx">` +
       `<itemref idref="title"/>${spine}</spine></package>`,
   );
 
@@ -1992,6 +2130,7 @@ export const __testing = {
   groupBySection,
   hasParallelColumns,
   hasSmallTable,
+  hasSimpleFractionRule,
   hasPositionedScript,
   hasSignificantRotatedText,
   hasSuspiciousText,

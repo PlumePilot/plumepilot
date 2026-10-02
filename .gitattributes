@@ -4,6 +4,11 @@
 *.ttf binary
 *.pfb binary
 *.zip binary
+*.pdf binary
+*.otf binary
 
 # Preserve the official pdf-lib distribution byte for byte (it uses CRLF).
 vendor/pdf-lib.js -text
+
+# The original OFL text includes a trailing space; keep its license verbatim.
+assets/fonts/STIX-OFL.txt whitespace=-blank-at-eol

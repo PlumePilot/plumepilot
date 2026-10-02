@@ -11,11 +11,14 @@ with zipfile.ZipFile(base/'baseline.epub') as old,zipfile.ZipFile(base/'regional
   if page['mode']!='regional':continue
   chapter=page['chapterIndex'];number=page['pageNumber']
   names=sorted(n for n in old.namelist() if f'chapter-{chapter:03}-page-{number:03}-' in n and n.endswith(('.png','.jpg')))
-  if not names or any(not n.endswith('.png') for n in names):skipped+=len(page['regionBounds']);continue
-  pieces=[Image.open(BytesIO(old.read(n))).convert('RGB') for n in names]
-  full=Image.new('RGB',(pieces[0].width,sum(p.height for p in pieces)))
-  y=0
-  for piece in pieces:full.paste(piece,(0,y));y+=piece.height
+  reference=base/f'source-chapter-{chapter}-page-{number}.png'
+  if reference.exists():full=Image.open(reference).convert('RGB')
+  else:
+   if not names or any(not n.endswith('.png') for n in names):skipped+=len(page['regionBounds']);continue
+   pieces=[Image.open(BytesIO(old.read(n))).convert('RGB') for n in names]
+   full=Image.new('RGB',(pieces[0].width,sum(p.height for p in pieces)))
+   y=0
+   for piece in pieces:full.paste(piece,(0,y));y+=piece.height
   for region in page['regionBounds']:
    if not region['name'].endswith('.png'):skipped+=1;continue
    crop=Image.open(BytesIO(new.read('OEBPS/'+region['name']))).convert('RGB')
