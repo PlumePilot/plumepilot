@@ -1,4 +1,4 @@
-# Experimental regional EPUB preservation
+# Regional EPUB preservation for 2.35.1
 
 Based on future 2.35.1 draft PR #39, `fix/autoplay-collapsed-followups`
 at `ceedf31db535a2e6539ed8ad4492b84179b5e548`. This separate feature branch
@@ -8,11 +8,13 @@ manifest remains 2.35.0; no release number or store submission is changed.
 
 ## Behavior and limits
 
-The stable text/visual page strategy remains the default. The experiment is
-selected through `buildCourseEpub(..., { regionalPreservation: true })`, or by
-appending `&epubRegional=1` to the existing materials chooser URL (preserve its
-job parameter) before selecting EPUB. The legacy EPUB builder also recognizes
-this developer trial parameter. There is no new persistent preference.
+On 2 October the author approved the result for release 2.35.1 and authorized
+merging PR #40 into `fix/autoplay-collapsed-followups`. Both EPUB export entry
+points now select regional preservation by default. Appending
+`&epubRegional=0` to the builder URL (preserve its job parameter) selects the
+older page strategy for diagnosis; `epubRegional=1` remains accepted. The
+programmatic API still accepts `{ regionalPreservation: true/false }`.
+There is no new persistent preference or user-facing option.
 
 Eligible portrait pages are rendered once at the existing resolution and pixel
 limits. Text boxes, image transforms and PDF.js 5.6 bounded vector paths are
