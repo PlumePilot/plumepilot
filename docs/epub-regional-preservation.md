@@ -67,15 +67,17 @@ assets (50 versus 30); asset deduplication is not implemented. The course run
 is about 4.5% slower in this harness because regional raster analysis adds
 work. This is a measured tradeoff, not a speed or memory improvement claim.
 Repeated assets are currently stored with unique names, without reuse.
-See `epub-regional-evidence/study-results.json` for hashes/image-byte totals.
+The earlier private `epub-regional-evidence/study-results.json` is not committed
+to this repository; the table above records that run, rather than promising
+that its private evidence directory is available in a fresh checkout.
 
 ## Validation and public fixtures
 
 `tests/fixtures/make-epub-regions.py` reproduces nine original public pages:
 prose, isolated diagram, fraction/exponent, wide merged table, positioned
 scripts, landscape slide, image-only scan, rotation and crop offset. Their
-source and generated PDF contain no third-party study material. Fixture PNG
-and JSON evidence are under `epub-regional-evidence/`.
+source and generated PDF contain no third-party study material. Regenerate
+fixture EPUB/JSON evidence with the harness commands below.
 
 - 27 Node suites and syntax/diff checks pass.
 - Actual fixture EPUB XML parses; images decode; manifest IDs/assets are valid;
@@ -117,6 +119,36 @@ Node script for private materials, using paths outside the repository. Set
 cancellation/repeat checks. `validate-epub-raster-regions.py OUTPUT_DIRECTORY`
 checks lossless region pixels; JPEG comparisons are explicitly skipped.
 The browser harness defaults to the original public fixture only.
+
+### Resume validation with an installed browser
+
+The browser harness now supports locally installed Chrome or Edge, so a failed
+Playwright browser download does not prevent running it on another machine.
+Install Playwright as local tooling (`npm install --no-save playwright`), then
+run `node scripts/benchmark-epub-regions.mjs`. If there is no downloaded browser,
+set `EPUB_BROWSER_CHANNEL=chrome` or `EPUB_BROWSER_CHANNEL=msedge`, or set
+`EPUB_BROWSER_EXECUTABLE` to its executable path. On PowerShell, for example:
+
+```powershell
+$env:EPUB_BROWSER_CHANNEL = 'msedge'
+$env:EPUB_BENCH_OUTPUT = "$PWD/epub-benchmark-output"
+node scripts/benchmark-epub-regions.mjs
+python scripts/validate-epub-fixtures.py "$env:EPUB_BENCH_OUTPUT"
+```
+
+Keep generated outputs outside commits. If `CODEX_PRIMARY_RUNTIME_NODE_MODULES`
+is set, the harness uses that runtime's Playwright instead of local tooling.
+Sandbox disabling is an explicit container-only choice via
+`EPUB_BROWSER_NO_SANDBOX=1`. The harness uses an isolated HTTP page instead of
+loading extension-only UI scripts; results exercise the actual converter but
+do not prove installed-extension behavior, Firefox compatibility, background
+tab behavior or peak browser-process RAM.
+
+On 2 October, fresh Node/native-canvas conversion and structural/pixel fixture
+validation passed, including cancellation cleanup and a repeated export.
+Chromium installation failed again with `End of central directory record
+signature not found` after receiving a truncated archive. Browser validation
+therefore remains open; no browser performance result is claimed for this run.
 
 ## Remaining gates and next increment
 
