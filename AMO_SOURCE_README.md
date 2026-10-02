@@ -77,6 +77,21 @@ Before this submission, every source vendor file was compared byte for byte with
 
 Before submission, run `web-ext lint` on the generated Firefox 2.35.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
 
+## Experimental EPUB math font
+
+The regional EPUB experiment bundles `assets/fonts/plumepilot-math.otf`, a renamed mathematical/Greek subset derived from STIX Two Math 2.13b171 under SIL OFL 1.1. `THIRD_PARTY_NOTICES.md` records the tagged upstream source, source and derived checksums, modifications, and license location. This font is the documented exception to the unmodified third-party distributions described above.
+
+The extension uses the packaged font locally and embeds it only when generated XHTML contains mathematical characters. It adds no permissions or runtime downloads. Python and FontTools are offline development tools, not extension dependencies; the normal release build uses the already included font.
+
+To independently regenerate it, install FontTools, obtain the pinned upstream OTF, and run the readable script from the source root:
+
+```bash
+python scripts/build-epub-math-font.py /path/to/STIXTwoMath-Regular.otf
+python scripts/validate-epub-math-font.py
+```
+
+The preparation script verifies the upstream checksum before subsetting and writes the coverage module used by the runtime. Complex formulas remain raster images; no MathML layout or equation recognition is added.
+
 ## Runtime/source separation
 
 Development documentation, tests, build scripts, repository metadata, the 512×512 source icon, and non-runtime vendor documentation are excluded from browser packages. The source archive retains the code, tests, build scripts, source icon, licenses, vendor metadata, and this README required for review; public website and internal store-workflow documents under `docs/` are omitted. The exact exclusions are defined in `scripts/build-release.mjs`.

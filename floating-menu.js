@@ -49,6 +49,7 @@
     enabled: true,
     stopAtTests: false,
     autoCompleteTests: false,
+    autoplaySkipCompletedVideos: false,
     autoplayChapterLimitEnabled: false,
     autoplayChapterLimits: {},
     autoplayChapterLimitSessions: {},
@@ -1079,6 +1080,8 @@
           ? "stop"
           : "ignore";
     ui.enabled.checked = settings.enabled !== false;
+    ui.autoplaySkipCompletedVideos.checked = settings.autoplaySkipCompletedVideos === true;
+    ui.autoplaySkipCompletedVideos.disabled = autoplayDisabled;
     ui.findFirstIncomplete.disabled =
       autoplayDisabled || Boolean(settings.pegasoActiveOperation);
     ui.autoplayOptionsContent.classList.toggle("disabled", autoplayDisabled);
@@ -1126,10 +1129,13 @@
         : `Sessione: ${limitStatus.completed || 0} di ${limit} · massimo ${maximum}.`;
     ui.chapterLimitResume.hidden = !limitStatus?.reached;
     ui.chapterLimitResume.textContent = `Riprendi per altri ${limit}`;
-    ui.autoplayOptionsSummary.textContent =
+    const autoplaySummary =
       settings.autoplayChapterLimitEnabled === true
         ? `${testSummary} · limite ${limit}`
         : testSummary;
+    ui.autoplayOptionsSummary.textContent = settings.autoplaySkipCompletedVideos === true
+      ? `${autoplaySummary} · salta video completati`
+      : autoplaySummary;
     ui.courseProgressOverlayEnabled.checked =
       settings.courseProgressOverlayEnabled === true;
     const progressPosition = normalizedCourseProgressPosition(
@@ -2310,6 +2316,7 @@
         :host([data-visual-style="gaming"]) .autoplay-options-toggle,
         :host([data-visual-style="gaming"]) .test-choice-list label,
         :host([data-visual-style="gaming"]) .chapter-limit-row,
+        :host([data-visual-style="gaming"]) .chapter-limit-controls > span,
         :host([data-visual-style="gaming"]) .course-progress-options-menu summary,
         :host([data-visual-style="gaming"]) .course-progress-setting,
         :host([data-visual-style="gaming"]) .course-progress-position-title,
@@ -2925,9 +2932,12 @@
           opacity: 0.55;
         }
         .autoplay-options-content.disabled input { cursor: not-allowed; }
+        .autoplay-options-content .setting-hint { margin: 4px 0 8px; color: var(--sw-text-muted); font-size: 11px; line-height: 1.4; }
         .chapter-limit { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sw-border); }
-        .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; margin-top: 7px; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
+        .chapter-limit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--sw-control-text); font-size: 10px; }
+        .chapter-limit-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; }
+        .chapter-limit-controls > span { color: var(--sw-control-text); font-size: 10px; }
+        .chapter-limit-stepper { display: grid; grid-template-columns: 28px 44px 28px; align-items: center; width: max-content; flex: 0 0 auto; border: 1px solid var(--sw-border); border-radius: 7px; overflow: hidden; }
         .chapter-limit-stepper button { border: 0; min-height: 28px; color: var(--sw-heading); background: var(--sw-surface-elevated); }
         .chapter-limit-stepper input { width: 100%; min-width: 0; min-height: 28px; padding: 0 2px; border: 0; border-inline: 1px solid var(--sw-border); color: var(--sw-heading); background: var(--sw-surface); font: inherit; font-weight: 750; text-align: center; -moz-appearance: textfield; }
         .chapter-limit-stepper input::-webkit-inner-spin-button,
@@ -3046,6 +3056,8 @@
         :host([data-menu-size="medium"]) .course-progress-message,
         :host([data-menu-size="medium"]) .course-progress-options-menu summary,
         :host([data-menu-size="medium"]) .course-progress-setting,
+        :host([data-menu-size="medium"]) .chapter-limit-row,
+        :host([data-menu-size="medium"]) .chapter-limit-controls > span,
         :host([data-menu-size="medium"]) .course-progress-position-title,
         :host([data-menu-size="medium"]) .course-progress-position-list label,
         :host([data-menu-size="medium"]) .chapter-limit-progress,
@@ -3057,6 +3069,8 @@
         :host([data-menu-size="large"]) .course-progress-message,
         :host([data-menu-size="large"]) .course-progress-options-menu summary,
         :host([data-menu-size="large"]) .course-progress-setting,
+        :host([data-menu-size="large"]) .chapter-limit-row,
+        :host([data-menu-size="large"]) .chapter-limit-controls > span,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label,
         :host([data-menu-size="large"]) .chapter-limit-progress,
@@ -3066,6 +3080,8 @@
         :host([data-menu-size="large"]) .course-progress-options-menu summary,
         :host([data-menu-size="large"]) .autoplay-options-title,
         :host([data-menu-size="large"]) .course-progress-setting,
+        :host([data-menu-size="large"]) .chapter-limit-row,
+        :host([data-menu-size="large"]) .chapter-limit-controls > span,
         :host([data-menu-size="large"]) .course-progress-position-title,
         :host([data-menu-size="large"]) .course-progress-position-list label { font-size: 12px; }
         :host([data-menu-size="medium"]) .course-progress-options-menu summary small,
@@ -3709,6 +3725,8 @@
               <div class="autoplay-options-overflow">
                 <div class="autoplay-options-content" data-role="autoplay-options-content">
                   <button class="bookmark-action" data-action="find-first-incomplete" type="button">Trova prima attività incompleta</button>
+                  <label class="course-progress-setting"><span>Salta videolezioni completate</span><input data-setting="autoplay-skip-completed-videos" type="checkbox"></label>
+                  <div class="setting-hint">Salta i video già al 100% mantenendo l’ordine del corso. Disattiva per ripassarli tutti.</div>
                   <div class="test-choice-heading">Quando raggiunge un test</div>
                   <div class="test-choice-list">
                     <label><input type="radio" name="studywing-test-behavior" value="ignore"> <span>Ignora e continua</span></label>
@@ -3717,10 +3735,13 @@
                   </div>
                   <div class="chapter-limit">
                     <label class="chapter-limit-row"><span>Limite sessione autoplay</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
-                    <div class="chapter-limit-stepper">
-                      <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
-                      <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
-                      <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
+                    <div class="chapter-limit-controls">
+                      <span>Capitoli</span>
+                      <div class="chapter-limit-stepper">
+                        <button data-action="chapter-limit-minus" type="button" aria-label="Riduci il limite">−</button>
+                        <input data-role="chapter-limit-value" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="Numero di capitoli">
+                        <button data-action="chapter-limit-plus" type="button" aria-label="Aumenta il limite">+</button>
+                      </div>
                     </div>
                     <input class="chapter-limit-slider" data-role="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
                     <p class="chapter-limit-progress" data-role="chapter-limit-progress"></p>
@@ -4002,6 +4023,9 @@
       findFirstIncomplete: shadow.querySelector(
         '[data-action="find-first-incomplete"]',
       ),
+      autoplaySkipCompletedVideos: shadow.querySelector(
+        '[data-setting="autoplay-skip-completed-videos"]',
+      ),
       autoplayOptionsButton: shadow.querySelector(
         '[data-action="toggle-autoplay-options"]',
       ),
@@ -4248,6 +4272,9 @@
         "*",
       );
       setTimeout(renderSettings, 1500);
+    });
+    ui.autoplaySkipCompletedVideos.addEventListener("change", () => {
+      writeSetting("autoplaySkipCompletedVideos", ui.autoplaySkipCompletedVideos.checked);
     });
     for (const radio of ui.testBehaviorRadios)
       radio.addEventListener("change", () => {
@@ -4540,6 +4567,7 @@
       changes.enabled ||
       changes.stopAtTests ||
       changes.autoCompleteTests ||
+      changes.autoplaySkipCompletedVideos ||
       changes.autoplayChapterLimitEnabled ||
       changes.autoplayChapterLimits ||
       changes.autoplayChapterLimitSessions ||

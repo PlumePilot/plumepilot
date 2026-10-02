@@ -8,6 +8,9 @@
     });
   });
   const autoplayOptions = document.getElementById("autoplayOptions");
+  const autoplaySkipCompletedVideosCheckbox = document.getElementById(
+    "autoplaySkipCompletedVideos",
+  );
   const autoplayOptionsSummary = document.getElementById(
     "autoplayOptionsSummary",
   );
@@ -732,9 +735,12 @@
     const limitEnabled = chapterLimitStatus?.enabled === true;
     const limit = Math.max(1, Number(chapterLimitStatus?.limit) || 1);
     const completed = Math.max(0, Number(chapterLimitStatus?.completed) || 0);
-    autoplayOptionsSummary.textContent = limitEnabled
+    const summary = limitEnabled
       ? `${behaviorLabel} · limite ${limit}`
       : behaviorLabel;
+    autoplayOptionsSummary.textContent = autoplaySkipCompletedVideosCheckbox.checked
+      ? `${summary} · salta video completati`
+      : summary;
     chapterLimitOptionsSummary.textContent = !limitReady
       ? "Non disponibile"
       : !limitEnabled
@@ -992,6 +998,7 @@
     autoplayOptions.classList.toggle("disabled", disabled);
     autoplayOptions.setAttribute("aria-disabled", String(disabled));
     findFirstIncompleteButton.disabled = disabled || Boolean(activeOperation);
+    autoplaySkipCompletedVideosCheckbox.disabled = disabled;
     for (const radio of testBehaviorRadios) radio.disabled = disabled;
     renderChapterLimit();
   }
@@ -1303,6 +1310,7 @@
       enabled: true,
       stopAtTests: false,
       autoCompleteTests: false,
+      autoplaySkipCompletedVideos: false,
       autoplayChapterLimitEnabled: false,
       autoplayChapterLimits: {},
       autoplayChapterLimitSessions: {},
@@ -1329,6 +1337,7 @@
     },
     (result) => {
       checkbox.checked = result.enabled;
+      autoplaySkipCompletedVideosCheckbox.checked = result.autoplaySkipCompletedVideos === true;
       renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
       chapterLimitMaps = {
         limits: result.autoplayChapterLimits || {},
@@ -1406,6 +1415,10 @@
       checkbox.checked = changes.enabled.newValue !== false;
       updateStatus(checkbox.checked);
       updateAutoplayControls();
+    }
+    if (changes.autoplaySkipCompletedVideos) {
+      autoplaySkipCompletedVideosCheckbox.checked = changes.autoplaySkipCompletedVideos.newValue === true;
+      renderAutoplayOptionsSummary();
     }
     if (changes.stopAtTests || changes.autoCompleteTests) {
       chrome.storage.local.get(
@@ -1521,6 +1534,12 @@
     if (checkbox.checked) claimAchievement("discover-autoplay");
   });
   status.addEventListener("click", () => checkbox.click());
+  autoplaySkipCompletedVideosCheckbox.addEventListener("change", () => {
+    chrome.storage.local.set({
+      autoplaySkipCompletedVideos: autoplaySkipCompletedVideosCheckbox.checked,
+    });
+    renderAutoplayOptionsSummary();
+  });
   findFirstIncompleteButton.addEventListener("click", () => {
     findFirstIncompleteButton.disabled = true;
     firstIncompleteStatus.textContent =

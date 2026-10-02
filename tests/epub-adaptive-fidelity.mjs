@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
+import { hasUnsupportedMathText, wrapMathText } from "../epub-math.mjs";
 
 // Load first-party logic without browser/renderer dependencies. Actual PDF.js
 // extraction and raster checks are documented separately in docs/epub-fidelity.md.
@@ -10,11 +11,15 @@ const ops = Object.fromEntries([
 ].map((name, index) => [name, index + 1]));
 const source = readFileSync(new URL("../epub-core.mjs", import.meta.url), "utf8")
   .replace('import * as pdfjsLib from "./vendor/pdf.mjs";', "")
+  .replace('import { inkBands, intersectsBand, inkIsCovered, refineInkBands } from "./epub-regions.mjs";', "")
+  .replace('import { hasUnsupportedMathText, wrapMathText } from "./epub-math.mjs";', "")
+  .replace('import { createImageAssetRegistry } from "./epub-assets.mjs";', "")
   .replaceAll("import.meta.url", '"file:///epub-core.mjs"')
   .replace("export async function", "async function")
   .replace("export const __testing =", "globalThis.api =");
 const context = vm.createContext({
   URL, pdfjsLib: { OPS: ops, GlobalWorkerOptions: {} },
+  hasUnsupportedMathText, wrapMathText,
   MessageChannel: class { port1 = {}; port2 = {}; },
 });
 vm.runInContext(source, context);
@@ -55,6 +60,13 @@ assert.equal(api.hasSmallTable(table, viewport), true);
 assert.equal((await api.pageNeedsVisual(page(), table)).visual, true);
 assert.equal(api.hasSmallTable(content(table.items.slice(0, 4)), viewport), false);
 assert.equal(api.hasSmallTable(content(prose), viewport), false);
+const fractionOps = { fnArray: [ops.constructPath], argsArray: [[ops.stroke, [], [250, 600, 310, 600]]] };
+assert.equal(api.hasSimpleFractionRule(fractionOps, content([
+  ...prose, item("a + b", 262, 613, 12, 32), item("c", 277, 583, 12, 6),
+]), viewport), true);
+assert.equal(api.hasSimpleFractionRule(fractionOps, content([
+  ...prose, item("Ordinary heading", 250, 613, 12, 96), item("Following paragraph", 250, 583, 12, 120),
+]), viewport), false);
 
 const outlined = await api.pageNeedsVisual(page({ fnArray: Array(20).fill(ops.fill) }), content([]));
 assert.equal(outlined.visual, true);

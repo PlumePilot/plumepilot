@@ -69,6 +69,19 @@ I font nella cartella `vendor/standard_fonts/` provengono dalla distribuzione `p
 - Font Foxit: licenza in `vendor/standard_fonts/LICENSE_FOXIT`.
 - Sorgente della distribuzione: <https://www.npmjs.com/package/pdfjs-dist/v/5.6.205>
 
+## PlumePilot Math — derivato da STIX Two Math 2.13b171
+
+- Uso: copertura dei caratteri matematici Unicode nel testo XHTML degli EPUB sperimentali; il font viene incorporato una sola volta e solo se necessario.
+- Licenza: SIL Open Font License 1.1.
+- Progetto e versione sorgente: <https://github.com/stipub/stixfonts/tree/v2.13b171>.
+- File sorgente ufficiale: `fonts/static_otf/STIXTwoMath-Regular.otf` nel tag indicato.
+- SHA-256 del sorgente ufficiale: `3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c`.
+- File derivato incluso: `assets/fonts/plumepilot-math.otf` (440.520 byte, 2.270 punti Unicode).
+- SHA-256 del derivato: `00efd7176a78925659afb5a424e8db4ec564acaa7f10451967ed022bf5c87303`.
+- Modifiche: sottoinsieme dei glifi matematici e greci, rimozione delle tabelle di composizione MATH non utilizzate e rinomina della famiglia/PostScript in **PlumePilot Math**, rispettando i nomi riservati della licenza.
+- Testo originale della licenza e copyright: `assets/fonts/STIX-OFL.txt`, incluso anche nell'EPUB quando il font è incorporato.
+- Script leggibile di preparazione: `scripts/build-epub-math-font.py`; richiede FontTools solo come strumento offline e verifica il checksum del sorgente. La copertura effettiva del font è registrata in `epub-math-coverage.mjs` e verificata da `scripts/validate-epub-math-font.py`.
+
 ## Verifica per la revisione AMO
 
 Prima di ogni invio a Firefox Add-ons occorre verificare che le copie sorgente siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**. Le copie sorgente della candidata PlumePilot 2.34.0 devono essere verificate con `npm pack` e `cmp` contro i percorsi elencati prima dell’upload definitivo; il pacchetto Firefox risultante deve inoltre superare lo scan review-safe di `scripts/validate-release.mjs`.

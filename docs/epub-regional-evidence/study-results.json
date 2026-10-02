@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-01",
+  "baselineRef": "ceedf31db535a2e6539ed8ad4492b84179b5e548",
+  "scope": "Node 24.19 / bundled PDF.js 5.6.205 / native canvas; NOT browser RAM or performance measurements",
+  "packaging": "Both paths include shared CSS manifest and NCX playOrder corrections",
+  "samples": [
+    {
+      "source": "IntProSof_Pegaso.pdf",
+      "sourceSha256": "be7de47d902a448035aa12eb0be814cdaf5c0b3020647112f96e7b02e672b794",
+      "runs": [
+        {
+          "label": "baseline",
+          "epubBytes": 4789255,
+          "elapsedMs": 2372.260354,
+          "pages": 24,
+          "imageCount": 18,
+          "imageBytes": 4774132,
+          "regionalPages": 0
+        },
+        {
+          "label": "regional",
+          "epubBytes": 4789255,
+          "elapsedMs": 2517.216616,
+          "pages": 24,
+          "imageCount": 18,
+          "imageBytes": 4774132,
+          "regionalPages": 0
+        }
+      ]
+    },
+    {
+      "source": "RelIns_Pegaso.pdf",
+      "sourceSha256": "8d3a9cc1a031d1855d0cd8d21d574cef8d32419f9cb67309a394e2598f8dfc18",
+      "runs": [
+        {
+          "label": "baseline",
+          "epubBytes": 7777765,
+          "elapsedMs": 4370.533092,
+          "pages": 19,
+          "imageCount": 30,
+          "imageBytes": 7767869,
+          "regionalPages": 0
+        },
+        {
+          "label": "regional",
+          "epubBytes": 6131548,
+          "elapsedMs": 4770.511312,
+          "pages": 19,
+          "imageCount": 50,
+          "imageBytes": 6115250,
+          "regionalPages": 12
+        }
+      ]
+    },
+    {
+      "source": "StoriaCalcolatori_Pegaso.pdf",
+      "sourceSha256": "33ea93ba9f634cd50f3f8845a3c93828627663eba654585c576a194a82da72bd",
+      "runs": [
+        {
+          "label": "baseline",
+          "epubBytes": 2899532,
+          "elapsedMs": 1605.487115,
+          "pages": 28,
+          "imageCount": 28,
+          "imageBytes": 2891004,
+          "regionalPages": 0
+        },
+        {
+          "label": "regional",
+          "epubBytes": 2899529,
+          "elapsedMs": 1450.344383,
+          "pages": 28,
+          "imageCount": 28,
+          "imageBytes": 2891004,
+          "regionalPages": 0
+        }
+      ]
+    },
+    {
+      "source": "Termini_Pegaso.pdf",
+      "sourceSha256": "54bb44b9d5cf855ac321eaddcfc44ac1a9b7326c2b7418b7d46272d02b4e4a46",
+      "runs": [
+        {
+          "label": "baseline",
+          "epubBytes": 4513201,
+          "elapsedMs": 4890.652279000001,
+          "pages": 15,
+          "imageCount": 29,
+          "imageBytes": 4504528,
+          "regionalPages": 0
+        },
+        {
+          "label": "regional",
+          "epubBytes": 4513203,
+          "elapsedMs": 4829.81157,
+          "pages": 15,
+          "imageCount": 29,
+          "imageBytes": 4504528,
+          "regionalPages": 0
+        }
+      ]
+    }
+  ],
+  "course": [
+    {
+      "label": "baseline",
+      "epubBytes": 19969796,
+      "elapsedMs": 13618.622951000001,
+      "pages": 86,
+      "imageCount": 105,
+      "imageBytes": 19937533,
+      "regionalPages": 0
+    },
+    {
+      "label": "regional",
+      "epubBytes": 18323610,
+      "elapsedMs": 14236.907253000001,
+      "pages": 86,
+      "imageCount": 125,
+      "imageBytes": 18284914,
+      "regionalPages": 12
+    }
+  ]
+}

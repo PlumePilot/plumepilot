@@ -1,0 +1,213 @@
+{
+  "date": "2026-10-02",
+  "previousRegionalRef": "60f44c1e32793de936e25272cad2123dd62095cf",
+  "scope": "Node 24.19 / bundled PDF.js 5.6.205 / native canvas; file sizes, not browser or RAM measurements",
+  "timingCaveat": "Single runs; default then candidate. Previous converter measured separately. No speed comparison promised.",
+  "sourceHashes": "See study-results.json for the same four input PDFs.",
+  "course": [
+    {
+      "label": "baseline",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "epubBytes": 19969804,
+      "elapsedMs": 19438.012105,
+      "failures": [],
+      "sources": [
+        "IntProSof_Pegaso.pdf",
+        "RelIns_Pegaso.pdf",
+        "StoriaCalcolatori_Pegaso.pdf",
+        "Termini_Pegaso.pdf"
+      ],
+      "pageCount": 86,
+      "pageModes": {
+        "visual": 71,
+        "text": 15
+      },
+      "imageUses": 105
+    },
+    {
+      "label": "regional",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "assets": {
+        "inputImageCount": 135,
+        "uniqueImageCount": 133,
+        "reusedImageCount": 2,
+        "inputImageBytes": 15628070,
+        "storedImageBytes": 14090896,
+        "reusedImageBytes": 1537174
+      },
+      "mathFontBytes": 440520,
+      "epubBytes": 14496472,
+      "elapsedMs": 19414.500341000003,
+      "failures": [],
+      "sources": [
+        "IntProSof_Pegaso.pdf",
+        "RelIns_Pegaso.pdf",
+        "StoriaCalcolatori_Pegaso.pdf",
+        "Termini_Pegaso.pdf"
+      ],
+      "pageCount": 86,
+      "pageModes": {
+        "visual": 57,
+        "text": 15,
+        "regional": 14
+      },
+      "imageUses": 135
+    }
+  ],
+  "previousRegionalCourse": [
+    {
+      "label": "regional",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "epubBytes": 18323608,
+      "elapsedMs": 24325.763402,
+      "failures": [],
+      "sources": [
+        "IntProSof_Pegaso.pdf",
+        "RelIns_Pegaso.pdf",
+        "StoriaCalcolatori_Pegaso.pdf",
+        "Termini_Pegaso.pdf"
+      ],
+      "pageCount": 86,
+      "pageModes": {
+        "visual": 59,
+        "text": 15,
+        "regional": 12
+      },
+      "imageUses": 125
+    }
+  ],
+  "individualRelIns": [
+    {
+      "label": "baseline",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "epubBytes": 7777836,
+      "elapsedMs": 15328.143345,
+      "failures": [],
+      "sources": [
+        "RelIns_Pegaso.pdf"
+      ],
+      "pageCount": 19,
+      "pageModes": {
+        "visual": 16,
+        "text": 3
+      },
+      "imageUses": 30
+    },
+    {
+      "label": "regional",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "assets": {
+        "inputImageCount": 60,
+        "uniqueImageCount": 60,
+        "reusedImageCount": 0,
+        "inputImageBytes": 3458406,
+        "storedImageBytes": 3458406,
+        "reusedImageBytes": 0
+      },
+      "mathFontBytes": 440520,
+      "epubBytes": 3841965,
+      "elapsedMs": 7305.196715000002,
+      "failures": [],
+      "sources": [
+        "RelIns_Pegaso.pdf"
+      ],
+      "pageCount": 19,
+      "pageModes": {
+        "visual": 2,
+        "text": 3,
+        "regional": 14
+      },
+      "imageUses": 60
+    }
+  ],
+  "individualTermini": [
+    {
+      "label": "baseline",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "epubBytes": 4513200,
+      "elapsedMs": 7876.098057,
+      "failures": [],
+      "sources": [
+        "Termini_Pegaso.pdf"
+      ],
+      "pageCount": 15,
+      "pageModes": {
+        "visual": 15
+      },
+      "imageUses": 29
+    },
+    {
+      "label": "regional",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "assets": {
+        "inputImageCount": 29,
+        "uniqueImageCount": 29,
+        "reusedImageCount": 0,
+        "inputImageBytes": 4504528,
+        "storedImageBytes": 4504528,
+        "reusedImageBytes": 0
+      },
+      "epubBytes": 4513204,
+      "elapsedMs": 7462.547328000001,
+      "failures": [],
+      "sources": [
+        "Termini_Pegaso.pdf"
+      ],
+      "pageCount": 15,
+      "pageModes": {
+        "visual": 15
+      },
+      "imageUses": 29
+    }
+  ],
+  "repeatedPublicFixture": [
+    {
+      "label": "regional",
+      "runtime": "v24.19.0",
+      "scope": "Node/native canvas, not a browser",
+      "assets": {
+        "inputImageCount": 22,
+        "uniqueImageCount": 11,
+        "reusedImageCount": 11,
+        "inputImageBytes": 681708,
+        "storedImageBytes": 340854,
+        "reusedImageBytes": 340854
+      },
+      "mathFontBytes": 440520,
+      "epubBytes": 709263,
+      "elapsedMs": 3297.527543,
+      "failures": [],
+      "sources": [
+        "epub-regions.pdf",
+        "epub-regions.pdf"
+      ],
+      "pageCount": 24,
+      "pageModes": {
+        "text": 4,
+        "regional": 12,
+        "visual": 8
+      },
+      "imageUses": 22
+    }
+  ],
+  "validation": {
+    "nodeSuites": 28,
+    "losslessStudyCrops": 58,
+    "losslessPublicCrops": 6,
+    "epubCheckVersion": "5.3.0",
+    "epubCheckFixtureAndCourse": {
+      "fatal": 0,
+      "error": 0,
+      "warning": 0
+    },
+    "browserValidation": "pending",
+    "readerValidation": "pending"
+  }
+}
