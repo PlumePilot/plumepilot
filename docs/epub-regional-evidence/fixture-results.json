@@ -1,0 +1,303 @@
+[
+  {
+    "label": "baseline",
+    "runtime": "v24.19.0",
+    "scope": "Node/native canvas, not a browser",
+    "files": [
+      "tests/fixtures/epub-regions.pdf"
+    ],
+    "pages": [
+      {
+        "chapterIndex": 1,
+        "pageNumber": 1,
+        "mode": "text",
+        "reason": "testo lineare",
+        "textRegions": 0
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 2,
+        "mode": "visual",
+        "reason": "immagini significative",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 182790
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 3,
+        "mode": "visual",
+        "reason": "notazione matematica complessa",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 268201
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 4,
+        "mode": "visual",
+        "reason": "layout a colonne o tabella",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 266629
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 5,
+        "mode": "visual",
+        "reason": "notazione matematica complessa",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 278177
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 6,
+        "mode": "visual",
+        "reason": "pagina orizzontale",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 55044
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 7,
+        "mode": "visual",
+        "reason": "testo insufficiente",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 12348
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 8,
+        "mode": "visual",
+        "reason": "pagina orizzontale",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 26300
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 9,
+        "mode": "visual",
+        "reason": "immagini significative",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 176567
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 10,
+        "mode": "visual",
+        "reason": "notazione matematica complessa",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 285926
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 11,
+        "mode": "text",
+        "reason": "testo lineare",
+        "textRegions": 0
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 12,
+        "mode": "text",
+        "reason": "testo lineare",
+        "textRegions": 0
+      }
+    ],
+    "epubBytes": 1558647,
+    "elapsedMs": 2407.1908569999996,
+    "failures": []
+  },
+  {
+    "label": "regional",
+    "runtime": "v24.19.0",
+    "scope": "Node/native canvas, not a browser",
+    "files": [
+      "tests/fixtures/epub-regions.pdf"
+    ],
+    "pages": [
+      {
+        "chapterIndex": 1,
+        "pageNumber": 1,
+        "mode": "text",
+        "reason": "testo lineare",
+        "textRegions": 0
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 2,
+        "mode": "regional",
+        "reason": "immagini significative",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-2-region-1.png",
+            "start": 582,
+            "end": 961,
+            "scale": 2,
+            "width": 1200,
+            "sourceName": "images/chapter-1-page-2-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 3556
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 3,
+        "mode": "regional",
+        "reason": "notazione matematica complessa",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-3-region-1.png",
+            "start": 861,
+            "end": 1371,
+            "scale": 3,
+            "width": 1800,
+            "sourceName": "images/chapter-1-page-3-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 9221
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 4,
+        "mode": "regional",
+        "reason": "layout a colonne o tabella",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-4-region-1.png",
+            "start": 798,
+            "end": 1532,
+            "scale": 3,
+            "width": 1800,
+            "sourceName": "images/chapter-1-page-4-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 32793
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 5,
+        "mode": "regional",
+        "reason": "notazione matematica complessa",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-5-region-1.png",
+            "start": 871,
+            "end": 1342,
+            "scale": 3,
+            "width": 1800,
+            "sourceName": "images/chapter-1-page-5-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 7467
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 6,
+        "mode": "visual",
+        "reason": "whole-page, rotation or crop offset",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 55044
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 7,
+        "mode": "visual",
+        "reason": "whole-page, rotation or crop offset",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 12348
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 8,
+        "mode": "visual",
+        "reason": "whole-page, rotation or crop offset",
+        "textRegions": 0,
+        "imageCount": 1,
+        "imageBytes": 26300
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 9,
+        "mode": "visual",
+        "reason": "whole-page, rotation or crop offset",
+        "textRegions": 0,
+        "imageCount": 2,
+        "imageBytes": 176567
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 10,
+        "mode": "regional",
+        "reason": "notazione matematica complessa",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-10-region-1.png",
+            "start": 669,
+            "end": 763,
+            "scale": 3,
+            "width": 1800,
+            "sourceName": "images/chapter-1-page-10-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 13479
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 11,
+        "mode": "regional",
+        "reason": "isolated fraction rule",
+        "textRegions": 3,
+        "regionBounds": [
+          {
+            "name": "images/chapter-1-page-11-region-1.png",
+            "start": 673,
+            "end": 837,
+            "scale": 3,
+            "width": 1800,
+            "sourceName": "images/chapter-1-page-11-region-1.png"
+          }
+        ],
+        "imageCount": 1,
+        "imageBytes": 4079
+      },
+      {
+        "chapterIndex": 1,
+        "pageNumber": 12,
+        "mode": "text",
+        "reason": "testo lineare",
+        "textRegions": 0
+      }
+    ],
+    "assets": {
+      "inputImageCount": 11,
+      "uniqueImageCount": 11,
+      "reusedImageCount": 0,
+      "inputImageBytes": 340854,
+      "storedImageBytes": 340854,
+      "reusedImageBytes": 0
+    },
+    "mathFontBytes": 440520,
+    "epubBytes": 708016,
+    "elapsedMs": 2790.3958709999997,
+    "failures": []
+  }
+]

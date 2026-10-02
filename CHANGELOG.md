@@ -1,5 +1,14 @@
 # PlumePilot — Changelog
 
+## Unreleased experiment: regional EPUB preservation
+
+- Adds opt-in mixed XHTML/image regions for conservatively separable portrait pages; ordinary exports retain the established page strategy.
+- Preserves complete formulas, tables and diagrams with connected-bound merging and visual fallback for uncertain layouts, without lowering raster quality.
+- Adds reproducible original fixtures, renderer/browser benchmark harnesses, crop containment checks and measured study-document results.
+- Reuses the rendered canvas when regional analysis falls back, and releases temporary canvases on cancellation/errors.
+- Fixes EPUB stylesheet manifest registration and duplicate-destination NCX playOrder values found by EPUBCheck.
+- Browser, memory and Kindle/phone validation remain pending before default rollout. Asset reuse and semantic tables remain follow-up work.
+
 ## Added in 2.34.0: more universities, stronger recovery and richer EPUBs
 
 - Adds Mercatorum and San Raffaele/UTSR support with platform-specific hosts, API origins, course state and commission data.

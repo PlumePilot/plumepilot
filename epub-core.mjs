@@ -1,5 +1,9 @@
 import * as pdfjsLib from "./vendor/pdf.mjs";
 
+import { inkBands, intersectsBand, inkIsCovered, refineInkBands } from "./epub-regions.mjs";
+import { hasUnsupportedMathText, wrapMathText } from "./epub-math.mjs";
+import { createImageAssetRegistry } from "./epub-assets.mjs";
+
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
   if (STUDYWING_DEBUG) console.info(...values);
@@ -83,11 +87,13 @@ const footnoteToken = (number) => `{{STUDYWING_FOOTNOTE:${number}}}`;
 const inlineTextToPlainText = (value) =>
   String(value ?? "").replace(FOOTNOTE_TOKEN_PATTERN, "$1");
 
-const inlineTextToHtml = (value) =>
-  escapeXml(value).replace(
+const inlineTextToHtml = (value, mathFont = false) => {
+  const escaped = escapeXml(value);
+  return (mathFont ? wrapMathText(escaped) : escaped).replace(
     FOOTNOTE_TOKEN_PATTERN,
     '<sup class="footnote-ref">$1</sup>',
   );
+};
 
 const slug = (value) =>
   String(value)
@@ -446,7 +452,7 @@ function joinParagraphLines(lines) {
   return paragraph.replace(/\s+/g, " ").trim();
 }
 
-function textPageToHtml(content, viewport) {
+function textPageToHtml(content, viewport, { mathFont = false } = {}) {
   const meaningful = meaningfulTextItems(content, viewport);
   const sourceCharacters = meaningful.reduce(
     (total, item) => total + cleanExtractedText(item.str).trim().length,
@@ -503,7 +509,7 @@ function textPageToHtml(content, viewport) {
     if (!paragraph.length) return;
     const text = joinParagraphLines(paragraph);
     if (text) {
-      blocks.push(`<p>${inlineTextToHtml(text)}</p>`);
+      blocks.push(`<p>${inlineTextToHtml(text, mathFont)}</p>`);
       capturedText.push(inlineTextToPlainText(text));
     }
     paragraph = [];
@@ -513,7 +519,7 @@ function textPageToHtml(content, viewport) {
     if (!listItems.length) return;
     blocks.push(
       `<ul>${listItems
-        .map((item) => `<li>${inlineTextToHtml(item)}</li>`)
+        .map((item) => `<li>${inlineTextToHtml(item, mathFont)}</li>`)
         .join("")}</ul>`,
     );
     capturedText.push(...listItems.map(inlineTextToPlainText));
@@ -534,7 +540,7 @@ function textPageToHtml(content, viewport) {
       flushParagraph();
       flushList();
       const level = line.size >= bodySize * 1.7 ? "h2" : "h3";
-      blocks.push(`<${level}>${inlineTextToHtml(text)}</${level}>`);
+      blocks.push(`<${level}>${inlineTextToHtml(text, mathFont)}</${level}>`);
       capturedText.push(inlineTextToPlainText(text));
       continue;
     }
@@ -644,6 +650,52 @@ function hasSuspiciousText(content) {
   }).length;
 
   return mathFontItems >= 3 || mathCharacters.length >= 3;
+}
+
+function hasSimpleFractionRule(operations, content, viewport) {
+  const rows = [];
+  for (const item of meaningfulTextItems(content, viewport).map(textItem)) {
+    let row = rows.find((candidate) => Math.abs(candidate.y - item.y) <= 2.5);
+    if (!row) rows.push(row = { y: item.y, items: [] });
+    row.items.push(item);
+  }
+  const shortMathRows = rows.map((row) => ({ ...row, text: joinLine(row.items),
+    left: Math.min(...row.items.map((item) => item.x)),
+    right: Math.max(...row.items.map((item) => item.x + item.width)),
+    size: Math.max(...row.items.map((item) => item.size)),
+  })).filter((row) => row.text.length <= 24 &&
+    /^[\p{L}\p{N}\p{Sm}()+−*/ .-]+$/u.test(row.text) &&
+    (row.text.replace(/\s/g, "").length <= 3 || /[\p{Sm}+−*/=]/u.test(row.text)));
+  if (shortMathRows.length < 2) return false;
+  let transform = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  for (let index = 0; index < operations.fnArray.length; index++) {
+    const op = operations.fnArray[index], args = operations.argsArray[index] || [];
+    if (op === pdfjsLib.OPS.save) stack.push([...transform]);
+    else if (op === pdfjsLib.OPS.restore) {
+      if (!stack.length) return false;
+      transform = stack.pop();
+    } else if (op === pdfjsLib.OPS.transform) {
+      if (args.length !== 6 || !Array.from(args).every(Number.isFinite)) return false;
+      transform = multiplyTransform(transform, args);
+    } else if ([pdfjsLib.OPS.paintFormXObjectBegin, pdfjsLib.OPS.beginGroup].includes(op)) {
+      return false; // This small detector does not guess nested geometry.
+    } else if (op === pdfjsLib.OPS.constructPath && VECTOR_PAINT_OPERATIONS.has(args[0])) {
+      const bounds = args[2];
+      if (!bounds || bounds.length !== 4 || !Array.from(bounds).every(Number.isFinite)) continue;
+      const points = [[bounds[0], bounds[1]], [bounds[2], bounds[3]]]
+        .map(([x, y]) => [transform[0] * x + transform[2] * y + transform[4],
+          transform[1] * x + transform[3] * y + transform[5]]);
+      const left = Math.min(points[0][0], points[1][0]), right = Math.max(points[0][0], points[1][0]);
+      const top = Math.max(points[0][1], points[1][1]), bottom = Math.min(points[0][1], points[1][1]);
+      if (right - left < 12 || top - bottom > 2) continue;
+      const nearRule = (row) => row.left >= left - 3 && row.right <= right + 3 &&
+        Math.abs(row.y - (top + bottom) / 2) <= row.size * 3;
+      if (shortMathRows.some((row) => row.y > top && nearRule(row)) &&
+          shortMathRows.some((row) => row.y < bottom && nearRule(row))) return true;
+    }
+  }
+  return false;
 }
 
 function hasPositionedScript(content, viewport) {
@@ -1067,7 +1119,30 @@ async function renderVisualBlocks(
   const canvas = document.createElement("canvas");
   canvas.width = Math.ceil(viewport.width);
   canvas.height = Math.ceil(viewport.height);
-  const context = await renderPage(page, canvas, viewport, signal);
+  try {
+    const context = await renderPage(page, canvas, viewport, signal);
+    return await encodeVisualBlocks(
+      canvas,
+      context,
+      chapterIndex,
+      pageNumber,
+      signal,
+      { preserveWhole },
+    );
+  } finally {
+    canvas.width = 1;
+    canvas.height = 1;
+  }
+}
+
+async function encodeVisualBlocks(
+  canvas,
+  context,
+  chapterIndex,
+  pageNumber,
+  signal,
+  { preserveWhole = false } = {},
+) {
   // Keep the complete source bounds: slide tables can reach the bottom edge.
   const left = 0;
   const top = 0;
@@ -1090,33 +1165,36 @@ async function renderVisualBlocks(
       const output = document.createElement("canvas");
       output.width = width;
       output.height = Math.max(1, end - start);
-      const outputContext = output.getContext("2d", { alpha: false });
-      outputContext.fillStyle = "#ffffff";
-      outputContext.fillRect(0, 0, output.width, output.height);
-      outputContext.drawImage(
-        canvas,
-        left,
-        start,
-        width,
-        end - start,
-        0,
-        0,
-        width,
-        end - start,
-      );
+      try {
+        const outputContext = output.getContext("2d", { alpha: false });
+        outputContext.fillStyle = "#ffffff";
+        outputContext.fillRect(0, 0, output.width, output.height);
+        outputContext.drawImage(
+          canvas,
+          left,
+          start,
+          width,
+          end - start,
+          0,
+          0,
+          width,
+          end - start,
+        );
 
-      const encoded = await encodeCanvas(output);
-      const name =
-        `images/chapter-${String(chapterIndex).padStart(3, "0")}` +
-        `-page-${String(pageNumber).padStart(3, "0")}` +
-        `-${++blockIndex}.${encoded.extension}`;
-      blocks.push({
-        name,
-        bytes: encoded.bytes,
-        mediaType: encoded.mediaType,
-      });
-      output.width = 1;
-      output.height = 1;
+        const encoded = await encodeCanvas(output);
+        const name =
+          `images/chapter-${String(chapterIndex).padStart(3, "0")}` +
+          `-page-${String(pageNumber).padStart(3, "0")}` +
+          `-${++blockIndex}.${encoded.extension}`;
+        blocks.push({
+          name,
+          bytes: encoded.bytes,
+          mediaType: encoded.mediaType,
+        });
+      } finally {
+        output.width = 1;
+        output.height = 1;
+      }
       await yieldToBrowser(signal);
     }
   } finally {
@@ -1125,6 +1203,364 @@ async function renderVisualBlocks(
   }
 
   return blocks;
+}
+// Opt-in prototype. The stable page converter remains the default.
+async function renderRegionalPage(
+  page,
+  content,
+  classification,
+  chapterIndex,
+  pageNumber,
+  signal,
+) {
+  const base = page.getViewport({ scale: 1 });
+  const fallback = (reason) => ({ fallback: reason });
+  if (
+    classification.preserveWhole ||
+    base.rotation !== 0 ||
+    base.viewBox?.[0] !== 0 ||
+    base.viewBox?.[1] !== 0
+  ) {
+    return fallback("whole-page, rotation or crop offset");
+  }
+  const meaningful = meaningfulTextItems(content, base);
+  if (meaningful.length < 5) return fallback("insufficient reflow text");
+  const operations = await page.getOperatorList();
+  const vectors = vectorOperationStats(operations);
+  if (vectors.shadingOperations) return fallback("unbounded shading geometry");
+  if (
+    hasSignificantRotatedText(content, base) ||
+    hasParallelColumns(content, base)
+  ) {
+    return fallback("rotated text or parallel columns");
+  }
+  const graphicsBoxes = [];
+  let lineWidth = 1,
+    miterLimit = 10;
+  let transform = [1, 0, 0, 1, 0, 0];
+  const stack = [];
+  for (let i = 0; i < operations.fnArray.length; i++) {
+    const op = operations.fnArray[i],
+      args = operations.argsArray[i] || [];
+    if (op === pdfjsLib.OPS.save)
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "save",
+      });
+    else if (op === pdfjsLib.OPS.restore) {
+      if (stack.at(-1)?.kind !== "save")
+        return fallback("unbalanced graphics state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.transform) {
+      if (args.length !== 6 || !Array.from(args).every(Number.isFinite))
+        return fallback("invalid transform");
+      transform = multiplyTransform(transform, args);
+    } else if (op === pdfjsLib.OPS.paintFormXObjectBegin) {
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "form",
+      });
+      if (args[0]) {
+        if (args[0].length !== 6 || !Array.from(args[0]).every(Number.isFinite))
+          return fallback("invalid form transform");
+        transform = multiplyTransform(transform, args[0]);
+      }
+    } else if (op === pdfjsLib.OPS.paintFormXObjectEnd) {
+      if (stack.at(-1)?.kind !== "form")
+        return fallback("unbalanced form state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.beginGroup) {
+      const group = args[0];
+      if (
+        !group ||
+        group.smask ||
+        group.knockout ||
+        (group.matrix &&
+          ![1, 0, 0, 1, 0, 0].every((v, i) => group.matrix[i] === v))
+      ) {
+        return fallback("masked, knockout or transformed group");
+      }
+      stack.push({
+        transform: [...transform],
+        lineWidth,
+        miterLimit,
+        kind: "group",
+      });
+    } else if (op === pdfjsLib.OPS.endGroup) {
+      if (stack.at(-1)?.kind !== "group")
+        return fallback("unbalanced group state");
+      ({ transform, lineWidth, miterLimit } = stack.pop());
+    } else if (op === pdfjsLib.OPS.setGState) {
+      for (const [key, value] of args[0] || []) {
+        if (key === "LW" || key === "ML") {
+          if (!Number.isFinite(value))
+            return fallback("invalid graphics state");
+          if (key === "LW") lineWidth = Math.abs(value);
+          else miterLimit = Math.max(1, value);
+        } else if (
+          !["LC", "LJ", "D", "RI", "FL", "CA", "ca"].includes(key) &&
+          !(key === "BM" && value === "source-over") &&
+          !(key === "SMask" && !value)
+        ) {
+          return fallback("unsupported graphics state: " + key);
+        }
+      }
+    } else if (op === pdfjsLib.OPS.setLineWidth) {
+      if (!Number.isFinite(args[0])) return fallback("invalid stroke width");
+      lineWidth = Math.abs(args[0]);
+    } else if (op === pdfjsLib.OPS.setMiterLimit) {
+      if (!Number.isFinite(args[0])) return fallback("invalid miter limit");
+      miterLimit = Math.max(1, args[0]);
+    } else if (VECTOR_PAINT_OPERATIONS.has(op))
+      return fallback("legacy unbounded vector operation");
+    else if (op === pdfjsLib.OPS.constructPath) {
+      // PDF.js 5.6 emits [paintOp, [pathBuffer], minMax]. Only this bounded
+      // representation is accepted; future/legacy formats fail closed.
+      if (!VECTOR_PAINT_OPERATIONS.has(args[0])) {
+        if (args[0] === pdfjsLib.OPS.endPath) continue;
+        return fallback("unknown path operation");
+      }
+      const bounds = args[2];
+      if (
+        !bounds ||
+        bounds.length !== 4 ||
+        !Array.from(bounds).every(Number.isFinite)
+      ) {
+        return fallback("unknown vector bounds");
+      }
+      const m = multiplyTransform(base.transform, transform);
+      const pad =
+        2 + (lineWidth * miterLimit * Math.hypot(...m.slice(0, 4))) / 2;
+      const points = [
+        [bounds[0], bounds[1]],
+        [bounds[0], bounds[3]],
+        [bounds[2], bounds[1]],
+        [bounds[2], bounds[3]],
+      ].map(([x, y]) => [
+        m[0] * x + m[2] * y + m[4],
+        m[1] * x + m[3] * y + m[5],
+      ]);
+      graphicsBoxes.push({
+        left: Math.min(...points.map((p) => p[0])) - pad,
+        right: Math.max(...points.map((p) => p[0])) + pad,
+        top: Math.min(...points.map((p) => p[1])) - pad,
+        bottom: Math.max(...points.map((p) => p[1])) + pad,
+      });
+    } else if (IMAGE_OPERATIONS.has(op)) {
+      if (GROUPED_IMAGE_OPERATIONS.has(op))
+        return fallback("grouped image geometry");
+      const m = multiplyTransform(base.transform, transform);
+      const points = [
+        [0, 0],
+        [0, 1],
+        [1, 0],
+        [1, 1],
+      ].map(([x, y]) => [
+        m[0] * x + m[2] * y + m[4],
+        m[1] * x + m[3] * y + m[5],
+      ]);
+      const box = {
+        left: Math.min(...points.map((p) => p[0])),
+        right: Math.max(...points.map((p) => p[0])),
+        top: Math.min(...points.map((p) => p[1])),
+        bottom: Math.max(...points.map((p) => p[1])),
+      };
+      if (box.right - box.left < 2 || box.bottom - box.top < 2)
+        return fallback("unknown image geometry");
+      graphicsBoxes.push(box);
+    }
+  }
+  if (stack.length) return fallback("unbalanced graphics state");
+  const scale = visualRenderScale(
+    base,
+    classification.renderWidth || VISUAL_RENDER_WIDTH,
+  );
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  try {
+    const context = await renderPage(page, canvas, viewport, signal);
+    const rowInkCache = new Int32Array(canvas.height).fill(-1);
+    const cachedRowInk = (y) => {
+      if (rowInkCache[y] < 0) rowInkCache[y] = rowInk(context, y, 0, canvas.width);
+      return rowInkCache[y];
+    };
+    const bodySize = estimateBodySize(meaningful.map(textItem), base);
+    const boxes = content.items
+      .filter((item) => item.str?.trim())
+      .map((item) => {
+        const m = multiplyTransform(viewport.transform, item.transform);
+        const size = Math.hypot(m[2], m[3]);
+        const style = content.styles?.[item.fontName] || {};
+        const ascent = Number.isFinite(style.ascent) ? style.ascent : 1;
+        const descent = Number.isFinite(style.descent) ? style.descent : -0.3;
+        return {
+          item,
+          left: m[4] - 2,
+          right: m[4] + item.width * scale + 2,
+          top: m[5] - size * ascent - 2,
+          bottom: m[5] - size * descent + 2,
+        };
+      });
+    let bands = inkBands(
+      canvas.height,
+      Math.ceil(Math.max(24, bodySize * 2) * scale),
+      cachedRowInk,
+    );
+    // Expand regions to include connected vector extents, stroke joins and
+    // intersecting text. Remove unsafe cuts rather than clipping those objects.
+    const allBoxes = [
+      ...boxes,
+      ...graphicsBoxes.map((b) =>
+        Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v * scale])),
+      ),
+    ];
+    const cuts = [
+      0,
+      ...bands
+        .slice(0, -1)
+        .map((b) => b.end)
+        .filter(
+          (cut) => !allBoxes.some((box) => box.top < cut && box.bottom > cut),
+        ),
+      canvas.height,
+    ];
+    bands = cuts.slice(1).map((end, i) => ({ start: cuts[i], end }));
+    const rows = [];
+    for (const box of [...boxes].sort((a, b) => a.top - b.top)) {
+      const row = rows.at(-1);
+      if (row && box.top < row.bottom) {
+        row.bottom = Math.max(row.bottom, box.bottom);
+        row.members.push(box);
+      } else rows.push({ top: box.top, bottom: box.bottom, members: [box] });
+    }
+    for (const row of rows) {
+      const rowContent = { ...content, items: row.members.map((box) => box.item) };
+      const text = rowContent.items.map((item) => item.str).join(" ").trim();
+      row.prose = text.length >= 40 && text.split(/\s+/u).length >= 6 &&
+        !hasSuspiciousText(rowContent) && !hasUnsupportedMathText(text) &&
+        !hasPositionedScript(rowContent, base);
+    }
+    bands = refineInkBands(canvas.height,
+      Math.ceil(Math.max(8, bodySize * 0.45) * scale),
+      cachedRowInk, allBoxes, rows, bands);
+    const plans = [];
+    for (const band of bands) {
+      throwIfAborted(signal);
+      const pixels = context.getImageData(
+        0,
+        band.start,
+        canvas.width,
+        band.end - band.start,
+      ).data;
+      if (!pixels.some((v, i) => i % 4 !== 3 && v < 242)) continue;
+      const members = boxes.filter((box) => intersectsBand(box, band));
+      const regionContent = {
+        ...content,
+        items: members.map((box) => box.item),
+      };
+      const hasGraphics = allBoxes
+        .slice(boxes.length)
+        .some((box) => intersectsBand(box, band));
+      const unsafeText =
+        hasGraphics ||
+        hasSuspiciousText(regionContent) ||
+        regionContent.items.some((item) => hasUnsupportedMathText(item.str)) ||
+        hasPositionedScript(regionContent, base) ||
+        hasSmallTable(regionContent, base) ||
+        hasParallelColumns(regionContent, base);
+      let converted = null;
+      if (!unsafeText && members.length) {
+        converted = textPageToHtml(regionContent, base, { mathFont: true });
+        if (
+          textConversionLooksIncomplete(converted) ||
+          !inkIsCovered(pixels, canvas.width, band.start, members)
+        )
+          converted = null;
+      }
+      plans.push({ band, converted });
+      await yieldToBrowser(signal);
+    }
+    if (!plans.some((p) => p.converted) || !plans.some((p) => !p.converted)) {
+      // Reuse the existing raster instead of rendering this fallback a second time.
+      return {
+        ...fallback("no reliable mixed-content separation"),
+        blocks: await encodeVisualBlocks(
+          canvas,
+          context,
+          chapterIndex,
+          pageNumber,
+          signal,
+        ),
+      };
+    }
+    const parts = [],
+      images = [],
+      regionBounds = [];
+    let textRegions = 0;
+    for (const { band, converted } of plans) {
+      throwIfAborted(signal);
+      if (converted) {
+        parts.push(`<section class="text-page">${converted.html}</section>`);
+        textRegions++;
+      } else {
+        const output = document.createElement("canvas");
+        output.width = canvas.width;
+        output.height = band.end - band.start;
+        try {
+          output
+            .getContext("2d", { alpha: false })
+            .drawImage(
+              canvas,
+              0,
+              band.start,
+              canvas.width,
+              output.height,
+              0,
+              0,
+              canvas.width,
+              output.height,
+            );
+          const encoded = await encodeCanvas(output);
+          const name = `images/chapter-${chapterIndex}-page-${pageNumber}-region-${images.length + 1}.${encoded.extension}`;
+          images.push({
+            name,
+            bytes: encoded.bytes,
+            mediaType: encoded.mediaType,
+          });
+          regionBounds.push({
+            name,
+            start: band.start,
+            end: band.end,
+            scale,
+            width: canvas.width,
+          });
+          parts.push(
+            `<section class="visual-page"><img src="../${escapeXml(name)}" alt="${escapeXml(`Pagina ${pageNumber}, regione ${images.length}`)}"/></section>`,
+          );
+        } finally {
+          output.width = 1;
+          output.height = 1;
+        }
+      }
+      await yieldToBrowser(signal);
+    }
+    return {
+      html: parts.join("\n"),
+      images,
+      textRegions,
+      visualRegions: images.length,
+      regionBounds,
+    };
+  } finally {
+    canvas.width = 1;
+    canvas.height = 1;
+  }
 }
 
 async function fetchPdfWithRetry(
@@ -1186,7 +1622,7 @@ async function convertMaterial(
   chapterIndex,
   materialCount,
   onProgress,
-  { signal } = {},
+  { signal, regionalPreservation = false, diagnostics } = {},
 ) {
   const bytes = await fetchPdfWithRetry(material.url, globalThis.fetch, {
     signal,
@@ -1249,6 +1685,18 @@ async function convertMaterial(
       try {
         const content = await page.getTextContent();
         const classification = await pageNeedsVisual(page, content);
+        if (regionalPreservation && !classification.visual) {
+          const unresolved = meaningfulTextItems(content, page.getViewport({ scale: 1 }))
+            .some((item) => hasUnsupportedMathText(item.str));
+          // A single fraction rule/small graphic can evade the old page-wide
+          // complexity threshold. The regional raster guard accounts for it.
+          const smallVectors = hasSimpleFractionRule(await page.getOperatorList(), content,
+            page.getViewport({ scale: 1 }));
+          if (unresolved || smallVectors) Object.assign(classification, {
+            visual: true, renderWidth: VISUAL_DETAIL_WIDTH,
+            reason: unresolved ? "unsupported mathematical character" : "isolated fraction rule",
+          });
+        }
         let visual = classification.visual;
         let converted = null;
 
@@ -1256,6 +1704,7 @@ async function convertMaterial(
           converted = textPageToHtml(
             content,
             page.getViewport({ scale: 1 }),
+            { mathFont: regionalPreservation },
           );
           visual = textConversionLooksIncomplete(converted);
           if (visual) {
@@ -1267,9 +1716,21 @@ async function convertMaterial(
           }
         }
 
-        if (visual) {
+        let regional = null;
+        if (visual && regionalPreservation) {
+          regional = await renderRegionalPage(page, content, classification, chapterIndex, pageNumber, signal);
+        }
+        const record = { chapterIndex, pageNumber, mode: regional?.html ? "regional" : visual ? "visual" : "text",
+          reason: regional?.fallback || classification.reason, textRegions: regional?.textRegions || 0 };
+        if (regional?.html) {
+          images.push(...regional.images);
+          pages.push(regional.html);
+          record.regionBounds = regional.regionBounds;
+          record.imageCount = regional.images.length;
+          record.imageBytes = regional.images.reduce((sum, image) => sum + image.bytes.length, 0);
+        } else if (visual) {
           const preserveWhole = Boolean(classification.preserveWhole);
-          const blocks = await renderVisualBlocks(
+          const blocks = regional?.blocks || await renderVisualBlocks(
             page,
             chapterIndex,
             pageNumber,
@@ -1277,6 +1738,8 @@ async function convertMaterial(
             { preserveWhole, renderWidth: classification.renderWidth },
           );
           images.push(...blocks);
+          record.imageCount = blocks.length;
+          record.imageBytes = blocks.reduce((sum, image) => sum + image.bytes.length, 0);
           pages.push(
             `<section class="visual-page${preserveWhole ? " visual-page-whole" : ""}" ` +
               `aria-label="Pagina ${pageNumber}">` +
@@ -1293,6 +1756,7 @@ async function convertMaterial(
         } else {
           pages.push(`<section class="text-page">${converted.html}</section>`);
         }
+        diagnostics?.pages.push(record);
       } finally {
         page.cleanup();
       }
@@ -1371,13 +1835,18 @@ export async function buildCourseEpub(
   courseTitle,
   materials,
   onProgress = () => {},
-  { generatorVersion = "versione sconosciuta", signal } = {},
+  { generatorVersion = "versione sconosciuta", signal, regionalPreservation = false, diagnostics } = {},
 ) {
   throwIfAborted(signal);
+  if (diagnostics) diagnostics.pages = [];
+  const startedAt = performance.now();
   const zip = new globalThis.JSZip();
   const included = [];
   const failures = [];
   const generator = `PlumePilot ${generatorVersion}`;
+  const assetRegistry = regionalPreservation
+    ? createImageAssetRegistry(zip, signal, diagnostics) : null;
+  let usesMathFont = false;
 
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
   zip.file(
@@ -1389,6 +1858,10 @@ export async function buildCourseEpub(
   );
   zip.file(
     "OEBPS/styles/book.css",
+    (regionalPreservation
+      ? '@font-face{font-family:"PlumePilot Math";src:url("../fonts/plumepilot-math.otf") format("opentype");font-weight:normal;font-style:normal}' +
+        '.math-symbol{font-family:"PlumePilot Math",serif;font-weight:normal;font-style:normal}'
+      : "") +
     `body{font-family:serif;line-height:1.55;margin:4%;color:#202124}` +
       `h1,h2,h3{font-family:sans-serif;line-height:1.25;color:#421f7c;page-break-after:avoid;break-after:avoid}` +
       `h1{font-size:1.8em}h2{font-size:1.4em}.subtitle{color:#666}` +
@@ -1410,7 +1883,8 @@ export async function buildCourseEpub(
       courseTitle,
       `<main><p class="signature">${escapeXml(STUDYWING_SIGNATURE)}</p>` +
         `<h1>${escapeXml(courseTitle)}</h1>` +
-        `<p class="subtitle">Dispense complete del corso</p></main>`,
+        `<p class="subtitle">Dispense complete del corso</p>` +
+        `<p><a href="../nav.xhtml#toc">Indice dei capitoli</a></p></main>`,
     ),
   );
 
@@ -1431,24 +1905,47 @@ export async function buildCourseEpub(
         index + 1,
         materials.length,
         onProgress,
-        { signal },
+        { signal, regionalPreservation, diagnostics },
       );
       const file = `text/chapter-${String(index + 1).padStart(3, "0")}.xhtml`;
+      const chapterImages = [];
+      const aliases = new Map();
+      if (assetRegistry) {
+        for (const image of converted.images) {
+          const asset = await assetRegistry.register(image);
+          aliases.set(image.name, asset.name);
+          chapterImages.push(asset);
+          // Release duplicate buffers; JSZip retains only the canonical bytes.
+          image.bytes = null;
+        }
+        converted.html = converted.html.replace(/src="\.\.\/([^"]+)"/g,
+          (attribute, name) => aliases.has(name)
+            ? `src="../${escapeXml(aliases.get(name))}"` : attribute);
+        for (const record of diagnostics?.pages || []) {
+          if (record.chapterIndex !== index + 1) continue;
+          for (const region of record.regionBounds || []) {
+            region.sourceName = region.name;
+            region.name = aliases.get(region.name) || region.name;
+          }
+        }
+        usesMathFont ||= converted.html.includes('<span class="math-symbol">');
+      }
       zip.file(
         `OEBPS/${file}`,
         xhtml(
           material.chapter,
           `<main><h1>${escapeXml(
             material.chapterTitle || material.chapter,
-          )}</h1>` +
+            )}</h1>` +
             `<p class="chapter-note">${escapeXml(material.section || "")}</p>` +
+            `<p class="chapter-note"><a href="../nav.xhtml#toc">Torna all’indice</a></p>` +
             `${converted.html}</main>`,
         ),
       );
-      for (const image of converted.images) {
+      if (!assetRegistry) for (const image of converted.images) {
         zip.file(`OEBPS/${image.name}`, image.bytes, { compression: "STORE" });
       }
-      included.push({ ...material, file, images: converted.images });
+      included.push({ ...material, file, images: assetRegistry ? chapterImages : converted.images });
     } catch (error) {
       if (error?.name === "AbortError") throw error;
       console.error(
@@ -1470,6 +1967,29 @@ export async function buildCourseEpub(
         .map((failure) => `${failure.chapter}: ${failure.reason}`)
         .join("; ")}`,
     );
+  }
+
+  let fontManifest = "";
+  if (usesMathFont) {
+    throwIfAborted(signal);
+    const fontUrl = new URL("./assets/fonts/plumepilot-math.otf", import.meta.url).href;
+    const licenseUrl = new URL("./assets/fonts/STIX-OFL.txt", import.meta.url).href;
+    const fontResponse = await fetch(fontUrl, { signal });
+    if (!fontResponse.ok) throw new Error("Il font matematico locale non è disponibile.");
+    const font = new Uint8Array(await fontResponse.arrayBuffer());
+    const licenseResponse = await fetch(licenseUrl, { signal });
+    if (!licenseResponse.ok) throw new Error("La licenza del font matematico non è disponibile.");
+    const license = await licenseResponse.text();
+    throwIfAborted(signal);
+    zip.file("OEBPS/fonts/plumepilot-math.otf", font);
+    zip.file("OEBPS/fonts/STIX-OFL.txt", license);
+    fontManifest = '<item id="math-font" href="fonts/plumepilot-math.otf" media-type="font/otf"/>' +
+      '<item id="math-font-license" href="fonts/STIX-OFL.txt" media-type="text/plain"/>';
+    if (diagnostics) diagnostics.mathFontBytes = font.byteLength;
+  } else if (regionalPreservation) {
+    // Avoid a dangling font URL and font overhead for books without math text.
+    const css = await zip.file("OEBPS/styles/book.css").async("string");
+    zip.file("OEBPS/styles/book.css", css.replace(/@font-face\{[^}]+\}\.math-symbol\{[^}]+\}/, ""));
   }
 
   const sectionGroups = groupBySection(included);
@@ -1504,8 +2024,7 @@ export async function buildCourseEpub(
         `media-type="application/xhtml+xml"/>`,
     )
     .join("");
-  const imageManifest = included
-    .flatMap((item) => item.images)
+  const imageManifest = (assetRegistry ? assetRegistry.images : included.flatMap((item) => item.images))
     .map(
       (image, index) =>
         `<item id="image-${index + 1}" href="${escapeXml(image.name)}" ` +
@@ -1521,7 +2040,7 @@ export async function buildCourseEpub(
       const sectionPlayOrder = ncxPlayOrder++;
       const childPoints = group.items
         .map((item, chapterIndex) => {
-          const chapterPlayOrder = ncxPlayOrder++;
+          const chapterPlayOrder = chapterIndex === 0 ? sectionPlayOrder : ncxPlayOrder++;
           return (
             `<navPoint id="nav-chapter-${sectionIndex + 1}-${chapterIndex + 1}" ` +
             `playOrder="${chapterPlayOrder}">` +
@@ -1562,8 +2081,9 @@ export async function buildCourseEpub(
       `<manifest><item id="title" href="${titleName}" media-type="application/xhtml+xml"/>` +
       `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>` +
       `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>` +
-      `${chapterManifest}${imageManifest}</manifest><spine toc="ncx">` +
-      `<itemref idref="title"/>${spine}</spine></package>`,
+      `<item id="book-style" href="styles/book.css" media-type="text/css"/>` +
+      `${chapterManifest}${imageManifest}${fontManifest}</manifest><spine toc="ncx">` +
+      `<itemref idref="title"/><itemref idref="nav"/>${spine}</spine></package>`,
   );
 
   throwIfAborted(signal);
@@ -1596,6 +2116,10 @@ export async function buildCourseEpub(
       }),
   );
 
+  if (diagnostics) {
+    diagnostics.epubBytes = bytes.length;
+    diagnostics.elapsedMs = performance.now() - startedAt;
+  }
   return { bytes, filename: filenameFor(courseTitle), included, failures };
 }
 
@@ -1608,6 +2132,7 @@ export const __testing = {
   groupBySection,
   hasParallelColumns,
   hasSmallTable,
+  hasSimpleFractionRule,
   hasPositionedScript,
   hasSignificantRotatedText,
   hasSuspiciousText,
