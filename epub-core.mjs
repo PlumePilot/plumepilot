@@ -1883,7 +1883,8 @@ export async function buildCourseEpub(
       courseTitle,
       `<main><p class="signature">${escapeXml(STUDYWING_SIGNATURE)}</p>` +
         `<h1>${escapeXml(courseTitle)}</h1>` +
-        `<p class="subtitle">Dispense complete del corso</p></main>`,
+        `<p class="subtitle">Dispense complete del corso</p>` +
+        `<p><a href="../nav.xhtml#toc">Indice dei capitoli</a></p></main>`,
     ),
   );
 
@@ -1935,8 +1936,9 @@ export async function buildCourseEpub(
           material.chapter,
           `<main><h1>${escapeXml(
             material.chapterTitle || material.chapter,
-          )}</h1>` +
+            )}</h1>` +
             `<p class="chapter-note">${escapeXml(material.section || "")}</p>` +
+            `<p class="chapter-note"><a href="../nav.xhtml#toc">Torna all’indice</a></p>` +
             `${converted.html}</main>`,
         ),
       );
@@ -2081,7 +2083,7 @@ export async function buildCourseEpub(
       `<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>` +
       `<item id="book-style" href="styles/book.css" media-type="text/css"/>` +
       `${chapterManifest}${imageManifest}${fontManifest}</manifest><spine toc="ncx">` +
-      `<itemref idref="title"/>${spine}</spine></package>`,
+      `<itemref idref="title"/><itemref idref="nav"/>${spine}</spine></package>`,
   );
 
   throwIfAborted(signal);

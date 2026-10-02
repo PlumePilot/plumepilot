@@ -60,6 +60,29 @@ implemented; existing chapter/section nav and NCX destinations are retained.
 PNG/JPEG encoding quality, print-intent rendering, download retries, material
 ordering, operation locking and final-package cancellation policy remain.
 
+## Visible linked chapter index
+
+The PDF course export's interactive index is generated from the same section
+and chapter metadata that the EPUB already uses for `nav.xhtml` and NCX.
+The EPUB now includes its existing navigation document in reading order,
+immediately after the cover. The cover links to that index, and each chapter
+has a return link. Section links open their first included chapter; chapter
+links open the corresponding XHTML file. Failed materials produce no index
+entries. This applies to both default and regional exports.
+
+No PDF is rendered again and no extra index image or separate index document
+is generated. Existing chapter grouping, order, titles and reader menu remain
+the same. The change is a few XHTML links and one spine reference. It carries
+the generated course chapter index into the EPUB; arbitrary embedded PDF
+annotations, PDF bookmark destinations and within-page links are not imported.
+
+Navigation was checked on actual default/regional exports with two sections,
+three public-fixture chapters and one intentionally failed material: reading
+order, escaped titles, every forward/return destination and failure omission
+pass. Both books and the updated RelIns sample pass EPUBCheck 5.3.0 with no
+errors/warnings. RelIns's new EPUB differs by 68 bytes (including ordinary
+UUID/ZIP metadata variation); every image/font asset is byte-identical.
+
 ## Same-input results — first increment, 1 October
 
 Bundled PDF.js 5.6.205 and JSZip, Node 24.19 with native canvas. Both comparison

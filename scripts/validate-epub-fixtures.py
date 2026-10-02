@@ -22,6 +22,17 @@ with zipfile.ZipFile(base/'baseline.epub') as old, zipfile.ZipFile(base/'regiona
         manifest=opf.findall('o:manifest/o:item',ns)
         ids=[n.attrib['id'] for n in manifest];assert len(ids)==len(set(ids))
         assert all('OEBPS/'+n.attrib['href'] in z.namelist() for n in manifest)
+        manifest_by_id={n.attrib['id']:n.attrib['href'] for n in manifest}
+        spine=[manifest_by_id[n.attrib['idref']] for n in opf.findall('o:spine/o:itemref',ns)]
+        assert spine[:2]==['text/title.xhtml','nav.xhtml']
+        nav=ET.fromstring(z.read('OEBPS/nav.xhtml'))
+        assert nav.find('.//h:nav[@id="toc"]',ns) is not None
+        for name in spine[:1]+spine[2:]:
+            document=ET.fromstring(z.read('OEBPS/'+name))
+            assert document.find('.//h:a[@href="../nav.xhtml#toc"]',ns) is not None
+        for link in nav.findall('.//h:a',ns):
+            destination='OEBPS/'+link.attrib['href']
+            assert destination in z.namelist() and destination in ['OEBPS/'+name for name in spine]
     html=new.read('OEBPS/text/chapter-001.xhtml').decode()
     for label in ['Before diagram','After diagram','Before formula','After formula','Before exponent','After exponent',
                   'Before tight formula','After tight formula','Before tight fraction','After tight fraction']:
@@ -64,4 +75,4 @@ with zipfile.ZipFile(base/'baseline.epub') as old, zipfile.ZipFile(base/'regiona
     assert 'OEBPS/fonts/STIX-OFL.txt' in new.namelist()
     for name in ['OEBPS/nav.xhtml','OEBPS/toc.ncx']:
         assert re.sub(rb'urn:uuid:[0-9a-f-]+', b'urn:uuid:BOOK', old.read(name))==re.sub(rb'urn:uuid:[0-9a-f-]+', b'urn:uuid:BOOK', new.read(name))
-print('PASS: XML/rasters/manifest; prose once/in order; complete tight formulas/fractions; mathematical Unicode/font/license; fallback rasters and navigation')
+print('PASS: XML/rasters/manifest; prose once/in order; complete tight formulas/fractions; mathematical Unicode/font/license; fallback rasters and visible linked index')
