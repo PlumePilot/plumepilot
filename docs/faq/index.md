@@ -39,7 +39,7 @@ Il corso non espone dispense per le sezioni analizzate oppure la piattaforma non
 
 ### “Dati della dispensa non disponibili tramite API”
 
-Pegaso non ha fornito il collegamento della dispensa attraverso i dati del corso. PlumePilot può tentare il recupero visitando le sezioni interessate; alcune dispense potrebbero comunque essere saltate se non risultano accessibili.
+La piattaforma non ha fornito il collegamento della dispensa attraverso i dati del corso. PlumePilot può tentare il recupero visitando le sezioni interessate; alcune dispense potrebbero comunque essere saltate se non risultano accessibili.
 
 ### “Impossibile trovare le dispense raccolte”
 
