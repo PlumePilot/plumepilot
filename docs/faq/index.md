@@ -5,17 +5,19 @@ title: FAQ di PlumePilot
 
 # FAQ e messaggi di PlumePilot
 
-Questa pagina spiega i principali avvisi che possono comparire durante l’uso di PlumePilot. Un messaggio di errore non indica necessariamente un problema dell’estensione: spesso significa che la pagina del corso non ha ancora fornito tutti i dati necessari o che Pegaso non rende disponibile una determinata attività.
+Le indicazioni di questa FAQ valgono per **Pegaso, Mercatorum e San Raffaele**. Con “la piattaforma” si intende l’università sulla quale stai usando PlumePilot.
+
+Questa pagina spiega i principali avvisi che possono comparire durante l’uso di PlumePilot. Un messaggio di errore non indica necessariamente un problema dell’estensione: spesso significa che la pagina del corso non ha ancora fornito tutti i dati necessari o che la piattaforma non rende disponibile una determinata attività.
 
 ## Test e Obiettivi
 
 ### “Le domande ricevute non corrispondono al test richiesto”
 
-Pegaso ha restituito un test diverso da quello che PlumePilot stava elaborando. L’operazione viene fermata per evitare di associare domande o risposte al capitolo sbagliato. Apri manualmente il test interessato, torna alla pagina dei contenuti e riprova.
+La piattaforma ha restituito un test diverso da quello che PlumePilot stava elaborando. L’operazione viene fermata per evitare di associare domande o risposte al capitolo sbagliato. Apri manualmente il test interessato, torna alla pagina dei contenuti e riprova.
 
 ### “Nessun test con domande è stato trovato”
 
-Le sezioni analizzate non contenevano test utilizzabili oppure Pegaso non ne ha restituito le domande. Verifica che il corso contenga effettivamente dei test e che siano accessibili dall’account in uso.
+Le sezioni analizzate non contenevano test utilizzabili oppure la piattaforma non ne ha restituito le domande. Verifica che il corso contenga effettivamente dei test e che siano accessibili dall’account in uso.
 
 ### “Impossibile verificare il test corrente. Avanzamento fermato per sicurezza.”
 
@@ -23,7 +25,7 @@ PlumePilot non è riuscito a confermare con certezza l’identità del test aper
 
 ### “API non disponibile. Nessun Obiettivo è stato modificato.”
 
-La pagina non ha ancora esposto la sessione necessaria per comunicare con Pegaso. Nessun Obiettivo è stato modificato. Mantieni aperta la scheda del corso, ricaricala e riprova dopo qualche secondo.
+La pagina non ha ancora esposto la sessione necessaria per comunicare con la piattaforma. Nessun Obiettivo è stato modificato. Mantieni aperta la scheda del corso, ricaricala e riprova dopo qualche secondo.
 
 ## Dispense ed esportazioni
 
@@ -33,7 +35,7 @@ PlumePilot non riesce a vedere l’indice del corso dalla pagina corrente. Apri 
 
 ### “Nessuna dispensa trovata”
 
-Il corso non espone dispense per le sezioni analizzate oppure Pegaso non ha restituito dati sufficienti. Verifica manualmente che le dispense siano presenti e accessibili. Se lo sono, ricarica l’indice del corso e riprova.
+Il corso non espone dispense per le sezioni analizzate oppure la piattaforma non ha restituito dati sufficienti. Verifica manualmente che le dispense siano presenti e accessibili. Se lo sono, ricarica l’indice del corso e riprova.
 
 ### “Dati della dispensa non disponibili tramite API”
 
@@ -45,7 +47,7 @@ I dati temporanei dell’esportazione non sono più disponibili, per esempio dop
 
 ### “Identità dei capitoli ambigua nell’indice master”
 
-I dati restituiti da Pegaso non permettono di associare con certezza uno o più capitoli al loro ordine nell’indice. L’operazione viene fermata per evitare raccolte errate o duplicate. Se il problema persiste, apri una segnalazione indicando il corso e l’operazione eseguita, senza includere credenziali o dati personali.
+I dati restituiti dalla piattaforma non permettono di associare con certezza uno o più capitoli al loro ordine nell’indice. L’operazione viene fermata per evitare raccolte errate o duplicate. Se il problema persiste, apri una segnalazione indicando il corso e l’operazione eseguita, senza includere credenziali o dati personali.
 
 ## Operazioni e pagina del corso
 
@@ -55,11 +57,11 @@ Raccolte, completamenti automatici e ricerche condividono alcune risorse e non p
 
 ### “Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.”
 
-Il popup non riesce a comunicare con una scheda Pegaso compatibile. Apri o ricarica la pagina del corso, attendi che sia completamente caricata e riprova.
+Il popup non riesce a comunicare con una schedalla piattaforma compatibile. Apri o ricarica la pagina del corso, attendi che sia completamente caricata e riprova.
 
 ### “Dati API incompleti” o “Risposta incompleta”
 
-Pegaso ha restituito soltanto una parte della struttura del corso. PlumePilot tenta automaticamente di riutilizzare la cache o di ripetere la richiesta; se non basta, visita la lezione interessata e riprova.
+La piattaforma ha restituito soltanto una parte della struttura del corso. PlumePilot tenta automaticamente di riutilizzare la cache o di ripetere la richiesta; se non basta, visita la lezione interessata e riprova.
 
 ## Serve ancora aiuto?
 
