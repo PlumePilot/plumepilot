@@ -1,10 +1,6 @@
 # Regional EPUB preservation for 2.35.1
 
-Based on future 2.35.1 draft PR #39, `fix/autoplay-collapsed-followups`
-at `ceedf31db535a2e6539ed8ad4492b84179b5e548`. This separate feature branch
-implements the regional preservation experiment and its 2 October font,
-segmentation and asset-reuse follow-up. The installed
-manifest remains 2.35.0; no release number or store submission is changed.
+Approved regional preservation from PR #40 is integrated into the 2.35.1 release branch. The installed manifest and browser-specific Novità are now prepared for 2.35.1; store submission is handled separately.
 
 ## Behavior and limits
 

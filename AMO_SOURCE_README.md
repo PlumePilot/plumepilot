@@ -1,4 +1,4 @@
-# PlumePilot 2.35.0 — AMO source submission
+# PlumePilot 2.35.1 — AMO source submission
 
 This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process selects runtime files, creates the browser-specific manifest, applies the documented Firefox-only review-safety transformations below, and writes deterministic ZIP archives.
 
@@ -23,7 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.35.0-firefox.zip
+release/plumepilot-v2.35.1-firefox.zip
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -50,6 +50,10 @@ The validator checks browser-specific manifests, referenced runtime files, absen
 
 The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, and the UNIX platform flag. A compatible Node.js runtime therefore produces the same Firefox archive byte for byte. Compare the generated SHA-256 with the value supplied in the AMO version notes.
 
+## Browser-specific Novità
+
+Chrome and Edge ship the six 2.35.1 cards from `whats-new.js`. Firefox upgrades directly from 2.34.0 and packages the nine cumulative cards from `scripts/whats-new-firefox.js` at the same runtime path, `whats-new.js`. This changes release text only; runtime behavior, storage keys and version 2.35.1 remain identical. Both definitions are readable and included in this source archive. The validator checks the packaged definitions.
+
 ## Firefox-only review-safety transformations
 
 `scripts/build-release.mjs` performs exact-match, fail-closed transformations while writing the Firefox ZIP. Chrome and Edge keep the official distributions unchanged. The Firefox package:
@@ -75,11 +79,11 @@ The readable distribution files in the source archive and in the Chrome/Edge pac
 
 Before this submission, every source vendor file was compared byte for byte with the corresponding official release. No dependency or executable code is downloaded at extension runtime.
 
-Before submission, run `web-ext lint` on the generated Firefox 2.35.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
+Before submission, run `web-ext lint` on the generated Firefox 2.35.1 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
 
-## Experimental EPUB math font
+## EPUB math font
 
-The regional EPUB experiment bundles `assets/fonts/plumepilot-math.otf`, a renamed mathematical/Greek subset derived from STIX Two Math 2.13b171 under SIL OFL 1.1. `THIRD_PARTY_NOTICES.md` records the tagged upstream source, source and derived checksums, modifications, and license location. This font is the documented exception to the unmodified third-party distributions described above.
+The regional EPUB converter bundles `assets/fonts/plumepilot-math.otf`, a renamed mathematical/Greek subset derived from STIX Two Math 2.13b171 under SIL OFL 1.1. `THIRD_PARTY_NOTICES.md` records the tagged upstream source, source and derived checksums, modifications, and license location. This font is the documented exception to the unmodified third-party distributions described above.
 
 The extension uses the packaged font locally and embeds it only when generated XHTML contains mathematical characters. It adds no permissions or runtime downloads. Python and FontTools are offline development tools, not extension dependencies; the normal release build uses the already included font.
 

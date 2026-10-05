@@ -3,9 +3,21 @@
 
   const definition = {
   "version": "2.35.1",
-  "title": "Autoplay in ordine ed EPUB migliorati",
-  "summary": "Ripasso in ordine, ricerca delle attività da completare ed EPUB più leggibili con indice cliccabile.",
+  "title": "Una pausa con Plume, appunti più ricchi e nuovi fix",
+  "summary": "Tutte le novità della 2.35 e le correzioni della 2.35.1, insieme in questo aggiornamento.",
   "items": [
+    {
+      "title": "Pausa?",
+      "text": "Concediti 90 secondi di volo con Plume: raccogli dispense, test e obiettivi. Trovi il gioco nelle Preferenze del popup e del menu fluttuante."
+    },
+    {
+      "title": "Appunti nei test HTML",
+      "text": "Scrivi Spiegazioni e Osservazioni con elenchi, evidenziatori, richiami e altri strumenti di formattazione. Scarica l’HTML con gli appunti per conservarli offline."
+    },
+    {
+      "title": "Domande da ripassare",
+      "text": "Segna ogni domanda come Verificata, Da rivedere o Da verificare e usa i filtri per concentrarti su quelle che ti servono."
+    },
     {
       "title": "Autoplay in ordine",
       "text": "L’autoplay segue l’ordine dei video, anche quando sono già completati: puoi ripassare senza cliccarli uno per uno. Se preferisci proseguire solo sui video da completare, attiva “Salta videolezioni completate” nelle Opzioni autoplay. L’opzione è disattivata di default. Migliorata anche la ripresa con capitoli e paragrafi chiusi."

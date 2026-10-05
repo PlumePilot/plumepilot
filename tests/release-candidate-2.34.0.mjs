@@ -8,7 +8,7 @@ const sourceReadme = readFileSync(new URL("../AMO_SOURCE_README.md", import.meta
 const popupHtml = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
 const floatingMenu = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
 
-assert.match(manifest.version, /^2\.3[45]\.0$/);
+assert.match(manifest.version, /^2\.(?:34\.0|35\.[01])$/);
 assert.match(changelog, /^## Added in 2\.34\.0:/m);
 assert.match(releaseNotes, /Mercatorum and San Raffaele\/UTSR/);
 assert.match(sourceReadme, new RegExp(`^# PlumePilot ${manifest.version.replaceAll(".", "\\.")}`, "m"));
