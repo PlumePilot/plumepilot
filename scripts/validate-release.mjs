@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 
 const require = createRequire(import.meta.url);
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -13,6 +14,26 @@ const expectedEdgeLocales = ["en", "it"];
 const sourceManifest = JSON.parse(await readFile(path.join(root, "manifest.json"), "utf8"));
 const expectedVersion = sourceManifest.version;
 const generatedChecksums = [];
+
+function releaseDefinition(source) {
+  const context = vm.createContext({});
+  vm.runInContext(source, context, { timeout: 1000 });
+  return JSON.parse(JSON.stringify(context.PlumePilotWhatsNew));
+}
+
+async function validateWhatsNew(zip, browser) {
+  const entry = zip.file("whats-new.js");
+  if (!entry) throw new Error(`${browser}: Novità mancanti.`);
+  const actual = releaseDefinition(await entry.async("string"));
+  const expected = releaseDefinition(await readFile(path.join(root,
+    browser === "firefox" ? "scripts/whats-new-firefox.js" : "whats-new.js"), "utf8"));
+  if (actual.RELEASE.version !== expectedVersion || JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`${browser}: Novità/versione non corrispondono alla definizione sorgente.`);
+  }
+  if (expectedVersion === "2.35.1" && actual.RELEASE.items.length !== (browser === "firefox" ? 9 : 6)) {
+    throw new Error(`${browser}: numero di schede Novità inatteso.`);
+  }
+}
 const expectedPdfjsChecksums = new Map([
   ["vendor/pdf.mjs", "43c67d941a73a2d65be72c97f5e68d9a7963df53b219cc1c0aa85f2b8bd1c9bd"],
   ["vendor/pdf.worker.mjs", "08ee175af31a8537ee0ddee910717db78c6751e2016c4ddc3f033d5047ed5aa0"],
@@ -136,6 +157,7 @@ for (const browser of expectedBrowsers) {
   }
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
+  await validateWhatsNew(zip, browser);
   if (browser === "firefox") await assertFirefoxReviewSafe(zip, names);
   if (browser === "edge") {
     const packagedLocales = [...new Set(names.flatMap((name) => {
@@ -222,6 +244,7 @@ for (const required of [
   "THIRD_PARTY_NOTICES.md",
   "scripts/build-release.mjs",
   "scripts/validate-release.mjs",
+  "scripts/whats-new-firefox.js",
 ]) {
   if (!sourceZip.file(required)) throw new Error(`Sorgente AMO: file mancante ${required}.`);
 }

@@ -127,6 +127,8 @@ async function start() {
     setProgress,
     {
       generatorVersion: chrome.runtime.getManifest().version,
+      // Approved for 2.35.1; retain an explicit diagnostic fallback.
+      regionalPreservation: new URLSearchParams(location.search).get("epubRegional") !== "0",
       signal: buildController.signal,
     },
   );

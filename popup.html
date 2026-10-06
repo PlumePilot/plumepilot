@@ -42,7 +42,7 @@
     <aside id="whatsNewBanner" class="whats-new-banner" aria-labelledby="whatsNewBannerTitle" hidden>
       <button id="dismissWhatsNew" class="whats-new-dismiss" type="button" aria-label="Chiudi le novità">×</button>
       <div class="whats-new-banner-copy">
-        <strong id="whatsNewBannerTitle">Novità in PlumePilot 2.35.0</strong>
+        <strong id="whatsNewBannerTitle">Novità in PlumePilot 2.35.1</strong>
         <span>Una pausa con Plume e nuovi strumenti per gli appunti nei test HTML.</span>
       </div>
       <button id="openWhatsNew" class="secondary-button whats-new-open" type="button">Scopri le novità</button>
@@ -114,8 +114,16 @@
               <button id="findFirstIncomplete" class="secondary-button" type="button">Trova prima attività incompleta</button>
               <button class="expand-button" type="button" aria-label="Mostra informazioni sulla ricerca della prima attività incompleta" aria-controls="firstIncompleteInfo" aria-expanded="false"></button>
             </div>
-            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare e la apre come un segnalibro. La ricerca parte solo quando premi il pulsante e non modifica il punto ripristinato normalmente dalla piattaforma. Il video viene selezionato senza forzarne la riproduzione.</div>
+            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare: Obiettivi, video o test. La ricerca parte solo quando premi il pulsante. Il video viene selezionato senza forzarne la riproduzione; il test viene mostrato senza risolverlo, anche se l’autoplay ignora o completa automaticamente i test.</div>
             <div id="firstIncompleteStatus" class="action-status" aria-live="polite"></div>
+          </div>
+
+          <div class="setting-block">
+            <label class="toggle-row" for="autoplaySkipCompletedVideos">
+              <span>Salta videolezioni completate</span>
+              <input id="autoplaySkipCompletedVideos" type="checkbox">
+            </label>
+            <small class="setting-hint">Salta i video già al 100% mantenendo l’ordine del corso. Disattiva per ripassarli tutti.</small>
           </div>
 
           <fieldset class="test-behavior" aria-labelledby="testBehaviorTitle">
@@ -128,7 +136,7 @@
               <label><input type="radio" name="testBehavior" value="stop"> <span>Fermati</span></label>
               <label><input type="radio" name="testBehavior" value="complete"> <span>Completa automaticamente</span></label>
             </div>
-            <div id="testBehaviorInfo" class="info-panel" hidden>Puoi ignorare i test, fermare l’avanzamento quando li raggiungi oppure completarli automaticamente e proseguire. I test già completati non vengono ripetuti. Se il completamento diretto non riesce, PlumePilot prova il metodo alternativo con risposta A. Anche la ricerca manuale della prima attività incompleta rispetta questa scelta.</div>
+            <div id="testBehaviorInfo" class="info-panel" hidden>Puoi ignorare i test, fermare l’avanzamento quando li raggiungi oppure completarli automaticamente e proseguire. I test già completati non vengono ripetuti. Se il completamento diretto non riesce, PlumePilot prova il metodo alternativo con risposta A. Queste opzioni riguardano l’autoplay; il segnalibro individua anche i test incompleti senza risolverli.</div>
           </fieldset>
 
           <details class="chapter-limit-menu">

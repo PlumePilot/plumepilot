@@ -1,0 +1,148 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import vm from "node:vm";
+const source = readFileSync(new URL("../content.js", import.meta.url), "utf8");
+const extract = (start, end) => source.slice(source.indexOf(start), source.indexOf(end));
+const row = (name, progress) => ({name, progress});
+const objective = row("Obiettivi", 100), first = row("Video 1", 100), second = row("Video 2", 100), third = row("Video 3", 0);
+const sameChapter = vm.createContext({
+  autoplaySkipCompletedVideos: false,
+  currentChapter: () => ({}), chapterRows: () => [objective, first, second, third],
+  findChapter: () => ({}), lessonName: r => r.name, getProgress: r => r.progress, log() {},
+});
+vm.runInContext(extract("  function nextLesson(row)", "  function video()"), sameChapter);
+vm.runInContext(extract("  function firstUnfinishedVideo(identity)", "  function clickRow(row)"), sameChapter);
+assert.equal(sameChapter.nextLesson(first), second, "replay must not skip a completed next video");
+assert.equal(sameChapter.nextLesson(third), null);
+assert.equal(sameChapter.firstVideoInChapter({}), first, "sequential chapter entry starts at video 1");
+assert.equal(sameChapter.firstUnfinishedVideo({}), third, "bookmark keeps progress-based selection");
+sameChapter.autoplaySkipCompletedVideos = true;
+assert.equal(sameChapter.nextLesson(first), third, "optional skip keeps forward order and excludes 100% videos");
+assert.equal(sameChapter.nextLesson(third), null, "optional skip does not wrap to earlier videos");
+
+const chapter = (sectionText, text, rows) => ({sectionText, text, rows});
+async function transition({crossSection = false, sequential = true, missingCurrent = false, stopAtTest = false, skipCompleted = false, completeNext = false} = {}) {
+  const current = chapter("B", "3 - Current", [first]);
+  const next = chapter(crossSection ? "C" : "B", "4 - Next", completeNext ? [first, second] : [first, second, third]);
+  const followingVideo = row("Video 5", 0);
+  const following = chapter(next.sectionText, "5 - Following", [followingVideo]);
+  const allChapters = completeNext ? [current, next, following] : [current, next];
+  const openedSections = [], openedChapters = [], clicked = [];
+  let apiCalls = 0, activeSection = "B";
+  const context = vm.createContext({
+    autoplaySkipCompletedVideos: skipCompleted,
+    playbackDiscoveryCancelled: () => false,
+    stopAtCurrentTestBeforeDiscovery: async () => stopAtTest,
+    findNextPlaybackTargetViaApi: async (_identity, options) => {
+      apiCalls++;
+      assert.equal(options.forwardVideoSearch, skipCompleted);
+      const target = completeNext ? following : next;
+      return {status: "target", entry: {identity: {sectionText: target.sectionText, chapterText: target.text}}, unfinishedItem: {contentType: "video"}};
+    },
+    sections: () => [{text: "A"}, {text: "B"}, {text: "C"}],
+    openSection: async text => { openedSections.push(text); activeSection = text; return true; },
+    chapters: () => allChapters.filter(ch => ch.sectionText === activeSection && !(missingCurrent && ch === current)),
+    chapterIdentity: ch => ({sectionText: ch.sectionText, chapterText: ch.text}),
+    openChapter: async identity => { openedChapters.push(identity); return true; },
+    findChapter: identity => allChapters.find(ch => ch.text === identity.chapterText),
+    chapterRows: ch => ch.rows,
+    firstVideoInChapter: (identity, incompleteOnly) => allChapters.find(ch => ch.text === identity.chapterText)?.rows.find(r => !incompleteOnly || r.progress < 100),
+    getEndOfLessonTest: () => null, stopAtTests: false, autoCompleteTests: false,
+    firstUnfinishedVideo: () => third,
+    visibleIncompleteActivity: () => ({contentType: "video", title: third.name}),
+    normalizedText: text => text,
+    lessonName: r => r.name, getProgress: r => r.progress,
+    IS_CHROMIUM: false, CHAPTER_SETTLE_DELAY_MS: 0,
+    sleep: async () => {}, waitFor: async fn => fn(),
+    clickRow: r => { clicked.push(r); return true; }, video: () => ({}), attach() {},
+    setResumeDiscoveryStatus() {}, removeResumeDiscoveryStatus() {}, log() {},
+    stoppedAtTestContext: null,
+  });
+  vm.runInContext(extract("  async function openNextAvailableChapter(", "  async function nextChapter("), context);
+  const result = await context.openNextAvailableChapter({sectionText: "B", chapterText: current.text}, {}, false,
+    sequential ? {sequential: true} : {bookmarkSearch: true});
+  return {result, apiCalls, clicked, openedSections, openedChapters};
+}
+for (const crossSection of [false, true]) {
+  const result = await transition({crossSection});
+  assert.equal(result.result, true);
+  assert.equal(result.apiCalls, 0, "ordinary autoplay must not request incomplete discovery");
+  assert.equal(result.clicked[0], first, "completed next chapter must be played from its first video");
+  assert.deepEqual(result.openedSections, crossSection ? ["B", "C"] : ["B"], "do not scan earlier paragraphs");
+  assert.equal(result.openedChapters.length, 1);
+  const skipping = await transition({crossSection, skipCompleted: true});
+  assert.equal(skipping.clicked[0], third, "optional skip also applies when entering the next chapter");
+  assert.equal(skipping.apiCalls, 1, "skip mode locates its forward target before opening a chapter");
+}
+const bookmark = await transition({sequential: false});
+assert.equal(bookmark.apiCalls, 1);
+assert.equal(bookmark.clicked[0], third);
+const completedChapter = await transition({skipCompleted: true, completeNext: true});
+assert.equal(completedChapter.result, true);
+assert.equal(completedChapter.clicked[0].name, "Video 5", "a fully completed chapter is traversed in order when skip is enabled");
+assert.deepEqual(completedChapter.openedChapters.map(ch => ch.chapterText), ["5 - Following"], "do not open completed intermediate chapters");
+assert.equal(completedChapter.apiCalls, 1);
+const missing = await transition({missingCurrent: true});
+assert.equal(missing.result, false, "ambiguous current chapter must not jump to another section");
+assert.equal(missing.openedChapters.length, 0);
+const stopped = await transition({stopAtTest: true});
+assert.equal(stopped.result, false);
+assert.equal(stopped.clicked.length, 0, "test stop remains effective");
+
+let stored;
+const recovery = vm.createContext({
+  documentIsHidden: () => false, readChapterRecovery: () => null,
+  MAX_CHAPTER_RELOADS: 1, CHAPTER_RECOVERY_KEY: "recovery", log() {},
+  sessionStorage: {setItem: (_key, value) => {stored = JSON.parse(value);}}, location: {reload() {}},
+});
+vm.runInContext(extract("  function reloadForChapterRecovery(", "  async function waitForCourseReadyAfterReload("), recovery);
+assert.equal(recovery.reloadForChapterRecovery({chapterText: "3"}, {sequential: true}), true);
+assert.equal(stored.sequential, true, "recovery must preserve ordered autoplay");
+console.log("PASS: replay order within/across chapters and sections; bookmark separation; safe identity; test stop; reload mode");
+
+let pendingResume = null, advances = 0;
+const replayPlayer = {ended: false, duration: 60, currentTime: 5};
+const resumed = vm.createContext({
+  smartResumeRunning: false,
+  video: () => replayPlayer, currentLesson: () => first, lessonName: r => r.name,
+  playbackContext: null, timer: null, rememberPlaybackLesson() {}, log() {}, enabled: true,
+  recoverPlaybackLesson: async () => first, playbackLessonRow: () => first,
+  clearTimeout() {}, setTimeout: fn => {pendingResume = fn; return 1;}, RESUME_DELAY_MS: 0,
+  advance: async () => {advances++;},
+});
+vm.runInContext(extract("  async function resumeIfVideoAlreadyEnded()", "  function attach(v)"), resumed);
+await resumed.resumeIfVideoAlreadyEnded();
+assert.equal(pendingResume, null, "enabling autoplay during a completed video's replay must not skip it");
+replayPlayer.ended = true; replayPlayer.currentTime = 60;
+await resumed.resumeIfVideoAlreadyEnded();
+assert.equal(typeof pendingResume, "function");
+replayPlayer.ended = false; replayPlayer.currentTime = 0;
+await pendingResume();
+assert.equal(advances, 0, "restarting before a pending resume cancels advancement");
+
+const listeners = new Map();
+const reused = {dataset: {}, ended: true, duration: 60, currentTime: 60,
+  addEventListener: (name, fn) => listeners.set(name, fn)};
+let endTimer;
+const events = vm.createContext({
+  smartResumeRunning: false,
+  currentLesson: () => first, rememberPlaybackLesson() {}, captureEndedVideoProgress: async () => {},
+  lastVideo: null, timer: null, enabled: true, log() {}, clearTimeout() {},
+  setTimeout: fn => {endTimer = fn; return 1;}, DELAY_MS: 0, advance: () => {advances++;},
+});
+vm.runInContext(extract("  function attach(v)", "  function scan()"), events);
+events.attach(reused);
+listeners.get("ended")(); endTimer();
+assert.equal(advances, 1);
+reused.ended = false; reused.currentTime = 0;
+listeners.get("play")();
+assert.equal(events.lastVideo, null);
+reused.ended = true; reused.currentTime = 60;
+listeners.get("ended")(); endTimer();
+assert.equal(advances, 2, "a reused player must advance at each actual video end");
+events.smartResumeRunning = true;
+events.lastVideo = null;
+endTimer = null;
+listeners.get("ended")();
+assert.equal(endTimer, null, "video ending during bookmark discovery must not schedule an autoplay jump");
+console.log("PASS: enable during replay; delayed resume cancellation; consecutive ends on a reused player");

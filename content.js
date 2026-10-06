@@ -80,10 +80,12 @@
   let timer = null;
   let lastVideo = null;
   let playbackContext = null;
+  let objectivesSelectionEpoch = 0;
   let busy = false;
   let enabled = true;
   let stopAtTests = false;
   let autoCompleteTests = false;
+  let autoplaySkipCompletedVideos = false;
   let chapterLimitEnabled = false;
   let chapterLimit = 1;
   let chapterLimitMaximum = 1;
@@ -451,6 +453,7 @@
 
     enabled = event.data.enabled !== false;
     autoCompleteTests = event.data.autoCompleteTests === true;
+    autoplaySkipCompletedVideos = event.data.autoplaySkipCompletedVideos === true;
     chapterLimitEnabled = event.data.autoplayChapterLimitEnabled === true;
     courseProgressOverlayEnabled = event.data.courseProgressOverlayEnabled === true;
     autoplayStopAt70Enabled = event.data.autoplayStopAt70Enabled === true;
@@ -725,16 +728,14 @@
     }
 
     // Only search inside the current chapter.
-    // "Obiettivi" and videos already registered at 100% are deliberately
-    // ignored, so resuming autoplay cannot reopen completed activities.
+    // Autoplay follows the course order, including videos being replayed.
     for (let i = index + 1; i < rows.length; i++) {
       const candidate = rows[i];
 
       if (lessonName(candidate).toLowerCase() === "obiettivi") continue;
 
-      if (getProgress(candidate) < 100) return candidate;
-
-      log("Skipping already completed video:", lessonName(candidate));
+      if (lessonName(candidate) &&
+          (!autoplaySkipCompletedVideos || getProgress(candidate) < 100)) return candidate;
     }
 
     // No more videos in this chapter.
@@ -1278,14 +1279,20 @@
     });
   }
 
-  function getProgress(row) {
+  function getKnownProgress(row) {
     const progressElements = [...row.querySelectorAll(".text-xs")];
 
     const progress = progressElements
       .map((el) => el.textContent.trim())
-      .find((text) => /^\d+%$/.test(text));
+      .find((text) => /^\d+(?:[.,]\d+)?\s*%$/.test(text));
 
-    return progress ? parseInt(progress, 10) : 0;
+    if (!progress) return null;
+    const percentage = Number.parseFloat(progress.replace(",", "."));
+    return percentage >= 0 && percentage <= 100 ? percentage : null;
+  }
+
+  function getProgress(row) {
+    return getKnownProgress(row) ?? 0;
   }
 
   async function waitForLessonCompletion(row, videoElement) {
@@ -1382,6 +1389,32 @@
   }
 
   function firstUnfinishedVideo(identity) {
+    return firstVideoInChapter(identity, true);
+  }
+
+  function visibleIncompleteActivity(identity, verifiedActivities = []) {
+    const chapter = findChapter(identity);
+    if (!chapter) return null;
+    for (const row of chapterRows(chapter)) {
+      const title = lessonName(row);
+      if (!title) continue;
+      const contentType = title.toLowerCase() === "obiettivi" ? "intro" : "video";
+      const verified = verifiedActivities.find((item) =>
+        item.contentType === contentType && item.percentageKnown !== false &&
+        (contentType === "intro" || normalizedText(item.title) === normalizedText(title)));
+      const percentage = verified ? Number(verified.percentage) : getKnownProgress(row);
+      if (percentage === null || !Number.isFinite(percentage)) {
+        return {contentType: "unknown", title};
+      }
+      if (percentage < 100) return {contentType, title, percentage};
+    }
+    const test = getEndOfLessonTest(chapter);
+    return test && !isEndOfLessonTestCompleted(test)
+      ? {contentType: "test", title: "Test di autovalutazione", percentage: 0}
+      : null;
+  }
+
+  function firstVideoInChapter(identity, incompleteOnly = false) {
     const chapter = findChapter(identity);
 
     if (!chapter) {
@@ -1401,7 +1434,7 @@
 
         log("Checking:", lessonName(row), "Progress:", progress + "%");
 
-        return progress < 100;
+        return !incompleteOnly || progress < 100;
       }) || null
     );
   }
@@ -1417,6 +1450,8 @@
 
   function resumeFromObjectives(objectiveRow) {
     const identity = chapterIdentity(currentChapter(objectiveRow));
+    const courseCode = courseCodeFromUrl();
+    const selectionEpoch = objectivesSelectionEpoch;
 
     if (!identity) {
       log("Could not determine the chapter opened from Obiettivi.");
@@ -1433,7 +1468,9 @@
     timer = setTimeout(async () => {
       timer = null;
 
-      if (!enabled || collectingCourseMaterials || courseBatchRunning()) {
+      if (!enabled || collectingCourseMaterials || courseBatchRunning() ||
+          courseCode !== courseCodeFromUrl() ||
+          selectionEpoch !== objectivesSelectionEpoch) {
         log("Obiettivi handoff cancelled because PlumePilot is not available.");
         return;
       }
@@ -1475,14 +1512,30 @@
         }
       }
 
-      const unfinished = firstUnfinishedVideo(identity);
+      let unfinished = firstVideoInChapter(identity, autoplaySkipCompletedVideos);
+      const chapter = findChapter(identity);
+      if (!unfinished && (!chapter || chapterRows(chapter).length === 0)) {
+        if (await openChapter(identity)) {
+          if (!enabled || collectingCourseMaterials || courseBatchRunning() ||
+              courseCode !== courseCodeFromUrl() ||
+              selectionEpoch !== objectivesSelectionEpoch) return;
+          const selected = currentLesson();
+          if (selected && lessonName(selected).toLowerCase() !== "obiettivi") return;
+          unfinished = firstVideoInChapter(identity, autoplaySkipCompletedVideos);
+        }
+      }
 
       if (!unfinished) {
-        log("No unfinished video was found after Obiettivi:", identity);
+        log("No video was found after Obiettivi:", identity);
+        if (autoplaySkipCompletedVideos && chapterRows(findChapter(identity)).length > 0) {
+          await openNextAvailableChapter(identity, video(), false, {
+            sequential: true, includeCurrent: true,
+          });
+        }
         return;
       }
 
-      log("Opening the first unfinished video after Obiettivi.");
+      log("Opening the first video after Obiettivi in course order.");
       clickRow(unfinished);
 
       const nextVideo = await waitFor(() => video());
@@ -1509,7 +1562,10 @@
 
       const row = event.target.closest?.("div.border-t");
 
-      if (!row || lessonName(row).toLowerCase() !== "obiettivi") {
+      if (!row) return;
+      if (smartResumeRunning) smartResumeGeneration++;
+      if (lessonName(row).toLowerCase() !== "obiettivi") {
+        objectivesSelectionEpoch++;
         return;
       }
 
@@ -1683,7 +1739,7 @@
     sessionStorage.removeItem(CHAPTER_RECOVERY_KEY);
   }
 
-  function reloadForChapterRecovery(currentIdentity) {
+  function reloadForChapterRecovery(currentIdentity, options = {}) {
     if (documentIsHidden()) {
       log(
         "Chapter recovery reload deferred because the page is hidden:",
@@ -1711,6 +1767,7 @@
       CHAPTER_RECOVERY_KEY,
       JSON.stringify({
         currentIdentity,
+        sequential: options.sequential === true,
         recoveryKey,
         attempts: attempts + 1,
       }),
@@ -1811,6 +1868,7 @@
       recovery.currentIdentity,
       oldVideo,
       true,
+      { sequential: recovery.sequential === true },
     );
 
     if (result === "reloaded") {
@@ -2663,8 +2721,9 @@
     lessonLpId = lessonNumber,
     allowStaleMutableCache = false,
     lessonParagraphId = lessonLpId,
+    forceFresh = false,
   ) {
-    const cachedResponse = cachedLessonResponse(
+    const cachedResponse = forceFresh ? null : cachedLessonResponse(
       courseCode,
       lessonNumber,
       requiredData,
@@ -2829,6 +2888,37 @@
       routes.set(outlineEntry.lessonNumber, entries[selectedIndex]);
     }
 
+    return routes;
+  }
+
+  function playbackCourseRouteMap(courseIndex, outline) {
+    const routes = courseIndexRouteMap(courseIndex, outline);
+    const titleKey = (value) => normalizedText(value)
+      .replace(/^\d+\s*-\s*/, "")
+      .toLocaleLowerCase("it");
+
+    // A matching course-wide order is stronger than a display_order, which
+    // can restart at 1 in each folder. Use it only when every title agrees.
+    const ordered = [...(courseIndex || [])].sort(
+      (first, second) => first.masterOrder - second.masterOrder,
+    );
+    if (ordered.length === outline.length && ordered.every((route, index) =>
+      Number.isInteger(route.masterOrder) && route.masterOrder === index &&
+      titleKey(route.title) &&
+      titleKey(route.title) === titleKey(outline[index].identity.chapterText),
+    )) {
+      return new Map(outline.map((entry, index) => [entry.lessonNumber, ordered[index]]));
+    }
+
+    // Otherwise use only unambiguous title/number matches. A stale label
+    // must never make us skip a genuinely unfinished chapter as "100%".
+    for (const entry of outline) {
+      const route = routes.get(entry.lessonNumber);
+      if (route && titleKey(route.title) &&
+          titleKey(route.title) !== titleKey(entry.identity.chapterText)) {
+        routes.delete(entry.lessonNumber);
+      }
+    }
     return routes;
   }
 
@@ -3144,6 +3234,7 @@
     }
 
     const initialSections = sections().map((section) => section.text);
+    const collectionCourseTitle = courseTitle();
 
     if (initialSections.length === 0) {
       setExportCollectionStatus(
@@ -3399,7 +3490,7 @@
           format,
           operationId,
           payload: {
-            courseTitle: courseTitle(),
+            courseTitle: collectionCourseTitle,
             materials,
             missing,
           },
@@ -3532,6 +3623,7 @@
 
     const courseCode = courseCodeFromUrl();
     const initialSections = sections().map((section) => section.text);
+    const collectionCourseTitle = courseTitle();
     if (!courseCode || !initialSections.length) {
       setExportCollectionStatus(
         "Apri prima la pagina dei contenuti di un corso.",
@@ -3660,7 +3752,7 @@
       window.postMessage({
         type: "PEGASO_COURSE_TESTS_COLLECTED",
         operationId,
-        payload: { courseTitle: courseTitle(), tests: collected, missing },
+        payload: { courseTitle: collectionCourseTitle, tests: collected, missing },
       }, "*");
       removeExportCollectionToastAfter(completedMessage, 5000);
     } catch (error) {
@@ -5703,6 +5795,14 @@
         return {
           displayOrder,
           percentage: Number.isFinite(percentage) ? percentage : 0,
+          masterOrder: entry?.masterOrder != null &&
+            Number.isInteger(Number(entry.masterOrder))
+            ? Number(entry.masterOrder)
+            : null,
+          folderId: entry?.folderId != null &&
+            Number.isInteger(Number(entry.folderId))
+            ? Number(entry.folderId)
+            : null,
           id: Number.isInteger(Number(entry?.id)) ? Number(entry.id) : null,
           lpId: Number.isInteger(Number(entry?.lpId))
             ? Number(entry.lpId)
@@ -5767,14 +5867,14 @@
       return { status: "fallback" };
     }
 
-    const courseIndex = await getPlaybackCourseIndex(courseCode, options);
+    const courseIndex = await getPlaybackCourseIndex(courseCode, {
+      ...options, forceRefresh: options.bookmarkSearch === true && options.masterRefreshed !== true,
+    });
     if (playbackDiscoveryCancelled(options)) {
       removeResumeDiscoveryStatus();
       return { status: "cancelled" };
     }
-    const completionByOrder = new Map(
-      (courseIndex || []).map((entry) => [entry.displayOrder, entry]),
-    );
+    const routeByLessonNumber = playbackCourseRouteMap(courseIndex, outline);
 
     const currentIndex = outline.findIndex((entry) =>
       sameChapterIdentity(entry.identity, currentIdentity),
@@ -5793,86 +5893,59 @@
 
     const firstIndex = includeCurrent ? currentIndex : currentIndex + 1;
 
-    if (options.bookmarkSearch && courseIndex?.length) {
-      let masterIndexComplete = true;
-
-      for (let index = firstIndex; index < outline.length; index++) {
-        if (playbackDiscoveryCancelled(options)) {
-          removeResumeDiscoveryStatus();
-          return { status: "cancelled" };
-        }
-
-        const entry = outline[index];
-        const indexedChapter = completionByOrder.get(entry.lessonNumber);
-
-        if (!indexedChapter) {
-          masterIndexComplete = false;
-          log(
-            `Master course index has no display_order ${entry.lessonNumber}; ` +
-              "using detailed discovery from that chapter.",
-          );
-          break;
-        }
-
-        if (Number(indexedChapter.percentage) >= 100) {
-          log(
-            `Master course index: display_order ${entry.lessonNumber} is 100%; skipping it.`,
-          );
-          continue;
-        }
-
-        const visibleTitle = normalizedText(entry.identity.chapterText)
-          .replace(/^\d+\s*-\s*/, "")
-          .toLowerCase();
-        const indexedTitle = normalizedText(indexedChapter.title).toLowerCase();
-
-        log(
-          "First-incomplete bookmark selected the first below-100% master-index entry.",
-          {
-            displayOrder: indexedChapter.displayOrder,
-            lpId: indexedChapter.lpId,
-            percentage: indexedChapter.percentage,
-            indexedTitle: indexedChapter.title,
-            visibleChapter: entry.identity,
-            titleMatches:
-              !indexedTitle || indexedTitle === visibleTitle,
-          },
-        );
-        setResumeDiscoveryStatus(
-          `Primo capitolo incompleto — modulo ${indexedChapter.displayOrder} (${Math.round(indexedChapter.percentage)}%)\n${entry.identity.chapterText}`,
-          "success",
-        );
-        return {
-          status: "target",
-          entry,
-          unfinishedItem: null,
-          visualVerification: true,
-          masterIndexTarget: true,
-          lessonLpId: indexedChapter.lpId || entry.lessonNumber,
-          lessonParagraphId: indexedChapter.id || entry.lessonNumber,
-        };
-      }
-
-      if (masterIndexComplete) {
-        setResumeDiscoveryStatus(
-          "Ricerca completata: tutti i capitoli risultano al 100%.",
-          "success",
-        );
-        return { status: "end" };
-      }
+    let discoveryOrder = outline.map((_entry, index) => index).filter((index) =>
+      index >= firstIndex && !(options.verifiedCompleteChapters || []).some((identity) =>
+        sameChapterIdentity(outline[index].identity, identity)));
+    // Prefer the master's unfinished candidates, keeping course order within
+    // each pass. A second pass verifies 100% summaries if no candidate matches.
+    // Forward autoplay must inspect intervening test boundaries when requested.
+    if (courseIndex?.length && (options.bookmarkSearch ||
+        (options.forwardVideoSearch && !stopAtTests && !autoCompleteTests))) {
+      const suspectedIncomplete = (index) => {
+        const route = routeByLessonNumber.get(outline[index].lessonNumber);
+        return !route || Number(route.percentage) < 100;
+      };
+      discoveryOrder = [
+        ...discoveryOrder.filter(suspectedIncomplete),
+        ...discoveryOrder.filter((index) => !suspectedIncomplete(index)),
+      ];
     }
 
-    for (let index = firstIndex; index < outline.length; index++) {
+    for (const index of discoveryOrder) {
       if (playbackDiscoveryCancelled(options)) {
         removeResumeDiscoveryStatus();
         return { status: "cancelled" };
       }
 
       const entry = outline[index];
-      const indexedChapter = completionByOrder.get(entry.lessonNumber);
+      const indexedChapter = routeByLessonNumber.get(entry.lessonNumber);
+
+      const currentCheck = options.currentActivityCheck;
+      if (options.bookmarkSearch && currentCheck?.activity &&
+          !["intro", "unknown"].includes(currentCheck.activity.contentType) &&
+          sameChapterIdentity(entry.identity, currentCheck.identity)) {
+        const activity = currentCheck.activity;
+        return {
+          status: "target", entry,
+          unfinishedItem: activity.contentType === "test" ? null : activity,
+          testTarget: activity.contentType === "test" ? activity : null,
+          visualVerification: true,
+        };
+      }
+
+      if (courseIndex?.length && !indexedChapter) {
+        log(`Course index cannot safely map module ${entry.lessonNumber}; verifying it visually.`);
+        return {
+          status: "target",
+          entry,
+          unfinishedItem: null,
+          visualVerification: true,
+        };
+      }
       const lessonLpId = indexedChapter?.lpId || entry.lessonNumber;
 
-      if (indexedChapter && Number(indexedChapter.percentage) >= 100) {
+      if (!options.bookmarkSearch && !options.forwardVideoSearch &&
+          indexedChapter && Number(indexedChapter.percentage) >= 100) {
         log(
           `Course index: module ${entry.lessonNumber} is 100%; skipping its detailed API call.`,
         );
@@ -5895,6 +5968,7 @@
         lessonLpId,
         false,
         indexedChapter?.id || entry.lessonNumber,
+        options.bookmarkSearch === true || options.forwardVideoSearch === true,
       );
 
       if (playbackDiscoveryCancelled(options)) {
@@ -5921,21 +5995,41 @@
         };
       }
 
-      const unfinishedItem = lesson.data.playbackItems.find(
-        (item) => Number(item.percentage) < 100,
-      );
-      const test = lesson.data.test;
+      const playbackItems = lesson.data.playbackItems || [];
+      const objective = playbackItems.find((item) => item.contentType === "intro") ||
+        lesson.data.objective;
+      const verifiedActivities = objective && !playbackItems.includes(objective)
+        ? [{...objective, contentType: "intro"}, ...playbackItems]
+        : playbackItems;
+      if ((options.bookmarkSearch || options.forwardVideoSearch) &&
+          verifiedActivities.some((item) => item.percentageKnown === false &&
+            (!options.forwardVideoSearch || item.contentType === "video"))) {
+        return {
+          status: "target", entry, unfinishedItem: null,
+          visualVerification: true, verifiedActivities,
+        };
+      }
+      const objectivePending = Boolean(objective && objective.percentageKnown !== false &&
+        Number(objective.percentage) < 100);
+      const unfinishedItem = !options.forwardVideoSearch && objectivePending
+        ? { ...objective, contentType: "intro" }
+        : playbackItems.find((item) => item.contentType === "video" && Number(item.percentage) < 100);
+      const test = lesson.data.test || (options.bookmarkSearch
+        ? lesson.data.progressItems?.find((item) => item.contentType === "test")
+        : null);
       const pendingTest = test && Number(test.percentage) < 100;
       const testNeedsAttention =
         Boolean(test) &&
-        ((!ignoreStopAtTests &&
-          stopAtTests &&
-          (!options.pendingTestsOnly || pendingTest)) ||
-          (autoCompleteTests && pendingTest));
+        (options.bookmarkSearch ? pendingTest :
+          ((!ignoreStopAtTests && stopAtTests &&
+            (!options.pendingTestsOnly || pendingTest)) ||
+            (autoCompleteTests && pendingTest)));
 
       if (
         !unfinishedItem &&
-        (autoCompleteTests || (!ignoreStopAtTests && stopAtTests)) &&
+        (options.bookmarkSearch || options.forwardVideoSearch
+          ? lesson.data.progressDataComplete !== true
+          : autoCompleteTests || (!ignoreStopAtTests && stopAtTests)) &&
         !test
       ) {
         log(
@@ -5953,6 +6047,8 @@
           unfinishedItem: null,
           visualVerification: true,
           testMetadataUnavailable: true,
+          verifiedActivities,
+          objectivePending: Boolean(objectivePending),
         };
       }
 
@@ -5983,6 +6079,8 @@
           testTarget: !unfinishedItem && testNeedsAttention ? test : null,
           lessonLpId,
           lessonParagraphId: indexedChapter?.id || entry.lessonNumber,
+          verifiedActivities,
+          objectivePending,
         };
       }
 
@@ -5993,7 +6091,9 @@
     }
 
     setResumeDiscoveryStatus(
-      "Ricerca completata: non risultano altre attività da completare.",
+      options.forwardVideoSearch
+        ? "Non risultano altre videolezioni da riprodurre."
+        : "Ricerca completata: non risultano altre attività da completare.",
       "success",
     );
     return { status: "end" };
@@ -6005,6 +6105,13 @@
     recovering = false,
     options = {},
   ) {
+    const sequential = options.sequential === true;
+    const forwardVideoSearch = sequential && autoplaySkipCompletedVideos;
+    if ((options.bookmarkSearch || forwardVideoSearch) && !options.discoveryOrigin) {
+      options = {...options, discoveryOrigin: {
+        identity: currentIdentity, includeCurrent: options.includeCurrent === true,
+      }};
+    }
     if (playbackDiscoveryCancelled(options)) {
       return false;
     }
@@ -6031,10 +6138,24 @@
     let apiVisualVerification = false;
     let apiLessonLpId = null;
     let apiLessonParagraphId = null;
-    const apiDiscovery = await findNextPlaybackTargetViaApi(
-      currentIdentity,
-      options,
-    );
+    let apiVerifiedActivities = [];
+    const apiDiscovery = sequential && !forwardVideoSearch
+      ? { status: "sequential" }
+      : await findNextPlaybackTargetViaApi(currentIdentity, {
+          ...options, forwardVideoSearch,
+        });
+    const continueAfterVerifiedChapter = () => {
+      if (apiDiscovery.status === "target" && options.discoveryOrigin) {
+        return openNextAvailableChapter(options.discoveryOrigin.identity, oldVideo, false, {
+          ...options,
+          includeCurrent: options.discoveryOrigin.includeCurrent,
+          currentActivityCheck: null,
+          verifiedCompleteChapters: [...(options.verifiedCompleteChapters || []), nextIdentity],
+        });
+      }
+      return openNextAvailableChapter(nextIdentity, oldVideo, false,
+        {...options, includeCurrent: false});
+    };
 
     if (apiDiscovery.status === "cancelled") {
       log(
@@ -6057,6 +6178,7 @@
       apiVisualVerification = apiDiscovery.visualVerification === true;
       apiLessonLpId = apiDiscovery.lessonLpId || null;
       apiLessonParagraphId = apiDiscovery.lessonParagraphId || null;
+      apiVerifiedActivities = apiDiscovery.verifiedActivities || [];
     }
 
     if (!nextIdentity && options.includeCurrent === true) {
@@ -6074,7 +6196,8 @@
         return false;
       }
 
-      await openSection(currentIdentity.sectionText);
+      const sectionOpened = await openSection(currentIdentity.sectionText);
+      if (sequential && !sectionOpened) return false;
 
       const currentSectionChapters = chapters().filter(
         (chapter) => chapter.sectionText === currentIdentity.sectionText,
@@ -6082,6 +6205,10 @@
       const currentChapterIndex = currentSectionChapters.findIndex(
         (chapter) => chapter.text === currentIdentity.chapterText,
       );
+      if (sequential && currentChapterIndex < 0) {
+        log("Sequential autoplay could not identify the current chapter safely.");
+        return false;
+      }
 
       if (
         currentChapterIndex >= 0 &&
@@ -6131,6 +6258,7 @@
 
     if (
       apiTestTarget &&
+      options.bookmarkSearch !== true &&
       autoCompleteTests &&
       Number(apiTestTarget.percentage) < 100
     ) {
@@ -6152,12 +6280,7 @@
           `Test completato — modulo ${apiDiscovery.entry.lessonNumber}\n${nextIdentity.chapterText}`,
           "success",
         );
-        return await openNextAvailableChapter(
-          nextIdentity,
-          oldVideo,
-          false,
-          { ...options, includeCurrent: false },
-        );
+        return await continueAfterVerifiedChapter();
       }
 
       if (playbackDiscoveryCancelled(options)) {
@@ -6242,7 +6365,7 @@
       }
 
       if (!chapterReady) {
-        const reloading = reloadForChapterRecovery(currentIdentity);
+        const reloading = reloadForChapterRecovery(currentIdentity, options);
 
         return reloading ? "reloaded" : false;
       }
@@ -6251,6 +6374,46 @@
     if (playbackDiscoveryCancelled(options)) {
       removeResumeDiscoveryStatus();
       return false;
+    }
+
+    if (options.bookmarkSearch) {
+      // Missing sidebar percentages are unknown, not 0%. A verified API
+      // target must not be replaced by a completed Obiettivi row in the DOM.
+      const activity = apiVisualVerification || apiDiscovery.status === "fallback"
+        ? visibleIncompleteActivity(nextIdentity, apiVerifiedActivities)
+        : apiUnfinishedItem || (apiTestTarget ? {...apiTestTarget, contentType: "test"} : null);
+      if (activity?.contentType === "unknown") {
+        setResumeDiscoveryStatus(`Impossibile verificare il completamento di “${activity.title}”. Nessuna attività selezionata; riprova dopo il caricamento.`, "fallback");
+        return false;
+      }
+      if (activity?.contentType === "test") {
+        const test = getEndOfLessonTest(chapterReady);
+        if (!test) {
+          setResumeDiscoveryStatus("Test incompleto individuato, ma la sua riga non è disponibile. Riprova dopo il caricamento.", "fallback");
+          return false;
+        }
+        test.scrollIntoView({block: "center", behavior: "smooth"});
+        setResumeDiscoveryStatus(`Test da completare\n${nextIdentity.chapterText}`, "success");
+        return true;
+      }
+      if (activity) {
+        const candidates = chapterRows(chapterReady);
+        const row = activity.contentType === "intro"
+          ? candidates.find((candidate) => lessonName(candidate).toLowerCase() === "obiettivi")
+          : candidates.find((candidate) => normalizedText(lessonName(candidate)) === normalizedText(activity.title)) ||
+            firstUnfinishedVideo(nextIdentity);
+        if (!row || !clickRow(row)) {
+          setResumeDiscoveryStatus("Attività incompleta individuata, ma non ancora selezionabile. Riprova dopo il caricamento.", "fallback");
+          return false;
+        }
+        if (activity.contentType === "video") {
+          const player = await waitFor(() => video());
+          if (player) attach(player);
+        }
+        setResumeDiscoveryStatus(`Prima attività incompleta\n${lessonName(row)}`, "success");
+        return true;
+      }
+      return await continueAfterVerifiedChapter();
     }
 
     if (apiTestTarget) {
@@ -6266,12 +6429,7 @@
           return false;
         }
 
-        return await openNextAvailableChapter(
-          nextIdentity,
-          oldVideo,
-          false,
-          { ...options, includeCurrent: false },
-        );
+        return await continueAfterVerifiedChapter();
       }
 
       if (stopAtTests && options.ignoreStopAtTests !== true) {
@@ -6301,7 +6459,8 @@
       return name !== "obiettivi" && getProgress(row) > 0;
     });
 
-    const apiObjectivePending = apiUnfinishedItem?.contentType === "intro";
+    const apiObjectivePending = apiDiscovery.objectivePending === true ||
+      apiUnfinishedItem?.contentType === "intro";
     const apiObjectiveKnown =
       apiDiscovery.status === "target" && apiVisualVerification !== true;
     const shouldOpenObjective = apiObjectiveKnown
@@ -6348,12 +6507,15 @@
     }
 
     /*
-     * Find the first unfinished video.
+     * Normal autoplay starts with the first video, including completed ones.
+     * Explicit incomplete discovery keeps its progress-based selection.
      */
-    const unfinished = firstUnfinishedVideo(nextIdentity);
+    const unfinished = sequential
+      ? firstVideoInChapter(nextIdentity, autoplaySkipCompletedVideos)
+      : firstUnfinishedVideo(nextIdentity);
 
     if (!unfinished) {
-      log("All videos completed in chapter:", nextIdentity);
+      log(sequential ? "No video in chapter:" : "All videos completed in chapter:", nextIdentity);
 
       /*
        * Videos are complete, but the chapter may still contain
@@ -6416,19 +6578,14 @@
 
       log("Chapter requirements handled. Checking following chapter.");
 
-      return await openNextAvailableChapter(
-        nextIdentity,
-        oldVideo,
-        false,
-        { ...options, includeCurrent: false },
-      );
+      return await continueAfterVerifiedChapter();
     }
 
     /*
-     * We found something below 100%.
+     * The requested playback activity is ready.
      */
     log(
-      "First unfinished video:",
+      sequential ? "First video in course order:" : "First unfinished video:",
       lessonName(unfinished),
       getProgress(unfinished) + "%",
     );
@@ -6441,9 +6598,6 @@
     }
 
     clickRow(unfinished);
-    if (options.bookmarkSearch) {
-      removeResumeDiscoveryStatus();
-    }
 
     /*
      * Wait for UniPegaso to load the video.
@@ -6467,12 +6621,6 @@
 
     attach(v);
     removeResumeDiscoveryStatus();
-    if (options.bookmarkSearch) {
-      log(
-        "First-incomplete bookmark opened the target video without forcing playback:",
-        lessonName(unfinished),
-      );
-    }
 
     return true;
   }
@@ -6487,7 +6635,7 @@
 
     log("End of chapter:", chapterIdentity(current));
 
-    return await openNextAvailableChapter(chapterIdentity(current), oldVideo);
+    return await openNextAvailableChapter(chapterIdentity(current), oldVideo, false, { sequential: true });
   }
 
   async function advance(v) {
@@ -6521,13 +6669,18 @@
     busy = true;
 
     try {
-      const cur = await recoverPlaybackLesson(v);
+      let cur = await recoverPlaybackLesson(v);
 
       if (!cur) {
         log("Could not determine current lesson.");
         return;
       }
       if (!enabled || v !== lastVideo) return;
+
+      // Completion can update the sidebar or the user can close its accordion
+      // while we wait. Keep the identity so a detached row is never used for
+      // finding the next activity after the wait.
+      const completedLesson = playbackContext;
 
       const completed = await waitForLessonCompletion(cur, v);
 
@@ -6538,6 +6691,14 @@
         return;
       }
 
+      const stableCur = await recoverPlaybackLesson(v);
+      if (!enabled || v !== lastVideo || video() !== v ||
+          !stableCur || playbackLessonRow(completedLesson) !== stableCur) {
+        log("Advance cancelled because the completed lesson changed or disappeared.");
+        return;
+      }
+
+      cur = stableCur;
       const next = nextLesson(cur);
 
       log(
@@ -6671,7 +6832,7 @@
 
       log("Continuing after the test boundary:", context.identity);
 
-      await openNextAvailableChapter(context.identity, context.oldVideo);
+      await openNextAvailableChapter(context.identity, context.oldVideo, false, { sequential: true });
     }, RESUME_DELAY_MS);
   }
 
@@ -6720,6 +6881,9 @@
 
     smartResumeRunning = true;
     const generation = ++smartResumeGeneration;
+    clearTimeout(timer);
+    timer = null;
+    objectivesSelectionEpoch++;
 
     try {
       log("Starting first-incomplete discovery:", reason);
@@ -6727,10 +6891,15 @@
         "Preparazione del segnalibro: ricerca dall’inizio del corso…",
       );
 
+      const currentIdentity = chapterIdentity(currentChapter(currentLesson()));
+      const currentActivityCheck = currentIdentity
+        ? { identity: currentIdentity, activity: visibleIncompleteActivity(currentIdentity) }
+        : null;
       const isCancelled = () =>
         generation !== smartResumeGeneration ||
-        !enabled ||
-        busy;
+        courseCode !== courseCodeFromUrl() || !enabled || busy;
+      await getPlaybackCourseIndex(courseCode, {forceRefresh: true, isCancelled});
+      if (isCancelled()) return;
 
       const courseReady = await waitFor(
         () => (sections().length > 0 ? true : null),
@@ -6780,6 +6949,8 @@
           skipCurrentTestBoundary: true,
           pendingTestsOnly: true,
           bookmarkSearch: true,
+          masterRefreshed: true,
+          currentActivityCheck,
           isCancelled,
         },
       );
@@ -6798,6 +6969,7 @@
   }
 
   async function resumeIfVideoAlreadyEnded() {
+    if (smartResumeRunning) return;
     const v = video();
     const activeRow = currentLesson();
 
@@ -6811,27 +6983,22 @@
       log("Resume requested, but no video was found.");
       return;
     }
+    if (activeRow) rememberPlaybackLesson(activeRow, v);
+    const resumedLesson = playbackContext?.videoElement === v
+      ? playbackContext
+      : null;
 
     const playerReachedEnd =
       v.ended ||
       (Number.isFinite(v.duration) &&
         v.duration > 0 &&
         v.currentTime >= v.duration - 0.5);
-    const lessonRegisteredComplete =
-      Boolean(activeRow) && getProgress(activeRow) >= 100;
-
-    if (!playerReachedEnd && !lessonRegisteredComplete) {
+    if (!playerReachedEnd) {
       log("Extension resumed. Current video is still in progress.");
       return;
     }
 
-    if (lessonRegisteredComplete && !playerReachedEnd) {
-      log(
-        "Extension resumed. UniPegaso already registered the current video at 100%; searching for the next unfinished activity.",
-      );
-    } else {
-      log("Extension resumed with an already completed video.");
-    }
+    log("Extension resumed with a player that has reached its end.");
 
     lastVideo = v;
 
@@ -6842,28 +7009,15 @@
         return;
       }
 
-      const stableLesson = await waitFor(() => {
-        const lesson = currentLesson();
-        const currentVideo = video();
-
-        if (!lesson || !currentVideo) {
-          return null;
-        }
-
-        /*
-         * Make sure the page still considers the same video finished or its
-         * lesson registered at 100% before attempting the transition.
-         */
-        const stillFinished =
-          currentVideo === v &&
-          (currentVideo.ended ||
-            (Number.isFinite(currentVideo.duration) &&
-              currentVideo.duration > 0 &&
-              currentVideo.currentTime >= currentVideo.duration - 0.5) ||
-            getProgress(lesson) >= 100);
-
-        return stillFinished ? lesson : null;
-      });
+      const lesson = await recoverPlaybackLesson(v);
+      const stillFinished = video() === v && lesson &&
+        (v.ended ||
+          (Number.isFinite(v.duration) && v.duration > 0 &&
+            v.currentTime >= v.duration - 0.5));
+      const stableLesson = stillFinished &&
+        (!resumedLesson || playbackLessonRow(resumedLesson) === lesson)
+        ? lesson
+        : null;
 
       if (!stableLesson) {
         log("Resume cancelled: page state did not stabilize.");
@@ -6882,11 +7036,17 @@
     v.addEventListener("play", () => {
       const row = currentLesson();
       if (row) rememberPlaybackLesson(row, v);
+      // The platform may reuse the player for another video or a replay.
+      // An old ended event must not suppress the next genuine video end.
+      if (lastVideo === v && !v.ended &&
+          (!Number.isFinite(v.duration) || v.currentTime < v.duration - 0.5)) {
+        lastVideo = null;
+      }
     });
     v.addEventListener("ended", () => {
       void captureEndedVideoProgress(v);
-      if (!enabled) {
-        log("Video ended, but extension is paused.");
+      if (!enabled || smartResumeRunning) {
+        log("Video ended while automatic progression is paused.");
         return;
       }
 

@@ -1,5 +1,22 @@
 # PlumePilot — Changelog
 
+## 2.35.1 — ordered autoplay and improved EPUB exports
+
+- Autoplay follows video order for revision; optional completed-video skipping is off by default and locates forward targets without opening intermediate chapters when API details allow it.
+- First-incomplete discovery verifies objectives, videos and tests, prioritizes master chapters below 100% in course order and checks the remaining chapters when needed. Completed objectives are excluded; tests are shown without answering them.
+- Improves closed-accordion recovery, objective handoff and chapter routing. Exports retain the starting course title during navigation.
+- Enables safe regional EPUB prose reflow, conservative complete formula/diagram image fallback, local mathematical glyph coverage and reuse of identical image assets.
+- Adds a visible linked EPUB index after the cover and chapter return links. File-size gains depend on the document and do not establish RAM savings.
+- Offers an optional link to the separate personal PdfToEpub desktop converter and its download/usage instructions.
+- Aligns compact floating chapter-limit labels and restores the candle mascot in dark Gaming menus while keeping the minigame flight sprite.
+- Shows six current Novità cards on Chrome/Edge and nine cumulative cards on Firefox, which upgrades directly from 2.34.0.
+
+## 2.35.0 — richer offline notes and Pausa?
+
+- Adds the optional 90-second Pausa? minigame in both Preferences menus.
+- Improves offline HTML quiz notes with formatting, lists/checklists, highlights, callouts and saved annotated downloads.
+- Adds per-question review statuses and filters, plus theme-aware flying Plume sprites.
+
 ## Added in 2.34.0: more universities, stronger recovery and richer EPUBs
 
 - Adds Mercatorum and San Raffaele/UTSR support with platform-specific hosts, API origins, course state and commission data.

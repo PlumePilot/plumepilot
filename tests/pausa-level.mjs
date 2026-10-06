@@ -33,6 +33,11 @@ for (const theme of ["light", "dark"]) {
   assert.equal(png.readUInt32BE(16), 160);
   assert.equal(png.readUInt32BE(20), 32);
 }
+const gameDarkSprite = readFileSync(new URL("../pausa/assets/mascot-idle-dark.png", import.meta.url));
+const menuDarkSprite = readFileSync(new URL("../assets/gaming/mascot-idle-dark.png", import.meta.url));
+assert.equal(gameDarkSprite.readUInt32BE(16), 160);
+assert.equal(gameDarkSprite.readUInt32BE(20), 32);
+assert.notDeepEqual(gameDarkSprite, menuDarkSprite, "dark menu and minigame must use distinct sprites");
 
 // The course may offer risky pickups, but no collectible should sit inside
 // the opaque area of a hazard at the moment both reach the same x.
