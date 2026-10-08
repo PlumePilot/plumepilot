@@ -87,3 +87,14 @@ Se trovi un errore tecnico, un link rotto o un passaggio poco chiaro, puoi aprir
 ## Edizione offline
 
 L'[edizione HTML offline](Inside-PlumePilot.html) contiene l'intero libro in un singolo file e non carica risorse remote. Tema e ultima posizione di lettura vengono salvati soltanto nel browser locale. I diagrammi Mermaid rimangono disponibili come sorgente leggibile nell'HTML offline; GitHub li renderizza graficamente nelle pagine Markdown del repository.
+
+
+### Rigenerare l'HTML
+
+L'edizione offline è generata dai capitoli Markdown. Con Node.js e [Pandoc](https://pandoc.org/) installato:
+
+```bash
+node scripts/build-inside-plumepilot.mjs
+```
+
+Il comando ricostruisce `docs/inside-plumepilot/Inside-PlumePilot.html`; i file Markdown restano la sorgente canonica.
