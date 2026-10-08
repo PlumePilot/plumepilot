@@ -2,45 +2,33 @@
   "use strict";
 
   const definition = {
-  "version": "2.35.1",
-  "title": "Una pausa con Plume, appunti più ricchi e nuovi fix",
-  "summary": "Tutte le novità della 2.35 e le correzioni della 2.35.1, insieme in questo aggiornamento.",
+  "version": "2.35.2",
+  "title": "Menu più chiari, strumenti più facili da trovare",
+  "summary": "La stessa organizzazione nei due menu, impostazioni autoplay dedicate e pulsanti personalizzabili insieme.",
   "items": [
     {
-      "title": "Pausa?",
-      "text": "Concediti 90 secondi di volo con Plume: raccogli dispense, test e obiettivi. Trovi il gioco nelle Preferenze del popup e del menu fluttuante."
+      "title": "Una sola organizzazione",
+      "text": "Il menu principale e quello fluttuante ora condividono Corso, Esami e Preferenze. Nello stile Gaming trovi anche Traguardi. Passare da un menu all’altro diventa più semplice."
     },
     {
-      "title": "Appunti nei test HTML",
-      "text": "Scrivi Spiegazioni e Osservazioni con elenchi, evidenziatori, richiami e altri strumenti di formattazione. Scarica l’HTML con gli appunti per conservarli offline."
+      "title": "Corso più ordinato",
+      "text": "Progresso, autoplay e materiali per lo studio sono raccolti in gruppi riconoscibili. Le azioni di completamento sono nel gruppo espandibile “Completamento del corso”. “Trova prima attività incompleta” resta in evidenza; per usarlo, attiva autoplay."
     },
     {
-      "title": "Domande da ripassare",
-      "text": "Segna ogni domanda come Verificata, Da rivedere o Da verificare e usa i filtri per concentrarti su quelle che ti servono."
+      "title": "Autoplay più chiaro",
+      "text": "Apri “Impostazioni autoplay” per configurare Video, Test e Arresto. Puoi modificare le scelte anche mentre autoplay è in pausa. Il riepilogo spiega quali impostazioni sono effettivamente in uso; torna a Corso con il pulsante indietro o Esc."
     },
     {
-      "title": "Autoplay in ordine",
-      "text": "L’autoplay segue l’ordine dei video, anche quando sono già completati: puoi ripassare senza cliccarli uno per uno. Se preferisci proseguire solo sui video da completare, attiva “Salta videolezioni completate” nelle Opzioni autoplay. L’opzione è disattivata di default. Migliorata anche la ripresa con capitoli e paragrafi chiusi."
+      "title": "Pulsanti come preferisci",
+      "text": "In Preferenze → Interfaccia → Pulsanti dei menu puoi scegliere ordine e visibilità all’interno di ciascun gruppo. Le scelte valgono per entrambi i menu. Se avevi nascosto un pulsante nel menu fluttuante, ora sarà nascosto anche nel principale: puoi riattivarlo da qui o ripristinare la disposizione predefinita."
     },
     {
-      "title": "Prima attività incompleta",
-      "text": "Il segnalibro dà priorità ai capitoli indicati come incompleti, nell’ordine del corso, e verifica Obiettivi, video e test. Gli Obiettivi già al 100% vengono esclusi. Se i primi candidati non contengono attività pendenti, la ricerca controlla anche gli altri capitoli. I test vengono mostrati senza risolverli, indipendentemente dalle impostazioni dell’autoplay."
+      "title": "Operazioni a portata di mano",
+      "text": "Un’indicazione visibile ti riporta all’operazione in corso. Il relativo pulsante resta disponibile anche se era stato nascosto, così puoi raggiungere il comando per interromperla. In Esami trovi “Cancella dati degli esami” anche nel menu fluttuante: elimina solo i dati locali del browser."
     },
     {
-      "title": "EPUB più leggibili e collegati",
-      "text": "Il testo vicino a formule e diagrammi torna scorrevole quando può essere separato in sicurezza. Le parti complesse restano immagini. Migliorata la resa dei simboli matematici e ridotta la duplicazione delle immagini. Un indice cliccabile dopo la copertina e il link “Torna all’indice” aiutano a muoversi tra i capitoli. Per opzioni aggiuntive, nelle finestre di esportazione trovi il link al mio strumento desktop PdfToEpub converter."
-    },
-    {
-      "title": "Il titolo giusto nei file",
-      "text": "Le raccolte di dispense e test conservano il titolo della lezione da cui le hai avviate, anche se nel frattempo torni alla home o apri un’altra lezione."
-    },
-    {
-      "title": "Limite capitoli più compatto",
-      "text": "Nel menu fluttuante, il selettore −/+ occupa solo lo spazio necessario ed è affiancato dall’etichetta “Capitoli”."
-    },
-    {
-      "title": "Plume con candela nei menu",
-      "text": "Nel tema scuro, Plume torna con la candela nei menu Gaming. Durante Pausa? continua a volare senza candela."
+      "title": "Leggibilità e navigazione",
+      "text": "Caratteri, pulsanti e caselle di selezione seguono regole più uniformi nei temi chiaro e scuro, anche in Gaming. Le schede più lunghe hanno più spazio. Quando apri un sottomenu o un testo informativo, il menu scorre quanto serve per mostrarlo, mantenendo il controllo di apertura visibile."
     }
   ]
 };

@@ -30,7 +30,9 @@ async function validateWhatsNew(zip, browser) {
   if (actual.RELEASE.version !== expectedVersion || JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${browser}: Novità/versione non corrispondono alla definizione sorgente.`);
   }
-  if (expectedVersion === "2.35.1" && actual.RELEASE.items.length !== (browser === "firefox" ? 9 : 6)) {
+  const expectedCards = expectedVersion === "2.35.2" ? 6
+    : expectedVersion === "2.35.1" ? (browser === "firefox" ? 9 : 6) : null;
+  if (expectedCards !== null && actual.RELEASE.items.length !== expectedCards) {
     throw new Error(`${browser}: numero di schede Novità inatteso.`);
   }
 }

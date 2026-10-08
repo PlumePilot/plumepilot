@@ -6,7 +6,7 @@ When people switch between the toolbar popup and the floating menu, they now fin
 
 Work starts at `5829e87240b99e4e9703f153f6da898494de6c57` on `fix/autoplay-collapsed-followups` (the 2.35.1 candidate in PR #39). It lives separately on `feat/ui-ux-2.35.2`.
 
-The manifest and Novità intentionally remain the 2.35.1 baseline while this UX candidate is reviewed. This branch is not a 2.35.1 store submission and does not replace the prepared store kit. Retarget the stacked draft PR to main after PR #39 lands; prepare the 2.35.2 version, Novità and store packages only after reviewing this interface.
+The candidate was subsequently rebased onto released 2.35.1 `main` (`a8007425f81792e7570516dbdf1e7fb2cbda4d53`) without changing its tree; PR #41 now targets main. On 8 October, release preparation updates the manifest, Novità, changelog and source instructions to 2.35.2. All browsers receive the six UI/UX cards; Firefox 2.35.1 is already public. This does not alter the released 2.35.1 or publish 2.35.2. Store submission remains a separate step.
 
 ## Organization
 
