@@ -12,6 +12,8 @@
   <script src="whats-new.js"></script>
   <script src="store-links.js"></script>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="menu-ux.css">
+  <script src="menu-ux.js"></script>
 </head>
 <body>
   <main class="container">
@@ -26,12 +28,12 @@
           <h1>PlumePilot</h1>
           <p>Assistente per Pegaso, Mercatorum e San Raffaele</p>
         </div>
-        <button id="status" class="status" type="button" aria-live="polite" aria-pressed="true"></button>
+        <span id="status" class="status ux-status" role="status" aria-live="polite"></span>
       </header>
 
       <nav class="popup-tabs" role="tablist" aria-label="Sezioni di PlumePilot">
         <button id="courseTab" class="tab-button" type="button" role="tab" aria-selected="true" aria-controls="coursePanel" tabindex="0">Corso</button>
-        <button id="activitiesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="activitiesPanel" tabindex="-1"><span>Attività</span><span id="commissionTabBadge" class="tab-badge" hidden>!</span></button>
+        <button id="examsTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="examsPanel" tabindex="-1"><span>Esami</span><span id="commissionTabBadge" class="tab-badge" hidden>!</span></button>
         <button id="achievementsTab" class="tab-button achievements-only" type="button" role="tab" aria-selected="false" aria-controls="achievementsPanel" tabindex="-1">Traguardi</button>
         <button id="preferencesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="preferencesPanel" tabindex="-1">Preferenze</button>
       </nav>
@@ -49,7 +51,8 @@
     </aside>
 
     <div id="coursePanel" class="tab-panel" role="tabpanel" aria-labelledby="courseTab">
-      <section class="course-progress-section" aria-labelledby="courseProgressTitle">
+      <div data-ux-home>
+      <section class="course-progress-section ux-group" aria-labelledby="courseProgressTitle">
         <div class="course-progress-heading">
           <span id="courseProgressTitle">Progresso del corso</span>
           <strong id="courseProgressValue">—</strong>
@@ -61,7 +64,7 @@
         <div id="courseProgressMessage" class="course-progress-message" aria-live="polite">Apri un corso per visualizzare il progresso.</div>
         <details class="course-progress-options-menu">
           <summary>
-            <span>Opzioni progresso</span>
+            <span>Visualizzazione e avvisi</span>
             <small id="courseProgressOptionsSummary">Disattivate</small>
             <span class="course-progress-options-chevron" aria-hidden="true"></span>
           </summary>
@@ -83,50 +86,111 @@
               <span>Avvisami al raggiungimento del 70%</span>
               <input id="courseProgressThresholdEnabled" type="checkbox">
             </label>
-            <label class="toggle-row" for="autoplayStopAt70Enabled">
-              <span>Ferma autoplay al 70%</span>
-              <input id="autoplayStopAt70Enabled" type="checkbox">
-            </label>
-            <button id="autoplayStopAt70Resume" class="secondary-button" type="button" hidden>Continua oltre il 70%</button>
-            <div class="course-progress-option-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare esplicitamente oltre la soglia.</div>
+            <div class="course-progress-option-hint">L’avviso funziona anche con la barra nascosta.</div>
           </div>
         </details>
+          <div class="setting-block first-incomplete-setting">
+            <div class="action-row">
+              <button id="findFirstIncomplete" class="ux-primary secondary-button" type="button">Trova prima attività incompleta</button>
+              <button class="expand-button" type="button" aria-label="Mostra informazioni sulla ricerca della prima attività incompleta" aria-controls="firstIncompleteInfo" aria-expanded="false"></button>
+            </div>
+            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca Obiettivi, video o test ancora da completare, dando priorità ai capitoli indicati come incompleti, nell’ordine del corso. La ricerca parte solo quando premi il pulsante. Il video viene selezionato senza forzarne la riproduzione; il test viene mostrato senza risolverlo, anche se l’autoplay ignora o completa automaticamente i test.</div>
+            <p id="firstIncompleteHint" class="ux-copy">Attiva autoplay per usare la ricerca.</p>
+            <div id="firstIncompleteStatus" class="action-status" aria-live="polite"></div>
+          </div>
+
       </section>
 
-      <section class="autoplay-section" aria-labelledby="autoplaySectionTitle">
-        <div id="autoplaySectionTitle" class="section-title">Autoplay</div>
-
+      <section class="autoplay-section ux-group"><h2 class="ux-heading">Autoplay</h2>
         <label class="toggle-row autoplay-master gaming-control-row" for="enabled">
           <span>Avanzamento automatico</span>
           <span id="autoplayControlSprite" class="gaming-control-sprite autoplay-control-sprite" aria-hidden="true"></span>
           <input id="enabled" type="checkbox">
         </label>
 
-        <details class="autoplay-options-menu">
-          <summary>
-            <span>Opzioni autoplay</span>
-            <small id="autoplayOptionsSummary">Test ignorati</small>
-            <span class="autoplay-menu-chevron" aria-hidden="true"></span>
-          </summary>
-        <div id="autoplayOptions" class="autoplay-options" aria-label="Opzioni autoplay">
-          <div class="setting-block first-incomplete-setting">
-            <div class="action-row">
-              <button id="findFirstIncomplete" class="secondary-button" type="button">Trova prima attività incompleta</button>
-              <button class="expand-button" type="button" aria-label="Mostra informazioni sulla ricerca della prima attività incompleta" aria-controls="firstIncompleteInfo" aria-expanded="false"></button>
-            </div>
-            <div id="firstIncompleteInfo" class="info-panel" hidden>Cerca dall’inizio del corso la prima attività ancora da completare: Obiettivi, video o test. La ricerca parte solo quando premi il pulsante. Il video viene selezionato senza forzarne la riproduzione; il test viene mostrato senza risolverlo, anche se l’autoplay ignora o completa automaticamente i test.</div>
-            <div id="firstIncompleteStatus" class="action-status" aria-live="polite"></div>
-          </div>
+        <p class="ux-summary" id="autoplayOptionsSummary"></p>
+        <button class="ux-navigation" id="openAutoplaySettings" data-ux-open type="button" aria-controls="autoplaySettingsView" aria-expanded="false"><span>Impostazioni autoplay</span><span aria-hidden="true">›</span></button>
+            <button id="autoplayStopAt70Resume" class="secondary-button" type="button" hidden>Continua oltre il 70%</button>
+              <button id="chapterLimitResume" class="secondary-button" type="button" hidden>Riprendi per altri capitoli</button>
+      </section>
+      <section class="ux-group" data-menu-section><h2 class="ux-heading">Materiali per lo studio</h2>
+        <div data-menu-group="materials">
+      <section class="action-section" data-menu-item="test-collection">
+        <div class="action-row">
+          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
+            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
+        </div>
+        <p class="ux-format">PDF con soluzioni · Quiz HTML offline</p>
+        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
+        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
+      </section>
 
-          <div class="setting-block">
+      <section class="action-section" data-menu-item="study-materials">
+        <div class="action-row">
+          <button id="exportCourseMaterials" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="materialsSprite" class="gaming-action-sprite materials-sprite" aria-hidden="true"></span>
+            <span id="materialsButtonLabel" class="gaming-action-label">Esporta dispense</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sull’esportazione delle dispense" aria-controls="materialsInfo" aria-expanded="false"></button>
+        </div>
+        <p class="ux-format">PDF con indice · EPUB</p>
+        <div id="materialsInfo" class="info-panel" hidden>Raccoglie una sola volta le dispense e apre una schermata dalla quale puoi scaricare sia un PDF con indice navigabile sia un EPUB ottimizzato per smartphone, tablet ed e-reader. I due file vengono creati uno alla volta e solo quando li richiedi.</div>
+        <div id="materialsStatus" class="action-status" aria-live="polite"></div>
+      </section>
+        </div>
+      </section>
+      <details class="ux-group ux-completion" id="courseCompletion" data-menu-section>
+        <summary>Completamento del corso</summary>
+        <div data-menu-group="completion">
+      <section class="action-section" data-menu-item="complete-tests">
+        <div class="action-row">
+          <button id="turboTests" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
+            <span id="turboTestsSprite" class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span>
+            <span id="turboTestsButtonLabel" class="gaming-action-label">Completa tutti i test</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sui test automatici" aria-controls="turboInfo" aria-expanded="false"></button>
+        </div>
+        <p class="ux-format">Completa i test di autovalutazione sulla piattaforma.</p>
+        <div id="turboInfo" class="info-panel" hidden>Turbo test! Completa in sequenza tutti i test di autovalutazione ancora da svolgere. I test già completati non vengono ripetuti. Durante l’operazione mantieni aperta la scheda del corso.</div>
+        <div id="turboTestsStatus" class="action-status" aria-live="polite"></div>
+      </section>
+
+      <section class="action-section" data-menu-item="complete-objectives">
+        <div class="action-row">
+          <button id="completeObjectives" class="secondary-button gaming-action-button has-gaming-art" type="button">
+            <span id="objectivesSprite" class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span>
+            <span id="objectivesButtonLabel" class="gaming-action-label">Completa tutti gli Obiettivi</span>
+          </button>
+          <button class="expand-button" type="button" aria-label="Mostra informazioni sul completamento degli Obiettivi" aria-controls="objectivesInfo" aria-expanded="false"></button>
+        </div>
+        <p class="ux-format">Completa gli Obiettivi ancora da svolgere.</p>
+        <div id="objectivesInfo" class="info-panel" hidden>Completa in sequenza gli Obiettivi ancora da svolgere. Quelli già completati non vengono ripetuti e le informazioni già raccolte vengono riutilizzate anche per test e dispense. Durante l’operazione mantieni aperta la scheda del corso.</div>
+        <div id="objectivesStatus" class="action-status" aria-live="polite"></div>
+      </section>
+
+
+
+        </div>
+      </details>
+      </div>
+      <section class="ux-settings-view ux-group" id="autoplaySettingsView" data-ux-detail aria-labelledby="autoplaySettingsTitle" hidden>
+        <button type="button" class="ux-back" data-ux-back>← Corso</button>
+        <h2 class="ux-detail-title" id="autoplaySettingsTitle" data-ux-detail-title tabindex="-1">Impostazioni autoplay</h2>
+        <p class="ux-copy">Le impostazioni si applicano all’avanzamento automatico. Puoi configurarle anche quando è in pausa.</p>
+        <div id="autoplayOptions" class="autoplay-options">
+          <section class="ux-setting-section" data-ux-settings-group="video">
+            <h3 class="ux-setting-title">Video</h3>
             <label class="toggle-row" for="autoplaySkipCompletedVideos">
               <span>Salta videolezioni completate</span>
               <input id="autoplaySkipCompletedVideos" type="checkbox">
             </label>
             <small class="setting-hint">Salta i video già al 100% mantenendo l’ordine del corso. Disattiva per ripassarli tutti.</small>
-          </div>
+          </section>
 
-          <fieldset class="test-behavior" aria-labelledby="testBehaviorTitle">
+          <fieldset class="test-behavior ux-setting-section" data-ux-settings-group="test" aria-labelledby="testBehaviorTitle">
             <div class="test-behavior-heading">
               <span id="testBehaviorTitle">Quando raggiunge un test</span>
               <button class="expand-button" type="button" aria-label="Mostra informazioni sul comportamento ai test" aria-controls="testBehaviorInfo" aria-expanded="false"></button>
@@ -136,16 +200,18 @@
               <label><input type="radio" name="testBehavior" value="stop"> <span>Fermati</span></label>
               <label><input type="radio" name="testBehavior" value="complete"> <span>Completa automaticamente</span></label>
             </div>
+            <p id="testBehaviorOverride" class="ux-copy ux-setting-note" hidden></p>
             <div id="testBehaviorInfo" class="info-panel" hidden>Puoi ignorare i test, fermare l’avanzamento quando li raggiungi oppure completarli automaticamente e proseguire. I test già completati non vengono ripetuti. Se il completamento diretto non riesce, PlumePilot prova il metodo alternativo con risposta A. Queste opzioni riguardano l’autoplay; il segnalibro individua anche i test incompleti senza risolverli.</div>
           </fieldset>
 
-          <details class="chapter-limit-menu">
-            <summary>
-              <span id="chapterLimitTitle">Limite sessione autoplay</span>
-              <small id="chapterLimitOptionsSummary">Disattivato</small>
-              <span class="autoplay-menu-chevron" aria-hidden="true"></span>
-            </summary>
-            <section class="chapter-limit-setting" aria-labelledby="chapterLimitTitle">
+          <section class="ux-setting-section" data-ux-settings-group="stop"><h3 class="ux-setting-title">Arresto</h3>
+            <label class="toggle-row" for="autoplayStopAt70Enabled">
+              <span>Ferma autoplay al 70%</span>
+              <input id="autoplayStopAt70Enabled" type="checkbox">
+            </label>
+<p id="autoplayStopHint" class="ux-copy"></p>
+            <section class="chapter-limit-setting">
+              <div class="ux-setting-title"><span id="chapterLimitTitle">Limite capitoli</span> · <span id="chapterLimitOptionsSummary"></span></div>
               <label class="toggle-row" for="chapterLimitEnabled">
                 <span>Attiva limite</span>
                 <input id="chapterLimitEnabled" type="checkbox">
@@ -160,70 +226,14 @@
               </div>
               <input id="chapterLimitSlider" class="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
               <div id="chapterLimitProgress" class="action-status" aria-live="polite">Apri un corso per calcolare il limite.</div>
-              <button id="chapterLimitResume" class="secondary-button" type="button" hidden>Riprendi per altri capitoli</button>
               <div class="setting-hint">PlumePilot si ferma prima del capitolo successivo. Con il limite attivo, “Fermati” viene temporaneamente trattato come “Ignora e continua”.</div>
             </section>
-          </details>
-        </div>
-        </details>
-      </section>
 
-      <div class="actions-title">Raccolte del corso</div>
-
-      <section class="action-section">
-        <div class="action-row">
-          <button id="createTestCollection" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
-            <span id="testCollectionSprite" class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span>
-            <span id="testCollectionButtonLabel" class="gaming-action-label">Crea raccolta test del corso</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sulla raccolta dei test" aria-controls="testCollectionInfo" aria-expanded="false"></button>
+          </section>
         </div>
-        <div id="testCollectionInfo" class="info-panel" hidden>Raccoglie domande e risposte dei Test di autovalutazione e apre uno strumento dal quale puoi scaricare un PDF navigabile oppure un quiz HTML interattivo e utilizzabile offline. Le soluzioni del PDF sono raccolte alla fine per evitare anticipazioni. Durante la raccolta mantieni aperta la scheda del corso.</div>
-        <div id="testCollectionStatus" class="action-status" aria-live="polite"></div>
-      </section>
-
-      <section class="action-section">
-        <div class="action-row">
-          <button id="exportCourseMaterials" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
-            <span id="materialsSprite" class="gaming-action-sprite materials-sprite" aria-hidden="true"></span>
-            <span id="materialsButtonLabel" class="gaming-action-label">Esporta dispense del corso</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sull’esportazione delle dispense" aria-controls="materialsInfo" aria-expanded="false"></button>
-        </div>
-        <div id="materialsInfo" class="info-panel" hidden>Raccoglie una sola volta le dispense e apre una schermata dalla quale puoi scaricare sia un PDF con indice navigabile sia un EPUB ottimizzato per smartphone, tablet ed e-reader. I due file vengono creati uno alla volta e solo quando li richiedi.</div>
-        <div id="materialsStatus" class="action-status" aria-live="polite"></div>
       </section>
     </div>
-
-    <div id="activitiesPanel" class="tab-panel" role="tabpanel" aria-labelledby="activitiesTab" hidden>
-      <div class="actions-title panel-first-title">Completamento</div>
-
-      <section class="action-section">
-        <div class="action-row">
-          <button id="turboTests" class="secondary-button gaming-action-button has-gaming-art gaming-art-compact" type="button">
-            <span id="turboTestsSprite" class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span>
-            <span id="turboTestsButtonLabel" class="gaming-action-label">Completa tutti i test</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sui test automatici" aria-controls="turboInfo" aria-expanded="false"></button>
-        </div>
-        <div id="turboInfo" class="info-panel" hidden>Turbo test! Completa in sequenza tutti i test di autovalutazione ancora da svolgere. I test già completati non vengono ripetuti. Durante l’operazione mantieni aperta la scheda del corso.</div>
-        <div id="turboTestsStatus" class="action-status" aria-live="polite"></div>
-      </section>
-
-      <section class="action-section">
-        <div class="action-row">
-          <button id="completeObjectives" class="secondary-button gaming-action-button has-gaming-art" type="button">
-            <span id="objectivesSprite" class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span>
-            <span id="objectivesButtonLabel" class="gaming-action-label">Completa tutti gli Obiettivi</span>
-          </button>
-          <button class="expand-button" type="button" aria-label="Mostra informazioni sul completamento degli Obiettivi" aria-controls="objectivesInfo" aria-expanded="false"></button>
-        </div>
-        <div id="objectivesInfo" class="info-panel" hidden>Completa in sequenza gli Obiettivi ancora da svolgere. Quelli già completati non vengono ripetuti e le informazioni già raccolte vengono riutilizzate anche per test e dispense. Durante l’operazione mantieni aperta la scheda del corso.</div>
-        <div id="objectivesStatus" class="action-status" aria-live="polite"></div>
-      </section>
-
-
-
+    <div id="examsPanel" class="tab-panel" role="tabpanel" aria-labelledby="examsTab" hidden>
       <section class="commission-section" aria-labelledby="commissionSectionTitle">
         <div id="commissionSectionTitle" class="section-title">Esami online</div>
         <div class="setting-row commission-toggle-row gaming-control-row">
@@ -234,6 +244,7 @@
             <input id="commissionCheckEnabled" type="checkbox">
           </div>
         </div>
+        <p id="commissionDisabled" class="ux-copy">Il controllo automatico della commissione è disattivato.</p>
         <div id="commissionInfo" class="info-panel" hidden>Questo controllo riguarda il giudizio della commissione sull’esame svolto online. Dopo l’analisi del video, la prova viene considerata valida oppure no. Il verdetto arriva solitamente prima che sulla piattaforma compaia la possibilità di confermare o rifiutare il voto; gli esiti caricati sono raccolti nel sottomenù.</div>
 
         <div id="commissionUpdates" class="commission-updates" hidden>
@@ -318,40 +329,21 @@
           <div id="floatingMenuInfo" class="info-panel" hidden>Mostra i controlli principali di PlumePilot direttamente nella pagina del corso. Il menu compare solo nella pagina che contiene l’elenco delle lezioni. Puoi trascinare l’icona lungo il bordo della finestra per scegliere la posizione.</div>
         </div>
 
+        <details class="ux-layout-settings"><summary>Pulsanti dei menu</summary>
         <fieldset class="preference-choice floating-menu-layout-choice" aria-labelledby="floatingMenuLayoutTitle">
           <div class="preference-choice-heading">
-            <span id="floatingMenuLayoutTitle">Pulsanti del menu fluttuante</span>
+            <span id="floatingMenuLayoutTitle">Ordine e visibilità</span>
             <button class="expand-button" type="button" aria-label="Mostra informazioni sulla personalizzazione del menu fluttuante" aria-controls="floatingMenuLayoutInfo" aria-expanded="false"></button>
           </div>
-          <div id="floatingMenuLayoutInfo" class="info-panel" hidden>Trascina i pulsanti per cambiarne l’ordine oppure usa le frecce. Puoi nascondere le funzioni che non usi: launcher, schede e impostazioni restano sempre disponibili.</div>
-          <ul id="floatingMenuLayoutList" class="floating-menu-layout-list" aria-label="Ordine e visibilità dei pulsanti">
-            <li class="floating-menu-layout-item" data-layout-item="complete-tests" draggable="true">
-              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
-              <label><input type="checkbox" checked> <span>Completa tutti i test</span></label>
-              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti i test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti i test verso il basso">↓</button></span>
-            </li>
-            <li class="floating-menu-layout-item" data-layout-item="complete-objectives" draggable="true">
-              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
-              <label><input type="checkbox" checked> <span>Completa tutti gli Obiettivi</span></label>
-              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Completa tutti gli Obiettivi verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Completa tutti gli Obiettivi verso il basso">↓</button></span>
-            </li>
-            <li class="floating-menu-layout-item" data-layout-item="test-collection" draggable="true">
-              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
-              <label><input type="checkbox" checked> <span>Crea raccolta test</span></label>
-              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Crea raccolta test verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Crea raccolta test verso il basso">↓</button></span>
-            </li>
-            <li class="floating-menu-layout-item" data-layout-item="study-materials" draggable="true">
-              <span class="floating-menu-layout-handle" aria-hidden="true">⋮⋮</span>
-              <label><input type="checkbox" checked> <span>Esporta dispense del corso</span></label>
-              <span class="floating-menu-layout-moves"><button type="button" data-direction="up" aria-label="Sposta Esporta dispense del corso verso l’alto">↑</button><button type="button" data-direction="down" aria-label="Sposta Esporta dispense del corso verso il basso">↓</button></span>
-            </li>
-          </ul>
+          <div id="floatingMenuLayoutInfo" class="info-panel" hidden>Ordine e visibilità sono condivisi dai due menu. Trascina i pulsanti o usa le frecce all’interno di ciascun gruppo. Un’operazione in corso resta sempre visibile.</div>
+          <ul id="floatingMenuLayoutList" class="floating-menu-layout-list" aria-label="Ordine e visibilità dei pulsanti"></ul>
           <button id="resetFloatingMenuLayout" class="secondary-button floating-menu-layout-reset" type="button">Ripristina disposizione predefinita</button>
           <div id="floatingMenuLayoutStatus" class="action-status" role="status" aria-live="polite"></div>
         </fieldset>
+        </details>
 
-        <details class="preference-subsection style-theme-container">
-          <summary class="preference-subsection-summary"><span>Stile e tema</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
+        <div class="preference-subsection style-theme-container">
+          <div class="preference-subsection-summary">Stile e tema</div>
           <div class="preference-subsection-content">
         <fieldset class="preference-choice visual-style-choice" aria-labelledby="visualStyleTitle">
           <div class="preference-choice-heading">
@@ -391,7 +383,7 @@
           <div id="menuSizeInfo" class="info-panel" hidden>Regola insieme la larghezza e la leggibilità del popup e del menu fluttuante. Il contenuto continua ad adattarsi allo spazio disponibile sullo schermo.</div>
         </fieldset>
           </div>
-        </details>
+        </div>
         </div>
       </details>
 

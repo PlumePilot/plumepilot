@@ -1,0 +1,118 @@
+/* Shared task hierarchy for the toolbar popup and the in-page menu. */
+:root, :host {
+  --ux-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ux-control-accent: var(--brand-purple, var(--sw-accent));
+  --ux-copy-size: 12px;
+  --ux-action-size: 14px;
+  --ux-muted: var(--sw-text-muted, var(--sw-muted));
+  --ux-accent: var(--brand-purple-dark, var(--sw-accent-strong));
+  --ux-surface: var(--sw-surface, var(--sw-elevated));
+}
+html[data-menu-size="small"], :host([data-menu-size="small"]) { --ux-copy-size: 11px; --ux-action-size: 13px; }
+html[data-menu-size="large"], :host([data-menu-size="large"]) { --ux-copy-size: 13px; --ux-action-size: 15px; }
+[hidden] { display: none !important; }
+.ux-group { margin: 0 0 12px; padding: 12px; border: 1px solid var(--sw-border); border-radius: 10px; background: var(--ux-surface); }
+.ux-heading, .ux-detail-title { margin: 0 0 10px; color: var(--sw-heading); font-size: var(--ux-action-size); font-weight: 750; line-height: 1.3; }
+.ux-copy, .ux-format, .ux-summary { margin: 6px 0 0; color: var(--ux-muted); font: var(--ux-copy-size)/1.45 system-ui, sans-serif; }
+.ux-summary { margin: 0 0 10px; }
+.ux-format { margin: 5px 0 10px; }
+.ux-primary, .ux-navigation, .ux-back { width: 100%; min-height: 36px; padding: 9px 10px; border: 1px solid var(--sw-border); border-radius: 7px; color: var(--ux-accent); background: var(--ux-surface); font: 650 var(--ux-action-size)/1.35 var(--ux-font); cursor: pointer; text-align: left; }
+.ux-primary { margin-top: 10px; color: var(--sw-heading); background: var(--brand-purple-soft, var(--sw-accent-soft)); border-color: var(--ux-accent); text-align: center; }
+.ux-primary:hover:not(:disabled) { color: var(--sw-on-accent); background: var(--ux-control-accent); }
+.ux-navigation { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ux-back { width: auto; margin-bottom: 12px; }
+.ux-primary:disabled { color: var(--sw-disabled-text); background: var(--sw-disabled-surface, var(--sw-disabled-bg)); cursor: not-allowed; }
+.ux-navigation:hover, .ux-back:hover { border-color: var(--ux-accent); }
+.ux-setting-section { margin-top: 14px; padding-top: 12px; border: 0; border-top: 1px solid var(--sw-border); }
+.ux-setting-title { margin: 0 0 8px; color: var(--sw-heading); font-size: var(--ux-copy-size); font-weight: 750; }
+.ux-settings-view .autoplay-options { margin: 0; padding: 0; border: 0; }
+.ux-settings-view .chapter-limit, .ux-settings-view .chapter-limit-setting { margin-top: 10px; padding-top: 10px; }
+.ux-settings-view .toggle-row, .ux-settings-view .course-progress-setting, .ux-settings-view .chapter-limit-row { min-height: 34px; font-size: var(--ux-copy-size); }
+.ux-settings-view .test-choice-list label { min-height: 28px; font-size: var(--ux-copy-size); }
+.ux-settings-view .setting-hint { font-size: var(--ux-copy-size); }
+.ux-settings-view .test-choice-heading { border: 0; padding: 0; }
+.ux-setting-note { padding: 8px; border-left: 3px solid var(--sw-gold, var(--brand-gold)); background: var(--sw-info-surface, var(--sw-info-bg)); }
+.ux-completion > summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--sw-heading); font-size: var(--ux-action-size); font-weight: 750; list-style: none; cursor: pointer; }
+.ux-completion > summary::-webkit-details-marker { display: none; }
+.ux-completion > summary::after { content: "⌄"; }
+.ux-completion[open] > summary::after { content: "⌃"; }
+.ux-completion[open] > summary { margin-bottom: 10px; }
+.ux-group .action-section, .ux-group .actions { margin: 0; padding: 0; border: 0; }
+.ux-group [data-menu-group] { display: grid; gap: 8px; }
+.ux-group .actions[data-menu-group] { grid-template-columns: minmax(0, 1fr); }
+.ux-group .action, .ux-group .secondary-button { font-size: var(--ux-action-size); }
+.ux-group .action { width: 100%; }
+.ux-operation-banner { width: calc(100% - 24px); margin: 0 12px 8px; padding: 9px; flex: 0 0 auto; border: 1px solid var(--sw-border); border-radius: 7px; color: var(--sw-heading); background: var(--ux-surface); font: 600 var(--ux-copy-size)/1.4 system-ui, sans-serif; text-align: left; cursor: pointer; }
+.ux-layout-heading { color: var(--sw-heading); font-size: var(--ux-copy-size); font-weight: 700; list-style: none; margin-top: 8px; }
+.floating-menu-layout-list { padding: 0; list-style: none; }
+.floating-menu-layout-item { display: flex; align-items: center; gap: 5px; padding: 6px 0; font-size: var(--ux-copy-size); }
+.floating-menu-layout-item label { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+.floating-menu-layout-moves { display: flex; gap: 3px; }
+.floating-menu-layout-moves button { min-height: 26px; min-width: 24px; border: 1px solid var(--sw-border); border-radius: 4px; color: var(--sw-heading); background: var(--ux-surface); cursor: pointer; }
+.floating-menu-layout-moves button:disabled { opacity: .4; cursor: default; }
+.ux-group button:focus-visible, .ux-settings-view button:focus-visible, .ux-settings-view input:focus-visible, .ux-completion summary:focus-visible { outline: 2px solid var(--ux-accent); outline-offset: 3px; }
+.ux-status { cursor: default; font-size: var(--ux-copy-size); }
+.ux-status:hover { transform: none; }
+:host([data-menu-size="small"]) .menu-tab { padding-inline: 2px; }
+/* Longer destinations receive more width than Corso/Esami in Gaming mode. */
+:host .menu-tabs[data-count="4"] { grid-template-columns: repeat(4, auto); }
+:host([data-visual-style="gaming"][data-menu-size="small"]) .menu-tab { font-size: 10px; }
+html[data-visual-style="gaming"] .ux-heading, html[data-visual-style="gaming"] .ux-detail-title, html[data-visual-style="gaming"] .ux-completion > summary,
+:host([data-visual-style="gaming"]) .ux-heading, :host([data-visual-style="gaming"]) .ux-detail-title, :host([data-visual-style="gaming"]) .ux-completion > summary { font-family: "Pixelify Sans", system-ui, sans-serif; }
+html[data-visual-style="gaming"] .ux-group, :host([data-visual-style="gaming"]) .ux-group { border-radius: 4px; }
+
+/* Use the same type scale for equivalent roles, including legacy controls.
+   Root specificity keeps old size-specific rules from overriding the shared scale. */
+html[data-visual-style="gaming"], :host([data-visual-style="gaming"]) {
+  --ux-font: "Pixelify Sans", system-ui, sans-serif;
+}
+html[data-menu-size] input:is([type="checkbox"], [type="radio"]),
+:host([data-menu-size]) input:is([type="checkbox"], [type="radio"]) {
+  accent-color: var(--ux-control-accent);
+}
+html[data-menu-size] :is(.ux-primary, .ux-navigation, .ux-back, .secondary-button, .primary-button, .action, .bookmark-action, .data-button),
+:host([data-menu-size]) :is(.ux-primary, .ux-navigation, .ux-back, .secondary-button, .primary-button, .action, .bookmark-action, .data-button) {
+  font-family: var(--ux-font);
+  font-size: var(--ux-action-size);
+  font-weight: 650;
+  line-height: 1.35;
+}
+html[data-menu-size] :is(.ux-heading, .ux-detail-title, .ux-completion > summary, .course-progress-heading > span, .commission-heading, .section-title),
+:host([data-menu-size]) :is(.ux-heading, .ux-detail-title, .ux-completion > summary, .course-progress-heading > span, .commission-heading, .section-title) {
+  font-family: var(--ux-font);
+  font-size: var(--ux-action-size);
+  font-weight: 750;
+  line-height: 1.3;
+}
+html[data-menu-size] :is(.ux-setting-title, .toggle-row > span, .setting, .chapter-limit-row, .chapter-limit-controls > span, .test-choice-list label, .course-progress-setting, .course-progress-options-menu summary, .course-progress-position-list label, .course-progress-position-title, .course-progress-position legend, .preference-options label, .preference-choice-list label, .preference-group-heading, .preference-choice-heading, .preference-subsection-summary, .ux-layout-settings > summary, .floating-menu-layout-item, .preferences-heading, .preference-macro-summary, .tab-button, .menu-tab, .confirmed-toggle, .confirmed-exams-toggle, .sound-controls label, .sound-controls select, .sound-options label, .sound-options select),
+:host([data-menu-size]) :is(.ux-setting-title, .toggle-row > span, .setting, .chapter-limit-row, .chapter-limit-controls > span, .test-choice-list label, .course-progress-setting, .course-progress-options-menu summary, .course-progress-position-list label, .course-progress-position-title, .course-progress-position legend, .preference-options label, .preference-choice-list label, .preference-group-heading, .preference-choice-heading, .preference-subsection-summary, .ux-layout-settings > summary, .floating-menu-layout-item, .preferences-heading, .preference-macro-summary, .tab-button, .menu-tab, .confirmed-toggle, .confirmed-exams-toggle, .sound-controls label, .sound-controls select, .sound-options label, .sound-options select) {
+  font-family: var(--ux-font);
+  font-size: var(--ux-copy-size);
+  line-height: 1.4;
+}
+html[data-menu-size] :is(.course-progress-message, .course-progress-hint, .chapter-limit-progress, .info-panel, .preference-hint, .setting-hint, .commission-intro, .commission-note),
+:host([data-menu-size]) :is(.course-progress-message, .course-progress-hint, .chapter-limit-progress, .info-panel, .preference-hint, .setting-hint, .commission-intro, .commission-note) {
+  font-size: var(--ux-copy-size);
+  line-height: 1.45;
+}
+.action-row .ux-primary { margin-top: 0; }
+[data-action="clear-commission-data"] { margin-top: 12px; }
+html[data-visual-style="gaming"] :is(.ux-primary, .ux-navigation, .ux-back),
+:host([data-visual-style="gaming"]) :is(.ux-primary, .ux-navigation, .ux-back) {
+  border: 2px solid var(--sw-pixel-outline);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--sw-pixel-edge), 2px 2px 0 var(--sw-pixel-shadow);
+}
+html[data-visual-style="gaming"] .ux-primary:disabled,
+:host([data-visual-style="gaming"]) .ux-primary:disabled {
+  border-color: var(--sw-border);
+  box-shadow: inset 0 0 0 1px var(--sw-border);
+}
+
+html[data-menu-size] .chapter-limit-stepper :is(button, input),
+:host([data-menu-size]) .chapter-limit-stepper :is(button, input) {
+  font-family: var(--ux-font);
+  font-size: var(--ux-action-size);
+}
+html[data-visual-style="gaming"][data-menu-size="small"] .tab-button,
+:host([data-visual-style="gaming"][data-menu-size="small"]) .menu-tab { font-size: 10px; }
