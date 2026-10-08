@@ -41,6 +41,7 @@
   const soundApi = globalThis.PlumePilotSounds;
   const storeLinksApi = globalThis.PlumePilotStoreLinks;
   const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
+  const menuUx = globalThis.PlumePilotMenuUx;
   const extensionManifest = chrome.runtime.getManifest();
   const storeReviewUrl = storeLinksApi?.reviewUrl(extensionManifest) || storeLinksApi?.STORE_URLS?.chrome || "https://chromewebstore.google.com/";
   const faqUrl = storeLinksApi?.FAQ_URL || "https://plumepilot.github.io/plumepilot/faq/";
@@ -254,6 +255,10 @@
 
   function applyVisualStyle() {
     const visualStyle = normalizeVisualStyle(settings.visualStyle);
+    if (visualStyle === "gaming") menuUx.ensureGamingFont(document,
+      chrome.runtime.getURL("assets/fonts/pixelify-sans-latin.ttf")).then(loaded => {
+        if (loaded) placePanel();
+      });
     if (host) host.dataset.visualStyle = visualStyle;
     if (progressOverlayHost)
       progressOverlayHost.dataset.visualStyle = visualStyle;
@@ -847,6 +852,7 @@
             ? "exams"
             : "course";
 
+    ui.courseNavigation?.reset();
     activeMenuTab = selectedTab;
     const tabEntries = [
       ["course", ui.courseTab, ui.coursePanel],
@@ -1081,27 +1087,17 @@
           : "ignore";
     ui.enabled.checked = settings.enabled !== false;
     ui.autoplaySkipCompletedVideos.checked = settings.autoplaySkipCompletedVideos === true;
-    ui.autoplaySkipCompletedVideos.disabled = autoplayDisabled;
+    ui.autoplaySkipCompletedVideos.disabled = false;
     ui.findFirstIncomplete.disabled =
       autoplayDisabled || Boolean(settings.pegasoActiveOperation);
-    ui.autoplayOptionsContent.classList.toggle("disabled", autoplayDisabled);
-    ui.autoplayOptionsContent.setAttribute(
-      "aria-disabled",
-      String(autoplayDisabled),
-    );
+    ui.firstIncompleteHint.textContent = autoplayDisabled ? "Attiva autoplay per usare la ricerca."
+      : settings.pegasoActiveOperation ? "Disponibile al termine dell’operazione in corso."
+        : "Cerca Obiettivi, video e test da completare, senza risolvere i test.";
     for (const radio of ui.testBehaviorRadios) {
       radio.checked = radio.value === testBehavior;
       radio.disabled =
-        autoplayDisabled ||
-        (radio.value === "stop" &&
-          settings.autoplayChapterLimitEnabled === true);
+        radio.value === "stop" && settings.autoplayChapterLimitEnabled === true;
     }
-    const testSummary =
-      testBehavior === "complete"
-        ? "Test completati"
-        : testBehavior === "stop"
-          ? "Stop ai test"
-          : "Test ignorati";
     const currentCode = currentCourseCode();
     const limitStatus = courseScopedValue(
       settings.autoplayChapterLimitStatuses,
@@ -1127,15 +1123,21 @@
       : limitStatus.reached
         ? `Limite raggiunto: ${limitStatus.completed} di ${limit}.`
         : `Sessione: ${limitStatus.completed || 0} di ${limit} · massimo ${maximum}.`;
-    ui.chapterLimitResume.hidden = !limitStatus?.reached;
-    ui.chapterLimitResume.textContent = `Riprendi per altri ${limit}`;
-    const autoplaySummary =
-      settings.autoplayChapterLimitEnabled === true
-        ? `${testSummary} · limite ${limit}`
-        : testSummary;
-    ui.autoplayOptionsSummary.textContent = settings.autoplaySkipCompletedVideos === true
-      ? `${autoplaySummary} · salta video completati`
-      : autoplaySummary;
+    ui.chapterLimitValue.closest(".chapter-limit-controls").hidden = settings.autoplayChapterLimitEnabled !== true;
+    ui.chapterLimitSlider.hidden = settings.autoplayChapterLimitEnabled !== true;
+    ui.chapterLimitProgress.hidden = limitReady && settings.autoplayChapterLimitEnabled !== true;
+    ui.chapterLimitResume.hidden = settings.autoplayChapterLimitEnabled !== true || !limitStatus?.reached;
+    ui.chapterLimitResume.textContent = `Riprendi per altri ${limit} capitoli`;
+    const presentation = menuUx.autoplayPresentation({
+      skipCompleted: settings.autoplaySkipCompletedVideos === true, testBehavior,
+      limitEnabled: settings.autoplayChapterLimitEnabled === true, limit,
+      stopAt70: settings.autoplayStopAt70Enabled === true,
+      thresholdBypassed: courseScopedValue(settings.autoplayStopAt70BypassedCourses, currentCode) === true,
+    });
+    ui.autoplayOptionsSummary.textContent = presentation.summary;
+    ui.testBehaviorOverride.textContent = presentation.testOverride;
+    ui.testBehaviorOverride.hidden = !presentation.testOverride;
+    ui.autoplayStopHint.textContent = presentation.stopHint;
     ui.courseProgressOverlayEnabled.checked =
       settings.courseProgressOverlayEnabled === true;
     const progressPosition = normalizedCourseProgressPosition(
@@ -1170,12 +1172,11 @@
     }
     if (settings.courseProgressThresholdEnabled === true)
       progressSummary.push("avviso 70%");
-    if (settings.autoplayStopAt70Enabled === true)
-      progressSummary.push("stop 70%");
+
     ui.courseProgressOptionsSummary.textContent = progressSummary.length
       ? progressSummary.join(" · ")
       : "Disattivate";
-    ui.state.textContent = settings.enabled === false ? "In pausa" : "Attivo";
+    ui.state.textContent = settings.enabled === false ? "Autoplay in pausa" : "Autoplay attivo";
     ui.state.dataset.running = String(settings.enabled !== false);
     renderPreferences();
   }
@@ -1261,7 +1262,7 @@
       ? stopping
         ? "Interruzione dispense…"
         : "Interrompi raccolta dispense"
-      : "Esporta dispense del corso";
+      : "Esporta dispense";
     ui.materials.disabled =
       (busy && !collectingMaterials) || (collectingMaterials && stopping);
     ui.testCollectionLabel.textContent = collectingTests
@@ -1272,6 +1273,9 @@
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
+    ui.activeOperationBanner.hidden = !busy;
+    ui.activeOperationBanner.textContent = busy ? operationLabel(operation) : "";
+    applyFloatingMenuLayout();
 
     if (operation) {
       clearTimeout(feedbackTimer);
@@ -1910,15 +1914,9 @@
   }
 
   function applyFloatingMenuLayout() {
-    if (!ui?.actions) return;
-    const layout = floatingLayoutApi.normalizeLayout(settings.floatingMenuLayout);
-    for (const item of layout.items) {
-      const definition = floatingLayoutApi.definitionFor(item.id);
-      const button = definition ? ui.actions.querySelector(`[data-action="${definition.action}"]`) : null;
-      if (!button) continue;
-      button.hidden = !item.visible;
-      ui.actions.append(button);
-    }
+    if (!ui?.coursePanel) return;
+    menuUx.applyActionLayout(ui.coursePanel, settings.floatingMenuLayout, settings.pegasoActiveOperation);
+    ui.layoutEditor?.render(settings.floatingMenuLayout);
   }
 
   function createMenu() {
@@ -3647,6 +3645,7 @@
           border-radius: 1px;
         }
       </style>
+      <link rel="stylesheet" href="__PP_MENU_UX_CSS__">
       <button class="launcher" type="button" aria-label="Apri PlumePilot; trascina per spostare l’icona lungo il bordo" aria-expanded="false" aria-controls="studywing-panel" title="Clicca per aprire PlumePilot · Trascina per spostare">
         <img class="launcher-standard" src="__PP_ICON__" alt="" draggable="false">
         <span class="launcher-mascot" aria-hidden="true"></span>
@@ -3677,6 +3676,7 @@
           <button id="studywing-achievements-tab" class="menu-tab" data-tab="achievements" type="button" role="tab" aria-selected="false" aria-controls="studywing-achievements-panel" tabindex="-1">Traguardi</button>
           <button id="studywing-preferences-tab" class="menu-tab" data-tab="preferences" type="button" role="tab" aria-selected="false" aria-controls="studywing-preferences-panel" tabindex="-1">Preferenze</button>
         </nav>
+        <button class="ux-operation-banner" data-role="active-operation-banner" type="button" hidden></button>
         <div class="body">
           <section class="last-notification" data-role="last-notification" data-expanded="false" aria-label="Ultimo messaggio di PlumePilot" hidden>
             <div class="last-notification-heading"><span>Ultimo messaggio</span><time class="last-notification-time" data-role="last-notification-time"></time></div>
@@ -3689,14 +3689,15 @@
               <span>Progresso, autoplay, test, obiettivi e dispense saranno disponibili nella pagina del corso.</span>
             </div>
             <div data-role="course-tools">
-            <section class="course-progress" data-role="course-progress" aria-label="Progresso del corso">
+            <div data-ux-home>
+            <section class="course-progress ux-group" data-role="course-progress" aria-label="Progresso del corso">
               <div class="course-progress-heading"><span>Progresso del corso</span><strong class="course-progress-value" data-role="course-progress-value">—</strong></div>
               <div class="course-progress-track" data-role="course-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Progresso non disponibile"><span class="course-progress-inner"><span class="course-progress-fill" data-role="course-progress-fill"></span></span><span class="course-progress-threshold" data-role="course-progress-threshold" title="Soglia del 70%" hidden></span></div>
               <p class="course-progress-message" data-role="course-progress-message">Progresso disponibile dopo il caricamento del corso.</p>
               <details class="course-progress-options-menu">
-                <summary><span>Opzioni progresso</span><small data-role="course-progress-options-summary">Disattivate</small><span class="course-progress-options-chevron" aria-hidden="true"></span></summary>
+                <summary><span>Visualizzazione e avvisi</span><small data-role="course-progress-options-summary">Disattivate</small><span class="course-progress-options-chevron" aria-hidden="true"></span></summary>
                 <div class="course-progress-settings">
-                  <label class="course-progress-setting"><span>Barra sullo schermo</span><input data-setting="course-progress-overlay-enabled" type="checkbox"></label>
+                  <label class="course-progress-setting"><span>Mostra progresso sullo schermo</span><input data-setting="course-progress-overlay-enabled" type="checkbox"></label>
                   <div class="course-progress-position" data-role="course-progress-position" data-disabled="true">
                     <div class="course-progress-position-title">Posizione</div>
                     <div class="course-progress-position-list">
@@ -3706,35 +3707,48 @@
                       <label><input type="radio" name="studywing-course-progress-position" value="right"> <span>Destra</span></label>
                     </div>
                   </div>
-                  <label class="course-progress-setting"><span>Avvisami al 70%</span><input data-setting="course-progress-threshold-enabled" type="checkbox"></label>
-                  <label class="course-progress-setting"><span>Ferma autoplay al 70%</span><input data-setting="autoplay-stop-at-70-enabled" type="checkbox"></label>
-                  <button class="bookmark-action" data-action="autoplay-stop-at-70-resume" type="button" hidden>Continua oltre il 70%</button>
+                  <label class="course-progress-setting"><span>Avvisami al raggiungimento del 70%</span><input data-setting="course-progress-threshold-enabled" type="checkbox"></label>
                   <p class="course-progress-hint">L’avviso funziona anche con la barra nascosta. Lo stop termina l’attività corrente e permette di continuare oltre la soglia.</p>
                 </div>
               </details>
+                  <button class="ux-primary bookmark-action" data-action="find-first-incomplete" type="button">Trova prima attività incompleta</button>
+<p class="ux-copy" data-role="first-incomplete-hint"></p>
             </section>
+<section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
-            <button class="autoplay-options-toggle" data-action="toggle-autoplay-options" type="button" aria-controls="studywing-autoplay-options" aria-expanded="false">
-              <span class="autoplay-options-label">
-                <span class="autoplay-options-title">Opzioni autoplay</span>
-                <span class="autoplay-options-summary" data-role="autoplay-options-summary"></span>
-              </span>
-              <span class="autoplay-options-chevron" aria-hidden="true"></span>
-            </button>
-            <div id="studywing-autoplay-options" class="autoplay-options-shell" data-expanded="false" aria-hidden="true">
-              <div class="autoplay-options-overflow">
-                <div class="autoplay-options-content" data-role="autoplay-options-content">
-                  <button class="bookmark-action" data-action="find-first-incomplete" type="button">Trova prima attività incompleta</button>
+<p class="ux-summary" data-role="autoplay-options-summary"></p>
+<button class="ux-navigation" data-action="toggle-autoplay-options" data-ux-open type="button" aria-controls="studywing-autoplay-options" aria-expanded="false"><span>Impostazioni autoplay</span><span aria-hidden="true">›</span></button>
+                  <button class="bookmark-action" data-action="autoplay-stop-at-70-resume" type="button" hidden>Continua oltre il 70%</button>
+                    <button class="bookmark-action" data-action="chapter-limit-resume" type="button" hidden>Riprendi sessione</button>
+</section>
+<section class="ux-group" data-menu-section><h2 class="ux-heading">Materiali per lo studio</h2><div class="actions" data-menu-group="materials">
+<div data-menu-item="study-materials">              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" data-layout-item="study-materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense</span></button><p class="ux-format">PDF con indice · EPUB</p></div><div data-menu-item="test-collection">              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" data-layout-item="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button><p class="ux-format">PDF con soluzioni · Quiz HTML offline</p></div></div></section>
+<details class="ux-group ux-completion" data-menu-section data-role="course-completion"><summary>Completamento del corso</summary><div class="actions" data-menu-group="completion">
+<div data-menu-item="complete-tests">              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button><p class="ux-format">Completa i test di autovalutazione sulla piattaforma.</p></div><div data-menu-item="complete-objectives">              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button><p class="ux-format">Completa gli Obiettivi ancora da svolgere.</p></div></div></details>
+</div>
+<section id="studywing-autoplay-options" class="ux-settings-view ux-group" data-ux-detail aria-labelledby="studywing-autoplay-settings-title" hidden>
+<button class="ux-back" type="button" data-ux-back>← Corso</button>
+<h2 class="ux-detail-title" id="studywing-autoplay-settings-title" data-ux-detail-title tabindex="-1">Impostazioni autoplay</h2>
+<p class="ux-copy">Le impostazioni si applicano all’avanzamento automatico. Puoi configurarle anche quando è in pausa.</p>
+<div data-role="autoplay-options-content">
+<section class="ux-setting-section" data-ux-settings-group="video"><h3 class="ux-setting-title">Video</h3>
                   <label class="course-progress-setting"><span>Salta videolezioni completate</span><input data-setting="autoplay-skip-completed-videos" type="checkbox"></label>
                   <div class="setting-hint">Salta i video già al 100% mantenendo l’ordine del corso. Disattiva per ripassarli tutti.</div>
+</section>
+<section class="ux-setting-section" data-ux-settings-group="test">
                   <div class="test-choice-heading">Quando raggiunge un test</div>
                   <div class="test-choice-list">
                     <label><input type="radio" name="studywing-test-behavior" value="ignore"> <span>Ignora e continua</span></label>
                     <label><input type="radio" name="studywing-test-behavior" value="stop"> <span>Fermati</span></label>
                     <label><input type="radio" name="studywing-test-behavior" value="complete"> <span>Completa automaticamente</span></label>
                   </div>
+<p class="ux-copy ux-setting-note" data-role="test-behavior-override" hidden></p>
+</section>
+<section class="ux-setting-section" data-ux-settings-group="stop"><h3 class="ux-setting-title">Arresto</h3>
+                  <label class="course-progress-setting"><span>Ferma autoplay al 70%</span><input data-setting="autoplay-stop-at-70-enabled" type="checkbox"></label>
+<p class="ux-copy" data-role="autoplay-stop-hint"></p>
                   <div class="chapter-limit">
-                    <label class="chapter-limit-row"><span>Limite sessione autoplay</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
+                    <label class="chapter-limit-row"><span>Limite capitoli</span><input data-setting="chapter-limit-enabled" type="checkbox"></label>
                     <div class="chapter-limit-controls">
                       <span>Capitoli</span>
                       <div class="chapter-limit-stepper">
@@ -3745,18 +3759,11 @@
                     </div>
                     <input class="chapter-limit-slider" data-role="chapter-limit-slider" type="range" min="1" max="1" step="1" value="1" aria-label="Numero di capitoli con cursore">
                     <p class="chapter-limit-progress" data-role="chapter-limit-progress"></p>
-                    <button class="bookmark-action" data-action="chapter-limit-resume" type="button" hidden>Riprendi sessione</button>
                   </div>
-                </div>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button>
-              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button>
-              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" data-layout-item="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button>
-              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" data-layout-item="study-materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense del corso</span></button>
-            </div>
-            <p class="status" data-role="status" data-error="false" aria-live="polite"></p>
+
+</section>
+</div></section>
+<p class="status" data-role="status" data-error="false" aria-live="polite"></p>
             </div>
           </div>
           <div id="studywing-exams-panel" class="menu-tab-panel" data-role="exams-panel" role="tabpanel" aria-labelledby="studywing-exams-tab" hidden>
@@ -3789,6 +3796,9 @@
               <p class="commission-note">L’elenco principale mostra gli esami il cui esito non è ancora stato caricato dalla piattaforma.</p>
               </div>
             </section>
+            <button class="ux-navigation" data-action="clear-commission-data" type="button">Cancella dati degli esami</button>
+            <p class="ux-copy">Elimina solo i dati e la cache degli esami salvati nel browser.</p>
+            <p class="ux-copy" data-role="clear-commission-status" role="status"></p>
           </div>
           <div id="studywing-achievements-panel" class="menu-tab-panel achievements-panel" data-role="achievements-panel" role="tabpanel" aria-labelledby="studywing-achievements-tab" hidden>
             <div class="achievement-level"><strong data-role="achievement-level">Livello 1 · 0 EXP</strong><span data-role="achievement-progress-text">0 / 100 EXP</span></div>
@@ -3800,6 +3810,13 @@
             <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
               <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
               <div class="preference-macro-content">
+              <label class="setting"><span>Mostra il menu fluttuante</span><input data-setting="floating-menu-enabled" type="checkbox" checked></label>
+              <details class="ux-layout-settings"><summary>Pulsanti dei menu</summary>
+                <p class="ux-copy">Ordine e visibilità sono condivisi dai due menu. Trascina i pulsanti o usa le frecce all’interno di ciascun gruppo. Un’operazione in corso resta sempre visibile.</p>
+                <ul class="floating-menu-layout-list" data-role="menu-layout-list" aria-label="Ordine e visibilità dei pulsanti"></ul>
+                <button class="ux-navigation" type="button" data-action="reset-menu-layout">Ripristina disposizione predefinita</button>
+                <p class="ux-copy" data-role="menu-layout-status" role="status"></p>
+              </details>
               <div class="preference-subsection style-theme-container">
                 <div class="preference-subsection-summary">Stile e tema</div>
                 <div class="preference-subsection-content">
@@ -3867,6 +3884,7 @@
         </div>
       </section>`;
     hydrateShadowPlaceholders(shadow, {
+      __PP_MENU_UX_CSS__: chrome.runtime.getURL("menu-ux.css"),
       __PP_PIXEL_FONT__: pixelFontUrl,
       __PP_NOTIFICATION_ALERT__: notificationAlertUrl,
       __PP_MASCOT_IDLE_LIGHT__: mascotIdleLightUrl,
@@ -3896,6 +3914,7 @@
 
     document.documentElement.appendChild(host);
     ui = {
+      body: shadow.querySelector(".body"),
       launcher: shadow.querySelector(".launcher"),
       panel: shadow.querySelector(".panel"),
       notificationBadge: shadow.querySelector(".notification-badge"),
@@ -4104,6 +4123,10 @@
       ),
       loadedOtherList: shadow.querySelector('[data-role="loaded-other-list"]'),
       actions: shadow.querySelector(".actions"),
+      activeOperationBanner: shadow.querySelector('[data-role="active-operation-banner"]'),
+      firstIncompleteHint: shadow.querySelector('[data-role="first-incomplete-hint"]'),
+      testBehaviorOverride: shadow.querySelector('[data-role="test-behavior-override"]'),
+      autoplayStopHint: shadow.querySelector('[data-role="autoplay-stop-hint"]'),
       turbo: shadow.querySelector('[data-action="turbo"]'),
       turboLabel: shadow.querySelector('[data-role="turbo-label"]'),
       turboSprite: shadow.querySelector(".turbo-tests-sprite"),
@@ -4199,6 +4222,23 @@
       ui.confirmedToggle.setAttribute("aria-expanded", String(expanded));
       ui.confirmedPanel.hidden = !expanded;
     });
+    shadow.querySelector('[data-action="clear-commission-data"]').addEventListener("click", async event => {
+      if (!window.confirm("Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.")) return;
+      const button = event.currentTarget;
+      const status = shadow.querySelector('[data-role="clear-commission-status"]');
+      button.disabled = true;
+      status.textContent = "Cancellazione in corso…";
+      await runtimeMessage({ type: "PEGASO_CLEAR_COMMISSION_MEMORY_ALL_TABS" });
+      chrome.storage.local.remove([
+        "commissionExams", "commissionExamsCapturedAt", "commissionExamsCapturedAtByPlatform",
+        "commissionExamSnapshots", "commissionExamTrackingInitialized", "commissionExamTrackingInitializedByPlatform",
+        "commissionUnseenExamIds", "commissionCheckLease", "commissionCheckLeases",
+      ], () => {
+        status.textContent = chrome.runtime.lastError ? "Non è stato possibile cancellare i dati. Riprova."
+          : "Dati e cache temporanea degli esami cancellati.";
+        button.disabled = false;
+      });
+    });
     ui.commissionEnabled.addEventListener("change", () => {
       writeSetting("commissionCheckEnabled", ui.commissionEnabled.checked);
       if (!ui.commissionEnabled.checked) return;
@@ -4253,12 +4293,28 @@
       if (ui.enabled.checked) playActionAnimation(ui.autoplayControlSprite);
       if (ui.enabled.checked) claimFloatingAchievement("discover-autoplay");
     });
-    ui.autoplayOptionsButton.addEventListener("click", () => {
-      const expanded =
-        ui.autoplayOptionsButton.getAttribute("aria-expanded") !== "true";
-      ui.autoplayOptionsButton.setAttribute("aria-expanded", String(expanded));
-      ui.autoplayOptionsShell.dataset.expanded = String(expanded);
-      ui.autoplayOptionsShell.setAttribute("aria-hidden", String(!expanded));
+    menuUx.bindExpansionScroll(shadow, ui.body, placePanel);
+    ui.courseNavigation = menuUx.bindCourseNavigation(ui.coursePanel, ui.body, () => setTimeout(placePanel, 0));
+    ui.layoutEditor = menuUx.bindLayoutEditor(
+      shadow.querySelector('[data-role="menu-layout-list"]'),
+      shadow.querySelector('[data-action="reset-menu-layout"]'),
+      (layout, claim) => {
+        chrome.storage.local.set({ floatingMenuLayout: layout }, () => {
+          shadow.querySelector('[data-role="menu-layout-status"]').textContent = chrome.runtime.lastError
+            ? "Impossibile salvare la disposizione." : "Disposizione salvata in entrambi i menu.";
+          if (claim && !floatingLayoutApi.isDefaultLayout(layout)) claimFloatingAchievement("customize-floating-menu");
+        });
+      });
+    ui.layoutEditor.render(settings.floatingMenuLayout);
+    shadow.querySelector('[data-setting="floating-menu-enabled"]').addEventListener("change", event =>
+      writeSetting("floatingMenuEnabled", event.target.checked));
+    ui.activeOperationBanner.addEventListener("click", () => {
+      selectMenuTab("course", { focus: true });
+      const button = settings.pegasoActiveOperation?.kind === "turbo" ? ui.turbo
+        : settings.pegasoActiveOperation?.kind === "objectives" ? ui.objectives
+          : settings.pegasoActiveOperation?.kind === "tests" ? ui.testCollection : ui.materials;
+      button.scrollIntoView({ block: "nearest" });
+      button.focus();
     });
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
@@ -4474,6 +4530,7 @@
     "keydown",
     (event) => {
       if (event.key === "Escape" && ui && !ui.panel.hidden) {
+        if (ui.courseNavigation?.close()) { event.preventDefault(); event.stopPropagation(); return; }
         closePanel();
         ui.launcher.focus();
       }

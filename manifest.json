@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PlumePilot – Assistente per Multiversity",
   "short_name": "PlumePilot",
-  "version": "2.35.1",
+  "version": "2.35.2",
   "description": "Assistente per Pegaso, Mercatorum e San Raffaele: automatizza attività, crea materiali di studio e controlla gli esami online.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -77,7 +77,8 @@
         "assets/gaming/progress-arcane-frame-right.png",
         "assets/gaming/progress-arcane-fill.png",
         "assets/gaming/rewards/*.png",
-        "assets/audio/*.mp3"
+        "assets/audio/*.mp3",
+        "menu-ux.css"
       ],
       "matches": [
         "*://*.pegaso.multiversity.click/*",
@@ -140,6 +141,7 @@
         "sound-settings.js",
         "store-links.js",
         "floating-menu-layout.js",
+        "menu-ux.js",
         "floating-menu.js"
       ],
       "run_at": "document_idle",
