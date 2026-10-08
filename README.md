@@ -22,7 +22,7 @@ Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissu
 
 Vuoi capire come funziona davvero una browser extension reale? **Inside PlumePilot — Anatomia di una browser extension reale** racconta l'architettura del progetto attraverso il suo codice: JavaScript, WebExtensions, DOM, API, asincronia, cache, autoplay, generazione PDF/EPUB, testing e release engineering.
 
-**[Leggi Inside PlumePilot →](docs/inside-plumepilot/)**
+**[Leggi Inside PlumePilot →](docs/inside-plumepilot/)** · [Edizione HTML offline](docs/inside-plumepilot/Inside-PlumePilot.html)
 
 ## Funzionalità principali
 

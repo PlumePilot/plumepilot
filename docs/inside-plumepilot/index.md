@@ -6,9 +6,9 @@
 
 > Questo libro usa PlumePilot come caso di studio. L'obiettivo non è soltanto capire *cosa fa il codice*, ma imparare a riconoscere problemi, concetti e decisioni architetturali riutilizzabili in altri progetti.
 
-Il manoscritto è completo: **Introduzione + Capitoli 1–17, glossario e fonti**.
+Il manoscritto è completo: **Introduzione + Capitoli 1–17, glossario e fonti**. Per la lettura senza connessione è disponibile anche un **singolo file HTML self-contained**, con indice laterale, ricerca, tema chiaro/scuro, navigazione fra capitoli e ripristino locale della posizione di lettura.
 
-[Inizia dall'introduzione →](00-introduzione.md) · [Glossario](glossario.md) · [Fonti](FONTI.md) · [Edizione completa in un solo Markdown](https://github.com/PlumePilot/plumepilot/blob/main/INSIDE_PLUMEPILOT.md) · [Repository PlumePilot](https://github.com/PlumePilot/plumepilot)
+[Inizia dall'introduzione →](00-introduzione.md) · [Edizione HTML offline](Inside-PlumePilot.html) · [Glossario](glossario.md) · [Fonti](FONTI.md) · [Edizione completa in un solo Markdown](https://github.com/PlumePilot/plumepilot/blob/main/INSIDE_PLUMEPILOT.md) · [Repository PlumePilot](https://github.com/PlumePilot/plumepilot)
 
 ---
 
@@ -82,3 +82,8 @@ I diagrammi Mermaid sono leggibili direttamente su GitHub; il testo resta comunq
 Se trovi un errore tecnico, un link rotto o un passaggio poco chiaro, puoi aprire una [GitHub Issue](https://github.com/PlumePilot/plumepilot/issues) o proporre una pull request sul repository.
 
 **Inizia da:** [00 — Introduzione: dal problema al prodotto](00-introduzione.md)
+
+
+## Edizione offline
+
+L'[edizione HTML offline](Inside-PlumePilot.html) contiene l'intero libro in un singolo file e non carica risorse remote. Tema e ultima posizione di lettura vengono salvati soltanto nel browser locale. I diagrammi Mermaid rimangono disponibili come sorgente leggibile nell'HTML offline; GitHub li renderizza graficamente nelle pagine Markdown del repository.
