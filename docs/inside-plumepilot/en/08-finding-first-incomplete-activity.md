@@ -1796,4 +1796,4 @@ And we will ask a very practical question when the browser processes tens or hun
 
 ---
 
-[← 07 — Autoplay as a state machine](07-autoplay-as-a-state-machine.md) · [Contents](index.md) · 09 — Generating PDF, HTML, and EPUB (translation in progress)
+[← 07 — Autoplay as a state machine](07-autoplay-as-a-state-machine.md) · [Contents](index.md) · [09 — Generating PDF, HTML, and EPUB →](09-generating-pdf-html-and-epub.md)
