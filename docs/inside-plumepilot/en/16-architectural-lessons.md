@@ -1665,3 +1665,534 @@ Possible checks include preventing dynamic code execution, enforcing operation v
 A test that a 100% master summary cannot permanently hide a pending activity is an executable statement about evidence hierarchy, not merely one algorithm example.
 
 ---
+
+# Part LVI — Architecture encoded in builds and data
+
+## 241. The release builder encodes architecture
+
+build-release.mjs contains supported targets, background models, permissions, vendor transformations and packaging rules. This executable knowledge matters as much as the design diagram.
+
+---
+
+## 242. Persistent keys reveal the domain
+
+Namespaced course keys, operation records, exam snapshots and preference fields show the entities and lifetimes the project truly relies on.
+
+---
+
+## 243. Names communicate models
+
+Terms such as operation, lease, target, identity and snapshot are not cosmetic. They signal specific ownership, time and recovery assumptions.
+
+---
+
+# Part LVII — Leases and recoverable coordination
+
+## 244. Commission checks use a lease
+
+A lease means a worker may temporarily own the right to inspect or update a commission result, subject to an expiration or validity condition.
+
+---
+
+## 245. Why not a Boolean lock?
+
+If a tab or background context dies after setting locked = true, a permanent Boolean can strand the workflow. A timed lease can expire and permit recovery.
+
+---
+
+## 246. A small distributed-systems pattern
+
+Multiple tabs and independently restarted extension contexts already create enough concurrency for leases, operation IDs and serialized writes to be valuable.
+
+---
+
+# Part LVIII — Recovery and proportional resilience
+
+## 247. Assume interruptions will happen
+
+A service worker may stop, a tab may close, a PDF conversion may be aborted and a callback may arrive after its owner disappeared. Design recovery around these normal interruptions.
+
+---
+
+## 248. Retain meaningful recovery state
+
+Store enough durable state to identify an operation, report its current stage, resume if supported or terminate cleanly after restart.
+
+---
+
+## 249. Not everything needs exact resumption
+
+Reconstructing a full distributed transaction log for every UI interaction would be disproportionate. For some tasks it is safer to stop, clean up and let the user explicitly restart.
+
+---
+
+## 250. Recovery mechanisms have costs
+
+Durable logs, leases, handoff records, retries and resumable checkpoints create additional complexity and persistent data. Apply them only where the reliability benefit is meaningful.
+
+---
+
+## 251. Match resilience to value
+
+A long material export may justify explicit progress and cancellation state; a small menu animation generally does not warrant crash recovery.
+
+---
+
+# Part LIX — Local-first as an architecture
+
+## 252. PlumePilot is local-first
+
+The extension performs its work locally and against the authenticated LMS session, without a developer-operated backend for these features.
+
+---
+
+## 253. Architectural consequences
+
+Local processing shapes storage, resource budgets, authentication handling, privacy exposure, offline exports and recovery choices. The browser itself is an important runtime and data boundary.
+
+---
+
+## 254. What if a backend were introduced?
+
+Moving workflows to a hosted service would change trust, token transmission, latency, privacy, billing, maintenance, outage handling and user control. It would be a product-architecture decision, not merely a performance optimization.
+
+---
+
+## 255. Potential benefits of a backend
+
+Centralized job coordination, cross-device state, shared scheduling or heavy server-side conversion might be useful for some future goals.
+
+---
+
+## 256. Backend costs
+
+Server credentials, operations, billing, privacy guarantees, availability and new data-transfer boundaries would become ongoing obligations.
+
+---
+
+## 257. Local processing is substantive
+
+Keeping documents and sensitive content on the user's computer influences both technical behavior and the privacy model, not only promotional messaging.
+
+---
+
+# Part LX — Session security and least privilege
+
+## 258. Host authenticated session
+
+PlumePilot operates within the user's existing LMS authentication context. Session data and authorization material deserve the same care as other sensitive credentials.
+
+---
+
+## 259. Memory-only token retention
+
+Intercepted bearer tokens can remain only in memory rather than persistent extension storage. This is a deliberate combination of security boundary and shorter lifetime.
+
+---
+
+## 260. Least-privilege permissions
+
+Request only APIs and site access needed for the actual feature. Excess permissions expand the failure and trust surface as well as review burden.
+
+---
+
+## 261. Per-browser permissions
+
+Firefox's runtime artifact does not claim Chromium's offscreen permission when that API is not used. Least privilege can be enforced at build-target granularity.
+
+---
+
+# Part LXI — Maturity is not measured by file count
+
+## 262. Maintainability does not mean minimum file count
+
+A maintainable program makes state ownership, reasons to change, contracts and tests understandable. A tiny file count can conceal substantial coupling.
+
+---
+
+## 263. A large file can be understandable—up to a point
+
+File size alone does not dictate refactoring, but a large module containing many unrelated change reasons eventually increases modification and test cost.
+
+---
+
+# Part LXII — Four stages of architectural growth
+
+## 264. Stage one: feature-first
+
+Early PlumePilot development focused on delivering working capabilities, discovering the LMS's data model and proving that browser integration could work.
+
+---
+
+## 265. Stage two: regression-driven resilience
+
+Real course, autoplay, export and browser bugs led to retries, identity checks, targeted fallback paths, cache rules and regression fixtures.
+
+---
+
+## 266. Stage three: pattern recognition
+
+Similar lessons appeared across features: explicit boundaries, stable identity, source hierarchies, leases, cancellable workflows and declarative release checks.
+
+---
+
+## 267. Stage four: explicit architecture
+
+Shared modules, clear protocols, documented decisions and tests progressively turn implicit lessons into intentional design. Different PlumePilot subsystems are at different points in this progression.
+
+---
+
+# Part LXIII — Subsystems mature at different speeds
+
+## 268. Release tooling is explicit
+
+The builder, manifest specialization and validator already encode well-defined targets and invariants.
+
+---
+
+## 269. Playback still has concentrated responsibilities
+
+Autoplay contains robust algorithms and careful edge-case handling, but significant code still lives in a large content module.
+
+---
+
+## 270. Shared UI presentation emerged in 2.35.2
+
+Menu-UX helpers and common CSS extract meaningful cross-surface behavior without replacing each UI controller.
+
+---
+
+# Part LXIV — Subsystem assessment method
+
+## 271. Assess every subsystem with the same questions
+
+Ask who owns it, which identity it uses, which source is authoritative, what failures it expects, whether cancellation exists, and which tests protect it.
+
+---
+
+# Part LXV — Autoplay assessment
+
+## 272. Autoplay owner
+
+The content/MAIN playback layer coordinates the active lesson and player interaction, with background support where appropriate.
+
+---
+
+## 273. Autoplay identity
+
+Course, chapter/folder and lesson/media context—not merely one DOM node.
+
+---
+
+## 274. Autoplay evidence sources
+
+Player and DOM observations, detail APIs, master progress and relevant cached snapshots have different reliability and freshness.
+
+---
+
+## 275. Autoplay failure model
+
+Rerendered or hidden lesson rows, tab throttling, stale targets, test boundaries and manual navigation interruptions.
+
+---
+
+## 276. Autoplay cancellation
+
+Stopping playback, clearing active work and invalidating older generations must prevent late automatic transitions.
+
+---
+
+## 277. Autoplay regression suite
+
+Tests cover closed accordions, chapter ordering, master-index shortcuts, video identity and hidden-tab recovery.
+
+---
+
+# Part LXVI — Document export assessment
+
+## 278. Export owner
+
+Background operation coordination and the document-builder page together own the long-running export lifecycle.
+
+---
+
+## 279. Export identity
+
+operationId and jobId link user commands, progress and resulting artifacts.
+
+---
+
+## 280. Export source inputs
+
+Course metadata, material APIs, downloaded documents and optionally host DOM context feed the builder.
+
+---
+
+## 281. Export failure conditions
+
+Absent assets, PDF parse errors, aborts, memory pressure, unexpected page complexity and packaging failures.
+
+---
+
+## 282. Export persistence
+
+A stored handoff record allows the builder or background context to coordinate work through their distinct lifecycles.
+
+---
+
+## 283. Export cleanup
+
+Delete handoff jobs, destroy PDF.js resources, release canvas backing stores and revoke no-longer-needed Blob URLs.
+
+---
+
+# Part LXVII — Exam monitoring assessment
+
+## 284. Exam monitor owner
+
+Background/store coordination protects relevant operation state and serialized persistence.
+
+---
+
+## 285. Exam identity
+
+Platform and exam ID must be scoped together to avoid cross-university collisions.
+
+---
+
+## 286. Exam concurrency
+
+Leases and queued writes protect against duplicate checks or lost updates across tabs.
+
+---
+
+## 287. Exam persistence
+
+Durable local snapshots store relevant known result state while respecting identity boundaries.
+
+---
+
+## 288. Exam failures
+
+Stale snapshots, duplicate checks, tab disappearance and inconclusive commission status require explicit recovery logic.
+
+---
+
+# Part LXVIII — Shared UI assessment
+
+## 289. Shared UI ownership
+
+Persistent settings live in extension storage; each menu has its own ephemeral controller for rendering and local focus state.
+
+---
+
+## 290. Shared UI derived state
+
+autoplayPresentation() turns effective policy settings into shared summaries and warnings.
+
+---
+
+## 291. Shared UI synchronization
+
+Storage events and runtime operation-status queries keep the popup and floating menu convergent.
+
+---
+
+## 292. Shared UI invariants
+
+Active operations must remain visible and controllable; focus restoration, navigation semantics and settings meaning must remain consistent.
+
+---
+
+# Part LXIX — Release engineering assessment
+
+## 293. Release ownership
+
+Build tooling owns browser-specific artifact construction and validation, not ordinary UI controllers.
+
+---
+
+## 294. Release identity
+
+Commit SHA, target ZIP SHA-256 and semantic version are three related but different identities.
+
+---
+
+## 295. Release boundary
+
+Source repository → browser-specific manifest and executable archive → distribution store.
+
+---
+
+## 296. Release failures
+
+Manifest drift, missing assets, vendor checksum mismatch, review-sensitive code and unverified packages should be caught before submission.
+
+---
+
+## 297. Release policy
+
+Fail the build on deterministic packaging violations; prefer explicit errors over silent “best effort” output.
+
+---
+
+# Part LXX — Questions before adding a feature
+
+## 298. A checklist for new features
+
+Before implementing, identify the domain goal, state owner, stable identity, trusted evidence, asynchronous lifecycle, failure handling, cancellation, privacy boundaries, runtime compatibility and regression-test level.
+
+**Historical code or diagram:**
+
+```js
+const row = currentLesson();
+await fetchSomething();
+click(row);
+```
+
+```js
+false
+```
+
+**Two design exercises:**
+
+1. You want to add activity navigation from a lesson's displayed text. What risks arise if the label changes, appears twice, or is translated? Define a stable domain identity and a guarded fallback.
+2. You want to persist all lesson API responses. Which keys, freshness rules, capacity limits and privacy/lifetime guarantees must be designed before implementation?
+
+---
+
+# Part LXXI — Architectural glossary
+
+## 299. A boundary
+
+A transition where trust, ownership, execution context, API availability, data model or resource lifetime changes.
+
+---
+
+## 300. Anti-corruption layer
+
+An adapter that translates an external model into the project's internal vocabulary so provider-specific quirks do not permeate domain logic.
+
+---
+
+## 301. Stable identity
+
+An identifier that remains valid during the intended workflow despite DOM reconstruction, changing display order or other representation changes.
+
+---
+
+## 302. Evidence hierarchy
+
+Explicit precedence and fallback rules among sources describing the same underlying fact.
+
+---
+
+## 303. Three-valued knowledge
+
+A representation in which a fact is true, false or currently unknown rather than forcing missing evidence into a Boolean.
+
+---
+
+## 304. Progressive refinement
+
+Start with inexpensive evidence and increase work or granularity only when needed for correctness or fidelity.
+
+---
+
+## 305. Ownership
+
+Responsibility for creating, modifying, controlling and releasing a state value, operation or resource.
+
+---
+
+## 306. Temporal validity
+
+Whether an observation remains correct after time, asynchronous suspension, navigation or other state transitions.
+
+---
+
+## 307. Revalidation
+
+Checking identity and state again after await and before performing a consequential side effect.
+
+---
+
+## 308. Generation token
+
+An incrementing identifier used to invalidate results belonging to older asynchronous operations.
+
+---
+
+## 309. Semantic parity
+
+Equivalent user-visible guarantees produced through different internal implementations, such as distinct browser audio adapters.
+
+---
+
+## 310. Derived state
+
+A value computed from authoritative inputs, usually unnecessary to persist independently.
+
+---
+
+## 311. Bounded growth
+
+A property where retained collections have explicit size, age or eviction limits.
+
+---
+
+## 312. Cooperative cancellation
+
+A workflow periodically checks cancellation and exits through safe cleanup rather than expecting arbitrary JavaScript to be forcibly stopped.
+
+---
+
+## 313. Cost model
+
+A qualitative or quantitative estimate of alternative operations that guides fast paths, expensive fallbacks, batching and concurrency.
+
+---
+
+## 314. Architecture fitness function
+
+A test or validator enforcing an architectural rule over time, such as the Firefox manifest's permitted background form.
+
+---
+
+## 315. Volatility boundary
+
+An interface that separates frequently changing dependencies or provider details from more stable internal meaning.
+
+---
+
+## 316. Human-in-the-loop automation
+
+Automation that supports the user while preserving explicit manual intent, override, visibility and control as first-class constraints.
+
+---
+
+# Part LXXII — Recap
+
+After fifteen chapters, we can describe PlumePilot without naming any single feature. It integrates an unstable external LMS, crosses multiple execution contexts, maintains state with different lifetimes, coordinates asynchronous jobs, evaluates evidence from sources with unequal authority, protects effects through identity and revalidation, builds complex local artifacts, and adapts to several browser and store environments.
+
+```text
+boundary · identity · source of truth · unknown
+progressive refinement · fail closed · ownership
+lifetime · state machines · idempotence
+snapshot + event · bounded caches · cancellation
+backpressure · semantic parity · artifacts · tests
+```
+
+> **Architecture emerges from the assumptions we decide to make explicit.**
+
+As long as “the DOM will stay the same,” “100% means every activity is finished,” “the background will always remain alive,” or “all browsers behave identically” are hidden assumptions, they eventually become bugs. When transformed into identities, protocols, states, invariants, adapters and tests, they become part of the architecture.
+
+This is the shift from code that happens to work today to software we can confidently evolve tomorrow.
+
+# Next chapter — 17: What would we do differently today?
+
+The final chapter takes a critical but fair look at PlumePilot. Knowing what we now know, where would we modularize content.js, clarify messaging, extract DOM adapters, formalize caches, reconsider workers, improve test seams and automate release steps? Equally important, **which imperfect but proportionate choices would we keep?**
+
+---
+
+[← 15 — Git, branches, PRs, and release engineering](15-git-branches-prs-and-release-engineering.md) · [Contents](index.md) · 17 — What we would do differently today (translation in progress)
