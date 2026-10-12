@@ -2776,4 +2776,4 @@ Those states have transitions, guards, invariants, and cancellation paths. Some 
 
 ---
 
-[← 05 — JavaScript asynchrony](05-javascript-asynchrony.md) · [Contents](index.md) · 07 — Autoplay as a state machine (translation in progress)
+[← 05 — JavaScript asynchrony](05-javascript-asynchrony.md) · [Contents](index.md) · [07 — Autoplay as a state machine →](07-autoplay-as-a-state-machine.md)
