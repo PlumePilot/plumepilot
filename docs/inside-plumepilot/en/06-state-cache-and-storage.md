@@ -807,7 +807,13 @@ const percentage = Math.max(
 );
 ```
 
-A stale response should not necessarily erase a stronger completion observation.
+A stale response should not necessarily erase a stronger completion observation. Another source example explicitly merges progress items:
+
+```js
+{ ...item, percentage: Math.max(old.percentage, item.percentage) }
+```
+
+This only makes sense **after verifying that the two values belong to the same activity**. Otherwise a monotonically merged number can propagate progress from the wrong route.
 
 This is a domain-specific choice, not a universal law of caches.
 
@@ -835,7 +841,17 @@ The concrete JavaScript data structure is:
 const lessonApiCache = new Map();
 ```
 
-We build the key from a composite identity. Conceptually, the type would resemble:
+The cache key is built by a concrete helper preserved in the Italian chapter:
+
+```js
+function lessonApiCacheKey(courseCode, lessonNumber) {
+  return `${courseCode}:${Number(lessonNumber)}`;
+}
+```
+
+For example, `"ABC:1"` and `"XYZ:1"` refer to separate lessons. Normalizing the lesson number means `"03"` and `3` map to the same numeric component. The permitted course code characters are alphanumeric, `_` and `-`, so the separator `:` is unambiguous for this project's current input contract.
+
+Conceptually, the type would resemble:
 
 ```ts
 Map<string, LessonCacheEntry>
@@ -986,6 +1002,12 @@ weakMap.get({ courseCode, lessonNumber });
 
 would **not** retrieve the same entry, because the newly created object has a different identity.
 
+The suitable case for a `WeakMap` would instead be object-lifetime metadata, for example:
+
+```js
+WeakMap<HTMLElement, Metadata>
+```
+
 Also, `WeakMap` is not enumerable, which would make inspection and cleanup less convenient.
 
 We need a **reconstructible composite value key**, not an ephemeral object-identity key.
@@ -1022,7 +1044,13 @@ XYZ:1
 
 the entries remain distinct.
 
-The numeric conversion also normalizes input representations such as `"1"` and `1` to a consistent key component.
+The numeric conversion:
+
+```js
+Number(lessonNumber)
+```
+
+also normalizes input representations such as `"1"` and `1` to a consistent key component.
 
 The key is not an implementation afterthought. It is part of the cache's correctness contract.
 
