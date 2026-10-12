@@ -2250,3 +2250,433 @@ If the update changes how buttons or menus work, release notes should help users
 A new privileged permission can trigger new review, user prompts, or trust concerns. It deserves more scrutiny than a minor CSS tweak.
 
 ---
+
+# Part LXXXV — Risk-based release testing
+
+## 321. Low-risk change
+
+Examples include isolated copy changes, minor CSS spacing, and documentation updates. They need limited targeted review but still require basic artifact checks where affected.
+
+---
+
+## 322. Medium-risk change
+
+Examples include layout behavior, preferences, conditional UI, and newly introduced files. Test both surfaces and platform-specific rendering as appropriate.
+
+---
+
+## 323. High-risk change
+
+Autoplay routing, identity, cache migrations, permissions, background lifecycle, document conversion, and release builder logic warrant focused regression and cross-browser validation.
+
+---
+
+## 324. Match test intensity to risk
+
+A two-line typo fix and a manifest-permission change should not require identical QA plans. The test plan should reflect failure impact, not line count.
+
+---
+
+# Part LXXXVI — Review the final tree
+
+## 325. What a good PR description contains
+
+Describe objective, scope, behavior changes, relevant risks, test evidence, screenshots when useful, and any required follow-up.
+
+---
+
+## 326. Inspect the aggregate tree before merge
+
+Review the final changed-file list and complete PR diff, not just individual commits. The final artifact is determined by the resulting tree.
+
+---
+
+## 327. Why aggregate review matters
+
+Several reasonable commits can combine into an unintended final state or include a file that nobody meant to ship.
+
+---
+
+## 328. Look for unexpected files
+
+A UI-only release candidate that changes unrelated backend or vendor files should trigger investigation.
+
+---
+
+## 329. An allowlist can help
+
+For a narrow hotfix, verifying a predetermined set of changed files can prevent accidental unrelated changes. It is not necessary for every normal release.
+
+---
+
+## 330. An example of an accidental inclusion
+
+A temporary test credential, generated source file, or unrelated fixture should not enter the runtime ZIP. Artifact validation and exclusion policies can catch mistakes.
+
+---
+
+# Part LXXXVII — Packaging boundaries
+
+## 331. .gitignore
+
+Controls which untracked local files Git normally ignores. It does not determine which already-tracked files a release builder packages.
+
+---
+
+## 332. Builder exclusions
+
+Prevent tracked source, tests, documentation, and non-runtime assets from entering an installable browser archive.
+
+---
+
+## 333. Generated ZIP is output
+
+An old archive should never silently become input to the next build. Validate or clean the output area first.
+
+---
+
+## 334. Source archive versus runtime archive
+
+Installable ZIPs exclude development materials; the Firefox AMO source-review archive intentionally includes inputs and scripts needed to reproduce the build.
+
+---
+
+## 335. Repository state
+
+The working source tree is a broad input set containing runtime code plus build, tests, docs, and metadata.
+
+---
+
+## 336. Runtime artifact
+
+The installable package is a selected subset of files plus target-specific manifest or vendor transformations.
+
+---
+
+## 337. Source submission
+
+The review archive is a different selected subset designed for reconstruction and auditing. Both are projections of one source repository.
+
+---
+
+# Part LXXXVIII — Version bump timing
+
+## 338. Version bump too early
+
+Raising the declared version during early feature work can make test or draft artifacts look release-ready before scope is stable.
+
+---
+
+## 339. Version bump too late
+
+Changing the version after generating packages and store copy creates inconsistent metadata and requires regenerating artifacts.
+
+---
+
+## 340. A reasonable timing
+
+Bump the version during final candidate preparation, before final package validation and tagging.
+
+---
+
+# Part LXXXIX — One authoritative version
+
+## 341. One version source of truth
+
+The manifest should be authoritative for the installed extension version where practicable. Other contexts can read it through permitted APIs or a bridge.
+
+---
+
+## 342. Validate unavoidable duplication
+
+When versions appear in release notes, screenshots, or store metadata, verify consistency rather than assuming every copy was updated.
+
+---
+
+# Part XC — Final candidate commit strategy
+
+## 343. Squash or keep separate commits?
+
+One squash gives a simple PR-sized mainline event. Separate commits can preserve UI implementation and release preparation as distinct milestones.
+
+---
+
+## 344. The 2.35.2 candidate has two clear commits
+
+The UI tree 4d32a8c2 was followed by release preparation f6fcb4c2. This reveals the boundary between functionality and shipping metadata.
+
+---
+
+## 345. Choose according to mainline policy
+
+Squash is coherent when the repository wants one PR-sized logical unit on main.
+
+---
+
+## 346. Preserve the distinction if useful
+
+Merge or rebase-and-merge may retain multiple steps. Decide before other branches depend on the candidate hashes.
+
+---
+
+# Part XCI — Release plans and provenance records
+
+## 347. A future release-record improvement
+
+Store a concise release plan with candidate SHA, build commands, checks, package hashes, store status, and known limitations near the release.
+
+---
+
+# Part XCII — Direct inspection of Git objects
+
+## 348. Why inspect Git objects directly?
+
+This book used tree objects, commit parents, and exact SHA values to understand situations the simplified GitHub UI did not fully explain.
+
+---
+
+## 349. When low-level inspection is warranted
+
+Ancestry puzzles, unexpected ahead/behind counts, file-equivalent branches, and release provenance justify direct Git-object inspection.
+
+---
+
+## 350. Usually the CLI is enough
+
+git log, git status, git diff, git merge-base, and git cat-file explain most historical questions without custom scripts.
+
+---
+
+# Part XCIII — Choosing a Git recovery tool
+
+## 351. “I need to update my feature branch”
+
+First ask whether others depend on the existing commits. On a shared branch prefer merge or careful coordination; on a private branch rebase may be reasonable.
+
+---
+
+## 352. “The base was squash-merged”
+
+Check whether the downstream branch still contains the old unsquashed commits and whether they correspond to work now on main. Inspect content and ancestry before a blind merge.
+
+---
+
+## 353. “Main contains an accidental merge”
+
+Check whether other people or automation have seen it. On public history, prefer a deliberate revert or follow-up over silently force-resetting.
+
+| Situation | Primary tool |
+|---|---|
+| Feature branch behind main | Merge or rebase |
+| One isolated fix to transfer | Cherry-pick |
+| Undo a published commit safely | Revert |
+| Unexpected squashed ancestry | Inspect tree and merge base before reconciling |
+| Public tag points to wrong source | New corrective release according to policy |
+
+---
+
+# Part XCIV — Chapter glossary
+
+## 354. Blob
+
+An immutable Git object storing file bytes.
+
+---
+
+## 355. Tree
+
+An immutable object recording a directory structure and references to file or subtree objects.
+
+---
+
+## 356. Commit
+
+An immutable Git object identifying a tree, parent commits, author/committer metadata, and message.
+
+---
+
+## 357. Ref
+
+A named pointer to an object, commonly the head of a branch.
+
+---
+
+## 358. HEAD
+
+The special reference describing the current checkout's branch or detached commit.
+
+---
+
+## 359. Merge commit
+
+A commit with multiple parents recording integration of divergent lines.
+
+---
+
+## 360. Squash merge
+
+An integration that takes multiple changes and creates one new commit on the destination.
+
+---
+
+## 361. Rebase
+
+A process that replays or reconstructs commits on a new base, assigning new commit IDs.
+
+---
+
+## 362. Cherry-pick
+
+Apply a selected commit's change elsewhere in history through a new commit.
+
+---
+
+## 363. Revert
+
+Create a new commit applying the inverse of an earlier change without removing the original history.
+
+---
+
+## 364. Merge base
+
+A common ancestor used for graph comparison and merge computation.
+
+---
+
+## 365. Tree equality
+
+Two commits identify the exact same tracked-file snapshot despite differing parentage or metadata.
+
+---
+
+## 366. Artifact
+
+A packaged, distributable output generated from the repository.
+
+---
+
+## 367. Release provenance
+
+The traceable chain from source commit and builder to exact packages, hashes, and store release.
+
+---
+
+## 368. Release candidate
+
+A source state under final validation that may become the next published version.
+
+---
+
+## 369. Deterministic build
+
+A process that produces the same output for equivalent controlled inputs.
+
+---
+
+## 370. Deployment history
+
+The record of versions actually made available across deployment channels, distinct from source commits.
+
+---
+
+## 371. Roll-forward
+
+Publish a newer corrective version rather than attempting to replace existing installations with an older version.
+
+---
+
+## 372. Divergence
+
+Differences in branch ancestry, often reported as ahead/behind commit counts; not necessarily a difference in final files.
+
+---
+
+## 373. Stacked PR
+
+A pull request intentionally based on another feature branch or unmerged PR.
+
+---
+
+## 374. Force-with-lease
+
+A guarded forced ref update that rejects unexpected remote changes.
+
+---
+
+# Part XCV — Further reading
+
+## 375. Git object model
+
+Git's authoritative object and ref documentation explains blobs, trees, commits, tags, and named pointers.
+
+- https://git-scm.com/book/en/v2/Git-Internals-Git-Objects
+- https://git-scm.com/book/en/v2/Git-Internals-Git-References
+
+---
+
+## 376. Branches and merges
+
+The Git Book covers branching, merging, rebase, and common workflows.
+
+- https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
+- https://git-scm.com/book/en/v2/Git-Branching-Rebasing
+
+---
+
+## 377. GitHub pull requests
+
+GitHub documentation describes base/head comparisons, review, merge choices, and PR collaboration.
+
+- https://docs.github.com/en/pull-requests
+- https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges
+
+---
+
+## 378. Squash merges
+
+GitHub documentation explains configuring and performing squash integration.
+
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-squashing-for-pull-requests
+
+---
+
+## 379. Tags and GitHub Releases
+
+Git and GitHub document how tags anchor commits and Releases attach narrative metadata and assets.
+
+- https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
+- https://git-scm.com/book/en/v2/Git-Basics-Tagging
+
+---
+
+## 380. Semantic Versioning
+
+SemVer defines a widely used three-part versioning convention; its application to consumer-extension features requires product judgment.
+
+- https://semver.org/
+
+---
+
+# Part XCVI — Recap
+
+The decisive PlumePilot example is simple: **the same tree is not the same commit**. Git connects source snapshots to parent history and mutable references. GitHub adds pull requests, review, Draft state, and release pages. The release system adds browser builds, checksums, submissions, approvals, and publications.
+
+```text
+idea → branch → commit → tests → PR → candidate
+     ↓
+build → target artifact → merge/tag → GitHub Release
+     ↓
+browser store review → publication → user installation
+```
+
+The central lessons are that a branch is a pointer, not a container; a commit identifies a tree in a specific history; squash improves mainline simplicity but changes ancestry; conflict-free merges do not guarantee semantic correctness; and repository state is not itself the software a user installs.
+
+> **Release engineering makes reproducible not only the source code but the route by which that code becomes software installed by real people.**
+
+# Next chapter — 16: Architectural lessons
+
+After contexts, messaging, DOM, APIs, async behavior, caches, state machines, search, exports, the editor, UI, performance, cross-browser delivery, tests, and Git, we can now identify the patterns that repeatedly emerged in PlumePilot: boundaries, identity, sources of truth, anti-corruption layers, progressive refinement, safe failure, functional core and imperative shell, idempotence, graceful degradation, ownership, lifetime, observability, and artifacts.
+
+---
+
+[← 14 — Debugging, tests, and regressions](14-debugging-tests-and-regressions.md) · [Contents](index.md) · 16 — Architectural lessons (translation in progress)
