@@ -1073,3 +1073,595 @@ One might group domain, adapters, workflow coordination, presentation, build, an
 Introducing layers, protocols and frameworks solely to make diagrams tidy can add accidental complexity. The architecture must be justified by concrete maintenance or correctness benefits.
 
 ---
+
+# Part XXXVII — Architecture should earn its cost
+
+## 161. Architecture has a cost
+
+Every new abstraction adds files, contracts, integration work, tests and a concept to learn. The benefit must justify those continuing costs.
+
+---
+
+## 162. Abstract stable recurring relationships
+
+**Abstract when a relationship is demonstrated, stable and repeated—not merely when we can imagine that one day it might be.**
+
+---
+
+# Part XXXVIII — Essential and accidental complexity
+
+## 163. Essential complexity
+
+PlumePilot genuinely integrates three universities, changing LMS behavior, multiple browsers, long-running workflows, PDF/EPUB conversion and user-facing settings. These product demands cannot simply be erased.
+
+---
+
+## 164. Accidental complexity
+
+Unnecessary duplicate policies, scattered browser branches, implicit state, oversized globals, confusing ownership and brittle release steps are complexity introduced by our implementation choices.
+
+---
+
+## 165. Good architecture reduces the avoidable
+
+The objective is to reduce accidental complexity while honestly modeling the complexity the product necessarily contains.
+
+---
+
+# Part XXXIX — Cohesion and coupling
+
+## 166. What coupling means here
+
+Two components are coupled when changing one requires knowledge of internal details in the other. Coupling is not inherently bad, but avoid needless reliance on volatile internals.
+
+---
+
+## 167. Tight coupling to host DOM
+
+A function depending on a brittle nth-child selector or a specific accordion nesting is tightly coupled to the LMS's current HTML structure.
+
+---
+
+## 168. A DOM adapter reduces coupling
+
+Callers should request a conceptual operation such as “resolve current course sections,” leaving changing selectors and special layouts behind a limited adapter.
+
+---
+
+## 169. Cohesion means a reason to change
+
+A cohesive module groups logic that changes for one domain reason—for example, normalized sound preferences and their validation, rather than unrelated video, storage and typography concerns.
+
+---
+
+## 170. The large content.js module
+
+content.js has grown to serve many features. File length alone does not prove bad architecture, but many independent reasons to change one module suggest future seam extraction.
+
+---
+
+## 171. Length alone is not a useful verdict
+
+A long file can still be readable when its internal model is coherent and its responsibilities explicit.
+
+---
+
+## 172. Too many reasons to change
+
+If a file handles course DOM, video recovery, export orchestration, messaging and unrelated parsing, tests may need source slicing and many mocks. Those are clues that conceptual responsibilities already exist.
+
+---
+
+# Part XL — Tests and natural seams
+
+## 173. Tests reveal seams
+
+When testing one helper requires injecting dozens of globals, consider whether some pure decision or adapter boundary could be made explicit.
+
+---
+
+## 174. Pure functions are straightforward to test
+
+A transformation of explicit inputs into outputs needs neither a virtual DOM nor a running browser. The resulting test is fast and deterministic.
+
+---
+
+## 175. Do not refactor only for the test harness
+
+Treat test difficulty as evidence of coupling, not as a command to rearrange every functioning subsystem to fit one testing tool.
+
+---
+
+# Part XLI — Volatility-oriented boundaries
+
+## 176. What changes frequently?
+
+LMS response fields, DOM selectors, store policies, browser quirks, menu layout and rendering details can change independently and unpredictably.
+
+---
+
+## 177. What changes less often?
+
+Concepts such as identity, operation ownership, cancellation, course progress meaning and requirements for export fidelity generally evolve more slowly.
+
+---
+
+## 178. Design around volatility
+
+Place frequently changing details behind clear boundaries so the stable domain decisions do not depend directly on them.
+
+---
+
+## 179. Do not let the domain inherit irrelevant volatility
+
+A course-completion decision should consume a normalized status rather than parsing a CSS class whose name can change with the provider's redesign.
+
+---
+
+# Part XLII — Error modeling
+
+## 180. Errors are normal operating states
+
+Network failure, missing DOM, cancelled operations, incomplete API responses, throttled tabs and unsupported browser capabilities are normal integration conditions, not impossible anomalies.
+
+---
+
+## 181. Define an error taxonomy
+
+Distinguish transient network, invalid identity, incomplete evidence, stale generation, unsupported capability, cancelled work, invalid package and unexpected internal error.
+
+---
+
+## 182. Choose recovery from the category
+
+Temporary network may retry; absent DOM may wait; stale API may refresh; ambiguous identity should stop; cancellation should clean up; invalid release artifacts should fail the build.
+
+**Historical code or diagram:**
+
+```js
+catch { return null; }
+```
+
+---
+
+## 183. null is overloaded
+
+Returning null can mean “not found,” “not loaded,” “invalid input,” “cancelled,” or “ambiguous.” Callers may accidentally treat these states as identical.
+
+---
+
+## 184. Use explicit results when ambiguity grows
+
+A structured result with status and reason helps the caller choose appropriate recovery without guessing what null meant.
+
+**Historical code or diagram:**
+
+```js
+{ status: "target", ... }
+{ status: "end" }
+{ status: "cancelled" }
+{ status: "fallback" }
+```
+
+---
+
+## 185. Informal result types in JavaScript
+
+Even without TypeScript unions, a small status field can distinguish ok, unavailable, ambiguous, cancelled and error safely.
+
+---
+
+## 186. Booleans are too weak for operation lifecycle
+
+An operation can be accepted, pending, running, cancelling, completed, failed or aborted. One busy flag cannot communicate every transition.
+
+---
+
+## 187. Result objects convey semantics
+
+A shape such as { status: "ambiguous", reason: "duplicate display order", candidates: 2 } is more useful than false when the caller must decide whether to act.
+
+**Historical code or diagram:**
+
+```js
+{
+  accepted: false,
+  reason: "duplicate"
+}
+```
+
+---
+
+# Part XLIII — Explicit sequencing and state
+
+## 188. Order-sensitive functions
+
+Some helpers only work after initialization, a listener setup, or resource creation. Such ordering dependencies are real program contracts.
+
+---
+
+## 189. Formalize required ordering
+
+Express order through an explicit initialization function, returned controller, state machine transition or tested module-loading dependency rather than undocumented caller memory.
+
+---
+
+## 190. Globals create implicit coupling
+
+Global variables are convenient but can hide which functions depend on settings, DOM state, current operation and cancellation generation.
+
+---
+
+## 191. Group state by subsystem
+
+A future direction might create explicit state objects for playback, chapter discovery, UI preferences and exports with known owners and lifecycle policies.
+
+**Historical code or diagram:**
+
+```js
+playbackState
+exportState
+commissionState
+```
+
+---
+
+## 192. Use co-change as evidence
+
+Functions that always change together may belong behind one interface. Parts of the same large file that change for unrelated reasons may deserve separation.
+
+---
+
+# Part XLIV — Reading architecture from history
+
+## 193. Git history reveals coupling
+
+If every autoplay fix also requires changes to unrelated UI and export internals, the repository's change history is signaling high coupling.
+
+---
+
+## 194. Independent PRs suggest cohesive boundaries
+
+When targeted PRs consistently touch only relevant files, that is qualitative evidence that responsibilities have been separated usefully.
+
+---
+
+# Part XLV — Bugs expose assumptions
+
+## 195. Bugs expose hidden assumptions
+
+A regression often reveals an invariant the design did not model: a DOM node was assumed stable, a percentage authoritative, or a service worker permanent.
+
+---
+
+## 196. The regression pattern
+
+**Every important regression points to an architectural dimension we had not yet modeled explicitly.** Add the missing model, not only a local patch.
+
+---
+
+# Part XLVI — Constraints teach design
+
+## 197. Performance exposes ownership
+
+Excess EPUB memory consumption reveals that canvas lifetimes, buffer ownership, processing order and archive retention are architectural decisions.
+
+---
+
+## 198. Review constraints produced better boundaries
+
+Firefox AMO requirements encouraged pinned readable vendor inputs, deterministic transformations, exact-match guards and artifact checks.
+
+---
+
+## 199. Constraints can improve architecture
+
+Manifest V3, cross-browser differences and review policies forced the project to clarify runtime assumptions, least privilege and distribution provenance.
+
+---
+
+# Part XLVII — Trade-offs and reversibility
+
+## 200. Every choice trades resources
+
+A cache spends memory to save requests; a squash reduces mainline noise but loses commit-level ancestry; shared UI rules reduce drift but introduce a dependency. No design is free.
+
+---
+
+## 201. State what is being optimized
+
+A good decision names the protected property—correctness, memory peak, maintainability, reviewer reproducibility, or latency—and acknowledges its trade-off.
+
+---
+
+## 202. Some choices are easy to reverse
+
+Renaming a local CSS class or rearranging an internal helper may be inexpensive if its interface is private and well tested.
+
+---
+
+## 203. Other choices are expensive to reverse
+
+Extension identity, persisted schema, manifest permissions, public APIs, release tags, and cross-world protocols can become commitments to installed users and reviewers.
+
+---
+
+## 204. Spend design effort in proportion to reversibility
+
+Put more thought and tests around expensive, externally visible commitments than around easy local refactors.
+
+---
+
+## 205. Concurrency as an example
+
+Promise.all may improve wall time for small independent tasks but worsen peak RAM and server load when applied to hundreds of PDFs. A local optimization can damage system-level outcomes.
+
+---
+
+## 206. Architecture sees the whole system
+
+Evaluate performance, correctness and user control across all contexts, not just one function's microbenchmark.
+
+---
+
+# Part XLVIII — Human intent and automation
+
+## 207. Manual choice overrides autoplay continuation
+
+If a user selects a different lesson while autoplay awaits, the newer explicit action should invalidate the pending automatic continuation.
+
+---
+
+## 208. Bookmark versus automatic tests
+
+“Find first incomplete activity” is a navigation request, not permission to launch an unrelated auto-test workflow merely because auto-test is enabled elsewhere.
+
+---
+
+## 209. Human intent takes precedence
+
+**The user's most recent explicit intent should outrank previously scheduled automation.** This rule informs generation tokens, cancellation and interaction handoff.
+
+---
+
+## 210. PlumePilot is an assistant layer
+
+It supports the user's work on an existing LMS rather than taking unbounded autonomous control of the platform.
+
+---
+
+## 211. User control implications
+
+Provide clear start/stop controls, predictable manual overrides, visible active-operation state and safe cancellation where possible.
+
+---
+
+# Part XLIX — Risk-aware side effects
+
+## 212. More consequential effects require more evidence
+
+Reading a progress summary may tolerate uncertainty; navigating to another chapter requires stronger identity; submitting test responses requires even more deliberate authorization and correctness.
+
+---
+
+## 213. Risk-aware confidence thresholds
+
+The architecture should demand stronger evidence as the potential impact of a wrong side effect grows.
+
+```text
+consequence severity ↑  ⇒  required evidence confidence ↑
+```
+
+---
+
+## 214. A useful rule
+
+**Risk of action ↑ → required identity/evidence confidence ↑.** This is more helpful than one global confidence threshold for all automated steps.
+
+---
+
+# Part L — Architectural debugging vocabulary
+
+## 215. Start architectural debugging with a boundary
+
+After many chapters, the productive first question is often “Which boundary, identity, authority or lifetime assumption failed?” rather than “Which line is wrong?”
+
+---
+
+## 216. A post-await bug hypothesis
+
+If an issue occurs after await, inspect whether a user action, DOM rerender or operation switch made the earlier captured reference stale.
+
+---
+
+## 217. Say what failed
+
+“The current lesson identity was not revalidated after a suspended API request” is a much more useful diagnosis than “autoplay sometimes clicks wrong.”
+
+---
+
+## 218. Shared vocabulary shortens discussions
+
+Terms such as generation token, source of truth, fail closed, bounded cache, and adapter let contributors reason precisely about problems seen in different features.
+
+---
+
+# Part LI — Decision records
+
+## 219. Architecture Decision Records as a future option
+
+Small ADR files could capture decisions whose reasons would otherwise live in long chat histories or be reconstructed from commits.
+
+---
+
+## 220. What an ADR contains
+
+Document context, chosen decision, alternatives, consequences, supporting evidence and a date or status. Keep it concise and linked to relevant code.
+
+---
+
+## 221. Why ADRs help
+
+This architecture book already teaches past decisions; short ADRs near the repository could make operational trade-offs easier to retrieve during a future refactor.
+
+---
+
+## 222. Diagrams without “why” are fragile
+
+A diagram showing background → popup does not explain why background owns operation state or how lifecycle recovery works.
+
+---
+
+## 223. Useful architecture documentation
+
+Couple diagrams with identity, authority, ownership, and failure rationale. These explanatory contracts remain useful after file locations change.
+
+---
+
+# Part LII — Data-flow and control-flow maps
+
+## 224. A synthetic map
+
+Across PlumePilot we can distinguish data flow (where state and evidence move) from control flow (which component schedules and authorizes actions).
+
+**Historical code or diagram:**
+
+```mermaid
+flowchart TB
+    USER[Utente]
+    LMS[Multiversity UI]
+    API[Multiversity API]
+
+    MAIN[MAIN-world integration]
+    ISO[Isolated content / bridge]
+    BG[Background coordinator]
+    STORE[(chrome.storage.local)]
+    POP[Popup]
+    FLOAT[Floating menu]
+    BUILDERS[PDF / EPUB / Quiz builders]
+    RELEASE[Release compiler]
+
+    USER --> POP
+    USER --> FLOAT
+    USER --> LMS
+
+    LMS <--> MAIN
+    API <--> MAIN
+    MAIN <--> ISO
+    ISO <--> BG
+
+    BG <--> STORE
+    POP <--> STORE
+    FLOAT <--> STORE
+
+    BG --> BUILDERS
+    BUILDERS --> USER
+
+    RELEASE --> CHROME[Chrome artifact]
+    RELEASE --> EDGE[Edge artifact]
+    RELEASE --> FIREFOX[Firefox artifact]
+```
+
+---
+
+## 225. Progress and discovery flow
+
+LMS master/detail/DOM → normalization → candidate ordering → verification → chosen target or safe unresolved result.
+
+---
+
+## 226. Operation flow
+
+UI command → background coordination → runtime workers/builders → progress and cancellation → persisted operation snapshot → subscribed views.
+
+---
+
+## 227. Release flow
+
+Repository commit → target build rules → validated ZIP artifacts → GitHub release metadata → browser stores → installed users.
+
+---
+
+## 228. Data versus control flow
+
+Data flow describes how values travel or are transformed; control flow describes which actor decides that another action should happen.
+
+---
+
+## 229. The control actors
+
+Background orchestrates many global operations; MAIN/content coordinate playback and host-page effects; shared storage distributes state, not a command interpreter for every feature.
+
+---
+
+# Part LIII — Control-plane analogy
+
+## 230. Control-plane analogy
+
+The background operation coordinator resembles a lightweight control plane that schedules, supervises and reports jobs.
+
+---
+
+## 231. The data plane
+
+The content/MAIN and builder contexts perform concrete work against the LMS or document content. This is analogous to a data plane, although the separation is not absolute.
+
+---
+
+## 232. Do not overextend the analogy
+
+The boundaries overlap in places. The control/data-plane vocabulary helps explain ownership, not replace actual function-level documentation.
+
+---
+
+# Part LIV — Evolution without rewriting
+
+## 233. Current pressure points
+
+Large content.js responsibilities, source-sliced tests, cross-context state assumptions and richer UI synchronization show where further complexity may hurt maintainability.
+
+---
+
+## 234. No need for a big rewrite
+
+Pressure indicates where to pay attention during future changes, not a mandate to refactor all working features immediately.
+
+---
+
+## 235. Small safe evolutionary steps
+
+Extract pure logic, tighten identity contracts, isolate selectors, improve tests and enforce packaging invariants incrementally.
+
+---
+
+## 236. Preserve behavior at each step
+
+Write or strengthen regression coverage before moving a high-risk boundary. Refactoring is successful when behavior remains trustworthy.
+
+---
+
+# Part LV — Architectural fitness functions
+
+## 237. Architecture fitness functions
+
+An automated check that fails when an architectural invariant is violated—for example, a Firefox ZIP declares the wrong background model.
+
+---
+
+## 238. Existing examples
+
+Vendor checksum assertions, package validators, bounded cache tests and source loading-order tests already protect architecture in executable form.
+
+---
+
+## 239. Future fitness checks
+
+Possible checks include preventing dynamic code execution, enforcing operation visibility, ensuring proper source normalization or limiting unsafe dependencies. Add them only where their value exceeds upkeep.
+
+---
+
+## 240. Some architecture already lives in tests
+
+A test that a 100% master summary cannot permanently hide a pending activity is an executable statement about evidence hierarchy, not merely one algorithm example.
+
+---
