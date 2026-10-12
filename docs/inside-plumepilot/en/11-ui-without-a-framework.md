@@ -1511,3 +1511,416 @@ The shared model would determine which action is available, why it is disabled, 
 This is similar to the platform-specific DOM adapters from Chapter 03: **share the domain meaning; specialize the environment-dependent representation**.
 
 ---
+
+# Part XXVI — Real bugs as UI lessons
+
+## 79. Checkboxes with inconsistent colors
+
+The problem was that semantically equivalent checkboxes and radio controls displayed different accent colors. The fix should not be to patch one particular input in isolation.
+
+The shared CSS instead defines consistent roles and selectors based on `data-menu-size` and input type. The lesson is: **when several visual bugs share a cause, fix the shared role rather than each individual element**. Historical reference: `menu-ux.css:69+`.
+
+**Historical reference:** `menu-ux.css:69+`
+
+---
+
+## 80. Spacing before “Clear exam data”
+
+One item of feedback was simply that the text and the "Clear exam data" button were too close together.
+
+A local rule such as the selector below is sufficient here. Not every UI problem calls for a broad abstraction. The useful judgment is distinguishing a systemic inconsistency from a **legitimate local spacing rule**. Historical reference: `menu-ux.css:99`.
+
+**Historical code example:**
+
+```css
+[data-action="clear-commission-data"] {
+  margin-top: 12px;
+}
+```
+
+**Historical reference:** `menu-ux.css:99`
+
+---
+
+## 81. The narrow “Preferences” label
+
+Four navigation tabs, labels of different lengths, and a panel with a limited width created a layout constraint. The Italian word "Preferenze" was visibly cramped.
+
+The correct fix addresses how the tablist allocates space, not merely the typography of one word. This is why the four-column layout was revised rather than forcing every label into an equal-width slot regardless of its length.
+
+---
+
+## 82. Automatic expansion and scrolling
+
+This regression was a behavior problem, not primarily a CSS problem. A `<details>` panel could open successfully but still produce a poor experience if its newly revealed content remained outside the viewport.
+
+The distinction is simple: **DOM correctness is not identical to interaction correctness**. The relevant test must actually open a disclosure group and verify that its content becomes visible at the intended scroll position.
+
+---
+
+# Part XXVII — Redesign invariants
+
+## 83. Useful invariants
+
+The redesign can be summarized through seven properties:
+
+**I1 — Shared information architecture.** Popup and floating-menu destinations should correspond semantically.
+
+**I2 — Shared autoplay policy representation.** The two surfaces should use the same derived summaries and override explanations.
+
+**I3 — Shared action customization.** Both use `floatingMenuLayout` and the same normalization rules.
+
+**I4 — Active work remains controllable.** A running operation must retain a visible, reachable control and cancellation path when supported.
+
+**I5 — Different presentation does not mean different domain state.** Neither surface should become a competing source of truth.
+
+**I6 — Focus must remain predictable.** Opening a detail focuses its title; closing it returns focus to the opener.
+
+**I7 — The host page must not be disturbed.** Scrolling inside the floating menu must not unexpectedly scroll the LMS page.
+
+These invariants are more durable than a screenshot. They describe behavior that future refactors must preserve.
+
+---
+
+# Part XXVIII — An architectural reading
+
+## 84. Before the refactor
+
+Conceptually, the old architecture looked like two independent UI controllers:
+
+```text
+Popup controller ── UI rules A
+
+Floating controller ── UI rules B
+```
+
+Over time A and B grew similar but not necessarily identical. This is the kind of drift that occurs when the same capability is independently implemented across multiple surfaces.
+
+The problem was not that both had their own controllers. It was that important shared interpretations were duplicated.
+
+---
+
+## 85. After the refactor
+
+The new architecture inserts a thin shared presentation layer between application state and the two surfaces:
+
+```text
+           shared presentation
+           menu-ux.js / .css
+                │
+        ┌───────┴────────┐
+        │                │
+    popup.js      floating-menu.js
+        │                │
+        └───────┬────────┘
+                │
+      chrome.storage +
+       runtime/domain state
+```
+
+The shared layer does not become the owner of the entire application. It concentrates the knowledge that **must remain consistent**. Keeping it thin limits coupling and preserves the two existing lifecycles.
+
+---
+
+# Part XXIX — Trade-offs
+
+## 86. Advantages of the current solution
+
+The redesign adds no major runtime framework dependency and preserves a relatively simple store package. It is easy to audit, shares code only where helpful, retains existing controllers and storage schema, leaves playback behavior untouched, and fixes common CSS inconsistencies at the role level.
+
+Pure functions can be tested in Node and interaction behavior can be exercised in browser fixtures. These advantages matter because an extension must remain reliable across several browser stores and host platforms.
+
+---
+
+## 87. Costs
+
+The code still contains some duplicated markup and many DOM queries. Rendering remains manual, state drift remains possible, some legacy CSS survives, controller functions can be large, accessibility requires explicit behavior, and each new UI feature must be integrated into two surfaces.
+
+These are real trade-offs. Sharing presentation helpers reduces maintenance risk; it does not erase every cost of working without a declarative framework.
+
+---
+
+## 88. Why the refactor did not change the autoplay engine
+
+The 2.35.2 feature documentation explicitly excludes changes to the **playback algorithm, persistent schema version, and permissions**.
+
+That is a deliberate form of **scope control**. Redesigning popup and floating-menu behavior is already a significant change. Altering autoplay's core logic at the same time would increase the number of possible causes for every new regression.
+
+Historical reference: `docs/features/menu-ux-2.35.2.md:38`.
+
+**Historical reference:** `docs/features/menu-ux-2.35.2.md:38`
+
+---
+
+# Part XXX — Scope control as engineering
+
+## 89. A horizontal refactor
+
+Version 2.35.2 touches popup, floating menu, stylesheets, layout persistence, focus, scrolling, and browser tests while trying to preserve domain behavior.
+
+This can be called a **horizontal refactor**: the same underlying capabilities are presented through a more consistent interface across multiple surfaces.
+
+The scope is broad in presentation but intentionally narrow in business logic.
+
+---
+
+## 90. Why scope control helps debugging
+
+Suppose autoplay unexpectedly skips a lesson after a UI refactor. The first question is whether the playback algorithm was changed.
+
+If it was not, the investigation can focus on how preferences are displayed, written, synchronized, and forwarded to the runtime. The likely problem space is narrower: state propagation, effective policy, or presentation wiring.
+
+Separating the scope of changes reduces **diagnostic uncertainty** and makes regressions easier to isolate.
+
+---
+
+# Part XXXI — What frameworks teach us
+
+## 91. Frameworks mainly reduce coordination cost
+
+Much of the work in this code is not the difficult act of setting a CSS color. It is coordinating state changes, rerenders, lifecycles, focus, accessibility, and multiple UI surfaces.
+
+Frameworks provide conventions and tooling for this **coordination cost**. Their value is greater when there are enough interdependent UI components to make manual synchronization increasingly expensive.
+
+Understanding the underlying problem is more important than assuming one library is inherently right.
+
+---
+
+## 92. Vanilla does not mean “without architecture”
+
+A vanilla JavaScript UI can be carefully structured using shared view models, stable DOM protocols, explicit state ownership, rendering boundaries, subscriptions, lifecycle cleanup, design tokens, accessibility invariants, and tests.
+
+The defining engineering question is not "React or no React?" It is **which component owns each responsibility, and how do the boundaries stay coherent?**
+
+---
+
+# Part XXXII — Concepts to carry forward
+
+## 93. Presentation layer
+
+The layer that transforms application state into a displayable representation without becoming the owner of the domain itself.
+
+For this redesign, `menu-ux.js` and `menu-ux.css` are intentionally small shared presentation mechanisms.
+
+---
+
+## 94. Derived state
+
+Information calculated from other state rather than stored independently. For example, an autoplay summary is derived from saved preferences and effective policy; it need not become its own persistent source of truth.
+
+---
+
+## 95. View model
+
+A structure prepared for UI rendering, such as the `autoplayPresentation()` result containing `summary`, `testOverride`, and `stopHint`.
+
+A view model describes what the UI needs to present; it need not own the workflow that produced the underlying state.
+
+**Historical code example:**
+
+```js
+{
+  summary,
+  testOverride,
+  stopHint,
+}
+```
+
+---
+
+## 96. Progressive disclosure
+
+An information-design strategy that shows important actions immediately while exposing less frequently used details or configuration through explicit secondary interactions.
+
+The redesigned Course view keeps primary actions accessible while opening autoplay configuration as a detail view.
+
+---
+
+## 97. Roving tabindex
+
+An accessibility pattern in which one item in a group has `tabIndex=0` and the others use `-1`. Keyboard directional keys move among those items without adding every item to the normal Tab sequence.
+
+---
+
+## 98. Focus restoration
+
+Deliberately returning keyboard focus to the control that opened a dialog, panel, or detail view when that view closes. It helps users retain interaction context and navigation predictability.
+
+---
+
+## 99. UI invariant
+
+A property that must remain true regardless of preferences, selected tabs, or interaction order. For example: **an active operation must retain a reachable cancellation/control path**.
+
+UI invariants can be tested just as domain invariants can.
+
+---
+
+## 100. Design token
+
+A shared semantic value for visual presentation, including colors, typography, sizes, and spacing. CSS custom properties allow one token to be used across many selectors and surfaces.
+
+---
+
+## 101. DOM protocol
+
+A convention of structure and attributes connecting markup to behavior across components. Here, `data-ux-*` and `data-menu-*` provide shared semantic hooks that do not require identical HTML trees.
+
+---
+
+## 102. Reactive synchronization
+
+A pattern where updates to a shared source generate notifications and cause targeted updates in interested views. In PlumePilot, `chrome.storage.onChanged` and surface-specific render functions play those roles.
+
+---
+
+## 103. Constrained customization
+
+User-configurable presentation within product-defined invariants. For example, actions can be reordered inside a semantic group, but the user cannot destroy the grouping hierarchy or make the controls for active work unreachable.
+
+---
+
+# Part XXXIII — Exercises
+
+## 104. Exercise — Source of truth
+
+Imagine a popup storing `let enabled = checkbox.checked` but never subscribing to `chrome.storage.onChanged`. The floating menu then changes `enabled`.
+
+Which UI is stale? Where is the authoritative preference? How would you fix the synchronization and initial hydration paths?
+
+Explain why simply reading the checkbox again would not be sufficient in every case.
+
+**Historical code example:**
+
+```js
+let enabled = checkbox.checked;
+```
+
+---
+
+## 105. Exercise — Derived state
+
+Given a saved policy with `testBehavior: "stop"`, `limitEnabled: true`, `stopAt70: true`, and `thresholdBypassed: false`, derive the effective test behavior, summary text, and override warning **before** consulting `autoplayPresentation()`.
+
+The exercise tests the distinction between stored intent and effective state.
+
+**Historical code example:**
+
+```js
+{
+  testBehavior: "stop",
+  limitEnabled: true,
+  stopAt70: true,
+  thresholdBypassed: false,
+}
+```
+
+---
+
+## 106. Exercise — Focus
+
+Imagine a layout editor that rebuilds rows with `list.replaceChildren(...newRows)` without preserving the previously focused control.
+
+Using only a keyboard, activate the "Move down" button. What happens to focus after the row replacement? How would you recover the equivalent button without holding a stale DOM reference?
+
+**Historical code example:**
+
+```js
+list.replaceChildren(...newRows);
+```
+
+---
+
+## 107. Exercise — Invariant
+
+The user has hidden "Complete all tests", but a Turbo Test operation is running.
+
+Design two possible UI behaviors. Which one better preserves visibility, cancellation, and control of the active operation, and why?
+
+---
+
+## 108. Exercise — Shadow DOM
+
+Explain why `menu-ux.css` can be included directly from the extension popup, yet the floating menu needs an extension URL accessible inside the injected ShadowRoot.
+
+How do `chrome.runtime.getURL()` and the manifest's resource declarations fit into the loading path?
+
+---
+
+## 109. Exercise — Framework
+
+Mentally rewrite `renderSettings()` as a React or Vue component. Which responsibilities become easier to express?
+
+Then list the chapter's problems that the framework **would not solve automatically**: storage ownership, operational policy, browser execution contexts, keyboard behavior, focus, and host-page isolation.
+
+---
+
+# Part XXXIV — Further reading
+
+## 110. Shadow DOM
+
+MDN primary references:
+
+- [`Element.attachShadow()`](https://developer.mozilla.org/en-US/docs/Web/API/Element/attachShadow)
+- [`ShadowRoot.mode`](https://developer.mozilla.org/en-US/docs/Web/API/ShadowRoot/mode)
+
+Review the distinctions between open/closed mode and the encapsulation provided by a shadow tree.
+
+---
+
+## 111. ARIA Tabs Pattern
+
+The [W3C WAI-ARIA Tabs Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) describes appropriate structure, keyboard behavior, and tab/panel relationships.
+
+Pay particular attention to `ArrowLeft`, `ArrowRight`, `Home`, and `End`. Declaring the role alone does not provide this navigation.
+
+---
+
+## 112. CSS Font Loading API
+
+Relevant MDN resources:
+
+- [`FontFace`](https://developer.mozilla.org/en-US/docs/Web/API/FontFace)
+- [`Document.fonts`](https://developer.mozilla.org/en-US/docs/Web/API/Document/fonts)
+
+These explain how a loaded font can be registered with a document's font set, as in PlumePilot's Gaming theme helper.
+
+---
+
+## 113. Extension storage events
+
+The [Chrome Extensions Storage API](https://developer.chrome.com/docs/extensions/reference/api/storage) documents `chrome.storage.local` and `chrome.storage.onChanged`.
+
+The change event is the central synchronization mechanism between popup and floating menu; each surface remains independent while reflecting one persisted set of preferences.
+
+---
+
+# Part XXXV — Summary
+
+Version 2.35.2 shows that a UI refactor is not merely new colors, new cards, or more generous spacing. The hard part is realigning information architecture, state interpretation, navigation, focus, persistence, safety invariants, shared style roles, and cross-surface behavior.
+
+Before the refactor, popup and floating menu had independently evolved rules. After the refactor, each retains its own controller but consumes shared presentation semantics:
+
+```text
+shared state
+     ↓
+separate controllers
+     ↓
+shared presentation rules
+     ↓
+two coordinated surfaces
+```
+
+The most important decision was not simply to use vanilla JavaScript. It was:
+
+> **Share the knowledge that must remain consistent, while keeping separate those responsibilities that genuinely belong to different runtimes.**
+
+This principle extends beyond PlumePilot: web and mobile clients, admin and user interfaces, CLI and GUI, popup and embedded panels, or server and client renderers can all benefit from it.
+
+## Toward Chapter 12 — Performance and memory
+
+We will now examine DOM scans, API pacing, caches, canvases, PDF.js, Blobs, workers, batch operations, MutationObservers, and memory pressure as a **resource-budget problem**, not a list of isolated micro-optimizations.
+
+---
+
+[← 10 — A small rich-text editor](10-small-rich-text-editor.md) · [Contents](index.md) · 12 — Performance and memory (translation in progress)
