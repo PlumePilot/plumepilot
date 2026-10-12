@@ -7,6 +7,7 @@ title: PlumePilot
 
 Assistente indipendente e open source per Pegaso, Mercatorum e San Raffaele.
 
+- [Inside PlumePilot — Anatomia di una browser extension reale](inside-plumepilot/)
 - [Domande frequenti e messaggi di PlumePilot](faq/)
 - [Informativa sulla privacy](privacy/) · [Privacy policy (English)](privacy/en/)
 - [Repository e codice sorgente](https://github.com/PlumePilot/plumepilot)
