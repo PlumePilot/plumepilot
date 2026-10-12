@@ -1388,11 +1388,11 @@ Consider a canvas of **2400 × 3000 pixels** using 8-bit RGBA. Calculate the pix
 
 ### Exercise 2 — Serial versus parallel
 
-You have eight PDFs to convert. Each operation requires about **70 MB peak working set** and **3 seconds** of mixed CPU/I/O work. Compare sequential conversion, §Promise.all§ for all eight, a pool of two, and a pool of four. Which approach would you choose on an average laptop, and why?
+You have eight PDFs to convert. Each operation requires about **70 MB peak working set** and **3 seconds** of mixed CPU/I/O work. Compare sequential conversion, `Promise.all` for all eight, a pool of two, and a pool of four. Which approach would you choose on an average laptop, and why?
 
 ### Exercise 3 — Observer coalescing
 
-Given the original observer below, design a version that calls §scan()§ at most once per task or frame while still detecting newly inserted §<video>§ elements:
+Given the original observer below, design a version that calls `scan()` at most once per task or frame while still detecting newly inserted `<video>` elements:
 
 ```js
 new MutationObserver(scan).observe(document.documentElement, {
@@ -1403,7 +1403,7 @@ new MutationObserver(scan).observe(document.documentElement, {
 
 ### Exercise 4 — Cache bounds
 
-Turn §const cache = new Map()§ into a collection with a maximum of 100 entries. Explain how **FIFO**, **LRU**, and **TTL** differ. Does a TTL automatically limit the number of retained keys?
+Turn `const cache = new Map()` into a collection with a maximum of 100 entries. Explain how **FIFO**, **LRU**, and **TTL** differ. Does a TTL automatically limit the number of retained keys?
 
 ### Exercise 5 — Measurement plan
 
@@ -1411,7 +1411,7 @@ Write a benchmark protocol to prove a new EPUB implementation uses less RAM. Spe
 
 ### Exercise 6 — Offline quiz HTML
 
-A nested §Promise.all()§ loads too many images at once. Sketch the state and behavior of §mapWithConcurrency(items, 4, mapper)§ without needing to implement it fully. What state must the pool retain?
+A nested `Promise.all()` loads too many images at once. Sketch the state and behavior of `mapWithConcurrency(items, 4, mapper)` without needing to implement it fully. What state must the pool retain?
 
 ### Exercise 7 — Fast paths
 
