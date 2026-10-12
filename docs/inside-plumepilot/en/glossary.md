@@ -453,3 +453,153 @@ The sequence of editorial actions allowing changes to be undone and redone. Nati
 
 ## Transaction model
 Representing an edit as an atomic operation on a document model, with prior state, transformation and resulting state; common in more structured rich-text editors.
+
+## Document model
+A UI-independent logical representation of rich content comprising blocks, text, marks and attributes. In advanced editors, the DOM can be a projection of this model rather than the model itself.
+
+## Editing normalization loop
+The pattern `inspect → mutate → inspect/normalize` when a browser editing command produces valid DOM that does not satisfy the application's semantic rules.
+
+## Presentation layer
+A layer translating application state and rules into UI-ready information without owning the domain. PlumePilot's `menu-ux.js` shares presentation rules while individual controllers retain storage and operation responsibilities.
+
+## Derived state
+Information calculated from other state instead of persisted independently. The autoplay summary derives from skip-completed settings, test behavior, chapter limits and the 70% threshold.
+
+## View model
+Data prepared for a particular view, reducing rules the renderer must reconstruct and forming a possible boundary between domain and presentation.
+
+## Progressive disclosure
+An interaction pattern keeping frequent actions immediately visible while placing secondary details and configuration behind explicit navigation or expansion.
+
+## Roving tabindex
+Focus management where one item in a group has `tabIndex=0` and the others `-1`, with arrow keys handling internal navigation. Common in accessible tablists.
+
+## Focus restoration
+Deliberately returning focus to the opener when a view, dialog or panel closes, preserving predictable keyboard navigation.
+
+## UI invariant
+A property that must remain true across rendering and preferences; for example, a running operation must retain a reachable cancellation control.
+
+## Design token
+A shared semantic value for color, size, spacing, typography or another visual role. CSS properties `--ux-*` allow matching role scales across popup and floating menu.
+
+## DOM protocol
+A stable convention of attributes, roles or structure connecting markup to behavior across renderers. The `data-ux-*` and `data-menu-*` attributes form a small internal protocol in version 2.35.2.
+
+## Reactive synchronization
+Changes in a shared source trigger notifications and targeted view updates. PlumePilot uses `chrome.storage.onChanged` to coordinate popup and floating menu without direct messaging between them.
+
+## Constrained customization
+Customization subject to product invariants. Users may reorder and show/hide actions within semantic groups without erasing the group hierarchy or active-work cancellation route.
+
+## Shadow DOM
+An encapsulated DOM subtree attached to a host. It isolates mainly structure and styles from the surrounding document; it is not a security sandbox. PlumePilot's floating panel uses a closed `ShadowRoot`.
+
+## Hot path
+An execution path called frequently or responsible for a large share of total cost, established through measurement rather than intuition alone.
+
+## Fast path
+An optimized route for common or easily identified cases that avoids more expensive operations. Text reflow is an EPUB fast path compared with visual rendering.
+
+## Slow path
+A more expensive route used when a fast path cannot ensure sufficient correctness or quality, such as visual fallback, retry or detailed verification.
+
+## Coalescing
+Combining nearby signals into fewer processing steps. Several DOM mutations might require only one later rescan.
+
+## In-flight deduplication
+Sharing one pending asynchronous operation among equivalent consumers. Caching a Promise lets simultaneous requests for the same resource use one fetch.
+
+## Bounded growth
+A data structure with an explicit or context-lifetime limit on retained entries or total volume, preventing unbounded accumulation.
+
+## Admission control
+Deciding whether and how to start an expensive operation before allocating resources. `visualRenderScale()` caps canvas dimensions and pixels before rasterization.
+
+## Data locality
+Keeping state and caches close to the component consuming and owning them to reduce transfers and ambiguous ownership across contexts.
+
+## Cancellation latency
+Elapsed time between requesting cancellation and the expensive work actually stopping. It depends on cancellation-point frequency and whether lower-level operations support aborting.
+
+## Cost-based optimization
+Ordering operations by real-world cost rather than only iteration count. Prioritizing likely incomplete chapters saves detail calls and DOM transitions while asymptotic complexity may remain linear.
+
+## Resource invariant
+A testable lifetime property, such as shrinking a temporary canvas after encoding or keeping a cache below its configured limit.
+
+## Working-set control
+Limiting how many memory-intensive resources remain live at the same time. Sequential EPUB conversion trades concurrency for a lower memory peak.
+
+## Perceived latency
+How long a task seems to take, influenced by progress, responsiveness, feedback and cancellation as well as elapsed wall time.
+
+## Runtime compatibility
+Ability of code to run correctly under a browser engine and its available APIs, distinct from whether a package can be distributed through its store.
+
+## Distribution compatibility
+Compliance of a packaged artifact with the target store's manifest, metadata, localization, packaging and submission requirements.
+
+## Manifest compatibility
+Validity of `manifest.json` under a target's extension model, such as Chromium's `background.service_worker` versus PlumePilot Firefox's `background.scripts`.
+
+## Policy compatibility
+Compliance with a store's review and distribution policies. A program can run correctly and still fail policy review.
+
+## Build-time specialization
+Generating different artifacts from one source tree by resolving known manifest, permission, locale or runtime-adapter differences during the build.
+
+## Capability detection
+Checking the existence of a specific feature, such as `chrome.offscreen?.createDocument`, instead of inferring support from a browser's brand or user-agent string.
+
+## Compatibility adapter
+A component translating one domain capability into APIs or mechanisms available in a particular environment without exposing those differences to callers.
+
+## Semantic parity
+Equivalent observable behavior across targets even when internal implementations differ. Chrome may use offscreen audio while Firefox uses a content tab with the same sound-notification semantics.
+
+## Divergence budget
+The maintenance cost of browser-specific differences. Every specialized branch or artifact expands the test, comprehension and release matrix.
+
+## Deterministic build
+A build producing identical output for the same inputs and controlled environment. Fixed ZIP timestamps and stable entry ordering reduce nondeterminism.
+
+## Reproducible build
+A build an independent party can recreate from declared source and compare against the distributed output.
+
+## Fail-closed transformation
+A build transformation stopping if expected preconditions fail instead of applying a partial or ambiguous patch. `replaceExactly()` requires the upstream substring to occur exactly once.
+
+## Source submission
+An archive of readable sources, dependencies and build instructions for reviewers to reproduce and examine a generated runtime artifact.
+
+## Artifact test
+A test of the final distribution output, checking manifests, included files, checksums, permissions and packaging invariants that source tests alone cannot cover.
+
+## Supply-chain provenance
+Information tracing the origin, version, checksum and transformations of a dependency or release artifact.
+
+## Checksum pinning
+Associating an expected file with a known cryptographic digest to detect accidental or unexpected byte-level changes.
+
+## Artifact identity
+The exact-byte identity of a distributable output, usually represented by a checksum. It differs from source commit identity and human product version; one commit can generate several browser-specific artifacts.
+
+## Release matrix
+A table specifying which features, manifests, adapters, packages and checks must hold for each supported target.
+
+## Polyfill
+A substitute for a missing API attempting to reproduce its interface and semantics; unlike a fallback that achieves the goal through a different mechanism.
+
+## Fallback adapter
+An alternative mechanism used when the preferred capability is unavailable, preserving domain behavior as far as possible.
+
+## Release compiler
+A conceptual model of build tooling translating one common source tree into target-specific forms, analogous to compiler lowering and code generation.
+
+## Executable invariant
+An architectural rule expressed in a validator or test instead of left as informal knowledge. Example: a Firefox package must not include the `offscreen` permission.
+
+## Regression test
+A test preventing the recurrence of an observed bug. Ideally it asserts the violated property rather than only the accidental steps that exposed the symptom.
