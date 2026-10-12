@@ -1486,3 +1486,768 @@ notes Map
 The `Map` becomes the persistable representation. The live editor DOM can be destroyed and recreated during `render()`.
 
 ---
+
+
+## 40. Rerendering and reconstruction
+
+A quiz may be rerendered when the user changes chapters, filters, question order, or resets a view.
+
+The container is replaced:
+
+```js
+container.replaceChildren();
+```
+
+Then each editor is recreated.
+
+Saved content is restored with:
+
+```js
+if (saved[field + "Html"]) {
+  editor.innerHTML = cleanHtml(saved[field + "Html"]);
+} else {
+  editor.textContent = saved[field] || "";
+}
+```
+
+Thus:
+
+```text
+current DOM
+≠
+permanent source of truth for notes
+```
+
+The `notes Map` is closer to a domain data model. The DOM is an editable view of that model.
+
+### Backend analogy
+
+```text
+View Model / DOM
+      ↓
+change event
+      ↓
+application state
+      ↓
+rerender
+```
+
+even though this application does not use React, Vue, or a reactive UI framework.
+
+---
+
+# Part XII — Saving annotated HTML
+
+## 41. The file itself becomes the state container
+
+The offline quiz does not need an external database.
+
+When the user selects **Download HTML with notes**, PlumePilot clones the document:
+
+```js
+const clone = document.documentElement.cloneNode(true);
+```
+
+It serializes the `notes Map`:
+
+```js
+Object.fromEntries(notes)
+```
+
+encodes it, and places it inside:
+
+```html
+<script id="notes-data" type="application/octet-stream">...</script>
+```
+
+Then it saves the entire HTML file.
+
+Historical reference:
+
+```text
+offline-quiz-runtime.js:689–705
+```
+
+The file now simultaneously contains:
+
+```text
+UI
+JavaScript runtime
+quiz data
+offline images
+notes
+review statuses
+```
+
+It is a small **self-contained application snapshot**.
+
+---
+
+## 42. Why encode the notes?
+
+The runtime uses `TextEncoder`, `TextDecoder`, `btoa()`, and `atob()` to convert JSON into a textual payload that can safely be embedded in the data element.
+
+Conceptually:
+
+```text
+Map
+ ↓ Object.fromEntries
+Object
+ ↓ JSON.stringify
+JSON UTF-8
+ ↓ Base64
+textual payload
+```
+
+On load, the process is reversed.
+
+This is **not encryption**. It is encoding.
+
+The goal is to embed the payload without mixing its contents directly into executable script or arbitrary HTML markup.
+
+---
+
+# Part XIII — Question status is not note formatting
+
+## 43. Two separate models
+
+Each question can also have a personal review status:
+
+```text
+🟢 Verified
+🟡 Needs review
+🔴 To be verified
+```
+
+This state is not represented as a color *inside* the note editor.
+
+It lives in:
+
+```js
+note.status
+```
+
+The runtime can filter questions without parsing or interpreting their note HTML.
+
+This is good semantic separation:
+
+```text
+note content
+→ controlled HTML
+
+study workflow
+→ status enum
+```
+
+If we encoded review status only through visual classes or text colors, filtering would be much more fragile.
+
+---
+
+# Part XIV — The editor as a state machine
+
+## 44. Chapter 07 returns
+
+Even this small editor can be understood as a state machine.
+
+Not necessarily a formally declared FSM, but an interaction of several state properties:
+
+```text
+activeField
+selection collapsed / expanded
+current formatting
+current block type
+current list type
+callout kind
+highlight ancestry
+focus state
+```
+
+Events include:
+
+```text
+FOCUS
+KEYDOWN
+INPUT
+MOUSEUP
+MOUSEDOWN TOOLBAR
+CLICK TOOLBAR
+PASTE
+CLICK CHECKLIST
+```
+
+Guards include:
+
+```text
+Does the selection belong to the editor?
+Is the selection collapsed?
+Does the range span several blocks?
+Are we inside a checklist?
+Are we inside a callout?
+Is the caret at the end of a callout?
+```
+
+Actions include:
+
+```text
+execCommand
+extractContents
+insertNode
+split list
+create block
+move caret
+saveNote
+sanitize
+```
+
+A conceptual machine might be:
+
+```text
+EDITOR_IDLE
+   ↓ focus
+EDITOR_ACTIVE
+   ├── select text
+   │      ↓
+   │   RANGE_SELECTED
+   │      ↓ toolbar
+   │   FORMAT_SELECTION
+   │
+   ├── caret in callout + Enter at end
+   │      ↓
+   │   EXIT_CALLOUT
+   │
+   ├── caret in highlight + Escape
+   │      ↓
+   │   SPLIT_HIGHLIGHT
+   │
+   └── input
+          ↓
+       SANITIZE_AND_SAVE
+```
+
+State-machine reasoning is not specific to autoplay. It is a general technique for understanding interactive systems.
+
+---
+
+# Part XV — A bug as an invariant violation
+
+## 45. Useful editor invariants
+
+We can define properties that should always remain true.
+
+### Invariant 1 — The toolbar affects only the active editor
+
+```text
+selectedRange ∈ activeField
+```
+
+### Invariant 2 — Saved markup belongs to the allowed vocabulary
+
+```text
+saved HTML ⊆ allowed editor schema
+```
+
+### Invariant 3 — A normal bullet list does not inherit checklist semantics
+
+Leaving a checklist should not cause a later ordinary list to acquire `.checklist` accidentally.
+
+### Invariant 4 — Empty callout selection is not arbitrary block selection
+
+A collapsed selection must not cause an unrelated preceding block to be transformed.
+
+### Invariant 5 — Ending formatting really ends it
+
+After Escape, subsequent typing should not unintentionally inherit the formatting the user just exited.
+
+### Invariant 6 — Structural transformations preserve a valid caret
+
+After modifying the tree, the caret should occupy a predictable, valid position.
+
+This perspective makes editor bugs easier to classify. Instead of simply saying "the list behaves badly," we can identify **a violation of list-type separation**.
+
+---
+
+# Part XVI — Undo/redo and editing transactions
+
+## 46. Why undo is difficult
+
+A user expects:
+
+```text
+type
+→ format
+→ insert list
+→ change highlight
+→ Ctrl+Z
+```
+
+to reverse coherent actions.
+
+With `execCommand()`, the browser maintains part of its own undo history.
+
+But custom operations such as:
+
+```js
+extractContents()
+insertNode()
+replaceWith()
+appendChild()
+```
+
+are not necessarily integrated into that history in the same way across browsers.
+
+This is a central problem of hybrid rich-text editors. They combine:
+
+```text
+browser editing history
+        +
+custom DOM mutations
+```
+
+which do not always share one definition of an **editing transaction**.
+
+---
+
+## 47. What a more formal editor might look like
+
+A larger editor might own a transaction model:
+
+```text
+before state
+    ↓
+operation
+    ↓
+normalized document
+    ↓
+transaction record
+    ↓
+after state
+```
+
+For example:
+
+```js
+{
+  type: "SET_HIGHLIGHT",
+  range: ...,
+  color: "yellow"
+}
+```
+
+Or it could use a document model independent of the DOM:
+
+```text
+Document Model
+     ↓
+DOM render
+```
+
+rather than treating the DOM as model, view, and editing engine at the same time.
+
+That is the direction taken by professional rich-text editors, but it costs far more than PlumePilot's requirements justify.
+
+---
+
+# Part XVII — `beforeinput` as a possible evolution
+
+## 48. Observe intent before mutation
+
+Modern Web APIs expose:
+
+```text
+beforeinput
+```
+
+which fires before many changes are applied to an editable host.
+
+A more structured editor can use it to inspect editing intentions such as:
+
+```text
+insertText
+insertParagraph
+formatBold
+historyUndo
+...
+```
+
+before the DOM is mutated.
+
+A possible future architecture might use:
+
+```text
+beforeinput
++ Selection / Range
++ DOM normalization
++ transaction layer
+```
+
+to reduce dependence on `execCommand()`.
+
+But this would not be a one-to-one replacement. `execCommand("bold")` encapsulates many editing details that a custom implementation would need to handle.
+
+---
+
+# Part XVIII — Minimal editor versus editor framework
+
+## 49. When should we stop building it ourselves?
+
+The current scope is modest:
+
+```text
+two small fields per question
+limited formatting vocabulary
+offline file
+no collaborative editing
+no long multiuser document
+no plugin ecosystem
+```
+
+A custom minimal editor is defensible here.
+
+But consider adding:
+
+```text
+editable tables
+complex links
+drag-and-drop images
+nested callouts
+arbitrary indentation
+robust cross-browser undo history
+collaboration
+multiuser comments
+versioned document schema
+```
+
+Complexity would quickly rise.
+
+At that point an established editor framework with its own document model and transaction system might make sense.
+
+The lesson is not "avoid libraries." It is:
+
+> **Choose an infrastructure level proportional to the editor's semantic complexity.**
+
+---
+
+# Part XIX — Testing a rich-text editor
+
+## 50. Testing the visual result alone is insufficient
+
+Two DOM trees can appear identical but behave differently when the user types next.
+
+For example:
+
+```html
+<span class="highlight">abc|</span>
+```
+
+may look the same as:
+
+```html
+<span class="highlight">abc</span>|
+```
+
+But the next character:
+
+```text
+x
+```
+
+may remain highlighted in the first case and unhighlighted in the second.
+
+Therefore the test target is:
+
+```text
+DOM
++
+Selection
++
+next user action
+```
+
+---
+
+## 51. A useful test matrix
+
+### Inline formatting
+
+```text
+single-node selection
+selection with bold already applied
+collapsed selection
+Escape after bold
+Escape after superscript
+Escape after subscript
+```
+
+### Highlighting
+
+```text
+plain → yellow
+yellow → blue on the entire wrapper
+yellow → blue on a partial selection
+Escape in the middle
+Escape at the end
+cross-block selection → no transformation
+```
+
+### Checklists
+
+```text
+new checklist
+check/uncheck an item
+checklist → bullet
+checklist → numbered
+exit list → new bullet
+split with preceding items
+split with following items
+split with both
+```
+
+### Callouts
+
+```text
+selection → callout
+collapsed caret → new callout
+same kind → remove
+kind A → kind B
+Enter in the middle
+Enter at the end
+```
+
+### Persistence
+
+```text
+type → change chapter → return
+type → filter → return
+download annotated HTML → reopen
+legacy markup → cleanHtml
+paste rich text → plain text
+```
+
+### Cross-browser
+
+```text
+Chrome
+Edge
+Firefox
+```
+
+With legacy commands especially, we should not assume identical behavior across browsers.
+
+---
+
+# Part XX — Property-based thinking
+
+## 52. Test properties, not only examples
+
+Many editor rules can be formulated as properties.
+
+For example:
+
+```text
+After cleanHtml():
+no disallowed tag may remain.
+```
+
+Or:
+
+```text
+After wrapSelection():
+the total visible text should be unchanged.
+```
+
+Or:
+
+```text
+After recoloring a subsection:
+unnecessary identically nested highlights must not remain.
+```
+
+Or:
+
+```text
+After splitChecklist():
+textual item order must remain unchanged.
+```
+
+These properties often catch more problems than a single test based on exact DOM coordinates.
+
+---
+
+# Part XXI — A schema for the notes format
+
+## 53. HTML is also a data format
+
+The sanitizer reveals an implicit schema:
+
+```text
+NoteDocument
+├── inline
+│   ├── B / STRONG
+│   ├── I / EM
+│   ├── U
+│   ├── S
+│   ├── SUP
+│   ├── SUB
+│   └── SPAN
+│       ├── highlight[data-color]
+│       └── study-mask
+│
+├── block
+│   ├── DIV
+│   │   └── callout[data-kind]
+│   └── P
+│
+└── list
+    ├── UL
+    │   └── checklist?
+    ├── OL
+    └── LI
+        └── checked?
+```
+
+Even without an explicit JSON Schema, the editor already has a **document schema**. That becomes useful when planning future migrations.
+
+---
+
+## 54. Should the format be versioned?
+
+The format is currently small. The sanitizer already supports legacy plain-text notes:
+
+```js
+if (saved[field + "Html"]) ...
+else editor.textContent = saved[field] || "";
+```
+
+That is a limited form of backward compatibility.
+
+If the format grew, it might deserve:
+
+```js
+{
+  version: 2,
+  explanationHtml: "...",
+  observationsHtml: "...",
+  status: "review"
+}
+```
+
+just as we saw for commission snapshots.
+
+The same architectural problem keeps resurfacing:
+
+```text
+persisted state
+→ schema
+→ evolution
+→ migration
+```
+
+---
+
+# Part XXII — A possible future architecture
+
+## 55. Separate the DOM adapter from the document model
+
+A much larger editor might separate:
+
+```text
+┌───────────────────────┐
+│     Note Model        │
+│ blocks / marks / list │
+└───────────┬───────────┘
+            │ render
+            ▼
+┌───────────────────────┐
+│      DOM Adapter      │
+└───────────┬───────────┘
+            │
+            ▼
+      contenteditable
+            ▲
+            │ input intent
+┌───────────┴───────────┐
+│  Selection Adapter    │
+│  beforeinput / Range  │
+└───────────────────────┘
+```
+
+Operations could be explicit commands:
+
+```text
+TOGGLE_BOLD
+SET_HIGHLIGHT(yellow)
+TOGGLE_CHECKLIST
+SET_CALLOUT(attention)
+EXIT_FORMATTING
+```
+
+That offers greater predictability—but at the cost of building and maintaining an editing engine.
+
+For current PlumePilot, it is probably not worthwhile.
+
+---
+
+# Part XXIII — Backend analogies
+
+## 56. Selection as an application cursor
+
+We can compare a `Range` with a database or stream cursor that identifies a region of the current structure.
+
+But the DOM can change, so a Range is not a stable business identifier.
+
+It is closer to:
+
+```text
+cursor / pointer inside mutable structure
+```
+
+than to:
+
+```text
+primary key
+```
+
+That is why PlumePilot checks that the range still belongs to the intended editor.
+
+---
+
+## 57. `cleanHtml()` as boundary validation
+
+In Chapter 02, `bridge.js` normalized messages crossing a boundary.
+
+The same thing happens here:
+
+```text
+arbitrary DOM produced by the editing engine
+        ↓
+cleanHtml()
+        ↓
+allowed PlumePilot notes format
+```
+
+`cleanHtml()` acts as an **anti-corruption layer** between browser editing DOM and persisted notes.
+
+---
+
+## 58. Is `input` event sourcing? Not really
+
+It may be tempting to describe:
+
+```text
+every input event → persisted event
+```
+
+but that is not what PlumePilot does.
+
+It stores the **current snapshot** of sanitized HTML, not a sequence of events:
+
+```text
+INSERT_TEXT
+TOGGLE_BOLD
+ADD_CALLOUT
+...
+```
+
+This is **snapshot persistence**, not event sourcing.
+
+---
