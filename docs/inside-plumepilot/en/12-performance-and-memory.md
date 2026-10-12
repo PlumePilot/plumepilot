@@ -15,7 +15,90 @@ Saying *"PlumePilot is slow"* is therefore not a useful diagnosis by itself. We 
 
 ## 1. Four different budgets
 
-For PlumePilot it helps to separate **CPU**, **I/O**, **memory**, and **responsiveness**. CPU covers computation such as DOM processing, image analysis, JSON parsing, hashing, and compression. I/O is time spent waiting for HTTP requests, downloads, and other external services. Memory measures how many objects and binary buffers coexist. Responsiveness measures how long the main thread is unavailable to handle input, paint, or animate. These budgets interact but cannot be treated as interchangeable: speeding up one may increase the cost of another. **Optimizing starts with identifying the resource we want to protect.**
+For PlumePilot it is useful to distinguish at least four resource budgets.
+
+### CPU budget
+
+How much computation the browser must perform:
+
+```text
+parsing
+sorting
+page classification
+SHA-256 hashing
+pixel analysis
+DOM construction
+ZIP compression
+```
+
+### I/O budget
+
+How long external resources take:
+
+```text
+API fetches
+remote PDFs
+image assets
+browser storage
+messages across execution contexts
+```
+
+### Memory budget
+
+How much data must remain live simultaneously:
+
+```text
+PDF bytes
+PDF.js document
+canvas
+pixel buffer
+encoded images
+caches
+HTML strings
+JSZip
+final output
+```
+
+### Responsiveness budget
+
+How long the main thread is unavailable for:
+
+```text
+user input
+painting
+layout
+scrolling
+animations
+UI updates
+```
+
+These budgets are related, but **not equivalent**. More parallelism may reduce wall-clock time while increasing requests and live buffers:
+
+```text
+more parallelism
+   ↓
+shorter wall time
+   ↓
+more simultaneous requests
+   ↓
+more live buffers
+   ↓
+higher peak RAM
+```
+
+A more aggressive cache makes a different trade-off:
+
+```text
+more aggressive caching
+   ↓
+less network work
+   ↓
+fewer rescans
+   ↓
+more retained memory
+```
+
+> **Optimization begins with identifying which resource we are trying to save.**
 
 ---
 
@@ -84,7 +167,40 @@ Examples include total export time, per-page conversion time, output bytes, netw
 
 ## 7. Two `O(N)` algorithms can cost radically different amounts
 
-Chapter 08 compared a full chapter scan against master-index-first discovery. Both can process a list of `N` chapters and remain formally `O(N)`. But an in-memory scan costs very little compared with opening 50 chapters, triggering LMS rendering, and issuing 50 requests. A more useful practical model distinguishes **number of DOM openings**, **network detail requests**, and **synchronization waits**. Cutting expensive calls from 50 to 5 can be a major improvement without changing asymptotic complexity at all.
+Chapter 08 studied finding the first incomplete activity. A full chapter scan is conceptually:
+
+```text
+O(N)
+```
+
+A master-guided strategy may also be `O(N)`:
+
+```text
+read master index
+prioritize candidates
+inspect only necessary modules
+```
+
+The practical performance differs because the cost unit is not necessarily one JavaScript iteration. It may be:
+
+```text
+open an accordion
+wait for LMS rendering
+make an HTTP request
+wait for a detail API call
+querySelectorAll
+navigate an SPA route
+```
+
+For I/O-heavy applications, a more useful model is:
+
+```text
+Total cost ≈
+  cheap operations × cheap-operation cost
++ expensive operations × expensive-operation cost
+```
+
+Reducing detail calls from 50 to 5 can be a huge improvement even if the formal complexity remains `O(N)`.
 
 ---
 
@@ -332,9 +448,26 @@ Chapter 09 followed EPUB's many intermediate representations. During conversion,
 
 ## 25. Peak memory
 
-**Peak memory** is the maximum live memory observed during an operation. Two converters producing an identical 40 MB EPUB might require very different peaks. A smaller output file does **not** prove a smaller peak memory footprint. This is why changelog measurements must distinguish artifact size, environment, workload, and actual runtime memory measurements rather than conflating them.
+Define:
 
-**Historical reference:** `CHANGELOG.md:9`
+```text
+peak memory = maximum live working set reached during an operation
+```
+
+Two algorithms can produce the same 40 MB EPUB while consuming very different memory:
+
+```text
+Algorithm A → peak 150 MB
+Algorithm B → peak 600 MB
+```
+
+The final file's size tells us nothing conclusive about peak RAM. This is why reducing EPUB bytes **does not automatically establish RAM savings**.
+
+The historical v2.35.1 changelog makes the distinction explicit:
+
+> File-size gains depend on the document and do not establish RAM savings.
+
+Source: `CHANGELOG.md:9`.
 
 ---
 
