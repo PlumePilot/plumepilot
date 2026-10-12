@@ -17,9 +17,69 @@ The v2.35.2 redesign addresses this as an **architecture and information-design 
 
 ## 1. The problem is not duplicated HTML
 
-It is tempting to blame the old interface on duplicated buttons and markup. But visual repetition is only a symptom: the popup and floating menu present the **same domain state** in different browser runtimes. The popup is an extension document, created when the toolbar icon opens and disposed of when it closes. The floating menu lives on the host LMS page. They cannot share mutable JavaScript globals or lifecycle assumptions.
+It is easy to assume the old UI's problem was simply:
 
-A change to autoplay, course progress, an exam operation, or a layout preference must be reflected in both. The architectural question is therefore **how to keep the meaning of shared information consistent while preserving surface-specific controllers**.
+```text
+we wrote the same buttons twice
+```
+
+Visual duplication, however, was only the symptom.
+
+The deeper architectural problem is that the popup and floating menu present the same **domain state**:
+
+```text
+autoplay enabled?
+stop at tests?
+automatic test completion?
+chapter limit?
+stop at 70%?
+long-running operation active?
+custom menu layout?
+theme?
+Gaming style?
+```
+
+but in **two different runtimes**.
+
+### Popup
+
+The popup is a normal extension page:
+
+```text
+popup.html
+popup.css
+popup.js
+```
+
+It is created when the user opens the extension's toolbar icon, and can be destroyed as soon as the popup closes.
+
+### Floating menu
+
+The floating menu lives inside the LMS page:
+
+```text
+floating-menu.js
+        ↓
+ISOLATED content script
+        ↓
+creates a DOM host
+        ↓
+closed ShadowRoot
+        ↓
+menu embedded in the page
+```
+
+It remains available across a different lifetime and must coexist with:
+
+- The host platform's CSS and layout.
+- LMS navigation and DOM mutations.
+- `MutationObserver` activity.
+- Tab visibility and viewport geometry.
+- Dragging the floating launcher.
+
+These are **not the same execution context**. Neither mutable globals nor a single shared DOM can safely be assumed to span both.
+
+The redesign therefore does **not** attempt to create one universal DOM renderer for both surfaces. It shares the meaning that must remain consistent and leaves each surface's runtime-specific controller separate.
 
 ---
 
