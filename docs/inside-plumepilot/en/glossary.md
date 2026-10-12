@@ -603,3 +603,157 @@ An architectural rule expressed in a validator or test instead of left as inform
 
 ## Regression test
 A test preventing the recurrence of an observed bug. Ideally it asserts the violated property rather than only the accidental steps that exposed the symptom.
+
+## Root cause
+The structural cause making incorrect behavior possible, distinct from the visible symptom and contributing factors.
+
+## Minimal reproducer
+The smallest case still exhibiting the failure, narrowing debugging work and making a deterministic test easier to construct.
+
+## Test double
+A controlled substitute for a real dependency in a test; stubs, fakes, mocks and spies are different varieties.
+
+## Failure injection
+Deliberately introducing errors, timeouts, missing data or cancellation to verify recovery and fallback behavior.
+
+## Architecture test
+A test protecting structural invariants such as load order, module dependencies, manifest resources or guard precedence.
+
+## Flaky test
+A test that sometimes passes and sometimes fails under apparently identical code and inputs, often due to real timers, scheduling, network, animation or uncontrolled shared state.
+
+## Hermetic test
+A test whose external dependencies are strongly controlled, minimizing network, clock, storage and other nondeterministic inputs.
+
+## Golden test
+Comparing output with a known reference; useful for generated documents and fixtures when the golden captures meaningful properties rather than incidental noise.
+
+## Behavioral coverage
+The observable system properties a test suite really protects. High line coverage does not necessarily mean strong behavioral coverage.
+
+## Test seam
+A boundary where a dependency such as a clock, fetch function, storage adapter or DOM adapter can be replaced during testing.
+
+## Failure oracle
+The rule deciding whether an experiment or test succeeds or fails, checking the actual required property rather than an incidental detail.
+
+## Observer effect
+Behavior changes caused by the observation tool itself. For example, DevTools may keep an extension service worker alive and hide lifecycle defects.
+
+## Executable specification
+A requirement implemented as an executable test or validator that fails automatically when the property is violated.
+
+## Test brittleness
+A test failing after nonsemantic changes or internal refactors irrelevant to the behavior it was intended to protect.
+
+## Contract drift
+An external API, DOM, manifest or policy boundary changes and invalidates consumer assumptions. Contract tests aim to catch this near the boundary.
+
+## Safety property
+A property stating that something bad must never occur, such as reloading a hidden page or advancing a lesson other than the selected one.
+
+## Liveness property
+A property stating that the system must eventually make progress, such as resuming a wait when a tab becomes visible again.
+
+## Functional core, imperative shell
+A pattern separating mostly pure decisions from browser, DOM and storage side effects. The core is easier to test; the shell owns imperative actions.
+
+## Git blob
+A Git object storing a file's bytes without its filename; a tree associates filenames with blobs.
+
+## Git tree
+A Git object representing a directory snapshot, names and references to blobs or nested trees. Different commits may point to the same tree.
+
+## Git commit
+An immutable object referencing a tree, parent commits and metadata such as author, committer and message. Changing the parent creates a different commit even for the same tree.
+
+## Git ref
+A named, movable pointer to a Git object. A branch is typically a ref advancing to new commits.
+
+## HEAD
+The ref representing the current Git checkout. Normally points to a branch; in detached HEAD it references a commit directly.
+
+## Merge commit
+A commit with multiple parents recording integration of divergent histories without collapsing the branches' individual commits.
+
+## Squash merge
+Combining changes from several PR commits into one new commit on the base. It simplifies the mainline but changes ancestry relative to the original commits.
+
+## Git rebase
+Recreating commits on a new base. Their parent references and hashes change even if the patches remain semantically equivalent.
+
+## Cherry-pick
+Applying a selected commit's change elsewhere in history, creating a new commit.
+
+## Revert
+A new commit reversing the effects of an earlier change without removing that change from public history.
+
+## Merge base
+A common ancestor used to compare and integrate branches. Squash and rebase can change it even when some content is already logically shared.
+
+## Tree equality
+Two commits reference the same Git tree and represent identical complete tracked-file snapshots, although their parents, messages and commit identities may differ.
+
+## Stacked PR
+A pull request built on another unmerged PR's branch. It narrows incremental diffs but needs care if the base PR is squashed or rebased.
+
+## Force-with-lease
+A guarded forced remote-branch update allowed only if the remote ref still matches the expected state, reducing the risk of overwriting concurrent changes.
+
+## Release candidate
+Software considered potentially publishable and undergoing final tests, packaging and compatibility checks.
+
+## Release provenance
+The verifiable chain connecting source commit, build process, produced artifact, checksum and distribution channel.
+
+## Deployment history
+Versions actually distributed through different channels or stores, potentially differing from Git history or the sequence of GitHub Releases.
+
+## Roll-forward
+Fixing a problematic release by publishing a newer version, sometimes restoring earlier behavior, rather than trying to downgrade an update system to a superseded version.
+
+## Evidence hierarchy
+Explicit authority ordering among sources describing the same fact, distinguishing definitive, contradictory and merely suggestive signals.
+
+## Temporal validity
+Whether state remains valid over time. Data correct before an `await` may be stale when the continuation resumes.
+
+## Revalidation
+Rechecking state after an asynchronous suspension and before a side effect to avoid acting on stale information.
+
+## Volatility boundary
+A boundary containing frequently changing components such as host DOM or external APIs, protecting more stable domain logic.
+
+## Architecture fitness function
+A test or validator continuously enforcing an architectural property, such as bounded caches or the absence of prohibited capabilities in a Firefox artifact.
+
+## Human-in-the-loop automation
+Automation that supports rather than overrides the user; newer explicit manual intent takes precedence over previously scheduled automatic continuations.
+
+## Scaling debt
+A once-appropriate choice that becomes costly as the system's scale, number of features or rate of change increases; this does not make the original decision a mistake.
+
+## Strangler refactor
+Incrementally replacing responsibilities in an existing system rather than performing a total rewrite and one high-risk cutover.
+
+## Platform adapter
+A boundary translating an external platform's DOM, URLs, APIs or capabilities into a more stable interface consumed by the core.
+
+## Repository pattern
+A persistence boundary centralizing access, keys, normalization and migration so callers need not know storage details.
+
+## In-flight coalescing
+Sharing one ongoing Promise or request among callers simultaneously needing the same resource, avoiding duplicate work and cache stampedes.
+
+## Structured diagnostics
+Diagnostic events or records with explicit fields such as identity, phase, duration or fallback reason instead of only free-form log text.
+
+## Decision reversal cost
+The technical and operational cost of undoing a choice after other systems, stored data or workflows have come to depend on it.
+
+## Wrong abstraction
+An abstraction created before understanding what is genuinely common between cases, potentially adding more coupling and complexity than the duplication it sought to remove.
+
+---
+
+[← Contents](index.md)
