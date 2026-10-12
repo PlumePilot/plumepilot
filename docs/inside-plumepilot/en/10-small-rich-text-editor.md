@@ -240,9 +240,21 @@ Why clone the range? Imagine:
 6. The click handler may no longer find the original selection.
 ```
 
-Relying only on `window.getSelection()` during the click would be unsafe.
+Relying only on:
 
-Instead, `selection.getRangeAt(0).cloneRange()` acts as a **snapshot of the editing position**.
+```js
+window.getSelection()
+```
+
+during the click would be unsafe.
+
+Instead, the editor records:
+
+```js
+selection.getRangeAt(0).cloneRange()
+```
+
+as a **snapshot of the editing position**.
 
 ---
 
