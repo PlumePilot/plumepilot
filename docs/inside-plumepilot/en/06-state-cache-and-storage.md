@@ -313,7 +313,16 @@ autoplay limit = 5 chapters
 
 might mean five chapters for *every* course or five for *one particular course*.
 
-For several settings, PlumePilot chooses course-scoped behavior. The popup constructs composite keys combining the platform and course, so two courses with the same code on different platforms do not collide.
+For several settings, PlumePilot chooses course-scoped behavior. The popup constructs composite keys combining the platform and course, so two courses with the same code on different platforms do not collide. The Italian edition includes this simplified function:
+
+```js
+function courseStorageKey(courseCode, platformId = "pegaso") {
+  ...
+  return `${platformId}:${course}`;
+}
+```
+
+This is illustrative pseudocode (the ellipsis omits input normalization), not a function to paste into production. What matters is that **platform identity belongs in the key**, not just the course code.
 
 ---
 
