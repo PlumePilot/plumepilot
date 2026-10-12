@@ -1583,39 +1583,96 @@ The risk would be disproportionate to the benefit. Proven behavior, bug knowledg
 
 The existing architecture contains tested workflows, unusual LMS workarounds and release knowledge. Incremental improvements preserve those investments while increasing clarity.
 
-# Part LXXXII–LXXXIX — Exercises
+# Parts LXXXII–LXXXIX — Exercises
 
-### Exercise 1 — Extract or keep together?
+### Exercise 1 — Mechanical split or responsibility-based extraction?
 
-You have a 400-line function. When is it better to extract a pure decision helper, and when is the function itself a cohesive browser-effect coordinator? Define the evidence you would look for.
+You have a 400-line function. When is a **mechanical split** appropriate, and when should you extract by **responsibility**?
+
+Explain which boundaries, dependencies, and independent reasons to change would guide your decision.
 
 ### Exercise 2 — A normalized playback target
 
-Design a `PlaybackTarget` capable of identifying platform, course, chapter and lesson without exposing an `HTMLElement`. How should an adapter resolve it into a fresh node?
+Design a `PlaybackTarget` that can represent:
+
+```text
+video
+objective
+test
+unknown visual fallback
+```
+
+without exposing a DOM node directly.
 
 ### Exercise 3 — Shared operation state
 
-Which fields belong in a common `OperationState` for PDF export, EPUB export and Turbo Test? Which stages and details should remain job-specific?
+Which fields belong in a shared `OperationState` for:
 
-### Exercise 4 — Migrating content.js
+```text
+PDF
+EPUB
+quiz export
+```
 
-Which module would you extract first, which tests must pass before moving it, and how would you verify that the published script load order still works?
+Which fields should remain specific to the individual job?
 
-### Exercise 5 — Cache identity and freshness
+### Exercise 4 — Migrating content.js into modules
 
-Design a lesson-detail cache with platform-qualified keys, pending-request coalescing, expiry rules and safe failure behavior. Explain why a generic TTL alone is insufficient.
+Suppose we migrate `content.js` toward smaller modules. Which function would you extract first?
 
-### Exercise 6 — Framework decision
+Choose one with:
 
-List the actual UI problems you would expect React to solve and the problems it would not solve, including storage synchronization, extension lifecycles and focus.
+```text
+clear inputs and outputs
+few globals
+strong test coverage
+```
 
-### Exercise 7 — Worker ownership
+Explain your choice.
 
-A PDF conversion uses a 50 MB buffer. Describe when transferring it to a Worker is preferable to copying it, and how cancellation changes ownership.
+### Exercise 5 — Is React worthwhile?
 
-### Exercise 8 — A release gate
+Would introducing React make sense if:
 
-Design a minimum CI/release gate that checks Node tests, version consistency, Chrome/Edge/Firefox manifests, checksum integrity, and the correct source submission for AMO.
+```text
+the popup has five tabs
+the floating menu is similar
+but most complexity lies in messaging and the host DOM
+```
+
+Write the pros and cons **before** deciding.
+
+### Exercise 6 — An external API renames a field
+
+A host API changes a field name. Where should the application ideally break or need repair?
+
+```text
+UI
+business logic
+normalizer boundary
+```
+
+Why should the impact be contained at that boundary?
+
+### Exercise 7 — Should three different caches share one class?
+
+You have three caches with different TTLs. Is a generic `Cache` class worth introducing?
+
+List which **semantics must genuinely be shared** before creating that abstraction.
+
+### Exercise 8 — Moving EPUB conversion into a Worker
+
+Before moving the EPUB conversion into a Worker, what metrics would you gather?
+
+```text
+main-thread blocking
+peak memory
+transferred bytes
+wall-clock time
+cancellation latency
+```
+
+Explain how you would use the measurements to decide whether the change is beneficial.
 
 ---
 
