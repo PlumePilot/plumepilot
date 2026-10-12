@@ -1544,3 +1544,901 @@ SAFE_STOP
 ```
 
 The domain is a dynamic webpage rather than an order database. The logical orchestration problem is surprisingly similar.
+
+
+# Part XVII — Guards and invariants
+
+## 36. Guards are different from invariants
+
+A **guard** decides whether one transition is allowed.
+
+An **invariant** describes a property that should remain true throughout every relevant state and transition.
+
+For autoplay, consider these useful invariants.
+
+### Invariant 1
+
+```text
+If enabled == false, PlumePilot must not automatically select a new activity.
+```
+
+### Invariant 2
+
+```text
+Two automatic advancement workflows must not run concurrently.
+```
+
+The `busy` guard helps enforce this.
+
+### Invariant 3
+
+```text
+If stopAtTests is effectively enabled and a test cannot be verified,
+PlumePilot must not silently cross that boundary.
+```
+
+### Invariant 4
+
+```text
+After an await, the target must still match the context that initiated the transition.
+```
+
+### Invariant 5
+
+```text
+Recovery must not produce an infinite reload loop.
+```
+
+Invariants give us a vocabulary for regression tests and code review.
+
+---
+
+# Part XVIII — From a state machine to a test matrix
+
+## 37. State machines suggest tests directly
+
+Once behavior is modeled, test cases almost write themselves.
+
+### Test A — Autoplay paused
+
+```text
+GIVEN  state = PAUSED
+WHEN   VIDEO_ENDED
+THEN   no automatic navigation
+```
+
+### Test B — Duplicate ended event
+
+```text
+GIVEN  the same logical video has already caused a transition
+WHEN   another ended event arrives for that target
+THEN   no second advance
+```
+
+### Test C — Stop at tests
+
+```text
+GIVEN  stopAtTests = true
+AND    the chapter ends with a test
+WHEN   the last video completes
+THEN   state = STOPPED_AT_TEST
+AND    next chapter is not opened
+```
+
+### Test D — Change settings while stopped
+
+```text
+GIVEN  state = STOPPED_AT_TEST
+WHEN   stopAtTests becomes false
+THEN   resume from the saved context
+```
+
+This is a real category of regression fixed in the project's history.
+
+### Test E — Automatic completion fails
+
+```text
+GIVEN  autoCompleteTests = true
+WHEN   test completion cannot be verified
+THEN   SAFE_STOP
+```
+
+### Test F — Both threshold and limit reached
+
+```text
+GIVEN  threshold70 reached
+AND    chapter session limit reached
+WHEN   chapter completes
+THEN   do not call nextChapter
+AND    terminal state is coherent
+AND    combined status message is correct
+```
+
+### Test G — State changes during an await
+
+```text
+GIVEN  advance() is waiting for completion
+WHEN   user changes lessons or the DOM is rebuilt
+THEN   cancel the stale transition
+```
+
+This is among the most important regressions studied earlier.
+
+---
+
+# Part XIX — Evolution through the changelog
+
+## 38. The changelog tells the machine's history
+
+Read the PlumePilot changelog as a history of previously absent or unreliable transitions.
+
+### v1.6.0
+
+Introduced the branch:
+
+```text
+AT_TEST_BOUNDARY → COMPLETING_TEST
+```
+
+with a safety rule:
+
+```text
+if completion cannot be verified → stop
+```
+
+### v2.9.x
+
+Test boundaries became more formally distinguished:
+
+```text
+test present / absent / unknown
+```
+
+with fail-closed handling.
+
+### v2.10.1
+
+A missing reverse transition was corrected:
+
+```text
+STOPPED_AT_TEST
+   --disable stopAtTests-->
+RESUME
+```
+
+### v2.11.5
+
+A dedicated session-conflict recovery submachine emerged.
+
+### v2.14.x
+
+Finding the first incomplete activity became an independent workflow with cancellation and fallback.
+
+### v2.19.0
+
+Added:
+
+```text
+END_OF_CHAPTER → SESSION_LIMIT_STOP
+```
+
+### v2.35.1
+
+Improved behavior around closed accordions, handoff from Objectives, and chapter routing.
+
+Seen this way, a regression is often not merely:
+
+```text
+"function X is broken"
+```
+
+but:
+
+```text
+"a real transition was missing or incorrectly modeled"
+```
+
+---
+
+## 39. Regressions as unmodeled transitions
+
+Consider several real bugs.
+
+### Sidebar accordion closed during completion
+
+An older implicit model assumed:
+
+```text
+WAITING_COMPLETION → same DOM still available
+```
+
+But the actual environment allows:
+
+```text
+WAITING_COMPLETION → SIDEBAR_CHANGED
+```
+
+The transition was not sufficiently accounted for. The fix involved re-resolving and revalidating the context.
+
+### Disabling Stop at tests after stopping
+
+The system had:
+
+```text
+WATCHING → STOPPED_AT_TEST
+```
+
+but its reverse transition was not always reliable. Saving an explicit resume context made the return path robust.
+
+### Reused player element
+
+The naive assumption was:
+
+```text
+videoElement == lastVideo → duplicate event
+```
+
+The real invariant needed to be:
+
+```text
+same DOM element ≠ necessarily the same logical video
+```
+
+Again, the issue is identity and permitted transitions, not simply a missing CSS selector.
+
+---
+
+# Part XX — A more complete diagram
+
+## 40. A richer autoplay state diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> Paused
+
+    Paused --> Watching: ENABLE
+    Watching --> Paused: DISABLE
+
+    Watching --> WaitingAfterEnd: VIDEO_ENDED / remember lastVideo
+    WaitingAfterEnd --> Paused: DISABLE
+    WaitingAfterEnd --> VerifyingCompletion: DELAY_ELAPSED [enabled]
+
+    VerifyingCompletion --> SafeStop: completion invalid
+    VerifyingCompletion --> Watching: context changed / cancel stale transition
+    VerifyingCompletion --> NextVideo: next video in same chapter
+    VerifyingCompletion --> TestDecision: end of chapter + test
+    VerifyingCompletion --> EndDecision: end of chapter + no test
+
+    NextVideo --> Watching: new video selected
+
+    TestDecision --> StoppedAtTest: [stopAtTests]
+    TestDecision --> CompletingTest: [autoCompleteTests]
+    TestDecision --> EndDecision: [ignore test]
+
+    CompletingTest --> EndDecision: SUCCESS
+    CompletingTest --> SafeStop: FAILURE
+
+    StoppedAtTest --> ResumeAfterTest: STOP_AT_TESTS_DISABLED
+    ResumeAfterTest --> ChangingChapter: delay elapsed
+
+    EndDecision --> ThresholdStop: [thresholdReached]
+    EndDecision --> SessionLimitStop: [sessionLimitReached]
+    EndDecision --> ChangingChapter: otherwise
+
+    ChangingChapter --> Watching: target video ready
+    ChangingChapter --> Recovering: rendering/session problem
+    ChangingChapter --> CourseComplete: no target
+
+    Recovering --> Watching: recovery success
+    Recovering --> SafeStop: recovery exhausted
+
+    ThresholdStop --> ChangingChapter: CONTINUE_70
+    SessionLimitStop --> ChangingChapter: RESUME_SESSION
+```
+
+The diagram does not replace the implementation. It exposes the behavioral rules that are otherwise scattered throughout it.
+
+---
+
+# Part XXI — What should not be a state?
+
+## 41. Which details should remain context instead?
+
+Not every value deserves a separate discrete state.
+
+```text
+percent = 42
+percent = 43
+percent = 44
+```
+
+are three values of a progress variable, not three distinct behavioral modes.
+
+Likewise:
+
+```text
+chapterLimit = 5
+```
+
+is a configuration parameter.
+
+The limit becomes state-machine relevant when it changes what the workflow is allowed to do:
+
+```text
+limit not reached
+       ↓
+limit reached
+```
+
+A useful rule:
+
+> **Model as a state what changes which behaviors are permitted.**
+
+---
+
+## 42. Exercise: classify real variables
+
+Let's classify variables from PlumePilot.
+
+### `enabled`
+
+Influences available transitions directly. It can be regarded as a global mode or state flag.
+
+### `busy`
+
+A local reentrancy guard, not a complete domain state.
+
+### `playbackContext`
+
+Context or extended state.
+
+### `stopAtTests`
+
+A policy that changes test-boundary transitions.
+
+### `stoppedAtTestContext`
+
+History/context associated with `STOPPED_AT_TEST`.
+
+### `chapterLimitSession.completed`
+
+A counter in context. Crossing the configured limit can trigger `SESSION_LIMIT_STOP`.
+
+### `lastVideo`
+
+Event deduplication memory and logical identity tracking.
+
+### Recovery in `sessionStorage`
+
+State for a recovery submachine that needs to survive reload.
+
+Classifying variables this way makes complex code much easier to reason about.
+
+---
+
+# Part XXII — Composing several machines
+
+## 43. Multiple machines can coexist
+
+An application does not need **one giant state machine**.
+
+PlumePilot lends itself to a conceptual composition:
+
+```text
+AutoplayMachine
+├── PlaybackMachine
+├── TestBoundaryMachine
+├── ChapterNavigationMachine
+├── RecoveryMachine
+└── FirstIncompleteMachine
+
+OperationCoordinator
+├── Export
+├── Turbo
+└── Objectives
+```
+
+The components communicate through events or shared conditions.
+
+This resembles service decomposition in backend systems: each component owns a cohesive slice of behavior.
+
+---
+
+## 44. When is an explicit state machine worth it?
+
+An explicit machine becomes particularly useful with:
+
+- Many interdependent Boolean flags.
+- Transitions that depend on previous state.
+- Retry and recovery.
+- Cancellable operations.
+- Asynchronous events.
+- Invalid combinations to prevent.
+- Bugs that appear only after "first A, then B, then C."
+- A test matrix that is difficult to enumerate.
+
+PlumePilot's autoplay satisfies several of these criteria.
+
+That does **not** mean a major refactor is automatically justified today. It means state-machine reasoning is especially well suited to the problem.
+
+---
+
+# Part XXIII — XState as a learning tool
+
+## 45. XState as an optional way to study the ideas
+
+JavaScript libraries such as **XState** allow states, events, guards, and actions to be declared explicitly.
+
+A small educational example:
+
+```js
+const machine = createMachine({
+    initial: "paused",
+    states: {
+        paused: {
+            on: { ENABLE: "watching" },
+        },
+        watching: {
+            on: {
+                DISABLE: "paused",
+                VIDEO_ENDED: "verifyingCompletion",
+            },
+        },
+        verifyingCompletion: {},
+    },
+});
+```
+
+We do not need to adopt XState in PlumePilot to learn from it. The Stately/XState documentation separates:
+
+```text
+states
+events
+transitions
+guards
+actions
+context
+```
+
+These are the same concepts we have been applying to the existing code.
+
+---
+
+# Part XXIV — Model first, implement second
+
+## 46. Define policy before mechanisms
+
+A state machine allows us to discuss behavior before choosing DOM or API implementation details.
+
+Consider:
+
+```text
+QUESTION
+
+What should happen if:
+- the video has ended;
+- a test exists;
+- stopAtTests is true;
+- autoCompleteTests is false;
+- meanwhile the user pauses autoplay?
+```
+
+First define the rule:
+
+```text
+DISABLE has priority → PAUSED
+```
+
+Then decide how to implement it.
+
+This separates:
+
+```text
+policy
+```
+
+from:
+
+```text
+mechanism
+```
+
+a classic and highly useful software engineering distinction.
+
+---
+
+# Part XXV — Logging and observability
+
+## 47. State machines can improve logging
+
+PlumePilot logs messages such as:
+
+```text
+Video ended; advancing.
+Lesson registered as 100%.
+End-of-lesson test boundary reached.
+End of chapter reached.
+Autoplay session limit reached.
+```
+
+They can be interpreted as state transitions:
+
+```text
+WATCHING → VERIFYING
+VERIFYING → TEST_BOUNDARY
+TEST_BOUNDARY → STOPPED
+END_OF_CHAPTER → SESSION_LIMIT_STOP
+```
+
+A more structured event log could record:
+
+```js
+{
+    from: "verifyingCompletion",
+    event: "LESSON_COMPLETED",
+    to: "testBoundary",
+    courseCode,
+    chapterKey
+}
+```
+
+That is an illustrative possible improvement, not a requirement to modify stable code today.
+
+The key lesson is that modeling behavior also improves **observability**.
+
+---
+
+## 48. Debugging regressions through transitions
+
+Suppose a user reports:
+
+> "If I disable Stop at tests after PlumePilot has stopped, it doesn't resume."
+
+A purely procedural debugging session might involve reading many functions.
+
+With a state model, ask:
+
+```text
+Initial state?
+STOPPED_AT_TEST
+
+Event?
+STOP_AT_TESTS_DISABLED
+
+Expected transition?
+STOPPED_AT_TEST → RESUMING
+
+Was the event received?
+Did a guard reject the transition?
+Does the saved context still exist?
+Did the resume effect fail?
+```
+
+The state-based questions narrow the investigation significantly.
+
+---
+
+## 49. Transition coverage versus line coverage
+
+Traditional test coverage may tell us:
+
+```text
+this line was executed
+```
+
+For a workflow, we also need to know:
+
+```text
+this transition was verified
+```
+
+We might execute both branches of code around:
+
+```js
+if (wasStoppingAtTests && !stopAtTests) { /* ... */ }
+```
+
+without ever testing the full sequence:
+
+```text
+video ends
+→ test boundary
+→ stop
+→ popup setting changes
+→ context restored
+→ next chapter opens
+```
+
+**Transition coverage** is a more behaviorally meaningful way of measuring whether complex workflows have been exercised.
+
+---
+
+# Part XXVI — A reusable mental model
+
+## 50. Five elements to write down
+
+When you encounter a complex feature, identify:
+
+### 1. States
+
+```text
+Which modes genuinely change system behavior?
+```
+
+### 2. Events
+
+```text
+What can happen, internally or externally?
+```
+
+### 3. Guards
+
+```text
+Which conditions must hold for a transition to occur?
+```
+
+### 4. Actions
+
+```text
+Which side effects will be performed?
+```
+
+### 5. Context
+
+```text
+What data must be kept without making each value a separate state?
+```
+
+Applied to PlumePilot:
+
+```text
+STATE   = STOPPED_AT_TEST
+EVENT   = SETTINGS_CHANGED
+GUARD   = stopAtTests became false
+ACTION  = schedule resume
+CONTEXT = chapter identity + previous video
+```
+
+This one example describes quite a lot of implementation code.
+
+---
+
+# Part XXVII — Glossary of chapter concepts
+
+## 51. Concepts to take away
+
+### Finite State Machine
+
+A behavioral model consisting of a finite set of states and transitions between them.
+
+### State
+
+The current mode determining which events and behaviors are valid.
+
+### Event
+
+Something that happened and may trigger a transition.
+
+### Transition
+
+A move from one state to another.
+
+### Guard
+
+A condition that allows or prevents a transition.
+
+### Action / Effect
+
+An operation performed as a result of a transition, such as a click, fetch request, storage update, or notification.
+
+### Extended state / Context
+
+Data associated with a machine that should not each become a separate discrete state.
+
+### Delayed transition
+
+A transition enabled after a time interval, provided the necessary context remains valid.
+
+### State history
+
+Enough retained information to remember where the workflow came from or how to resume.
+
+### State explosion
+
+Combinatorial growth when many independent properties are flattened into one FSM.
+
+### Hierarchical state
+
+A state made up of substates, allowing a complex workflow to be described at different levels.
+
+### Orthogonal state
+
+Independent aspects of state that can be active simultaneously.
+
+### Fail closed
+
+When uncertain, choose a conservative transition instead of proceeding under optimistic assumptions.
+
+### Invariant
+
+A property that must remain true across every permitted transition.
+
+### Transition coverage
+
+Testing meaningful state–event–transition combinations, rather than just lines of implementation code.
+
+---
+
+# Part XXVIII — Further reading
+
+## 52. Recommended references
+
+For formal descriptions, the Object Management Group's UML specification treats state machines as states connected by event-triggered transitions with associated guards and behaviors.
+
+For practical JavaScript-oriented study, Stately/XState's documentation is useful because it distinguishes states, events, transitions, guards, actions, and context, and provides visualization tools.
+
+Recommended resources:
+
+- Stately — What are state machines and statecharts?  
+  https://stately.ai/docs/state-machines-and-statecharts
+
+- Stately — States and transitions  
+  https://stately.ai/docs/editor-states-and-transitions
+
+- Stately — Guards  
+  https://stately.ai/docs/guards
+
+- Stately — XState documentation  
+  https://stately.ai/docs
+
+- Object Management Group — UML / State Machines  
+  https://www.omg.org/spec/UML/
+
+There is no need to learn XState syntax immediately. For this book, the main value is learning to **see program behavior as a system of states and transitions**.
+
+---
+
+# Part XXIX — Mental exercises
+
+## 53. Exercises
+
+### Exercise 1
+
+Classify these variables as **state**, **guard**, **context**, or **effect-related state**:
+
+```text
+enabled
+busy
+lastVideo
+playbackContext
+chapterLimitSession.completed
+stoppedAtTestContext
+```
+
+There may not be one perfect classification. Explaining your reasoning matters more.
+
+### Exercise 2
+
+Draw just the test-handling submachine:
+
+```text
+NO_TEST
+TEST_PRESENT
+STOPPED_AT_TEST
+COMPLETING_TEST
+TEST_COMPLETED
+TEST_FAILURE
+```
+
+Which should really be *states*? Which might be better represented as events or guard conditions?
+
+### Exercise 3
+
+Consider this timeline:
+
+```text
+1. A video ends.
+2. The advance delay begins.
+3. The user pauses PlumePilot.
+4. The timer expires.
+```
+
+Which guard prevents navigation? Why must it be checked **when the timer expires**, not only when the timer is created?
+
+### Exercise 4
+
+Imagine removing `busy`.
+
+Construct a timeline where two `advance(v)` calls overlap. Which duplicate transitions could occur?
+
+### Exercise 5
+
+Choose one historical PlumePilot regression and express it using only:
+
+```text
+initial state
+→ event
+→ expected transition
+→ observed transition
+```
+
+This is a useful exercise in behavior-oriented debugging.
+
+---
+
+# Part XXX — Chapter summary
+
+## 54. What have we really learned?
+
+PlumePilot's autoplay can be read as a sequence of function calls, but that perspective hides its underlying structure.
+
+Its behavior is governed by:
+
+```text
+states
++
+events
++
+guards
++
+transitions
++
+context
++
+side effects
+```
+
+The existing code expresses this machine **implicitly** through variables, conditionals, timers, callbacks, recovery routines, and asynchronous functions.
+
+Making the model explicit helps us understand:
+
+- Why particular guards exist.
+- Why some flags are not complete states.
+- Why tests create separate workflow branches.
+- Why resuming requires context and history.
+- Why recovery is best seen as a submachine.
+- Why assumptions need revalidation after `await`.
+- Why many regressions are missing or incorrect transitions.
+- How to turn the observed behavior into a test matrix.
+
+The most important lesson is:
+
+> **When many `if` statements depend on what happened before, what is happening now, and which events may happen next, you are probably already building a state machine—even if you never called it one.**
+
+And a second lesson:
+
+> **A good state model is not about making code more academic. It makes explicit which transitions the system can and cannot perform.**
+
+---
+
+## In the next chapter
+
+Chapter 08 will study one of the most interesting submachines introduced here:
+
+**Finding the first incomplete activity — Heuristics, master calls, and fallbacks.**
+
+We will trace how the algorithm evolved:
+
+```text
+DOM scan
+   ↓
+cache
+   ↓
+global search
+   ↓
+master call
+   ↓
+chapters below 100%
+   ↓
+detailed verification
+   ↓
+visual fallback
+```
+
+This leads to a broader question:
+
+> **How do you make a reliable decision when no single data source is perfectly authoritative, complete, and current at the same time?**
+
+---
+
+[← 06 — State, cache, and storage](06-state-cache-and-storage.md) · [Contents](index.md) · 08 — Finding the first incomplete activity (translation in progress)
