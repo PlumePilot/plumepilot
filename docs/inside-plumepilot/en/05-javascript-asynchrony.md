@@ -2124,13 +2124,10 @@ sequenceDiagram
     C->>C: pacing / cache / cancellation checks
     C->>Br: materials collected
     Br->>B: open builder
-    B->>B: serialized builder setup
-    B->>Bu: open job page
-    Bu->>Bu: generate document
-    opt user cancellation
-        U->>Bu: cancel
-        Bu->>Bu: AbortController / cleanup
-    end
+    B->>B: serializedBuilder()
+    B->>Bu: create builder tab + job
+    Bu->>B: acquire build operation
+    Bu->>Bu: build PDF/EPUB
     Bu->>B: release operation
 ```
 
