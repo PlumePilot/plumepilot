@@ -2280,4 +2280,4 @@ In **Chapter 10 — A small rich-text editor**, we will explore `contenteditable
 
 ---
 
-[← 08 — Finding the first incomplete activity](08-finding-first-incomplete-activity.md) · [Contents](index.md) · 10 — A small rich-text editor (translation in progress)
+[← 08 — Finding the first incomplete activity](08-finding-first-incomplete-activity.md) · [Contents](index.md) · [10 — A small rich-text editor →](10-small-rich-text-editor.md)
