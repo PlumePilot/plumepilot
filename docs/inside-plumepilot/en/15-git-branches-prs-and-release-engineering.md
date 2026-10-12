@@ -1108,3 +1108,579 @@ Matching tree hashes established that the candidate's files did not change durin
 A shared tree SHA is strong evidence of identical snapshots. A simple zero diff can be helpful, but the object identity directly identifies the full tree.
 
 ---
+
+## 161. When tree equality is useful
+
+Compare full file snapshots to verify a history rewrite, candidate alignment, or unexpected branch difference. Equal tree hashes are strong evidence of identical tracked content.
+
+---
+
+## 162. But a tree hash is not the whole commit
+
+Tree equality does not preserve parentage, author metadata, messages, or review history. It proves content equivalence, not historical equivalence.
+
+---
+
+# Part XXXIX — Git as a directed acyclic graph
+
+## 163. The commit graph is a DAG
+
+Git commits form a directed acyclic graph: commits point to parents, allowing ancestry queries without cycles.
+
+---
+
+## 164. Merge commits in the DAG
+
+A merge commit has multiple parents, joining separate historical paths into one new successor.
+
+---
+
+# Part XL — Immutable records and mutable references
+
+## 165. Commit as immutable record
+
+A backend analogy is an immutable record storing file-tree identity, parent references, and metadata.
+
+---
+
+## 166. Branch as mutable pointer
+
+A branch resembles a mutable database pointer or index to the current head record.
+
+---
+
+## 167. Tag as mostly immutable release alias
+
+A published tag should name one chosen commit and stay stable so consumers can reproduce the release.
+
+---
+
+# Part XLI — Event sourcing analogies and rewriting
+
+## 168. Is Git event sourcing?
+
+The analogy is useful but imperfect. Git stores related snapshots, not a chronological event log of domain operations.
+
+---
+
+## 169. Squash as history compaction
+
+Squashing resembles compressing many detailed changes into one conceptual unit, sacrificing mainline development detail for readability.
+
+---
+
+## 170. Rebase as reconstructing a history
+
+Rebase builds new commits with changed ancestors rather than mutating existing immutable objects.
+
+---
+
+## 171. “Rewrite a commit” is shorthand
+
+Objects are immutable. A rewrite means constructing replacement commits and moving references so users see the new graph.
+
+---
+
+## 172. What history rewriting actually does
+
+It points a branch at a different series of existing/new commits; old ones may remain reachable elsewhere.
+
+---
+
+## 173. Why rewriting is dangerous
+
+Collaborators with clones based on the old history must consciously reconcile their branches and may otherwise overwrite work.
+
+---
+
+## 174. A healthy rule
+
+Avoid rewriting important shared branches; when necessary, coordinate and protect ref updates with an expected old SHA or force-with-lease.
+
+---
+
+# Part XLII — Code review as knowledge transfer
+
+## 175. Review transfers knowledge
+
+Code review explains why an approach was chosen, which invariants it protects, and what alternatives were rejected—not just whether syntax is valid.
+
+---
+
+## 176. Make PRs reviewable
+
+Explain scope, expected behavior, tests, relevant screenshots, risks, and dependencies. A reviewer should understand the proposal without reconstructing a long chat.
+
+---
+
+## 177. Cognitive load
+
+A PR changing many unrelated files and policies is harder to verify accurately. Keep reviews cohesive and appropriately sized.
+
+---
+
+## 178. Do not split changes artificially
+
+Five tightly coupled PRs can be worse than one coherent PR. Split along meaningful responsibilities and independently testable boundaries.
+
+---
+
+# Part XLIII — Managing stacked PRs
+
+## 179. Explicitly stacked PRs
+
+When B depends on A, use A as the base and describe that dependency rather than hiding it in confusing diffs.
+
+---
+
+## 180. Wait for the base when appropriate
+
+Merging A first simplifies B's ancestry but delays work that could otherwise proceed in parallel.
+
+---
+
+# Part XLIV — Candidate stabilization and freeze
+
+## 181. The release-candidate pipeline
+
+A normal sequence is scope selection, implementation, tests, PR review, candidate stabilization, package generation, store preparation, final merge, tag, and submission.
+
+---
+
+## 182. Why freeze the scope?
+
+Late feature additions expand the state space and may invalidate previous QA just as release evidence is becoming reliable.
+
+---
+
+## 183. Fixes versus features during freeze
+
+Prefer fixes for confirmed blockers and regressions; defer unrelated new capabilities to the next cycle.
+
+---
+
+## 184. Every change invalidates some evidence
+
+A screenshot, test result, checksum, or QA session applies to a particular tree. If files change afterward, decide which evidence must be regenerated.
+
+---
+
+## 185. Recheck proportionally
+
+Not every typo requires full testing, but changing autoplay logic or package manifests does. Align revalidation effort with impact.
+
+---
+
+# Part XLV — What can be prepared in parallel
+
+## 186. Work that can begin early
+
+Draft store copy, reviewer procedures, screenshots, translation, notes, and test-account planning while functional validation is ongoing.
+
+---
+
+## 187. Work that requires final bytes
+
+Checksums, final reproducibility assertions, exact ZIP uploads, and tag/artifact provenance must use final verified content.
+
+---
+
+# Part XLVI — Release narrative and documentation
+
+## 188. Release titles should age well
+
+A title such as “2.35.2 — UI/UX consistency and navigation” helps future readers more than a generic “Update.”
+
+---
+
+## 189. User-facing release notes select relevant changes
+
+Users need improved workflows and visible fixes, not every internal code cleanup.
+
+---
+
+## 190. Technical changelogs preserve the detailed why
+
+Changelogs explain architecture and regressions; this book relies on that history to reconstruct decisions.
+
+---
+
+## 191. Tag as code checkpoint
+
+The tag points to the release source commit.
+
+---
+
+## 192. Release page as narrative checkpoint
+
+The Release title, notes, and assets tell users why the version exists. Together they connect code and product history.
+
+---
+
+# Part XLVII — Recording store deployment
+
+## 193. Record publication status
+
+After submission, note which browser stores have accepted or published each version to avoid relying on memory.
+
+---
+
+## 194. A release-status table
+
+Track browser, version, artifact checksum, submission date, review state, and publication state. A Git tag alone cannot tell what every user can install.
+
+---
+
+## 195. When a deployment ledger is worth it
+
+Larger projects may automate a releases.json ledger or GitHub deployments. A small project may use a simpler manual register.
+
+---
+
+# Part XLVIII — Automation versus judgment
+
+## 196. What to automate
+
+Repetitive, deterministic, high-risk checks such as file inclusion, manifest validation, stable ZIP generation, version consistency, and checksums.
+
+---
+
+## 197. What PlumePilot already automates
+
+The release builder and validator create and check target-specific browser packages, vendor transforms, and supporting release files.
+
+---
+
+## 198. What remains a human decision
+
+Release timing, accepting UX trade-offs, changing product scope, and classifying uncertain warnings still require judgment.
+
+---
+
+# Part XLIX — Release workflow dependencies
+
+## 199. A release decision graph
+
+Development and testing feed a candidate while store-copy preparation can occur in parallel; final packaging and upload depend on validated source.
+
+**Historical command or diagram:**
+
+```mermaid
+flowchart TD
+    A[Feature branch] --> B[Regression tests]
+    B --> C[Pull Request]
+    C --> D[Release candidate]
+    D --> E[Version + Changelog + Novità]
+    E --> F[Build Chrome / Edge / Firefox]
+    F --> G[Validate artifacts]
+    G --> H[Smoke test]
+    H --> I[Merge main]
+    I --> J[Tag]
+    J --> K[GitHub Release]
+    K --> L[Store submissions]
+    L --> M[Review]
+    M --> N[Published]
+```
+
+---
+
+## 200. Parallel store preparation
+
+Screenshots, review access, and listing drafts can be prepared while PR testing and release alignment continue.
+
+---
+
+## 201. Parallel work without parallel truths
+
+Make progress on independent preparation tasks, but keep manifest/version/source data authoritative in one documented place.
+
+**Historical command or diagram:**
+
+```mermaid
+flowchart LR
+    A[Candidate] --> B[Tests]
+    A --> C[Store draft texts]
+    A --> D[Screenshots]
+    B --> E[Final artifact]
+    C --> F[Submission]
+    D --> F
+    E --> F
+```
+
+---
+
+# Part L — Typical release failures
+
+## 202. Wrong base branch
+
+A PR unexpectedly includes unrelated work because its selected comparison base is wrong.
+
+---
+
+## 203. Stale feature branch
+
+A branch lacks newer fixes from main and may reintroduce a previously corrected regression.
+
+---
+
+## 204. Squash ancestry mismatch
+
+Changes already integrated on main appear new because the dependent branch points to the original unsquashed commits.
+
+---
+
+## 205. Metadata drift
+
+Manifest versions, listing copy, review notes, and releases describe different candidates.
+
+---
+
+## 206. Dirty build
+
+An archive contains uncommitted local edits and no longer matches its claimed source commit.
+
+---
+
+## 207. Manual ZIP edit
+
+Editing the generated package directly makes the artifact unreproducible from committed inputs.
+
+---
+
+## 208. Tagging the wrong commit
+
+A version label points to code other than the intended reviewed candidate.
+
+---
+
+## 209. Uploading the wrong artifact
+
+A stale build or a package for another browser is submitted to a store.
+
+---
+
+# Part LI — Guardrails for common mistakes
+
+## 210. Guard against wrong PR base
+
+Confirm the intended base branch and inspect the real comparison before reviewing or merging.
+
+---
+
+## 211. Guard against stale branches
+
+Reconcile with main when needed, review ahead/behind and merge-base information, and rerun relevant tests.
+
+---
+
+## 212. Guard against metadata drift
+
+Validate the manifest version, release titles, localized resources, and reviewer documentation together.
+
+---
+
+## 213. Guard against wrong artifacts
+
+Verify package filenames, manifest target, checksums, and source SHA before upload.
+
+---
+
+# Part LII — Build output isolation
+
+## 214. Why refuse stale ZIPs?
+
+A preexisting output in the release directory can be mistaken for the fresh package. Rejecting leftover archives prevents accidentally submitting a previous build.
+
+---
+
+## 215. Prevent build-state leakage
+
+Each build should start from known inputs and a clean output area rather than mixing files from previous invocations.
+
+---
+
+## 216. The deterministic-build ideal
+
+Same source commit, toolchain, and controlled parameters should yield the same archive bytes and checksums.
+
+---
+
+## 217. Why this helps investigation
+
+When an expected artifact hash changes, a developer can compare build inputs and configuration to locate unexpected differences.
+
+---
+
+# Part LIII — Merge, rebase and tree equivalence
+
+## 218. Merge or rebase?
+
+The answer depends on whether history is shared, how much audit detail matters, and what target tree must be produced.
+
+---
+
+## 219. Choose based on collaboration
+
+Merge preserves public ancestry; rebase can clean private work; exceptional content-first reconstruction needs exact evidence.
+
+---
+
+## 220. Use the target tree as an anchor
+
+When history is confusing, identify which tracked files the result must contain and compare tree objects directly.
+
+---
+
+## 221. Then choose coherent ancestry
+
+Preserve correct source content while creating a maintainable historical relation. Do not alter known-good content simply to appease a merge heuristic.
+
+---
+
+# Part LIV — Git cannot assess semantic intent
+
+## 222. What Git knows
+
+Git understands bytes, objects, trees, parent links, refs, and graph ancestry.
+
+---
+
+## 223. What Git cannot know
+
+Git does not understand whether two logically equivalent patches implement the same product rule or if merged behavior remains semantically valid.
+
+---
+
+## 224. A consistent repository policy
+
+If main commonly uses squash merges, plan how dependent branches will be rebased or realigned after the base is squashed.
+
+---
+
+# Part LV — Safe handling of stacked branches
+
+## 225. Before squashing a dependency
+
+Identify downstream branches, notify collaborators, and decide how their base ancestry will be repaired.
+
+---
+
+## 226. A safe dependent-branch workflow
+
+Confirm the base reached main, update dependent work against the real release commit, verify resulting tree/diff, and run tests.
+
+---
+
+# Part LVI — Force-with-lease
+
+## 227. force-with-lease
+
+Prefer git push --force-with-lease to blind force push. It checks that the remote ref has not moved unexpectedly.
+
+**Historical command or diagram:**
+
+```bash
+git push --force-with-lease
+```
+
+---
+
+# Part LVII — Understanding merge base
+
+## 228. Merge base
+
+Git locates the common ancestor to decide which changes diverged. Squash changes ancestry, so the merge base may become surprising.
+
+---
+
+# Part LVIII — Graph and comparison tools
+
+## 229. Visualize graph ancestry
+
+git log --graph --oneline --decorate --all often explains branch problems better than trial-and-error merges.
+
+**Historical command or diagram:**
+
+```bash
+git log --graph --oneline --decorate --all
+```
+
+```bash
+git log --graph --oneline --decorate --all
+```
+
+---
+
+## 230. Which files changed?
+
+git diff answers a content-comparison question between states.
+
+---
+
+## 231. Which commits differ?
+
+git log answers a history-reachability question, not necessarily a file-content question.
+
+---
+
+## 232. Do not conflate diff and log
+
+The same final tree can have many different ancestors, as demonstrated in the 2.35.2 candidate repair.
+
+---
+
+## 233. Inspect the working tree
+
+git status shows the uncommitted edits and staging state that may affect a build.
+
+---
+
+## 234. Inspect the branch graph
+
+git branch -vv and related graph tools reveal tracking references and ahead/behind counts.
+
+---
+
+## 235. Read Git objects directly
+
+git cat-file -p can inspect a commit's tree SHA, parents, and metadata when higher-level commands obscure the issue.
+
+**Historical command or diagram:**
+
+```bash
+git cat-file -p <commit>
+```
+
+---
+
+## 236. Why this matters
+
+Viewing the actual commit object proves that parent and tree are independent fields rather than vague concepts.
+
+---
+
+# Part LIX — Ahead and behind
+
+## 237. Ahead/behind measures graph reachability
+
+These counts measure commit ancestry differences, not whether the files differ semantically.
+
+---
+
+## 238. Counts do not measure feature difference
+
+A branch many commits “ahead” may still have the same source tree as main after squashing.
+
+---
+
+## 239. If counts look wrong
+
+Inspect merge base, graph, and tree hashes before interpreting a surprising GitHub compare result as new product work.
+
+---
+
+## 240. Do not move published tags casually
+
+Consumers and CI may already have cached a published tag. Retargeting it undermines release provenance.
+
+---
