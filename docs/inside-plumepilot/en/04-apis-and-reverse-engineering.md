@@ -1340,7 +1340,21 @@ const TARGET_PATH = "/student/exam-online/exams-list-done";
 
 Source: [`commission-interceptor.js` L11](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L11).
 
-Its authenticated fetch uses the original implementation with the remembered token, includes browser credentials, and accepts an abort signal.
+Its authenticated fetch uses the original implementation with the remembered token, includes browser credentials, and accepts an abort signal. The original chapter illustrates these specific arguments:
+
+```js
+originalFetch.call(window, `${API_ORIGIN}${TARGET_PATH}`, {
+  method: "GET",
+  headers: {
+    Accept: "application/json",
+    Authorization: bearerToken,
+  },
+  credentials: "include",
+  signal: commissionController.signal,
+});
+```
+
+The preserved fields matter: `originalFetch` avoids accidental wrapper recursion; `credentials` uses the current browser session, and the `signal` allows cancellation.
 
 Source: [`commission-interceptor.js` L640–L671](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L640-L671).
 
