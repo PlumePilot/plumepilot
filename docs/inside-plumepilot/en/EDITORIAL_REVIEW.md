@@ -43,6 +43,19 @@ The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. Th
 
 ---
 
+## Third editorial pass — exercise and technical-block fidelity
+
+- [x] Checked exercise headings throughout chapters 00–17 against the Italian original. **A matching count alone is not treated as proof of equivalence.**
+- [x] Chapter 17 exercises **1–8** corrected to match the original assignments. The earlier English draft had substituted different questions in exercises 5–8 (cache design, framework selection, worker transfer, release gate) for the actual prompts about **React trade-offs, changed API field names, cache abstractions, and worker performance measurements**.
+- [x] Examined the full original and English prompts for chapters 07, 08, 09, 11, 12, and 14. The substantive scenarios and questions were retained. More concise prose is not itself a fidelity defect.
+- [x] Verified **chapters 07–17** preserve at least the original count of fenced JavaScript/HTML/JSON/CSS/Bash/Mermaid blocks within every numbered section. Their Mermaid diagram counts also match chapter by chapter. Block counts are structural evidence only, not proof that every line is unchanged.
+- [x] Restored the wider popup storage defaults and the sample platform-qualified course keys in chapter 06. Also restored the normalized lesson-cache value inventory in the extended Map case study.
+- [x] The source-relative code references and Markdown fenced-code structure remained intact in the spot checks following these edits.
+
+**Remaining gates:** inspect source-equivalent prose and text diagrams across chapters 02–06 and 11–17, especially longer explanatory sections. Complete a mechanical link/anchor pass, generate both offline HTML readers, verify them in browsers, then perform a final editorial read. **Do not merge yet.**
+
+---
+
 ## Important remaining editorial work
 
 A matching heading count **does not prove equivalent content**. Several draft chapters compress explanatory code-like `text` blocks from the Italian source into prose. Some earlier chapters have fewer fenced technical examples than their originals.
