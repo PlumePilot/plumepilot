@@ -15,9 +15,44 @@ These principles were not all designed up front. Many became visible through rea
 
 ## 1. Physical structure versus logical structure
 
-A list of files such as content.js, popup.js, background.js and epub-core.mjs describes repository organization, not the architecture. Logical organization is defined by responsibilities: domain rules, platform adapters, data sources, state owners, effects and build targets. The two views should be connected, not confused.
+If we ask, "What is PlumePilot's architecture?", a superficial answer might be a list of source files:
+
+```text
+popup.js
+background.js
+content.js
+bridge.js
+floating-menu.js
+...
+```
+
+That describes the repository's **physical organization**, not its logical architecture. The relationships between responsibilities look more like this:
+
+```text
+                    host platform
+                  DOM + API + session
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+          MAIN world             ISOLATED world
+             │                       │
+             └──────── messaging ────┘
+                         │
+                    background
+                  coordination layer
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+      popup         floating menu      builders
+        │                │                │
+        └────── shared persisted state ───┘
+```
+
+Files are an implementation detail. **Relationships among responsibilities constitute architecture.**
 
 ---
+
+# Part II — The first principle: make every boundary explicit
 
 ## 2. What is a boundary?
 
@@ -1030,11 +1065,43 @@ A small vocabulary of boundaries, ownership, identity, evidence and lifetime all
 
 # Part XXXV — Pattern map across subsystems
 
-## 154. An emerging pattern map
+## 154. The 25 recurring architectural patterns
 
-Core recurring patterns: boundary translation, stable identity, evidence hierarchy, unknown state, progressive refinement, guarded effects, single-source ownership, revalidation, bounded resources, and artifact verification.
+The lessons we have discovered across PlumePilot can be summarized without reducing them to a handful of generic labels:
+
+```text
+ 1. Explicit boundaries
+ 2. Stable logical identity
+ 3. Source / evidence hierarchy
+ 4. Unknown as a real state
+ 5. Fail closed before risky side effects
+ 6. Progressive refinement
+ 7. State lifetime matched to its purpose
+ 8. Clear ownership
+ 9. Messaging treated as a protocol
+10. Revalidation after await
+11. State machines
+12. Deduplication and idempotence
+13. Snapshot plus event updates
+14. Caches are not authoritative sources
+15. Bounded growth
+16. Cooperative cancellation
+17. Working-set awareness
+18. Backpressure
+19. Graceful degradation
+20. Semantic parity across platforms
+21. Shared semantics with separate adapters
+22. Derived presentation state
+23. Executable invariants
+24. Artifact-oriented thinking
+25. Preparing for contract drift
+```
+
+These patterns are not independent; together they explain the safeguards explored throughout the book.
 
 ---
+
+# Part L — These patterns reinforce one another
 
 ## 155. First-incomplete example
 
@@ -1062,11 +1129,40 @@ Targeted build adapters provide shared domain behavior while honoring background
 
 # Part XXXVI — Architecture without overengineering
 
-## 159. A hypothetical concept-oriented module map
+## 159. A concept-oriented module map
 
-One might group domain, adapters, workflow coordination, presentation, build, and tests more explicitly. Such a diagram is **conceptual**, not a proposal to immediately relocate every file.
+If we reorganized folders around those responsibilities, we might imagine:
+
+```text
+src/
+├── domain/
+│   ├── playback/
+│   ├── discovery/
+│   ├── operations/
+│   └── achievements/
+├── platform/
+│   ├── multiversity-api/
+│   ├── multiversity-dom/
+│   └── browser-extension/
+├── ui/
+│   ├── shared/
+│   ├── popup/
+│   └── floating/
+├── export/
+│   ├── pdf/
+│   ├── epub/
+│   └── quiz/
+└── infrastructure/
+    ├── storage/
+    ├── messaging/
+    └── diagnostics/
+```
+
+This is **not** an immediate restructuring proposal. It is a conceptual map that makes the relationships visible, without implying that each folder or module is already present in the current repository.
 
 ---
+
+# Part LIV — Why not refactor everything immediately?
 
 ## 160. Beware architecture astronautics
 
