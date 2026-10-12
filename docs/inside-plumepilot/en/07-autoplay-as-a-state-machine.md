@@ -2441,4 +2441,4 @@ This leads to a broader question:
 
 ---
 
-[← 06 — State, cache, and storage](06-state-cache-and-storage.md) · [Contents](index.md) · 08 — Finding the first incomplete activity (translation in progress)
+[← 06 — State, cache, and storage](06-state-cache-and-storage.md) · [Contents](index.md) · [08 — Finding the first incomplete activity →](08-finding-first-incomplete-activity.md)
