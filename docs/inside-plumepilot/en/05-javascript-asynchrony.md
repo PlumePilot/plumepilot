@@ -1898,7 +1898,14 @@ function createSerialQueue() {
 }
 ```
 
-Then each domain can create its own queue. The underlying architectural decision does not change; only its expression becomes more reusable.
+Then each domain can create its own queue:
+
+```js
+const serializeOperation = createSerialQueue();
+const serializeCommission = createSerialQueue();
+```
+
+The underlying architectural decision does not change; only its expression becomes more reusable.
 
 ---
 
