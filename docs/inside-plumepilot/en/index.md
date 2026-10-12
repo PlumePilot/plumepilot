@@ -44,7 +44,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 13 | [Chrome, Edge, and Firefox — One codebase, different runtimes](13-chrome-edge-and-firefox.md) |
 | 14 | [Debugging, tests, and regressions — Turning a bug into permanent knowledge](14-debugging-tests-and-regressions.md) |
 | 15 | [Git, branches, PRs, builds, and release engineering — Software beyond the code](15-git-branches-prs-and-release-engineering.md) |
-| 16 | Architectural lessons — Patterns that emerged from the real project |
+| 16 | [Architectural lessons — Patterns that emerged from the real project](16-architectural-lessons.md) |
 | 17 | What would we do differently today? — A retrospective without hindsight bias |
 
 The remaining chapters are translated on this documentation branch before publication. The public English landing is not merged until the edition is complete.
