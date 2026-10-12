@@ -1321,3 +1321,568 @@ const byHash = new Map();
 ```
 
 ---
+
+
+## 37. Content-addressable deduplication
+
+For each image, the code computes:
+
+```js
+const digest = new Uint8Array(
+  await crypto.subtle.digest("SHA-256", image.bytes)
+);
+```
+
+and a key:
+
+```js
+const key = `${image.mediaType}:${extension}:${hash}`;
+```
+
+The conceptual flow is:
+
+```text
+image bytes
+     ↓ SHA-256
+hash
+     ↓
+Map lookup
+  ┌──┴───┐
+ hit    miss
+  │       │
+reuse   zip.file()
+```
+
+This is a miniature form of **content-addressable storage**.
+
+The identity is determined by content, not the original filename.
+
+---
+
+## 38. Why not keep two copies of the bytes?
+
+A useful comment in `epub-assets.mjs` says:
+
+```js
+// Export-scoped: hold only metadata here. JSZip owns unique encoded buffers.
+```
+
+The `Map` primarily holds metadata:
+
+```js
+{
+  name,
+  mediaType,
+  size,
+}
+```
+
+The unique bytes are entrusted to JSZip.
+
+After registration, `epub-core.mjs` also does:
+
+```js
+image.bytes = null;
+```
+
+for registered images.
+
+> **Deduplicating the output matters; avoiding duplicate live buffers is even more important for memory.**
+
+---
+
+# Part XII — Packaging and compression
+
+## 39. JSZip as an in-memory build system
+
+As chapters are converted, the code adds resources:
+
+```js
+zip.file(...)
+```
+
+JSZip behaves like a virtual filesystem:
+
+```text
+zip
+├── mimetype
+├── META-INF/container.xml
+└── OEBPS/...
+```
+
+Finally it serializes that structure:
+
+```js
+const bytes = await zip.generateAsync({
+  type: "uint8array",
+  compression: "DEFLATE",
+  compressionOptions: { level: 6 },
+});
+```
+
+The result is one `Uint8Array`.
+
+---
+
+## 40. The hardest phase to cancel
+
+Immediately before compression, PlumePilot reports:
+
+```js
+cancellable: false
+```
+
+to disable the Cancel button.
+
+Until that stage, the code frequently checks:
+
+```js
+throwIfAborted(signal);
+```
+
+or uses cancellable operations.
+
+During `JSZip.generateAsync()` it cannot offer the same control over work already started.
+
+Therefore the UI makes an honest promise:
+
+```text
+conversion → cancellable
+final compression → finalizing; wait
+```
+
+An interface should not advertise a capability the underlying implementation cannot reliably deliver.
+
+---
+
+# Part XIII — End-to-end cancellation
+
+## 41. `AbortController` in the builder
+
+When an EPUB build begins:
+
+```js
+buildController = new AbortController();
+```
+
+The signal is passed to:
+
+```js
+buildCourseEpub(..., {
+  signal: buildController.signal,
+});
+```
+
+The Cancel button calls:
+
+```js
+buildController.abort();
+```
+
+The signal crosses the entire pipeline.
+
+---
+
+## 42. Cancelling a download
+
+`fetchPdfWithRetry()` creates a local controller for each attempt:
+
+```js
+const controller = new AbortController();
+```
+
+and connects the external abort:
+
+```js
+const cancel = () => controller.abort();
+signal?.addEventListener("abort", cancel, { once: true });
+```
+
+Two distinct causes are handled:
+
+```text
+user clicks Cancel
+        │
+        ├────────────┐
+        │            ↓
+        │         fetch abort
+        │
+        └────→ pipeline abort
+
+or
+
+download timeout
+        ↓
+local controller abort
+```
+
+User cancellation and timeout are not identical, even if both may interrupt Fetch.
+
+---
+
+## 43. Cancelling PDF.js
+
+Rendering must respond too.
+
+`renderPage()` registers:
+
+```js
+const cancel = () => task.cancel();
+signal?.addEventListener("abort", cancel, { once: true });
+```
+
+`convertMaterial()` also destroys its active document.
+
+Cancellation is not merely:
+
+```text
+set cancelled = true
+```
+
+It propagates to the expensive work itself. This is a **cancellation pipeline**.
+
+---
+
+# Part XIV — Retry and resilience
+
+## 44. Selective retry
+
+The PDF downloader defines:
+
+```js
+const PDF_DOWNLOAD_RETRY_DELAYS_MS = [1000, 2500];
+```
+
+But not every failure triggers retry.
+
+Client errors:
+
+```js
+status >= 400 && status < 500
+```
+
+are treated differently, with exceptions for potentially transient codes such as:
+
+```text
+408 Request Timeout
+429 Too Many Requests
+```
+
+Retrying a 404 soon afterward is unlikely to help. Timeouts, unstable networks, and rate limiting may justify a further attempt.
+
+As in Chapter 04, **retry is not indiscriminate repetition**.
+
+---
+
+## 45. Invalidating failed links
+
+If generation discovers that a cached material URL is unusable, the builder reports:
+
+```js
+PEGASO_INVALIDATE_MATERIAL_CACHE
+```
+
+with the relevant failed `cacheKeys`.
+
+The feedback loop is:
+
+```text
+collector
+   ↓
+cache material URL
+   ↓
+builder tries URL
+   ↓
+download fails
+   ↓
+invalidate cache
+```
+
+A cache's **consumer** helps correct the cache.
+
+---
+
+# Part XV — References and ownership
+
+## 46. Garbage collection does not mean perfect automatic resource management
+
+JavaScript uses garbage collection, but that does not mean memory can be ignored.
+
+The collector can reclaim an object only once it becomes unreachable. References inside Maps, arrays, closures, JSZip, event listeners, and Object URLs may keep objects alive.
+
+Some browser APIs also own native resources whose lifetimes do not map neatly onto the JavaScript object alone.
+
+That is why PlumePilot uses explicit operations such as:
+
+```text
+page.cleanup()
+pdf.destroy()
+canvas.width = 1
+image.bytes = null
+URL.revokeObjectURL()
+removeEventListener()
+```
+
+The principle is:
+
+> **Garbage collection reclaims unreachable memory; architecture must avoid keeping unnecessary objects and resources reachable.**
+
+---
+
+## 47. Ownership
+
+When handling large binary objects, ask:
+
+> **Who owns these bytes now?**
+
+During image deduplication:
+
+```text
+renderRegionalPage
+      ↓
+image.bytes
+      ↓
+assetRegistry.register()
+      ↓
+JSZip owns the unique required buffer
+      ↓
+image.bytes = null
+```
+
+Thinking about ownership helps even in JavaScript, which does not have Rust's borrow checker.
+
+---
+
+# Part XVI — Comparing the three pipelines
+
+## 48. PDF, HTML, and EPUB
+
+| Property | Materials PDF | Quiz HTML | Materials EPUB |
+|---|---|---|---|
+| Main input | Original PDFs | Structured JSON | Original PDFs |
+| Transformation | Copy pages | Web rendering | PDF interpretation |
+| Visual fidelity | Very high | Native HTML | Adaptive |
+| Reflow | No | Yes | Yes / hybrid |
+| Interactivity | Limited | High | Reader-dependent |
+| Offline | Yes | Yes | Yes |
+| Conversion complexity | Relatively low | Medium | High |
+| Memory pressure | Medium | Low/medium | High |
+| Binary assets | PDFs | Inline images | ZIP images/fonts |
+
+The single word **export** actually hides three different architectures.
+
+---
+
+## 49. Lossless versus lossy transformation
+
+Merging PDFs is close to a **lossless** visual transformation:
+
+```text
+PDF → copy pages → PDF
+```
+
+EPUB conversion necessarily carries greater potential for **lossy** transformation:
+
+```text
+PDF visual layout
+      ↓ interpretation
+semantic XHTML
+```
+
+That is why PlumePilot uses visual fallbacks.
+
+There are two competing goals:
+
+```text
+reflowability
+     ↑
+     │
+     │ trade-off
+     │
+     ↓
+fidelity
+```
+
+Regional mode searches for a useful middle ground.
+
+---
+
+# Part XVII — The pipeline as a transformation graph
+
+## 50. Think in stages
+
+A useful representation of EPUB generation is:
+
+```mermaid
+flowchart TD
+    A[Material URL] --> B[Fetch PDF bytes]
+    B --> C[PDF.js document]
+    C --> D[Page]
+    D --> E[Text content + operator list]
+    E --> F{Page classification}
+    F -->|Text| G[Reflow XHTML]
+    F -->|Visual| H[Canvas render]
+    F -->|Regional| I[Text regions + raster regions]
+    H --> J[PNG/JPEG]
+    I --> J
+    G --> K[Chapter XHTML]
+    J --> L[Asset registry]
+    L --> K
+    K --> M[JSZip virtual EPUB]
+    M --> N[DEFLATE]
+    N --> O[Uint8Array]
+    O --> P[Blob + download]
+```
+
+This is closer to a compiler pipeline than a typical UI function.
+
+Each stage accepts one representation, produces another, may fail, and has its own memory costs.
+
+---
+
+## 51. Intermediate representation
+
+Compiler design often uses an **IR — intermediate representation**.
+
+There is a similar pattern here:
+
+```text
+PDF operators
+      ↓
+classification
+      ↓
+converted.html + images[]
+      ↓
+EPUB chapter XHTML + assets
+```
+
+`converted` effectively acts as an intermediate representation: no longer the original PDF, not yet packaged as EPUB.
+
+The architectural insight:
+
+> **As a transformation grows more complex, explicit intermediate representations improve testability and separation of responsibilities.**
+
+---
+
+# Part XVIII — Observability and diagnostics
+
+## 52. Progress is more than UX
+
+The builder receives callbacks like:
+
+```js
+onProgress({
+  completed,
+  total,
+  percent,
+  message,
+  details,
+});
+```
+
+This powers the progress bar, but also exposes pipeline stages:
+
+```text
+download
+conversion
+page X of Y
+compression
+```
+
+That helps debugging. If a user reports:
+
+> "It always gets stuck at page 42 of material 7."
+
+we have more actionable information than:
+
+```text
+Building...
+```
+
+---
+
+## 53. Structured diagnostics
+
+`epub-core.mjs` also accepts a `diagnostics` object that can record information such as:
+
+```text
+page mode
+classification reason
+imageCount
+imageBytes
+mathFontBytes
+epubBytes
+elapsedMs
+```
+
+This is **instrumentation separated from primary behavior**. Collecting diagnostics should not change the conversion result.
+
+---
+
+# Part XIX — Possible future directions
+
+## 54. Streaming
+
+The current implementation constructs an EPUB in memory with JSZip and eventually produces a single `Uint8Array`.
+
+Very large documents might benefit from a more streaming-oriented design:
+
+```text
+input chapter
+    ↓
+convert
+    ↓
+append to archive
+    ↓
+release intermediates
+```
+
+with an archive writer that does not retain the complete file in memory.
+
+That would be more complex and depend on available browser APIs and libraries. It is not automatically a better choice for typical documents.
+
+---
+
+## 55. Dedicated workers
+
+Some expensive transformations could theoretically run away from the main thread:
+
+```text
+builder UI
+    ↓ message
+Web Worker
+    ↓
+conversion / encoding
+```
+
+But transferring work is not free:
+
+- The ordinary DOM is main-thread-only.
+- Canvas use may require different APIs such as OffscreenCanvas.
+- Libraries have their own constraints.
+- Passing large buffers needs careful design.
+- Debugging and cross-browser support become more complex.
+
+"Put it in a worker" is not a universal solution.
+
+---
+
+## 56. Backpressure
+
+When one pipeline stage produces data faster than the next can consume it, memory can accumulate. This is **backpressure**.
+
+A problematic design:
+
+```text
+render 200 pages quickly
+        ↓
+images[] grows
+        ↓
+ZIP processes data more slowly
+```
+
+Converting sequentially by page or chapter naturally reduces this risk.
+
+It is another reason why maximum concurrency is not necessarily the fastest or safest strategy.
+
+---
