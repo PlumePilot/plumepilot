@@ -624,7 +624,7 @@ An earlier review rejection or warning is most valuable when it becomes a repeat
 
 ---
 
-# Part — Reproducible source submission
+# Part XVII — Reproducible source submission
 
 ## 46. Reviewer rebuilds
 
@@ -681,7 +681,7 @@ SHA256SUMS records expected archive digests; the validator recomputes and compar
 
 ---
 
-# Part — Source and runtime packages
+# Part XVIII — Source and runtime packages
 
 ## 52. Runtime package
 
@@ -695,23 +695,23 @@ The Firefox source-review archive serves a different purpose: it includes enough
 
 ---
 
-# Part — First-party versus third-party
+# Part XIX — First-party versus third-party
 
-## 54. Non sono la stessa responsabilità
+## 54. First-party and third-party responsibilities
 
 First-party code can be refactored directly. Third-party vendor code should retain upstream provenance and receive only controlled, reproducible platform transformations.
 
 ---
 
-## 55. Perché evitare modifiche casuali ai vendor
+## 55. Why undocumented vendor edits are dangerous
 
 An undocumented manual vendor edit makes versions, license provenance, upstream updates, and behavior harder to audit. Build transformations express those differences explicitly.
 
 ---
 
-# Part — HTML and executable review surface
+# Part XX — HTML and executable review surface
 
-## 56. Codice first-party dinamico
+## 56. Dynamic first-party markup
 
 Some first-party dynamic innerHTML interpolation was replaced with safer DOM construction or controlled escaping. Not all innerHTML is inherently unsafe, but an unexamined HTML injection boundary increases review and security risk.
 
@@ -727,13 +727,13 @@ element.innerHTML = `
 
 ---
 
-## 57. Security e review spesso convergono
+## 57. Where security and review align
 
 Reducing unnecessary dynamic execution, arbitrary HTML injection, remote executable code, and unreviewed vendor patches can benefit both security and store approval.
 
 ---
 
-# Part — Remote code and data boundaries
+# Part XXI — Remote code and data boundaries
 
 ## 58. Runtime self-contained
 
@@ -753,21 +753,21 @@ A downloaded PDF is data; a downloaded script executed with eval becomes code. T
 
 ---
 
-# Part — Actual browser UI differences
+# Part XXII — Actual browser UI differences
 
-## 60. Non tutte le incompatibilità sono API
+## 60. Not all browser differences are API differences
 
 Cross-browser defects include scrollbars, CSS layout, focus, and timing, not just missing privileged WebExtension APIs.
 
 ---
 
-## 61. Un esempio: gutter
+## 61. Scrollbar gutters
 
 Different scrollbar gutters can clip the same interface differently in Chromium and Firefox. Correct the layout constraint, rather than adding arbitrary browser-specific spacing.
 
 ---
 
-# Part — Cross-browser timing
+# Part XXIII — Cross-browser timing
 
 ## 62. Chromium recovery race
 
@@ -775,7 +775,7 @@ The same eventual DOM may be reached at different times. Historical Chromium cha
 
 ---
 
-## 63. Feature detection non risolve il timing
+## 63. Feature detection cannot fix timing assumptions
 
 Timing issues cannot always be feature-detected. Use reproducible scenarios, guarded waits, and narrowly documented target workarounds when necessary.
 
@@ -787,9 +787,9 @@ if ("domTimingBug" in window)
 
 ---
 
-# Part — chrome versus browser namespaces
+# Part XXIV — chrome versus browser namespaces
 
-## 64. Un equivoco comune
+## 64. The namespace misconception
 
 Firefox supports many chrome.* WebExtension interfaces as well as browser.*. The actual behavior of an API matters more than the namespace's spelling.
 
@@ -817,7 +817,7 @@ new Promise((resolve) => {
 
 ---
 
-# Part — Detection and adapters
+# Part XXV — Detection and adapters
 
 ## 66. User agent sniffing
 
@@ -831,15 +831,15 @@ if (navigator.userAgent.includes("Firefox")) ...
 
 ---
 
-## 67. Quando una browser branch può essere legittima
+## 67. When a browser-specific branch is justified
 
 A browser-specific branch is justified when real, reproducible behavior differs and no capability check can distinguish it. Document the evidence and constrain its scope.
 
 ---
 
-# Part — Build-time anti-corruption layer
+# Part XXVI — Build-time anti-corruption layer
 
-## 68. Il build protegge il dominio dalle differenze dello store
+## 68. The build shields the domain from store differences
 
 Build-release specialization protects common domain code from store-specific manifest and packaging quirks. It acts as an anti-corruption layer.
 
@@ -851,17 +851,17 @@ As with backend ports and adapters, keep the domain stable and translate its req
 
 ---
 
-# Part — Cross-browser release matrix
+# Part XXVII — Cross-browser release matrix
 
-## 70. Una feature non è “done” quando funziona su Chrome
+## 70. A feature is not finished when it only works in Chrome
 
 Release readiness spans runtime features, manifest validity, background model, audio fallback, localization, review transforms, source submission, and store checks—not just functionality in Chrome.
 
 ---
 
-# Part — Artifact testing
+# Part XXVIII — Artifact testing
 
-## 71. Testare source non basta
+## 71. Testing source is insufficient
 
 Source tests cannot catch an omitted stylesheet in a ZIP or a Firefox manifest accidentally containing Chromium-only permissions.
 
@@ -873,15 +873,15 @@ menu-ux.js
 
 ---
 
-## 72. Tre livelli di test
+## 72. Three testing layers
 
 Use three layers of verification: source-level tests, real or fixture-based runtime tests, and final ZIP artifact validation.
 
 ---
 
-# Part — AMO warning severity
+# Part XXIX — AMO warning severity
 
-## 73. Una lezione AMO importante
+## 73. An important AMO lesson
 
 AMO lint distinguishes blocking errors and warnings that must be evaluated. Known warnings are not automatically failures, but new warnings cannot simply be ignored.
 
@@ -893,9 +893,9 @@ Severity matters: distinguish errors, warnings, accepted issues, runtime regress
 
 ---
 
-# Part — Reviewer instructions
+# Part XXX — Reviewer instructions
 
-## 75. Il reviewer non ha il nostro contesto
+## 75. Reviewers do not have our context
 
 Reviewers lack internal project knowledge. Test credentials, exact steps, expected results, rebuild commands, and permissions rationale must communicate it explicitly.
 
@@ -907,9 +907,9 @@ Good reviewer instructions resemble an API contract: state the setup, command or
 
 ---
 
-# Part — Divergence and compatibility debt
+# Part XXXI — Divergence and compatibility debt
 
-## 77. Ogni `if browser` è debito potenziale
+## 77. Every browser-specific condition adds maintenance cost
 
 Scattering if(firefox)/if(edge) through dozens of files multiplies feature complexity and tests. Concentrate platform branching at known boundaries.
 
@@ -929,55 +929,55 @@ A divergence budget encourages each browser-specific difference to justify its l
 
 ---
 
-## 79. Che cosa merita un wrapper?
+## 79. When is a wrapper useful?
 
 An adapter is valuable when it hides a stable difference behind a shared outcome, such as audio notification through offscreen or a tab.
 
 ---
 
-## 80. Quando il wrapper diventa dannoso
+## 80. When does a wrapper become harmful?
 
 A generic wrapper is harmful when it pretends incompatible environments are identical and accumulates exceptions. Abstract the common capability, not fictitious universal semantics.
 
 ---
 
-# Part — Polyfills, fallbacks, and specialization
+# Part XXXIII — Polyfills, fallbacks, and specialization
 
-## 81. Tre strumenti diversi
+## 81. Three different compatibility tools
 
 Polyfill means implementing a missing API; fallback means choosing an alternative path to a common goal; specialization means generating different artifacts before runtime.
 
 ---
 
-## 82. Esempio audio
+## 82. Audio example
 
 Firefox audio uses a tab-based fallback rather than pretending to implement Chromium's Offscreen API.
 
 ---
 
-## 83. Esempio background
+## 83. Background execution example
 
 Background execution uses build specialization: Firefox scripts instead of Chromium's service worker declaration.
 
 ---
 
-# Part — Common state schema
+# Part XXXIV — Common state schema
 
-## 84. Schema comune
+## 84. One shared schema
 
 Keep storage keys, preferences, operation schemas, and course-state semantics common, even when manifests and runtime adapters differ.
 
 ---
 
-## 85. Identità update
+## 85. Update identity
 
 Extension identity also determines which local storage installation a browser uses. Changing a Firefox add-on ID can break continuity despite an unchanged schema.
 
 ---
 
-# Part — Version metadata
+# Part XXXV — Version metadata
 
-## 86. Un bug storico istruttivo
+## 86. A historical version-reading bug
 
 An earlier getManifest() call ran in a context without the API. The version was instead read by a privileged bridge and passed through the existing protocol.
 
@@ -989,7 +989,7 @@ chrome.runtime.getManifest()
 
 ---
 
-## 87. Non duplicare la versione
+## 87. Do not duplicate the version
 
 Manifest version should be the source of truth. Copying a VERSION constant into many scripts creates inevitable drift.
 
@@ -1001,55 +1001,55 @@ const VERSION = "2.35.2";
 
 ---
 
-# Part — Firefox Android declarations
+# Part XXXVI — Firefox Android declarations
 
-## 88. Dichiarare non significa distribuire
+## 88. Declaration is not distribution
 
 A Firefox Android minimum version declaration does not imply the product was distributed as an Android extension; availability is a separate decision.
 
 ---
 
-# Part — Browser support costs
+# Part XXXVII — Browser support costs
 
-## 89. Supportare un browser ha un costo
+## 89. Supporting a browser has an ongoing cost
 
 Supporting a browser commits the project to testing, review, updates, troubleshooting, and continued maintenance—not just a successful smoke test.
 
 ---
 
-## 90. Perché limitarne il numero può essere sano
+## 90. Why limiting platforms can be healthy
 
 Supporting fewer browsers thoroughly can be more responsible than promising many untested platforms.
 
 ---
 
-# Part — A compatibility decision workflow
+# Part XXXVIII — A compatibility decision workflow
 
-## 91. Domanda 1: è Web Platform o Extension API?
+## 91. Question 1: Web Platform or extension API?
 
 Classify a new feature as Web Platform functionality or privileged extension functionality before assessing compatibility.
 
 ---
 
-## 92. Domanda 2: capability support
+## 92. Question 2: Capability support
 
 Verify current API capabilities in authoritative documentation for each actual target browser, instead of relying on memory.
 
 ---
 
-## 93. Domanda 3: stesso obiettivo, stessa API?
+## 93. Question 3: Same goal, same API?
 
 Where possible, express a common user goal and provide separate adapters if the browsers require different mechanisms.
 
 ---
 
-## 94. Domanda 4: differenza build-time o runtime?
+## 94. Question 4: Build-time or runtime?
 
 Manifest, permissions, and shipped resources are build-time concerns; optional feature availability can often be checked at runtime.
 
 ---
 
-## 95. Domanda 5: cosa deve validare l'artefatto?
+## 95. Question 5: What must the artifact validator check?
 
 Every platform-specific rule should have a matching artifact invariant. Firefox excluding offscreen becomes a build assertion.
 
@@ -1063,9 +1063,9 @@ if (manifest.permissions?.includes("offscreen")) {
 
 ---
 
-# Part — Never patch generated ZIPs
+# Part XXXIX — Never patch generated ZIPs
 
-## 96. “Apro lo ZIP e cambio manifest.json”
+## 96. Editing the ZIP manifest manually
 
 Opening a built ZIP and manually editing manifest.json breaks reproducibility and guarantees the fix will be forgotten on regeneration.
 
@@ -1077,15 +1077,15 @@ Fix the source input or release script, rebuild, validate, and commit; treat the
 
 ---
 
-# Part — Determinism
+# Part XL — Determinism
 
-## 98. Perché una build deterministica aiuta anche noi
+## 98. Why deterministic builds help developers
 
 Deterministic archives eliminate timestamp and ordering noise so genuine differences are easier to inspect.
 
 ---
 
-# Part — Source and artifact identity
+# Part XLI — Source and artifact identity
 
 ## 99. Commit SHA vs artifact SHA
 
@@ -1093,9 +1093,9 @@ Commit SHA identifies source state while ZIP SHA-256 identifies exact distributi
 
 ---
 
-# Part — Release provenance
+# Part XLII — Release provenance
 
-## 100. Possiamo disegnarla
+## 100. Draw the provenance graph
 
 The release provenance graph runs from a commit through the builder, specialized manifests and vendor transforms, into browser ZIPs and their checksums.
 
@@ -1130,7 +1130,7 @@ flowchart TD
 
 ---
 
-# Part — Cross-browser invariants
+# Part XLIII — Cross-browser invariants
 
 ## 101. What must remain the same
 
@@ -1144,7 +1144,7 @@ Background declarations, audio implementation, store metadata, permission sets, 
 
 ---
 
-# Part — Semantic parity
+# Part XLIV — Semantic parity
 
 ## 103. Binary equality is unnecessary
 
@@ -1158,7 +1158,7 @@ Chromium plays sounds through an offscreen document; Firefox may use a content t
 
 ---
 
-# Part — Regression coverage
+# Part XLV — Regression coverage
 
 ## 105. What to test per feature
 
@@ -1166,7 +1166,7 @@ A cross-browser regression test should verify success, failure handling, cancell
 
 ---
 
-# Part — Review regressions
+# Part XLVI — Review regressions
 
 ## 106. Release builds can regress
 
@@ -1174,7 +1174,7 @@ An upstream JSZip update may reintroduce a dynamic execution pattern in a new lo
 
 ---
 
-# Part — Store policies as external contracts
+# Part XLVII — Store policies as external contracts
 
 ## 107. Store policies can change
 
@@ -1188,7 +1188,7 @@ Do not assume last month's review criteria remain unchanged forever. Revisit aut
 
 ---
 
-# Part — Avoiding policy-driven overfitting
+# Part XLVIII — Avoiding policy-driven overfitting
 
 ## 109. Avoid policy-driven overfitting
 
@@ -1196,7 +1196,7 @@ Chasing each warning with an isolated patch can distort the architecture. Prefer
 
 ---
 
-# Part — Anti-patterns
+# Part XLIX — Anti-patterns
 
 ## 110. Avoid permanent browser forks
 
@@ -1238,7 +1238,7 @@ Every vendor change should state its upstream source, original checksum, reason 
 
 ---
 
-# Part — Core, adapters, and release compiler
+# Part L — Core, adapters, and release compiler
 
 ## 115. Core plus adapters plus release compiler
 
@@ -1246,7 +1246,7 @@ Model PlumePilot as one domain core plus runtime adapters and a release compiler
 
 ---
 
-# Part — The build as a compiler
+# Part LI — The build as a compiler
 
 ## 116. Compiler front-end
 
@@ -1278,7 +1278,7 @@ Verification is performed by validate-release.mjs over the resulting artifacts r
 
 ---
 
-# Part — Release validation as a type system
+# Part LII — Release validation as a type system
 
 ## 121. The validator as a release type system
 
@@ -1286,7 +1286,7 @@ A type system rejects invalid programs before runtime; similarly, the release va
 
 ---
 
-# Part — Executable institutional knowledge
+# Part LIII — Executable institutional knowledge
 
 ## 122. Human memory is fragile
 
@@ -1311,7 +1311,7 @@ if (
 
 ---
 
-# Part — Graceful degradation
+# Part LIV — Graceful degradation
 
 ## 124. Feature parity can use graceful degradation
 
@@ -1319,7 +1319,7 @@ Adapters do not need identical internals. If an optional feature cannot be suppo
 
 ---
 
-# Part — A support matrix
+# Part LV — A support matrix
 
 ## 125. An explicit support matrix
 
@@ -1356,7 +1356,7 @@ const capabilities = {
 
 ---
 
-# Part — Cross-browser debugging
+# Part LVII — Cross-browser debugging
 
 ## 128. Debugging: same input?
 
@@ -1376,7 +1376,7 @@ If the browser refuses to load, investigate manifest and packaging; if it loads 
 
 ---
 
-# Part — Error taxonomy
+# Part LVIII — Error taxonomy
 
 ## 131. A cross-browser error taxonomy
 
@@ -1384,7 +1384,7 @@ Classify failures into syntax/runtime incompatibility, absent API, lifecycle mis
 
 ---
 
-# Part — Case study: sound notification
+# Part LIX — Case study: sound notification
 
 ## 132. Sound: requirement
 
@@ -1422,7 +1422,7 @@ The Firefox ZIP must not advertise the unused offscreen permission or depend on 
 
 ---
 
-# Part — Case study: Edge localization
+# Part LX — Case study: Edge localization
 
 ## 138. Edge localization: requirement
 
@@ -1442,7 +1442,7 @@ The validator checks the packaged localized keys and resource files rather than 
 
 ---
 
-# Part — Case study: readable vendor code
+# Part LXI — Case study: readable vendor code
 
 ## 141. Readable vendors: requirement
 
