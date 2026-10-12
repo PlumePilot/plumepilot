@@ -623,3 +623,509 @@ function couldBeMinifiedCode(source) {
 An earlier review rejection or warning is most valuable when it becomes a repeatable safeguard. Once a problem is understood—dynamic evaluation, source provenance, missing reviewer instructions, or a malformed artifact—the build and validator should detect recurrence automatically. This turns human troubleshooting history into a testable release contract.
 
 ---
+
+# Part — Reproducible source submission
+
+## 46. Reviewer rebuilds
+
+The AMO source README documents the tools and command needed to rebuild the archives. A reviewer should not have to guess how the shipped output was generated.
+
+**Historical code or diagram:**
+
+```bash
+node scripts/build-release.mjs
+```
+
+---
+
+## 47. Build offline
+
+Offline builds avoid hidden reliance on live CDNs, mutable remote packages, and network availability. The process is close to hermetic, even if the project does not claim complete toolchain isolation.
+
+---
+
+## 48. Reproducible vs deterministic
+
+A deterministic build emits the same bytes for controlled identical inputs. A reproducible build lets another person rebuild and verify a claimed output from declared sources.
+
+---
+
+## 49. Fixed ZIP timestamp
+
+Fixed ZIP entry timestamps prevent today's date from changing binary hashes when the code is otherwise unchanged.
+
+**Historical code or diagram:**
+
+```js
+const fixedZipDate =
+  new Date("2026-01-01T00:00:00.000Z");
+```
+
+---
+
+## 50. Stable ordering
+
+Sorting the collected file list stabilizes ZIP entry ordering and reduces meaningless differences between builds.
+
+**Historical code or diagram:**
+
+```js
+return files.sort();
+```
+
+---
+
+## 51. SHA256SUMS
+
+SHA256SUMS records expected archive digests; the validator recomputes and compares them to identify exact output bytes.
+
+---
+
+# Part — Source and runtime packages
+
+## 52. Runtime package
+
+The installable runtime archive should contain needed extension resources, not documentation, unit tests, development scripts, or unrelated sources.
+
+---
+
+## 53. Source submission
+
+The Firefox source-review archive serves a different purpose: it includes enough build inputs, scripts, instructions, and provenance to recreate and inspect the executable artifact.
+
+---
+
+# Part — First-party versus third-party
+
+## 54. Non sono la stessa responsabilità
+
+First-party code can be refactored directly. Third-party vendor code should retain upstream provenance and receive only controlled, reproducible platform transformations.
+
+---
+
+## 55. Perché evitare modifiche casuali ai vendor
+
+An undocumented manual vendor edit makes versions, license provenance, upstream updates, and behavior harder to audit. Build transformations express those differences explicitly.
+
+---
+
+# Part — HTML and executable review surface
+
+## 56. Codice first-party dinamico
+
+Some first-party dynamic innerHTML interpolation was replaced with safer DOM construction or controlled escaping. Not all innerHTML is inherently unsafe, but an unexamined HTML injection boundary increases review and security risk.
+
+**Historical code or diagram:**
+
+```js
+element.innerHTML = `
+  ...
+  ${dynamicValue}
+  ...
+`;
+```
+
+---
+
+## 57. Security e review spesso convergono
+
+Reducing unnecessary dynamic execution, arbitrary HTML injection, remote executable code, and unreviewed vendor patches can benefit both security and store approval.
+
+---
+
+# Part — Remote code and data boundaries
+
+## 58. Runtime self-contained
+
+Manifest V3 extension behavior is supplied by packaged executable assets. PlumePilot fetches PDFs and LMS data but should not fetch remote JavaScript to evaluate as new program logic.
+
+**Historical code or diagram:**
+
+```html
+<script src="https://...">
+```
+
+---
+
+## 59. Code vs data boundary
+
+A downloaded PDF is data; a downloaded script executed with eval becomes code. The source of executable behavior is a fundamental trust boundary.
+
+---
+
+# Part — Actual browser UI differences
+
+## 60. Non tutte le incompatibilità sono API
+
+Cross-browser defects include scrollbars, CSS layout, focus, and timing, not just missing privileged WebExtension APIs.
+
+---
+
+## 61. Un esempio: gutter
+
+Different scrollbar gutters can clip the same interface differently in Chromium and Firefox. Correct the layout constraint, rather than adding arbitrary browser-specific spacing.
+
+---
+
+# Part — Cross-browser timing
+
+## 62. Chromium recovery race
+
+The same eventual DOM may be reached at different times. Historical Chromium chapter recovery needed different settling behavior without altering Firefox's ordinary path.
+
+---
+
+## 63. Feature detection non risolve il timing
+
+Timing issues cannot always be feature-detected. Use reproducible scenarios, guarded waits, and narrowly documented target workarounds when necessary.
+
+**Historical code or diagram:**
+
+```js
+if ("domTimingBug" in window)
+```
+
+---
+
+# Part — chrome versus browser namespaces
+
+## 64. Un equivoco comune
+
+Firefox supports many chrome.* WebExtension interfaces as well as browser.*. The actual behavior of an API matters more than the namespace's spelling.
+
+**Historical code or diagram:**
+
+```js
+chrome.storage
+chrome.runtime
+chrome.tabs
+```
+
+---
+
+## 65. Callback vs Promise
+
+Project-owned Promise wrappers over callback-style messaging provide stable asynchronous semantics where browser API contracts have historically differed.
+
+**Historical code or diagram:**
+
+```js
+new Promise((resolve) => {
+  chrome.runtime.sendMessage(message, resolve);
+});
+```
+
+---
+
+# Part — Detection and adapters
+
+## 66. User agent sniffing
+
+User-agent string detection is brittle compared with capability detection, target-specific manifests, and observed runtime behavior.
+
+**Historical code or diagram:**
+
+```js
+if (navigator.userAgent.includes("Firefox")) ...
+```
+
+---
+
+## 67. Quando una browser branch può essere legittima
+
+A browser-specific branch is justified when real, reproducible behavior differs and no capability check can distinguish it. Document the evidence and constrain its scope.
+
+---
+
+# Part — Build-time anti-corruption layer
+
+## 68. Il build protegge il dominio dalle differenze dello store
+
+Build-release specialization protects common domain code from store-specific manifest and packaging quirks. It acts as an anti-corruption layer.
+
+---
+
+## 69. Backend analogy
+
+As with backend ports and adapters, keep the domain stable and translate its requirements at deployment boundaries.
+
+---
+
+# Part — Cross-browser release matrix
+
+## 70. Una feature non è “done” quando funziona su Chrome
+
+Release readiness spans runtime features, manifest validity, background model, audio fallback, localization, review transforms, source submission, and store checks—not just functionality in Chrome.
+
+---
+
+# Part — Artifact testing
+
+## 71. Testare source non basta
+
+Source tests cannot catch an omitted stylesheet in a ZIP or a Firefox manifest accidentally containing Chromium-only permissions.
+
+**Historical code or diagram:**
+
+```js
+menu-ux.js
+```
+
+---
+
+## 72. Tre livelli di test
+
+Use three layers of verification: source-level tests, real or fixture-based runtime tests, and final ZIP artifact validation.
+
+---
+
+# Part — AMO warning severity
+
+## 73. Una lezione AMO importante
+
+AMO lint distinguishes blocking errors and warnings that must be evaluated. Known warnings are not automatically failures, but new warnings cannot simply be ignored.
+
+---
+
+## 74. Severity classification
+
+Severity matters: distinguish errors, warnings, accepted issues, runtime regressions, and harmless diagnostics rather than treating them identically.
+
+---
+
+# Part — Reviewer instructions
+
+## 75. Il reviewer non ha il nostro contesto
+
+Reviewers lack internal project knowledge. Test credentials, exact steps, expected results, rebuild commands, and permissions rationale must communicate it explicitly.
+
+---
+
+## 76. Reviewer instructions come API contract
+
+Good reviewer instructions resemble an API contract: state the setup, command or action, expected outcome, and known limitations with minimal ambiguity.
+
+---
+
+# Part — Divergence and compatibility debt
+
+## 77. Ogni `if browser` è debito potenziale
+
+Scattering if(firefox)/if(edge) through dozens of files multiplies feature complexity and tests. Concentrate platform branching at known boundaries.
+
+**Historical code or diagram:**
+
+```js
+if (firefox) pathA();
+else if (edge) pathB();
+else pathC();
+```
+
+---
+
+## 78. Divergence budget
+
+A divergence budget encourages each browser-specific difference to justify its long-term maintenance cost. Do not fork behavior speculatively.
+
+---
+
+## 79. Che cosa merita un wrapper?
+
+An adapter is valuable when it hides a stable difference behind a shared outcome, such as audio notification through offscreen or a tab.
+
+---
+
+## 80. Quando il wrapper diventa dannoso
+
+A generic wrapper is harmful when it pretends incompatible environments are identical and accumulates exceptions. Abstract the common capability, not fictitious universal semantics.
+
+---
+
+# Part — Polyfills, fallbacks, and specialization
+
+## 81. Tre strumenti diversi
+
+Polyfill means implementing a missing API; fallback means choosing an alternative path to a common goal; specialization means generating different artifacts before runtime.
+
+---
+
+## 82. Esempio audio
+
+Firefox audio uses a tab-based fallback rather than pretending to implement Chromium's Offscreen API.
+
+---
+
+## 83. Esempio background
+
+Background execution uses build specialization: Firefox scripts instead of Chromium's service worker declaration.
+
+---
+
+# Part — Common state schema
+
+## 84. Schema comune
+
+Keep storage keys, preferences, operation schemas, and course-state semantics common, even when manifests and runtime adapters differ.
+
+---
+
+## 85. Identità update
+
+Extension identity also determines which local storage installation a browser uses. Changing a Firefox add-on ID can break continuity despite an unchanged schema.
+
+---
+
+# Part — Version metadata
+
+## 86. Un bug storico istruttivo
+
+An earlier getManifest() call ran in a context without the API. The version was instead read by a privileged bridge and passed through the existing protocol.
+
+**Historical code or diagram:**
+
+```js
+chrome.runtime.getManifest()
+```
+
+---
+
+## 87. Non duplicare la versione
+
+Manifest version should be the source of truth. Copying a VERSION constant into many scripts creates inevitable drift.
+
+**Historical code or diagram:**
+
+```js
+const VERSION = "2.35.2";
+```
+
+---
+
+# Part — Firefox Android declarations
+
+## 88. Dichiarare non significa distribuire
+
+A Firefox Android minimum version declaration does not imply the product was distributed as an Android extension; availability is a separate decision.
+
+---
+
+# Part — Browser support costs
+
+## 89. Supportare un browser ha un costo
+
+Supporting a browser commits the project to testing, review, updates, troubleshooting, and continued maintenance—not just a successful smoke test.
+
+---
+
+## 90. Perché limitarne il numero può essere sano
+
+Supporting fewer browsers thoroughly can be more responsible than promising many untested platforms.
+
+---
+
+# Part — A compatibility decision workflow
+
+## 91. Domanda 1: è Web Platform o Extension API?
+
+Classify a new feature as Web Platform functionality or privileged extension functionality before assessing compatibility.
+
+---
+
+## 92. Domanda 2: capability support
+
+Verify current API capabilities in authoritative documentation for each actual target browser, instead of relying on memory.
+
+---
+
+## 93. Domanda 3: stesso obiettivo, stessa API?
+
+Where possible, express a common user goal and provide separate adapters if the browsers require different mechanisms.
+
+---
+
+## 94. Domanda 4: differenza build-time o runtime?
+
+Manifest, permissions, and shipped resources are build-time concerns; optional feature availability can often be checked at runtime.
+
+---
+
+## 95. Domanda 5: cosa deve validare l'artefatto?
+
+Every platform-specific rule should have a matching artifact invariant. Firefox excluding offscreen becomes a build assertion.
+
+**Historical code or diagram:**
+
+```js
+if (manifest.permissions?.includes("offscreen")) {
+  throw ...
+}
+```
+
+---
+
+# Part — Never patch generated ZIPs
+
+## 96. “Apro lo ZIP e cambio manifest.json”
+
+Opening a built ZIP and manually editing manifest.json breaks reproducibility and guarantees the fix will be forgotten on regeneration.
+
+---
+
+## 97. Fix source, not artifact
+
+Fix the source input or release script, rebuild, validate, and commit; treat the ZIP as output, not an editable source file.
+
+---
+
+# Part — Determinism
+
+## 98. Perché una build deterministica aiuta anche noi
+
+Deterministic archives eliminate timestamp and ordering noise so genuine differences are easier to inspect.
+
+---
+
+# Part — Source and artifact identity
+
+## 99. Commit SHA vs artifact SHA
+
+Commit SHA identifies source state while ZIP SHA-256 identifies exact distribution bytes; one commit can generate several different valid artifacts.
+
+---
+
+# Part — Release provenance
+
+## 100. Possiamo disegnarla
+
+The release provenance graph runs from a commit through the builder, specialized manifests and vendor transforms, into browser ZIPs and their checksums.
+
+**Historical code or diagram:**
+
+```mermaid
+flowchart TD
+    A[Git commit] --> B[build-release.mjs]
+    B --> C[Chrome manifest]
+    B --> D[Firefox manifest]
+    B --> E[Edge manifest]
+
+    B --> F[Firefox review-safe transforms]
+
+    C --> G[Chrome ZIP]
+    D --> F
+    F --> H[Firefox ZIP]
+    E --> I[Edge ZIP]
+
+    A --> J[Source submission ZIP]
+
+    G --> K[SHA256SUMS]
+    H --> K
+    I --> K
+    J --> K
+
+    G --> L[validate-release.mjs]
+    H --> L
+    I --> L
+    J --> L
+```
+
+---
