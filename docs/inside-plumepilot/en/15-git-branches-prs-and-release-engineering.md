@@ -2679,4 +2679,4 @@ After contexts, messaging, DOM, APIs, async behavior, caches, state machines, se
 
 ---
 
-[← 14 — Debugging, tests, and regressions](14-debugging-tests-and-regressions.md) · [Contents](index.md) · 16 — Architectural lessons (translation in progress)
+[← 14 — Debugging, tests, and regressions](14-debugging-tests-and-regressions.md) · [Contents](index.md) · [16 — Architectural lessons →](16-architectural-lessons.md)
