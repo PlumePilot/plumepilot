@@ -729,6 +729,81 @@ The base freshness window is five minutes. But the actual design is far more int
 
 ---
 
+## 26. Not all fields become stale at the same rate
+
+`cachedLessonResponse()` first calculates:
+
+```js
+const fresh =
+  Date.now() - Number(entry.fetchedAt || 0) <=
+  API_LESSON_CACHE_FRESH_MS;
+```
+
+Then applies data-specific rules:
+
+```js
+if (!allowStaleMutableData) {
+  if (requiredData === "data" && !fresh) return null;
+  if (requiredData === "playback" && !fresh) return null;
+
+  if (
+    requiredData === "test" &&
+    !fresh &&
+    entry.test?.completed !== true
+  ) return null;
+
+  if (
+    requiredData === "objective" &&
+    !fresh &&
+    entry.objective?.completed !== true
+  ) return null;
+}
+```
+
+This is an example of **semantic cache policy**. We are not merely saying, "older than five minutes means unusable." We are saying:
+
+```text
+How freshness affects correctness depends on
+which kind of data the caller needs.
+```
+
+---
+
+## 27. Monotonic state and caching
+
+Recall the concept of **monotonic state** from Chapter 04.
+
+If a test is marked completed:
+
+```text
+0% → 100%
+```
+
+we normally do not expect it to become:
+
+```text
+100% → 0%
+```
+
+merely because several minutes passed.
+
+PlumePilot can therefore reuse some confirmed completion facts more generously than still-mutable information.
+
+In progress merges, the code also preserves the maximum percentage for the **same** identified activity:
+
+```js
+const percentage = Math.max(
+  Number(activity.percentage) || 0,
+  sameActivity ? Number(previousActivity.percentage) || 0 : 0,
+);
+```
+
+A stale response should not necessarily erase a stronger completion observation.
+
+This is a domain-specific choice, not a universal law of caches.
+
+---
+
 ## 25.1 The abstract model: key → value
 
 A cache is first a partial mapping:
@@ -1554,81 +1629,6 @@ is no longer "just a Map call." It is the visible tip of a small data-structure 
 
 
 # Part XI — Cache identity is part of the algorithm
-
-## 26. Not all fields become stale at the same rate
-
-`cachedLessonResponse()` first calculates:
-
-```js
-const fresh =
-  Date.now() - Number(entry.fetchedAt || 0) <=
-  API_LESSON_CACHE_FRESH_MS;
-```
-
-Then applies data-specific rules:
-
-```js
-if (!allowStaleMutableData) {
-  if (requiredData === "data" && !fresh) return null;
-  if (requiredData === "playback" && !fresh) return null;
-
-  if (
-    requiredData === "test" &&
-    !fresh &&
-    entry.test?.completed !== true
-  ) return null;
-
-  if (
-    requiredData === "objective" &&
-    !fresh &&
-    entry.objective?.completed !== true
-  ) return null;
-}
-```
-
-This is an example of **semantic cache policy**. We are not merely saying, "older than five minutes means unusable." We are saying:
-
-```text
-How freshness affects correctness depends on
-which kind of data the caller needs.
-```
-
----
-
-## 27. Monotonic state and caching
-
-Recall the concept of **monotonic state** from Chapter 04.
-
-If a test is marked completed:
-
-```text
-0% → 100%
-```
-
-we normally do not expect it to become:
-
-```text
-100% → 0%
-```
-
-merely because several minutes passed.
-
-PlumePilot can therefore reuse some confirmed completion facts more generously than still-mutable information.
-
-In progress merges, the code also preserves the maximum percentage for the **same** identified activity:
-
-```js
-const percentage = Math.max(
-  Number(activity.percentage) || 0,
-  sameActivity ? Number(previousActivity.percentage) || 0 : 0,
-);
-```
-
-A stale response should not necessarily erase a stronger completion observation.
-
-This is a domain-specific choice, not a universal law of caches.
-
----
 
 ## 28. A cache can return valid data for the wrong thing
 
