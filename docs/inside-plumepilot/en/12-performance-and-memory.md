@@ -734,6 +734,8 @@ Several references to one buffer do not necessarily mean duplicated physical byt
 
 ---
 
+# Part XI — JPEG or PNG? Representation is a performance decision
+
 ## 41. Not all images should use the same codec
 
 PlumePilot samples a 64×64 representation of the rendered canvas before deciding how to encode an image. JPEG often compresses photographic or continuous-tone content more efficiently. PNG is usually more faithful for diagrams, sharp lines, and rasterized text. `chooseCanvasFormat()` returns the extension, media type, and optionally JPEG quality. The choice is a **representation-level performance optimization**, not simply a file-extension preference.
