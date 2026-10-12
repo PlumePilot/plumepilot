@@ -715,7 +715,7 @@ The key is built from the course code and lesson number:
 
 ```js
 function lessonApiCacheKey(courseCode, lessonNumber) {
-  return ${courseCode}:${Number(lessonNumber)};
+  return `${courseCode}:${Number(lessonNumber)}`;
 }
 ```
 
