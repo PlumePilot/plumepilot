@@ -853,3 +853,661 @@ A monolithic `renderMenu(surface, mode, ...)` would accumulate conditional behav
 The chosen middle ground is deliberate: **share rules of meaning, shared design tokens, and reusable interaction helpers; retain surface-specific controllers and DOM trees**. It reduces duplication of knowledge without forcing unrelated implementation details into one abstraction.
 
 ---
+
+# Part XI — Shadow DOM as a boundary
+
+## 39. Why the floating menu uses Shadow DOM
+
+The floating menu is injected into the LMS page. Without an encapsulation boundary, host styles such as global rules for `button` or common classes could collide with PlumePilot styles. Conversely, extension selectors might accidentally affect the page.
+
+The menu therefore creates a ShadowRoot through `host.attachShadow({ mode: "closed" })`. Its descendants belong to a separate styling and DOM boundary. This reduces accidental interference between the host application and the extension UI.
+
+The popup does not face the same problem: it already runs as its own extension document.
+
+**Examples from the historical implementation:**
+
+```css
+.button { ... }
+```
+
+```js
+const shadow = host.attachShadow({ mode: "closed" });
+```
+
+**Historical reference:** `floating-menu.js:1922–1931`
+
+---
+
+## 40. Closed ShadowRoot
+
+With `mode: "closed"`, outside code cannot normally retrieve the root through `host.shadowRoot`, which evaluates to `null`. That does not prevent the code that created the root from retaining and using its `shadow` reference.
+
+The distinction is between access through the host element's public property and access through a reference the creator already holds. Both cases must be understood when designing a menu controller.
+
+Closing the root is an encapsulation preference, not a magic isolation mechanism.
+
+**Examples from the historical implementation:**
+
+```js
+mode: "closed"
+```
+
+```js
+host.shadowRoot.querySelector(...)
+```
+
+```js
+host.shadowRoot === null
+```
+
+```js
+const shadow = host.attachShadow(...);
+```
+
+---
+
+## 41. Encapsulation is not security
+
+Shadow DOM primarily encapsulates DOM structure, selectors, and style behavior. It is **not a security boundary for secrets** or authorization.
+
+A closed root makes internals less conveniently accessible through `shadowRoot` but does not justify storing confidential tokens there. Security depends on browser execution contexts, message validation, credential handling, and proper trust boundaries, as discussed in earlier chapters.
+
+Use Shadow DOM to prevent integration collisions, not as an authentication mechanism.
+
+---
+
+## 42. Shared CSS must be loaded in both worlds
+
+The popup can include `menu-ux.css` directly through an extension-document stylesheet link. The floating menu, however, needs the same CSS loaded **inside its ShadowRoot**.
+
+The menu markup contains a URL placeholder that the controller replaces with `chrome.runtime.getURL("menu-ux.css")`. Because the stylesheet is requested from a page-embedded context, the extension also declares appropriate `web_accessible_resources` in its manifest.
+
+A seemingly small CSS refactor thus crosses multiple architectural layers: resource packaging, manifest permissions, document lifecycle, and shadow-root rendering.
+
+**Examples from the historical implementation:**
+
+```html
+<link rel="stylesheet" href="menu-ux.css">
+```
+
+```html
+<link rel="stylesheet" href="__PP_MENU_UX_CSS__">
+```
+
+```js
+chrome.runtime.getURL("menu-ux.css")
+```
+
+```json
+web_accessible_resources
+```
+
+**Historical reference:** `popup.html:14–16`; `floating-menu.js:3648
+floating-menu.js:3886–3888`; `manifest.json:56–88`
+
+---
+
+# Part XII — Design tokens without a design-system framework
+
+## 43. CSS custom properties as a contract
+
+`menu-ux.css` establishes tokens including `--ux-font`, `--ux-copy-size`, `--ux-action-size`, `--ux-surface`, `--ux-muted`, and `--ux-accent`.
+
+Rather than scattering hard-coded sizes and colors across unrelated selectors, each role can consume shared semantic variables. A setting title and a checkbox label may use the same typography token even though their DOM structures differ.
+
+These CSS variables become a **design contract** across popup and floating menu. Themes and sizes can then alter token values instead of rewriting every component's rules.
+
+**Examples from the historical implementation:**
+
+```css
+--ux-font
+--ux-copy-size
+--ux-action-size
+--ux-surface
+--ux-muted
+--ux-accent
+```
+
+```css
+font-size: 12px;
+```
+
+**Historical reference:** `menu-ux.css:1+`
+
+---
+
+## 44. Role-based typography
+
+Earlier regressions showed mismatched text sizing in the floating menu—for instance labels for autoplay session limits or chapters not following the same scale as other controls.
+
+The 2.35.2 fix does not assign arbitrary individual font sizes to the two offending labels. It defines groups of elements with a shared **typographic role**, using selectors that apply `font-size: var(--ux-copy-size)`.
+
+This addresses the common cause. Future labels inheriting the same role will also benefit from the shared rule.
+
+**Examples from the historical implementation:**
+
+```css
+:is(
+  .ux-setting-title,
+  .toggle-row > span,
+  .chapter-limit-row,
+  .test-choice-list label,
+  ...
+) {
+  font-size: var(--ux-copy-size);
+}
+```
+
+**Historical reference:** `menu-ux.css:80–95`
+
+---
+
+## 45. Design token versus component
+
+A design system does not inherently require React or a reusable JSX component library. It can start with semantic spacing, typography, colors, grouping rules, and a small set of common behaviors.
+
+Version 2.35.2 builds a lightweight shared design layer rather than introducing a full component framework. This is proportional to the existing codebase and easier to adopt incrementally.
+
+---
+
+# Part XIII — Fonts and Shadow DOM
+
+## 46. An apparently aesthetic bug reveals architecture
+
+The Gaming theme uses the Pixelify Sans typeface. Loading it inside the popup is straightforward, but Chromium's behavior with isolated `@font-face` declarations inside the floating ShadowRoot did not always provide the expected font registration.
+
+The refactor adds `ensureGamingFont(document, url)` as an explicit font-loading helper. The problem began as a visual inconsistency yet reached the boundary between shadow-root CSS and the document's font registry.
+
+Visual bugs can expose runtime constraints, not only poorly chosen CSS.
+
+**Examples from the historical implementation:**
+
+```js
+function ensureGamingFont(document, url) {
+  ...
+}
+```
+
+**Historical reference:** `menu-ux.js:4–22`
+
+---
+
+## 47. The CSS Font Loading API
+
+The helper fetches the font as an `ArrayBuffer`, creates a `FontFace` object with `new document.defaultView.FontFace("Pixelify Sans", bytes, ...)`, loads it, and registers it in the document's `FontFaceSet`.
+
+This shifts from depending exclusively on CSS `@font-face` to explicitly loading a resource through the **CSS Font Loading API**. That is useful when document and Shadow DOM behavior diverge.
+
+The font asset remains part of the extension. The helper only changes the reliable registration path.
+
+**Examples from the historical implementation:**
+
+```js
+fetch(url)
+  .then(response => response.arrayBuffer())
+  .then(bytes =>
+    new document.defaultView.FontFace(
+      "Pixelify Sans",
+      bytes,
+      { style: "normal", weight: "400 700" },
+    ).load()
+  )
+  .then(font => {
+    document.fonts.add(font);
+  });
+```
+
+---
+
+## 48. Why §WeakMap§?
+
+The module declares `const gamingFonts = new WeakMap()`. Each document is used as a key; the corresponding value tracks its pending or completed font-loading Promise.
+
+This deduplicates work for a document without turning the cache into a global strong reference to every document it has ever seen. A `WeakMap` does not keep an otherwise unreachable object key alive.
+
+Unlike the string-keyed API cache in Chapter 06, this is an appropriate case for object-identity keys and weak retention. The choice of data structure follows ownership and lifetime.
+
+**Examples from the historical implementation:**
+
+```js
+const gamingFonts = new WeakMap();
+```
+
+---
+
+# Part XIV — Operation state in the UI
+
+## 49. Operation state crosses every surface
+
+Chapter 06 introduced persisted `pegasoActiveOperation` as coordination state. In the floating menu it is read into `settings.pegasoActiveOperation` and interpreted through derived variables such as `busy = Boolean(operation)`.
+
+Each action decides whether it should show a normal label, busy state, cancellation affordance, disabled condition, or status message. Turbo Test and materials export may require different presentation.
+
+The UI does not invent an operation: it projects one that is owned by the background coordination layer.
+
+**Examples from the historical implementation:**
+
+```js
+const operation = settings.pegasoActiveOperation;
+const busy = Boolean(operation);
+```
+
+**Historical reference:** `floating-menu.js:1233–1246`
+
+---
+
+## 50. Render as a function of operational state
+
+A button does not **own** the export or Turbo operation; it **represents** that operation. This difference is critical.
+
+A dangerous anti-pattern would be to set a button's text to "Working..." and then treat that text as evidence that a job exists. The better model is the opposite: read the operation record, derive the button's label and availability, and update the DOM accordingly.
+
+**UI state should not become an accidental second source of truth.** This rule also protects against popup destruction or floating-menu recreation during an operation.
+
+---
+
+## 51. The operation banner as a contextual shortcut
+
+The popup includes an `activeOperationBanner` button. Clicking it selects the relevant tab, scrolls to the associated action, and focuses that control.
+
+The banner is therefore more than a notification. It is an **internal deep link** from global operation status to the place where the user can inspect or control the job.
+
+It helps preserve access to long-running operations even when the user navigates elsewhere in the popup.
+
+**Examples from the historical implementation:**
+
+```html
+<button id="activeOperationBanner" ... hidden></button>
+```
+
+```js
+selectPopupTab(operationTabId(activeOperation), true);
+...
+button.scrollIntoView({ block: "nearest" });
+button.focus();
+```
+
+**Historical reference:** `popup.html:42`; `popup.js:652–660`
+
+---
+
+# Part XV — Progressive disclosure and information architecture
+
+## 52. Reduce overwhelm without removing capabilities
+
+The feedback that motivated version 2.35.2 was simple: the Course surface contained too many visible options at once. A superficial response would be to delete or hide useful features.
+
+Instead, the redesign changes the **information hierarchy**. Common actions remain near the entry point; specialized configuration is grouped, summarized, and moved into a secondary view.
+
+This is an information-architecture decision rather than an argument that PlumePilot had too many capabilities.
+
+---
+
+## 53. Frequency and depth
+
+Frequently used actions—starting or stopping a workflow, generating materials, finding incomplete activity—should remain quick to reach. Detailed controls such as autoplay test behavior or chapter limits can live one level deeper if the current configuration is still visible.
+
+A practical heuristic is: **the more often and urgently an action is needed, the less navigation should be required to reach it**.
+
+This is especially important for cancellation and for operations whose current state changes while the user is looking at another part of the interface.
+
+---
+
+## 54. Hidden does not mean unreachable
+
+Progressive disclosure succeeds only when users can locate a setting, understand the current effective mode, open the details, and return without losing context.
+
+PlumePilot shows an autoplay summary before the user opens advanced settings. That reduces the informational cost of navigation depth.
+
+Without the summary, a hidden detail view could conceal a setting that materially changes what autoplay will do next. The summary keeps the underlying behavior legible.
+
+---
+
+# Part XVI — Good and bad duplication
+
+## 55. DRY does not mean one line of code
+
+The popup and floating menu still have some similar markup, event handlers, and rendering logic. One could conclude that all duplication must be eliminated.
+
+But identical-looking syntax does not always represent identical responsibility. The two surfaces have different lifecycles, scroll models, access to the host page, and root containers.
+
+The important goal is not the smallest codebase measured in lines. It is minimizing the places where the **same rule of meaning** can diverge.
+
+---
+
+## 56. Duplication of knowledge
+
+The dangerous kind of duplication is storing two independent implementations of one domain or presentation rule. For example, if the popup and floating menu calculate the effective autoplay test policy differently, a user can receive contradictory explanations.
+
+Version 2.35.2 extracts rules that **must agree**: autoplay summaries, navigation semantics, expansion scrolling, layout normalization, visibility policy, and typography roles.
+
+This reduces **duplication of knowledge**, which is more valuable than removing every repeated DOM statement.
+
+---
+
+## 57. Surface-specific duplication may be acceptable
+
+Two controllers may be clearer than one giant abstraction when their host environments differ substantially.
+
+A useful separation is: **share invariants and interpretation; duplicate surface-specific wiring when it expresses genuinely distinct responsibilities**.
+
+In PlumePilot, one controller belongs to the popup document and the other belongs to a ShadowRoot embedded in the LMS page. Sharing everything would blur the lifecycle boundaries we intentionally keep separate.
+
+---
+
+# Part XVII — The cost of vanilla DOM
+
+## 58. Without a framework, every detail is visible
+
+Vanilla DOM code directly manages `hidden`, `aria-selected`, `aria-expanded`, `tabIndex`, `focus()`, `scrollTop`, `getBoundingClientRect()`, event listeners, storage subscriptions, selective rerendering, ordering, drag-and-drop, media queries, and Shadow DOM.
+
+That is educationally valuable. We see precisely how state becomes behavior and markup.
+
+Frameworks do not abolish these concerns; they encapsulate or coordinate many of them. Understanding the underlying browser primitives makes framework use more informed as well.
+
+---
+
+## 59. The primary risk: state drift
+
+Without a declarative `UI = render(state)` boundary, it is easier for one event handler to update a checkbox while forgetting a summary, banner, or disabled state elsewhere.
+
+This is **state drift**: two representations of the same fact no longer agree.
+
+Aggregated render functions and shared derived-state helpers reduce the risk by bringing related updates through known entry points. Manual DOM code requires explicit attention to that dependency discipline.
+
+**Examples from the historical implementation:**
+
+```js
+UI = render(state)
+```
+
+---
+
+## 60. Render functions as mini-components
+
+Even without JSX, functions such as `renderSettings()`, `renderOperationState()`, and related UI helpers behave like procedural components.
+
+Instead of returning a new component tree, they mutate existing elements according to the current state. Their responsibilities can still be named, bounded, and tested.
+
+A component architecture is a way of organizing responsibility, not a feature exclusive to JSX or any framework.
+
+**Examples from the historical implementation:**
+
+```js
+return <OperationBanner ... />
+```
+
+---
+
+# Part XVIII — CSS specificity and legacy styles
+
+## 61. A UI refactor must coexist with legacy code
+
+`menu-ux.css` enters a codebase that already has many historical popup and floating-menu rules. A new selector such as `.ux-heading` does not automatically override every earlier declaration.
+
+Older rules may have higher specificity or be scoped to menu sizes and themes. The browser's CSS cascade determines which declaration actually wins.
+
+A design-token migration must therefore be validated against the existing cascade, not just against a clean isolated CSS example.
+
+**Examples from the historical implementation:**
+
+```css
+.ux-heading {
+  font-size: var(--ux-action-size);
+}
+```
+
+```css
+html[data-menu-size="small"] .some-old-control { ... }
+```
+
+---
+
+## 62. Specificity as a migration problem
+
+The shared stylesheet even documents that root-level selector specificity is used to stop older size-specific rules from overriding the shared scale.
+
+This reminds us that CSS also carries a form of **legacy compatibility**. Introducing a common style system into a mature extension requires understanding precedence, inherited values, shadow-root boundaries, and the scope of older selectors.
+
+The aim is not to win specificity wars indefinitely. It is to make intended precedence explicit during the transition.
+
+**Examples from the historical implementation:**
+
+```css
+Root specificity keeps old size-specific rules from overriding the shared scale.
+```
+
+**Historical reference:** `menu-ux.css:65+`
+
+---
+
+# Part XIX — Real responsive constraints
+
+## 63. The narrow Preferences tab
+
+With four navigation tabs, the Italian label "Preferenze" had too little room in the floating menu. Simply shrinking that word's font was not a convincing solution because the underlying layout constraint would remain.
+
+The CSS instead uses `grid-template-columns: repeat(4, auto)` for the four-tab configuration. The columns can better accommodate their actual labels.
+
+This is a small example of **constraint-based layout**: solve the allocation of space rather than patching an individual piece of text.
+
+**Examples from the historical implementation:**
+
+```css
+:host .menu-tabs[data-count="4"] {
+  grid-template-columns: repeat(4, auto);
+}
+```
+
+**Historical reference:** `menu-ux.css:58`
+
+---
+
+## 64. Responsiveness is more than media queries
+
+Interfaces also need to respond to menu size, number of tabs, theme, language length, user customization, viewport shape, and scroll-container geometry.
+
+Attributes such as `data-menu-size` and `data-count` act as inputs to those layout rules. Responsive behavior is therefore driven by the **state and constraints of the component**, not just the width of the browser window.
+
+---
+
+# Part XX — Testing shared UI
+
+## 65. Pure functions are the easiest test level
+
+`autoplayPresentation()` can be tested directly in Node with known inputs and expected outputs. It verifies policy interpretations, summaries, and overrides without mounting a browser or host page.
+
+This is fast, deterministic, and valuable for catching meaning-level regressions before looking at screenshots or DOM behavior.
+
+---
+
+## 66. Structural tests
+
+`tests/menu-ux.mjs` also reads relevant HTML/JS resources and checks structural invariants—for example, that the home view appears before the autoplay detail view and that expected shared navigation hooks exist.
+
+These tests are a useful middle layer between unit tests of pure values and full browser integration tests. They cannot prove that focus and scrolling work, but can catch accidental removals of required markup contracts.
+
+**Historical reference:** `tests/menu-ux.mjs:22–46`
+
+---
+
+## 67. Browser fixture
+
+The redesign documentation also describes a Chromium browser fixture running the real UI controllers with simulated storage.
+
+It covers shared navigation, Back/Escape, focus behavior, bidirectional synchronization, policy summaries and overrides, cancellation access, checkbox/radio accents, typography, Gaming font loading, disclosure scrolling, spacing in the Exams surface, clipping, and runtime exceptions.
+
+This tests the **interaction system**, not merely the HTML source. A controlled fixture can reproduce states that would be awkward or risky to require from the live LMS during every regression run.
+
+**Historical reference:** `docs/features/menu-ux-2.35.2.md:48–53`
+
+---
+
+## 68. Why a screenshot is not enough
+
+A screenshot can reveal visual spacing, font scale, color, clipping, and whether content is on screen at one moment.
+
+It cannot prove that arrow keys work in a tablist, that Escape restores focus, that another surface receives storage changes, that a hidden active operation remains reachable, or that expansion scrolling waits for the correct layout.
+
+A UI has **behavior**, not only pixels. Both forms of testing matter.
+
+---
+
+# Part XXI — UI architecture as data flow
+
+## 69. The complete flow of one preference
+
+Consider a user toggling "Skip completed videos" in the popup. The controller writes the corresponding key with `chrome.storage.local.set(...)`. That storage value becomes the shared authoritative preference.
+
+`chrome.storage.onChanged` notifies other extension contexts. Each controller updates its own settings representation, recalculates derived presentation, and rerenders affected controls. The bridge and content-side autoplay engine receive the effective settings and apply the new behavior.
+
+Thus the checkbox is only one entry point in a larger data flow: **user action → persisted state → subscriptions → presentation → runtime policy**.
+
+**Examples from the historical implementation:**
+
+```js
+chrome.storage.local.set(...)
+```
+
+---
+
+## 70. Sequence diagram
+
+The full sequence makes one principle clear: **the popup and floating menu do not need to synchronize directly with each other**. Both communicate through shared storage and project-specific configuration propagation.
+
+The diagram follows a popup preference change to storage, then to each UI view and finally through the bridge into the autoplay runtime.
+
+**Examples from the historical implementation:**
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant P as Popup
+    participant S as chrome.storage.local
+    participant F as Floating menu
+    participant B as Bridge / runtime
+    participant A as Autoplay engine
+
+    U->>P: changes preference
+    P->>S: storage.set()
+    S-->>P: onChanged
+    S-->>F: onChanged
+    P->>P: render summary
+    F->>F: render settings
+    S-->>B: shared state
+    B-->>A: PEGASO_AUTONEXT_STATE
+    A->>A: applies behavior
+```
+
+---
+
+# Part XXII — UI as a projection, not a database
+
+## 71. The DOM is not the source of truth
+
+Reading `checkbox.checked` tells us what that checkbox currently displays. It does not prove that this is the latest authoritative state.
+
+The popup might have just opened; another surface might have written a new preference; or a policy change may make the effective runtime behavior differ from the stored checkbox.
+
+The DOM is a **representation of application state**. For persisted preferences, `chrome.storage.local` is the shared source, with derived state computed as necessary. This reconnects our UI chapter to the DOM limitations studied in Chapter 03.
+
+**Examples from the historical implementation:**
+
+```js
+checkbox.checked
+```
+
+---
+
+## 72. UI-local state
+
+Some state genuinely belongs only to the current UI instance: which detail view is open, the current scroll position, keyboard focus, an expanded temporary editor row, or a transient drag operation.
+
+Persisting all of these in `chrome.storage.local` would create needless coupling and unexpected restoration behavior.
+
+Chapter 06 provided the rule: **match state lifetime and scope to what the data actually represents**. A focused button usually need not survive a browser restart.
+
+---
+
+# Part XXIII — A backend analogy
+
+## 73. Two frontends for the same backend
+
+For a backend developer, the popup and floating menu can be thought of as two frontends for the same underlying application service.
+
+A web administration console and a mobile client can use the same API while rendering very different interfaces. We would not demand identical markup, but we would demand shared rules for permissions, operation status, settings, and data interpretation.
+
+Similarly, PlumePilot's controllers may differ in HTML and layout while agreeing on their view of the same persisted state.
+
+---
+
+## 74. §menu-ux.js§ as a shared presentation service
+
+The shared module acts like a small application/presentation service: it derives summaries, normalizes action layouts, handles navigation behavior, and helps keep interaction rules consistent.
+
+It does **not** own the persistent database, autoplay engine, or export workflows. It accepts inputs and produces presentation outcomes.
+
+That narrower boundary limits coupling and makes it easier to test what should be shared without forcing a single interface tree.
+
+---
+
+# Part XXIV — What would a framework do?
+
+## 75. Would React or Vue have solved everything?
+
+No. A framework would probably simplify declarative rendering, component reuse, conditional UI, local state propagation, lifecycles, and DOM reconciliation.
+
+But the team would still need to design the shared source of truth, storage schema, saved-versus-effective settings, operational invariants, information architecture, accessibility, focus restoration, Shadow DOM integration, and synchronization among extension contexts.
+
+A framework helps implement a UI architecture. It does not choose the architecture or its product rules for us.
+
+---
+
+## 76. When would a framework make sense?
+
+If the interface grew substantially—with many independent interactive views, deep conditional rendering, increasingly tangled manual updates, and frequent state-drift regressions—a framework could lower coordination costs.
+
+The migration would also impose costs: bundling, build tooling, store-review considerations, extension compatibility, a new abstraction to understand, and possible regressions in existing behavior.
+
+For PlumePilot at this snapshot, vanilla JavaScript remains a defensible trade-off. The right evaluation is based on **total maintenance cost**, not fashion.
+
+---
+
+# Part XXV — A possible evolution without a framework
+
+## 77. Before React: an explicit ViewModel
+
+A future improvement could extract one `deriveMenuViewModel(state, courseContext)` function that produces settings summaries, operation visibility, course actions, and other display-ready information.
+
+The popup and floating-menu adapters would consume the same ViewModel while rendering different DOM. This would reduce duplication of **knowledge** further without forcing both surfaces to share markup.
+
+The provided function is a **possible design sketch**, not current application code.
+
+**Examples from the historical implementation:**
+
+```js
+function deriveMenuViewModel(state, courseContext) {
+  return {
+    autoplay: {
+      enabled: ...,
+      summary: ...,
+      canFindIncomplete: ...,
+    },
+    operations: ...,
+    progress: ...,
+    preferences: ...,
+  };
+}
+```
+
+---
+
+## 78. Surface adapters
+
+We could imagine `renderPopup(viewModel)` and `renderFloatingMenu(viewModel)` as distinct adapters.
+
+The shared model would determine which action is available, why it is disabled, what the autoplay summary means, and what operation is active. Each adapter would decide where and how to display that information in its own document or ShadowRoot.
+
+This is similar to the platform-specific DOM adapters from Chapter 03: **share the domain meaning; specialize the environment-dependent representation**.
+
+---
