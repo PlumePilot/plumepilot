@@ -597,7 +597,19 @@ plain lock → might remain occupied forever
 lease      → eventually expires
 ```
 
-PlumePilot validates not only whether a lease is expired but whether its timestamps are plausible. A wildly distant expiration timestamp is treated as invalid rather than blindly accepted.
+PlumePilot validates not only whether a lease is expired but whether its timestamps are plausible. The Italian source makes all three guards visible:
+
+```js
+if (
+  !Number.isFinite(Number(lease.expiresAt)) ||
+  Number(lease.expiresAt) <= Date.now() ||
+  Number(lease.expiresAt) - Date.now() > COMMISSION_LEASE_MS * 2
+) {
+  // remove the invalid or expired lease
+}
+```
+
+It rejects missing or non-finite timestamps, already expired leases, **and** implausibly distant expiration values. The last guard prevents a corrupted or unexpected future timestamp from locking the workflow for an unreasonable duration.
 
 This is **defensive state validation**.
 
@@ -1681,7 +1693,27 @@ but also:
 cache hit with the wrong identity
 ```
 
-`rememberLessonResponse()` therefore tracks a `routeKey` and can avoid overwriting an entry when the route identity conflicts.
+`rememberLessonResponse()` therefore derives a route identity:
+
+```js
+const routeKey = courseProgressRouteKey(courseCode, routeIdentity);
+```
+
+Before overwriting a previous entry, it may reject a conflicting route:
+
+```js
+if (
+  preserveConflictingCache &&
+  routeKey &&
+  storedPrevious.routeKey &&
+  storedPrevious.routeKey !== routeKey
+) {
+  // keep the existing entry; the logical route differs
+  return;
+}
+```
+
+The critical idea is that a nominal cache-key match alone does not prove **route identity**.
 
 The nominal key:
 
@@ -1748,7 +1780,16 @@ I already tried to obtain this value,
 and it was not available.
 ```
 
-However, PlumePilot protects an already known positive result. A later failed attempt should not blindly destroy a previously confirmed usable URL.
+However, PlumePilot protects an already known positive result using a specific guard:
+
+```js
+if (
+  previous?.status === "ready" &&
+  validMaterialUrl(previous.url)
+) return;
+```
+
+A later failed attempt must not blindly destroy a previously confirmed usable URL. This distinguishes negative caching from downgrading valid positive knowledge.
 
 ---
 
@@ -1798,7 +1839,18 @@ It does not reuse an entry merely because one exists. It computes a structural s
 const sectionSignature = initialSections.join("\u001f");
 ```
 
-and compares it with the cached version.
+and compares it with the cached version:
+
+```js
+if (
+  cached?.sectionSignature === sectionSignature &&
+  cached.outline?.length
+) {
+  return cached.outline;
+}
+```
+
+The check also requires a nonempty cached outline; matching a structural fingerprint without usable content would not be enough.
 
 This is **cache validation by fingerprint**. When the host platform does not provide a formal version of its rendered course structure, PlumePilot can derive a signature from meaningful input.
 
