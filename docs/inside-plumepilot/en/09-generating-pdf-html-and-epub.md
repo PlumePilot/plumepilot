@@ -1886,3 +1886,386 @@ Converting sequentially by page or chapter naturally reduces this risk.
 It is another reason why maximum concurrency is not necessarily the fastest or safest strategy.
 
 ---
+
+
+# Part XX — Error model
+
+## 57. Not all errors are the same
+
+Document generation can encounter:
+
+```text
+network error
+HTTP error
+invalid PDF
+empty PDF
+unsupported image
+conversion uncertainty
+render failure
+timeout
+user cancellation
+archive failure
+```
+
+These demand different handling.
+
+### Retry
+
+For potentially temporary failures.
+
+### Fallback
+
+For content whose semantics cannot be reconstructed reliably but whose visual appearance can still be preserved.
+
+### Skip and report
+
+For one unusable chapter, when the remaining export is still valuable.
+
+### Abort the whole operation
+
+When the user cancels, no chapter can be produced, or integrity of the final artifact cannot be guaranteed.
+
+This taxonomy is more useful than a generic:
+
+```js
+catch (error) {
+  alert("Errore");
+}
+```
+
+which discards essential information. The Italian string is preserved from the source example.
+
+---
+
+# Part XXI — Backend analogy
+
+## 58. Document generation as ETL
+
+A useful analogy is an ETL pipeline:
+
+```text
+Extract
+  ↓
+Transform
+  ↓
+Load
+```
+
+For PlumePilot:
+
+```text
+Extract
+→ URLs / APIs / PDF bytes
+
+Transform
+→ pages / XHTML / images / metadata
+
+Load
+→ PDFDocument or EPUB ZIP
+```
+
+There is an important difference. A backend server often has substantially more memory, temporary filesystems, separate processes, job queues, and flexible streaming.
+
+The browser has a more constrained runtime and shares resources with the user's interface.
+
+That makes working-set management a visible part of the architecture.
+
+---
+
+# Part XXII — Testability
+
+## 59. Pure functions are valuable
+
+`epub-core.mjs` exposes some helpers through:
+
+```js
+export const __testing = {
+  cleanExtractedText,
+  chapterLabelFor,
+  estimateBodySize,
+  ...
+  pageNeedsVisual,
+  textConversionLooksIncomplete,
+  textPageToHtml,
+  ...
+};
+```
+
+This allows decisions to be tested separately:
+
+```text
+Should this page use visual mode?
+Do these text items represent columns?
+Does this extracted text look suspicious?
+```
+
+without building a complete EPUB for every test.
+
+A useful pattern is:
+
+```text
+external I/O
+     ↓
+pure or mostly pure functions
+     ↓
+final I/O
+```
+
+The more logic we can isolate in that testable middle, the easier the system is to reason about.
+
+---
+
+## 60. Golden files
+
+Document generators can also use **golden files** as test fixtures:
+
+```text
+input fixture PDF
+      ↓
+conversion
+      ↓
+expected artifact
+```
+
+Tests may compare ZIP structure, manifest, chapter count, selected page modes, images, links, extracted text, and size within reasonable ranges.
+
+Exact byte-for-byte output comparisons are not always appropriate, because UUIDs, timestamps, and compression details can differ.
+
+Comparing the **artifact's semantics** is often more robust.
+
+---
+
+# Part XXIII — Exercises
+
+## 61. Exercise 1 — Calculate the working set
+
+Imagine three canvases, each:
+
+```text
+1800 × 2400
+```
+
+pixels, with RGBA backing buffers.
+
+How much memory do they occupy simultaneously?
+
+```text
+width × height × 4 × canvasCount
+```
+
+The purpose is not only the arithmetic. Also ask:
+
+> Could we avoid keeping all three canvases alive at the same time?
+
+---
+
+## 62. Exercise 2 — Offline HTML
+
+Imagine an offline quiz with 100 images, each 500 KiB.
+
+If all images are embedded as Base64:
+
+- Approximately how large might the payload become?
+- Is a single HTML file still preferable?
+- At what point would a ZIP containing separate files make more sense?
+
+There is no universal threshold. This is a product decision as much as an engineering decision.
+
+---
+
+## 63. Exercise 3 — Fidelity policy
+
+Consider three pages:
+
+```text
+A. paragraphs only
+B. text with a complex equation
+C. a mostly graphical slide
+```
+
+Which preservation strategy would you choose?
+
+Probably:
+
+```text
+A → text
+B → regional
+C → visual
+```
+
+Now ask:
+
+> Which observable signals would allow an algorithm to choose automatically?
+
+That is exactly the problem addressed by `pageNeedsVisual()`.
+
+---
+
+## 64. Exercise 4 — Partial success
+
+A course contains 30 material PDFs. Number 17 returns HTTP 404.
+
+Which behavior do you prefer?
+
+```text
+A. Fail everything
+B. Build 29 chapters and report the failure of chapter 17
+C. Retry forever
+D. Silently replace chapter 17 with a blank page
+```
+
+For PlumePilot's domain, B is generally the most useful.
+
+That would not necessarily hold for a digital signature or database transaction log, where completeness requirements can be very different.
+
+---
+
+# Part XXIV — Concepts to carry forward
+
+## 65. Main lessons
+
+### 1. An export is a pipeline
+
+Not one function that "creates a file":
+
+```text
+collection → normalization → transformation → packaging → download
+```
+
+### 2. Data representations change throughout the pipeline
+
+```text
+URL
+→ Response
+→ ArrayBuffer
+→ Uint8Array
+→ PDF model / canvas / XHTML
+→ archive
+→ Blob
+```
+
+### 3. PDF and EPUB solve different problems
+
+PDF prioritizes geometry and fixed-page fidelity.
+
+Reflowable EPUB prioritizes structure and adaptability.
+
+Converting between them requires interpretation.
+
+### 4. Visual fallback protects correctness
+
+When semantic conversion becomes uncertain, an image can be more faithful than poorly reconstructed text.
+
+### 5. Memory depends on simultaneously live objects
+
+Output size is only one part of the problem.
+
+### 6. Cleanup and ownership matter even in JavaScript
+
+Garbage collection does not remove the need to manage lifetimes, listeners, Object URLs, canvases, and resources retained by libraries, native code, or workers.
+
+### 7. Content-based deduplication reduces file and working-set size
+
+A content hash can identify truly identical assets regardless of filename.
+
+### 8. Cancellation must propagate through the pipeline
+
+A Cancel button is useful only if expensive stages receive and honor its signal.
+
+### 9. Partial success is a domain decision
+
+Not every batch must be atomic.
+
+### 10. Complex transformations benefit from representation boundaries
+
+As a system grows, explicitly defining stages and intermediate structures improves its design.
+
+---
+
+# Part XXV — Chapter glossary
+
+Important terms introduced or expanded upon:
+
+- `ArrayBuffer`
+- `Uint8Array`
+- `Blob`
+- Object URL
+- MIME type
+- Serialization
+- Rasterization
+- Reflow
+- Fixed layout
+- Lossless / lossy transformation
+- Intermediate representation
+- Content-addressable storage
+- Deduplication
+- Working set
+- Peak memory
+- Ownership
+- Backpressure
+- Cooperative scheduling
+- Partial success
+- Golden file
+
+---
+
+# Part XXVI — Further reading
+
+## Web standards and APIs
+
+- MDN — File API  
+  https://developer.mozilla.org/en-US/docs/Web/API/File_API
+
+- MDN — Blob URLs  
+  https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/blob
+
+- MDN — `URL.revokeObjectURL()`  
+  https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL_static
+
+- MDN — `Uint8Array`  
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
+
+- MDN — `HTMLCanvasElement.toBlob()`  
+  https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob
+
+- MDN — `AbortController`  
+  https://developer.mozilla.org/en-US/docs/Web/API/AbortController
+
+## EPUB
+
+- W3C — EPUB 3.3  
+  https://www.w3.org/TR/epub-33/
+
+- W3C — EPUB 3 Overview  
+  https://www.w3.org/TR/epub-overview-33/
+
+## Libraries used by the project
+
+- PDF.js  
+  https://mozilla.github.io/pdf.js/
+
+- pdf-lib  
+  https://pdf-lib.js.org/
+
+- JSZip  
+  https://stuk.github.io/jszip/
+
+---
+
+# Toward Chapter 10
+
+The offline HTML quiz showed us something new.
+
+We are no longer just generating a file. We are generating an **application that the user can edit**.
+
+Inside that small application, PlumePilot needs to manage the cursor, text selection, formatting, lists, checklists, callouts, colors, question statuses, and note storage.
+
+This leads to the next problem:
+
+> **How do you build a small rich-text editor using the browser's DOM, without relying on a complete editing framework?**
+
+In **Chapter 10 — A small rich-text editor**, we will explore `contenteditable`, `Selection`, `Range`, formatting commands, nested lists, and the details that make a seemingly small editor surprisingly difficult to implement reliably.
+
+---
+
+[← 08 — Finding the first incomplete activity](08-finding-first-incomplete-activity.md) · [Contents](index.md) · 10 — A small rich-text editor (translation in progress)
