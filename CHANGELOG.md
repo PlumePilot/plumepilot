@@ -1,5 +1,16 @@
 # PlumePilot — Changelog
 
+## 2.35.2 — clearer menus and shared controls
+
+- Aligns popup and floating-menu destinations and groups Corso tools by task, with expandable course-completion actions.
+- Adds dedicated autoplay settings, effective summaries and Back/Escape navigation; configuration remains available while paused.
+- Shares button visibility and ordering within groups. Previously hidden floating-menu actions also hide in the popup; reset is available from either menu.
+- Keeps running operations and cancellation controls accessible, including when their actions were hidden.
+- Unifies checkbox accents, typography and Gaming styling; loads the packaged Gaming font locally and gives longer floating-menu tabs more space.
+- Scrolls user-opened disclosures/help into view within the menu while retaining focus and respecting reduced motion.
+- Adds confirmed local exam-data deletion to the floating menu and improves its spacing in the popup.
+- Updates manifest and six Novità cards to 2.35.2 in all browser packages; no new permissions or playback/export algorithms.
+
 ## 2.35.1 — ordered autoplay and improved EPUB exports
 
 - Autoplay follows video order for revision; optional completed-video skipping is off by default and locates forward targets without opening intermediate chapters when API details allow it.

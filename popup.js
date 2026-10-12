@@ -7,7 +7,6 @@
       if (chrome.runtime.lastError) chrome.tabs.create({ url: chrome.runtime.getURL("pausa/index.html") });
     });
   });
-  const autoplayOptions = document.getElementById("autoplayOptions");
   const autoplaySkipCompletedVideosCheckbox = document.getElementById(
     "autoplaySkipCompletedVideos",
   );
@@ -273,67 +272,24 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const soundApi = globalThis.PlumePilotSounds;
   const floatingLayoutApi = globalThis.PlumePilotFloatingMenuLayout;
-  let draggedFloatingLayoutItem = null;
-
-  function floatingLayoutFromDom() {
-    return floatingLayoutApi.normalizeLayout({
-      version: floatingLayoutApi.VERSION,
-      items: [
-        ...floatingMenuLayoutList.querySelectorAll("[data-layout-item]"),
-      ].map((row) => ({
-        id: row.dataset.layoutItem,
-        visible: row.querySelector('input[type="checkbox"]').checked,
-      })),
+  const menuUx = globalThis.PlumePilotMenuUx;
+  const coursePanel = document.getElementById("coursePanel");
+  let menuLayout = floatingLayoutApi.DEFAULT_LAYOUT;
+  menuUx.bindExpansionScroll(document, document.scrollingElement);
+  const courseNavigation = menuUx.bindCourseNavigation(coursePanel, document.scrollingElement);
+  const layoutEditor = menuUx.bindLayoutEditor(floatingMenuLayoutList, resetFloatingMenuLayoutButton,
+    (layout, claim) => {
+      chrome.storage.local.set({ [floatingLayoutApi.STORAGE_KEY]: layout }, () => {
+        floatingMenuLayoutStatus.textContent = chrome.runtime.lastError
+          ? "Impossibile salvare la disposizione." : "Disposizione salvata in entrambi i menu.";
+        if (claim && !floatingLayoutApi.isDefaultLayout(layout)) claimAchievement("customize-floating-menu");
+      });
     });
-  }
-
-  function updateFloatingLayoutMoveButtons() {
-    const rows = [
-      ...floatingMenuLayoutList.querySelectorAll("[data-layout-item]"),
-    ];
-    rows.forEach((row, index) => {
-      row.querySelector('[data-direction="up"]').disabled = index === 0;
-      row.querySelector('[data-direction="down"]').disabled =
-        index === rows.length - 1;
-    });
-  }
 
   function renderFloatingMenuLayout(value) {
-    const normalized = floatingLayoutApi.normalizeLayout(value);
-    for (const item of normalized.items) {
-      const row = floatingMenuLayoutList.querySelector(
-        `[data-layout-item="${item.id}"]`,
-      );
-      if (!row) continue;
-      row.querySelector('input[type="checkbox"]').checked = item.visible;
-      floatingMenuLayoutList.append(row);
-    }
-    updateFloatingLayoutMoveButtons();
-  }
-
-  function saveFloatingMenuLayout({
-    claim = true,
-    message = "Disposizione salvata.",
-  } = {}) {
-    const layout = floatingLayoutFromDom();
-    chrome.storage.local.set(
-      { [floatingLayoutApi.STORAGE_KEY]: layout },
-      () => {
-        if (chrome.runtime.lastError) {
-          floatingMenuLayoutStatus.textContent =
-            "Impossibile salvare la disposizione.";
-          return;
-        }
-        floatingMenuLayoutStatus.textContent = message;
-        if (
-          claim &&
-          !floatingLayoutApi.isDefaultLayout(layout) &&
-          document.documentElement.dataset.visualStyle === "gaming"
-        ) {
-          claimAchievement("customize-floating-menu");
-        }
-      },
-    );
+    menuLayout = floatingLayoutApi.normalizeLayout(value);
+    layoutEditor.render(menuLayout);
+    menuUx.applyActionLayout(coursePanel, menuLayout, activeOperation);
   }
 
   function renderSoundPreferences(value) {
@@ -487,6 +443,7 @@
   function selectPopupTab(tabId, focus = false) {
     const selectedButton = tabButtons.find((button) => button.id === tabId);
     if (!selectedButton) return;
+    courseNavigation.reset();
 
     for (const button of tabButtons) {
       const selected = button === selectedButton;
@@ -664,9 +621,7 @@
   }
 
   function operationTabId(operation) {
-    return ["turbo", "objectives"].includes(operation?.kind)
-      ? "activitiesTab"
-      : "courseTab";
+    return "courseTab";
   }
 
   for (const button of tabButtons) {
@@ -695,19 +650,18 @@
   }
 
   activeOperationBanner.addEventListener("click", () => {
-    if (activeOperation) selectPopupTab(operationTabId(activeOperation), true);
+    if (activeOperation) {
+      selectPopupTab(operationTabId(activeOperation), true);
+      const button = activeOperation.kind === "turbo" ? turboTestsButton
+        : activeOperation.kind === "objectives" ? objectivesButton
+          : activeOperation.kind === "tests" ? createTestCollectionButton : exportCourseMaterialsButton;
+      button.scrollIntoView({ block: "nearest" });
+      button.focus();
+    }
   });
 
   function updateStatus(enabled) {
-    status.textContent = enabled ? "Attivo" : "In pausa";
-    status.setAttribute("aria-pressed", String(enabled));
-    status.setAttribute(
-      "aria-label",
-      enabled ? "Metti PlumePilot in pausa" : "Riattiva PlumePilot",
-    );
-    status.title = enabled
-      ? "Metti PlumePilot in pausa"
-      : "Riattiva PlumePilot";
+    status.textContent = enabled ? "Autoplay attivo" : "Autoplay in pausa";
     document.body.dataset.state = enabled ? "running" : "paused";
   }
   function selectedTestBehavior() {
@@ -724,23 +678,20 @@
     renderAutoplayOptionsSummary();
   }
   function renderAutoplayOptionsSummary() {
-    const behavior = selectedTestBehavior();
-    const behaviorLabel =
-      behavior === "complete"
-        ? "Test automatici"
-        : behavior === "stop"
-          ? "Stop ai test"
-          : "Test ignorati";
     const limitReady = Boolean(chapterLimitStatus?.courseCode);
     const limitEnabled = chapterLimitStatus?.enabled === true;
     const limit = Math.max(1, Number(chapterLimitStatus?.limit) || 1);
     const completed = Math.max(0, Number(chapterLimitStatus?.completed) || 0);
-    const summary = limitEnabled
-      ? `${behaviorLabel} · limite ${limit}`
-      : behaviorLabel;
-    autoplayOptionsSummary.textContent = autoplaySkipCompletedVideosCheckbox.checked
-      ? `${summary} · salta video completati`
-      : summary;
+    const presentation = menuUx.autoplayPresentation({
+      skipCompleted: autoplaySkipCompletedVideosCheckbox.checked,
+      testBehavior: selectedTestBehavior(), limitEnabled, limit, stopAt70: autoplayStopAt70Enabled,
+      thresholdBypassed: courseScopedValue(autoplayStopAt70BypassedCourses,
+        courseProgressStatus?.courseCode, courseProgressStatus?.platformId) === true,
+    });
+    autoplayOptionsSummary.textContent = presentation.summary;
+    document.getElementById("testBehaviorOverride").textContent = presentation.testOverride;
+    document.getElementById("testBehaviorOverride").hidden = !presentation.testOverride;
+    document.getElementById("autoplayStopHint").textContent = presentation.stopHint;
     chapterLimitOptionsSummary.textContent = !limitReady
       ? "Non disponibile"
       : !limitEnabled
@@ -772,11 +723,14 @@
       : statusValue.reached
         ? `Limite raggiunto: ${statusValue.completed} di ${limit} capitoli.`
         : `Sessione: ${statusValue.completed || 0} di ${limit} capitoli · massimo ${maximum}.`;
-    chapterLimitResume.hidden = !statusValue?.reached;
+    document.getElementById("chapterLimitControls").hidden = statusValue?.enabled !== true;
+    chapterLimitSlider.hidden = statusValue?.enabled !== true;
+    chapterLimitProgress.hidden = ready && statusValue?.enabled !== true;
+    chapterLimitResume.hidden = statusValue?.enabled !== true || !statusValue?.reached;
     chapterLimitResume.textContent = `Riprendi per altri ${limit} capitoli`;
     for (const radio of testBehaviorRadios) {
       if (radio.value === "stop")
-        radio.disabled = !checkbox.checked || statusValue?.enabled === true;
+        radio.disabled = statusValue?.enabled === true;
     }
     renderAutoplayOptionsSummary();
   }
@@ -837,7 +791,7 @@
     if (overlayEnabled === true)
       summary.push(`Barra ${positionLabels[normalizedPosition]}`);
     if (thresholdEnabled === true) summary.push("avviso 70%");
-    if (autoplayStopAt70Enabled) summary.push("stop 70%");
+
     courseProgressOptionsSummary.textContent = summary.length
       ? summary.join(" · ")
       : "Disattivate";
@@ -859,6 +813,7 @@
         courseCode,
         courseProgressStatus?.platformId,
       ) === true;
+    renderAutoplayOptionsSummary();
   }
   function updateAutoplayStopAt70Bypass(bypassed) {
     const courseCode = courseProgressStatus?.courseCode;
@@ -994,12 +949,14 @@
       radio.checked = radio.value === normalized;
   }
   function updateAutoplayControls() {
-    const disabled = !checkbox.checked;
-    autoplayOptions.classList.toggle("disabled", disabled);
-    autoplayOptions.setAttribute("aria-disabled", String(disabled));
-    findFirstIncompleteButton.disabled = disabled || Boolean(activeOperation);
-    autoplaySkipCompletedVideosCheckbox.disabled = disabled;
-    for (const radio of testBehaviorRadios) radio.disabled = disabled;
+    findFirstIncompleteButton.disabled = !checkbox.checked || Boolean(activeOperation) || !activeCourseTabId;
+    const hint = document.getElementById("firstIncompleteHint");
+    hint.textContent = !activeCourseTabId ? "Apri un corso per usare la ricerca."
+      : !checkbox.checked ? "Attiva autoplay per usare la ricerca."
+        : activeOperation ? "Disponibile al termine dell’operazione in corso."
+          : "Cerca Obiettivi, video e test da completare, senza risolvere i test.";
+    autoplaySkipCompletedVideosCheckbox.disabled = false;
+    for (const radio of testBehaviorRadios) radio.disabled = false;
     renderChapterLimit();
   }
   function operationLabel(operation) {
@@ -1030,7 +987,7 @@
       ? stopping
         ? "Interruzione dispense…"
         : "Interrompi raccolta dispense"
-      : "Esporta dispense del corso";
+      : "Esporta dispense";
     exportCourseMaterialsButton.disabled =
       (busy && !collectingMaterials) || (collectingMaterials && stopping);
     turboTestsButton.dataset.running = String(turbo);
@@ -1057,7 +1014,7 @@
       ? stopping
         ? "Interruzione raccolta test…"
         : "Interrompi raccolta test"
-      : "Crea raccolta test del corso";
+      : "Crea raccolta test";
     createTestCollectionButton.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     testCollectionStatus.textContent =
@@ -1072,6 +1029,7 @@
     activeOperationBanner.textContent = busy
       ? operation.message || operationLabel(operation)
       : "";
+    menuUx.applyActionLayout(coursePanel, menuLayout, activeOperation);
     updateAutoplayControls();
   }
 
@@ -1225,6 +1183,7 @@
     commissionTabBadge.textContent =
       unseenIds.length > 9 ? "9+" : String(unseenIds.length || "!");
     commissionUpdates.hidden = !enabled;
+    document.getElementById("commissionDisabled").hidden = enabled;
     if (!enabled) return;
 
     commissionUpdatesTitle.textContent = unseenIds.length
@@ -1379,6 +1338,7 @@
   withActiveCourseTab((tabId) => {
     if (!tabId) return;
     activeCourseTabId = tabId;
+    updateAutoplayControls();
     chrome.tabs.sendMessage(
       tabId,
       { type: "PEGASO_CHAPTER_LIMIT_STATUS_REQUEST" },
@@ -1533,7 +1493,7 @@
     if (checkbox.checked) playActionAnimation(autoplayControlSprite);
     if (checkbox.checked) claimAchievement("discover-autoplay");
   });
-  status.addEventListener("click", () => checkbox.click());
+
   autoplaySkipCompletedVideosCheckbox.addEventListener("change", () => {
     chrome.storage.local.set({
       autoplaySkipCompletedVideos: autoplaySkipCompletedVideosCheckbox.checked,
@@ -1738,65 +1698,6 @@
       claimAchievement("open-floating-menu");
   });
 
-  floatingMenuLayoutList.addEventListener("change", (event) => {
-    if (event.target.matches('input[type="checkbox"]'))
-      saveFloatingMenuLayout();
-  });
-  floatingMenuLayoutList.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-direction]");
-    if (!button) return;
-    const row = button.closest("[data-layout-item]");
-    if (button.dataset.direction === "up" && row.previousElementSibling) {
-      floatingMenuLayoutList.insertBefore(row, row.previousElementSibling);
-    } else if (button.dataset.direction === "down" && row.nextElementSibling) {
-      floatingMenuLayoutList.insertBefore(row.nextElementSibling, row);
-    } else {
-      return;
-    }
-    updateFloatingLayoutMoveButtons();
-    button.focus();
-    saveFloatingMenuLayout();
-  });
-  floatingMenuLayoutList.addEventListener("dragstart", (event) => {
-    const row = event.target.closest("[data-layout-item]");
-    if (!row) return;
-    draggedFloatingLayoutItem = row;
-    row.classList.add("is-dragging");
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", row.dataset.layoutItem);
-  });
-  floatingMenuLayoutList.addEventListener("dragover", (event) => {
-    if (!draggedFloatingLayoutItem) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    const target = event.target.closest("[data-layout-item]");
-    if (!target || target === draggedFloatingLayoutItem) return;
-    const rect = target.getBoundingClientRect();
-    floatingMenuLayoutList.insertBefore(
-      draggedFloatingLayoutItem,
-      event.clientY < rect.top + rect.height / 2
-        ? target
-        : target.nextElementSibling,
-    );
-  });
-  floatingMenuLayoutList.addEventListener("drop", (event) => {
-    if (!draggedFloatingLayoutItem) return;
-    event.preventDefault();
-    updateFloatingLayoutMoveButtons();
-    saveFloatingMenuLayout();
-  });
-  floatingMenuLayoutList.addEventListener("dragend", () => {
-    draggedFloatingLayoutItem?.classList.remove("is-dragging");
-    draggedFloatingLayoutItem = null;
-  });
-  resetFloatingMenuLayoutButton.addEventListener("click", () => {
-    renderFloatingMenuLayout(floatingLayoutApi.DEFAULT_LAYOUT);
-    saveFloatingMenuLayout({
-      claim: false,
-      message: "Disposizione predefinita ripristinata.",
-    });
-  });
-
   commissionCheckEnabledCheckbox.addEventListener("change", () => {
     chrome.storage.local.set({
       commissionCheckEnabled: commissionCheckEnabledCheckbox.checked,
@@ -1941,10 +1842,7 @@
         panel.style.height = "";
         panel.style.opacity = "";
         stopPanelAnimation(panel);
-        panel.scrollIntoView({
-          behavior: reduceMotion.matches ? "auto" : "smooth",
-          block: "nearest",
-        });
+        // The shared expansion binding reveals this panel after its animation.
       });
   }
 

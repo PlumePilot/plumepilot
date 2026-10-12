@@ -7,7 +7,7 @@
     Object.freeze({ id: "complete-tests", action: "turbo", label: "Completa tutti i test" }),
     Object.freeze({ id: "complete-objectives", action: "objectives", label: "Completa tutti gli Obiettivi" }),
     Object.freeze({ id: "test-collection", action: "test-collection", label: "Crea raccolta test" }),
-    Object.freeze({ id: "study-materials", action: "materials", label: "Esporta dispense del corso" }),
+    Object.freeze({ id: "study-materials", action: "materials", label: "Esporta dispense" }),
   ]);
   const DEFAULT_LAYOUT = Object.freeze({
     version: VERSION,

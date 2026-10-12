@@ -150,6 +150,7 @@ const excludedFiles = new Set([
   "AMO_SOURCE_README.md",
   "README.md",
   "CHANGELOG.md",
+  "INSIDE_PLUMEPILOT.md",
   "PRIVACY.md",
   "SUPPORT.md",
   "SECURITY.md",
@@ -220,7 +221,7 @@ async function collectSourceSubmissionFiles(directory = root, relativeDirectory 
         absolutePath === outputDirectory
       ) continue;
       files.push(...await collectSourceSubmissionFiles(absolutePath, relativePath));
-    } else {
+    } else if (!["INSIDE_PLUMEPILOT.md", "scripts/build-inside-plumepilot.mjs"].includes(relativePath)) {
       files.push(relativePath);
     }
   }
