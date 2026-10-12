@@ -121,7 +121,11 @@ function lessons() {
 
 Source: [`content.js` L647–L651](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L647-L651).
 
-Notice what the code **does not** do: it does not cache an initial `NodeList` globally and reuse it forever. Each call to `lessons()` queries the **current DOM**. That small choice matters a great deal in a dynamic application.
+Notice what the code **does not** do: it does not cache an initial `NodeList` globally and reuse it forever, for example:
+
+```js
+const allLessons = document.querySelectorAll(...);
+``` Each call to `lessons()` queries the **current DOM**. That small choice matters a great deal in a dynamic application.
 
 ---
 
@@ -281,7 +285,14 @@ MDN: https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
 
 ## 9. `sections()` is already a small cross-platform adapter
 
-A markup structure that seems universal when supporting only Pegaso may stop being universal when adding Mercatorum and San Raffaele.
+A markup structure that seems universal when supporting only Pegaso may stop being universal when adding Mercatorum and San Raffaele. A tempting alternative would be scattered conditions:
+
+```js
+if (isMercatorum) ...
+else if (isPegaso) ...
+```
+
+These are illustrative branches rather than the adapter interface proposed below.
 
 Consider:
 
@@ -333,7 +344,13 @@ Provider C → account.id
           { customerId }
 ```
 
-An application layer is easier to maintain when it receives one conceptual representation.
+An application layer is easier to maintain when it receives one conceptual representation, for example:
+
+```js
+{
+  customerId: ...
+}
+```
 
 Likewise:
 
@@ -610,7 +627,13 @@ childList → detect added and removed children
 subtree   → include descendants, not just direct children
 ```
 
-The observed target is `document.documentElement`, essentially the whole document.
+The observed target is:
+
+```js
+document.documentElement
+```
+
+That is essentially the whole document.
 
 MDN: https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 
@@ -690,7 +713,19 @@ Without later observation, the first scan that found zero videos might also be t
 
 ## 23. But a global observer can be expensive
 
-Watching `document.documentElement` with `subtree: true` may produce notifications about changes unrelated to autoplay:
+Watching:
+
+```js
+document.documentElement
+```
+
+with:
+
+```js
+subtree: true
+```
+
+may produce notifications about changes unrelated to autoplay:
 
 ```text
 tooltips
@@ -1077,7 +1112,13 @@ Chapter header
 └── Objectives
 ```
 
-A failed query for a lesson row may therefore mean that the relevant container is closed—not that the lesson does not exist.
+A query such as:
+
+```js
+find lesson row
+```
+
+may therefore fail because the relevant container is closed—not because the lesson does not exist. This is conceptual pseudocode, not a literal JavaScript expression to execute.
 
 ```text
 logical state ≠ rendered state
@@ -1170,7 +1211,13 @@ Source: [`content.js` L4347–L4362](https://github.com/PlumePilot/plumepilot/bl
 
 ## 39. It does not simply take the first `.percent`
 
-The code combines several signals:
+A naive approach would be:
+
+```js
+return document.querySelector(".percent").textContent;
+```
+
+That could select the wrong percentage indicator. Instead, the code combines several signals:
 
 ```text
 .percent class
@@ -1202,7 +1249,13 @@ When more than one candidate looks plausible, PlumePilot **chooses not to guess*
 2 candidates → ambiguous
 ```
 
-Returning `candidates[0]` would hide the ambiguity. Returning `null` can be a deliberate decision:
+A naive choice would be:
+
+```js
+return candidates[0];
+```
+
+Returning `candidates[0]` would hide the ambiguity. The extension instead avoids selecting a candidate without sufficient evidence. Returning `null` can be a deliberate decision:
 
 > I do not have enough evidence to claim one value is correct.
 
@@ -1720,7 +1773,13 @@ without knowing CSS classes or chevron markup.
 
 ### Testability
 
-Domain logic could be tested against a fake adapter, without reconstructing the entire platform DOM each time.
+Domain logic could be tested against a fake adapter:
+
+```js
+fakePage.openChapter(...)
+```
+
+This avoids reconstructing the entire platform DOM each time.
 
 ### Isolation of changes
 
