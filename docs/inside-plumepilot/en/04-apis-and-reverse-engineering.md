@@ -1481,3 +1481,737 @@ Domain-Driven Design describes an **anti-corruption layer** that prevents an ext
 PlumePilot does not formally implement DDD, but the interceptor's normalization serves much the same purpose.
 
 ---
+
+
+# Part XXX — Reverse engineering as a scientific process
+
+## 69. How do you discover an endpoint in practice?
+
+The right method is not guessing random URLs. It is observing the host application's behavior:
+
+1. Perform one action in the UI.
+2. Inspect the associated request in DevTools Network.
+3. Examine its method, URL, headers, and payload.
+4. Inspect the response.
+5. Repeat while changing one variable.
+6. Determine which fields remain stable.
+7. Form and then test a hypothesis.
+
+This is **reverse engineering through observation**.
+
+---
+
+## 70. A thought experiment
+
+Suppose opening module 5 produces:
+
+```text
+GET /student/course/ABC/video-lesson/123/paragraphs/456
+```
+
+Opening module 6 produces:
+
+```text
+GET /student/course/ABC/video-lesson/789/paragraphs/999
+```
+
+Possible interpretations:
+
+```text
+ABC     → course code
+123/789 → lesson-package identifiers
+456/999 → paragraph or route identifiers
+```
+
+Compare each response with the rendered UI, repeat the observation, and only then formalize the mapping.
+
+---
+
+# Part XXXI — Correlation is not meaning
+
+## 71. A field can look obvious without being obvious
+
+For:
+
+```json
+{"id": 5}
+```
+
+we do not yet know whether `5` is a global ID, a local ID, a paragraph ID, display order, or a foreign key.
+
+Field names are clues, not proof. Meaning emerges from multiple consistent observations.
+
+---
+
+## 72. The numbering-reset bug
+
+`displayOrder` looked like a global course order, but could restart at `1` in each folder. Therefore:
+
+```text
+displayOrder = 1
+```
+
+did not necessarily identify the first chapter of the entire course.
+
+This is why the normalized model keeps several related identifiers rather than assuming one number has universal meaning.
+
+---
+
+# Part XXXII — APIs accelerate autoplay
+
+## 73. Before: visual search
+
+A purely visual search may need to:
+
+```text
+open section
+open chapter
+wait for rendering
+inspect activities
+move to another chapter
+repeat
+```
+
+For a long course, this becomes expensive.
+
+---
+
+## 74. After: use an index to reduce the search space
+
+With a course index:
+
+```text
+1  100% → skip
+2  100% → skip
+3  100% → skip
+4   80% → investigate
+```
+
+This does not eliminate the detailed check. It makes that check **targeted**.
+
+---
+
+## 75. Complexity reduction
+
+The algorithm changes from:
+
+```text
+scan everything
+```
+
+to:
+
+```text
+consult inexpensive index
+        ↓
+select candidate modules
+        ↓
+inspect only necessary details
+```
+
+The same principle underlies database indexes, search engines, and file systems.
+
+---
+
+# Part XXXIII — Collecting tests
+
+## 76. The master index is not enough here either
+
+PlumePilot combines several sources:
+
+```js
+const masterResponse = await turboApiRequest("outline", { courseCode });
+const courseIndex = masterResponse.ok ? masterResponse.data?.entries : null;
+outline = await recoverCourseTestOutline(..., courseIndex, ...);
+```
+
+Source: [`content.js` L3663–L3671](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L3663-L3671).
+
+Again:
+
+```text
+master data + visual structure + detail requests
+```
+
+rather than trusting one source for every purpose.
+
+---
+
+# Part XXXIV — Discovering an API contract
+
+## 77. The contract is not documented for us
+
+Official APIs may provide OpenAPI schemas, SDKs, and reference documentation.
+
+Here, the contract is inferred from actual requests, responses, and observed behavior. That creates greater uncertainty about compatibility and future changes.
+
+---
+
+## 78. Treat an inferred contract as unstable
+
+The practical consequences are:
+
+- Validate payloads.
+- Preserve fallback paths.
+- Avoid dependencies on unnecessary fields.
+- Centralize endpoint construction and parsing.
+- Classify errors rather than crashing the extension.
+- Expect some responses to be incomplete.
+
+These choices together form **defensive integration**.
+
+---
+
+# Part XXXV — GET and POST
+
+## 79. Read operations
+
+For `outline` and `lesson`, PlumePilot uses HTTP `GET`, requesting representations of existing resources.
+
+---
+
+## 80. State-changing operations
+
+Operations such as completing an introductory test use `POST` with a JSON body.
+
+Source: [`commission-interceptor.js` L467–L480](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L467-L480).
+
+A useful starting interpretation is:
+
+```text
+GET  → read
+POST → ask the server to process or change something
+```
+
+The method is a strong semantic clue, even though real APIs can vary.
+
+---
+
+# Part XXXVI — Idempotency and writes
+
+## 81. Why writes require greater care
+
+Repeating:
+
+```text
+GET lesson details
+```
+
+usually has different consequences from repeating:
+
+```text
+POST complete activity
+```
+
+State-changing requests demand more attention to retries, duplicates, already-completed state, mid-operation cancellation, and confirmation.
+
+This connects to the state machines and idempotency patterns discussed in later chapters.
+
+---
+
+# Part XXXVII — CORS is not magically bypassed
+
+## 82. MAIN world does not disable browser security
+
+When PlumePilot uses:
+
+```js
+originalFetch.call(window, API_ORIGIN, ...);
+```
+
+the request remains subject to browser policies and the server's access rules.
+
+`MAIN` is not a "CORS-free mode." It simply exposes the JavaScript environment used by the page.
+
+---
+
+## 83. Why this matters
+
+Being able to invoke `fetch()` from JavaScript does not mean being allowed to contact every server with arbitrary credentials.
+
+Origin policy, CORS, cookie handling, authentication, and authorization still apply.
+
+---
+
+# Part XXXVIII — Error taxonomy
+
+## 84. A good system distinguishes failure categories
+
+PlumePilot uses error names such as:
+
+```text
+AUTH_UNAVAILABLE
+INVALID_COURSE_CODE
+INVALID_LESSON_NUMBER
+INVALID_ACTION
+REQUEST_ABORTED
+REQUEST_TIMEOUT
+LESSON_DATA_INCOMPLETE
+API_401
+API_403
+```
+
+These describe meaningfully different problems.
+
+---
+
+## 85. Why `catch (e) { return false; }` is not enough
+
+If every error is reduced to:
+
+```text
+FAILED
+```
+
+a caller cannot choose whether to retry, wait for authentication, switch to a DOM fallback, ask the user to reload, or diagnose an implementation bug.
+
+Recovery depends on the precision of the error categories.
+
+---
+
+# Part XXXIX — API architecture and privacy
+
+## 86. Keeping data local
+
+The current design allows:
+
+```text
+session credential → page memory
+normalized data    → extension-local memory
+preferences/state  → browser storage as needed
+```
+
+without requiring a PlumePilot backend.
+
+This significantly reduces the project's data surface.
+
+---
+
+## 87. Privacy is an architectural property, not only a legal page
+
+A privacy policy can describe how data is handled. Stronger assurance comes when the architecture itself minimizes data movement and persistence.
+
+For example, with no PlumePilot server, many ordinary server-side collection paths do not exist. Keeping the session token out of persistent storage shortens its lifetime by construction.
+
+This is **privacy by design**.
+
+---
+
+# Part XL — What happens during an `outline` request
+
+## 88. Follow the complete flow
+
+When `content.js` needs the course index:
+
+```js
+response = await turboApiRequest("outline", { courseCode });
+```
+
+The sequence:
+
+```mermaid
+sequenceDiagram
+    participant C as content.js
+    participant I as commission-interceptor.js
+    participant A as Multiversity API
+
+    C->>I: STUDYWING_TURBO_API_REQUEST\nrequestId + action=outline
+    alt outline already observed
+        I-->>C: STUDYWING_TURBO_API_RESPONSE\nsource=page-cache
+    else cache unavailable
+        I->>A: GET /video-lessons/0\nAuthorization + credentials
+        A-->>I: JSON course outline
+        I->>I: validate + normalize + cache
+        I-->>C: response correlated by requestId
+    end
+```
+
+This diagram captures passive caching, explicit API requests, normalization, and local message-based RPC.
+
+---
+
+# Part XLI — What happens during a `lesson` request
+
+## 89. The detailed path
+
+```mermaid
+sequenceDiagram
+    participant C as content.js
+    participant I as interceptor
+    participant A as API
+    participant M as lessonApiCache
+
+    C->>M: cachedLessonResponse()
+    alt fresh and sufficient cache
+        M-->>C: normalized lesson
+    else missing/stale/incomplete cache
+        C->>I: action=lesson + route IDs
+        I->>A: GET detailed lesson
+        A-->>I: raw JSON
+        I->>I: normalizedLessonData()
+        I-->>C: normalized response
+        C->>M: rememberLessonResponse()
+    end
+```
+
+The interceptor's page-observation cache and `content.js`'s application cache have distinct responsibilities.
+
+---
+
+# Part XLII — A backend analogy
+
+## 90. If PlumePilot were a backend
+
+```text
+content.js
+    ≈ domain/service layer
+
+commission-interceptor.js
+    ≈ external API client / gateway
+
+normalizeCourseOutline()
+normalizedLessonData()
+    ≈ DTO mappers
+
+lessonApiCache
+    ≈ application cache
+
+window.postMessage + requestId
+    ≈ RPC transport
+```
+
+These are not exact equivalences, but the analogy makes the architecture easier to read if you already know backend development.
+
+---
+
+# Part XLIII — What might we change in a larger codebase?
+
+## 91. Extract a dedicated API client
+
+A larger project might use:
+
+```text
+api/
+├── platform-client.js
+├── course-api.js
+├── exams-api.js
+├── normalizers.js
+├── validators.js
+└── errors.js
+```
+
+with calls such as:
+
+```js
+platformApi.getCourseOutline(courseCode)
+platformApi.getLesson(route)
+platformApi.completeActivity(activity)
+platformApi.getTestSource(test)
+```
+
+---
+
+## 92. Why it was not immediately necessary
+
+Abstractions have costs. With only a handful of endpoints, keeping the logic in one interceptor was practical.
+
+A formal API client becomes more valuable as endpoint count, supported platforms, call sites, and error handling all grow.
+
+This is **evolutionary architecture**.
+
+---
+
+# Part XLIV — Mistakes in naive reverse engineering
+
+## 93. Treating one request as the definitive contract
+
+One observed request may depend on the current state, feature flags, platform, frontend version, navigation order, or caching. We need multiple examples.
+
+---
+
+## 94. Assuming a field is always present
+
+Checks such as:
+
+```js
+Array.isArray(...)
+Number.isInteger(...)
+typeof value === "string"
+```
+
+may seem repetitive until a response changes shape.
+
+---
+
+## 95. Persisting raw payloads everywhere
+
+That couples the entire project to the host's schema.
+
+Prefer:
+
+```text
+raw response
+   ↓
+one normalization boundary
+   ↓
+small internal domain model
+```
+
+---
+
+## 96. Moving tokens through too many components
+
+If a token is required only by an API client, ideally it should remain there.
+
+---
+
+## 97. Removing fallbacks too early
+
+An inferred API can change, and a UI can change. Their weaknesses differ.
+
+A hybrid approach is often more robust than absolute trust in one source.
+
+---
+
+# Part XLV — Guided exercise: reading a response like an investigator
+
+## 98. Examine this payload
+
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "display_order": 3,
+      "folder_id": 2,
+      "lp_id": 481,
+      "id": 912,
+      "title": "Limiti",
+      "percentage": 80
+    }
+  ]
+}
+```
+
+Before proceeding, ask:
+
+1. Which fields look like visual labels or order?
+2. Which fields look like identifiers?
+3. Which might be scoped to a folder?
+4. Which would you display to users?
+5. Which would you use to construct an API route?
+6. Which would you use to choose where to search for incomplete activities?
+
+---
+
+## 99. One possible interpretation
+
+```text
+display_order → visual/local ordering; verify its scope
+folder_id     → folder/section scope
+lp_id         → technical ID useful for a route
+id            → another technical/paragraph ID
+percentage    → progress indicator
+```
+
+The key qualifier is always **"to be verified."**
+
+Good reverse engineering distinguishes:
+
+```text
+observation
+hypothesis
+confirmation
+```
+
+---
+
+# Part XLVI — Exercise: designing the boundary
+
+## 100. Which API would you choose?
+
+### A
+
+```js
+const token = await getToken();
+const response = await fetch(url, {
+  headers: { Authorization: token }
+});
+```
+
+repeated separately in every feature.
+
+### B
+
+```js
+const lesson = await api.request("lesson", route);
+```
+
+with the credential confined to the API client.
+
+For PlumePilot, B better supports separation of concerns, credential minimization, testing, and changing the implementation later.
+
+---
+
+# Part XLVII — Concepts to carry forward
+
+## 101. API adapter
+
+A component that translates an external API into a more stable internal interface.
+
+## 102. Boundary normalization
+
+Validating and transforming data at the point where it enters the system.
+
+## 103. Bearer token
+
+A credential supplied through an `Authorization: Bearer ...` header, according to the server's authorization model.
+
+## 104. Credential minimization
+
+Reducing both the number of components that can access a credential and how long it remains accessible.
+
+## 105. Passive caching
+
+Reusing data from requests the host application would already have made.
+
+## 106. TTL
+
+*Time to live*: the period after which cached data may be too old for certain uses.
+
+## 107. Semantic retry
+
+Retrying not only after transport failure but because the response lacks required domain data.
+
+## 108. Pacing
+
+Spacing valid requests to avoid unnecessary bursts.
+
+## 109. Graceful degradation
+
+Using an alternative path when the preferred one is unavailable.
+
+## 110. Reconciliation
+
+Aligning different representations of the same domain.
+
+## 111. Anti-corruption layer
+
+A boundary that prevents an external system's data model from spreading directly into the application's internal model.
+
+## 112. Asymmetric error cost
+
+A situation where different incorrect outcomes have different consequences, warranting greater caution around the more costly mistake.
+
+## 113. Bounded cache
+
+A cache with explicit limits on how much data it retains.
+
+## 114. Monotonic state
+
+State that should advance but not regress according to domain rules; recorded completion progress is treated this way in parts of PlumePilot.
+
+## 115. Defensive integration
+
+Treating an external system as capable of incomplete data, changing schemas, and failure, using validation, error classification, and fallbacks.
+
+---
+
+# Part XLVIII — Further reading
+
+## 116. Fetch API
+
+### MDN — Fetch API
+
+https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+
+Focus on `Request`, `Response`, Promises, and the difference between rejected network requests and non-2xx HTTP statuses.
+
+---
+
+## 117. Response cloning
+
+### MDN — `Response.clone()`
+
+https://developer.mozilla.org/en-US/docs/Web/API/Response/clone
+
+This is directly connected to the interceptor observing JSON without consuming the page's original response body.
+
+---
+
+## 118. HTTP headers
+
+### MDN — `Headers`
+
+https://developer.mozilla.org/en-US/docs/Web/API/Headers
+
+### MDN — `Authorization`
+
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Authorization
+
+Distinguish the HTTP header, the Bearer authentication scheme, and the token value itself.
+
+---
+
+## 119. AbortController
+
+### MDN — `AbortController`
+
+https://developer.mozilla.org/en-US/docs/Web/API/AbortController
+
+The foundation of PlumePilot's network request timeout and cancellation behavior.
+
+---
+
+## 120. XMLHttpRequest
+
+### MDN — `XMLHttpRequest`
+
+https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+
+### MDN — `setRequestHeader()`
+
+https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
+
+These explain why PlumePilot instruments `open()`, `setRequestHeader()`, and `send()` at separate steps.
+
+---
+
+## 121. Execution worlds
+
+### Chrome for Developers — `ExecutionWorld`
+
+https://developer.chrome.com/docs/extensions/reference/api/scripting#type-ExecutionWorld
+
+Revisit `MAIN` and `ISOLATED` with a new question: "Which actual `window.fetch` am I changing?"
+
+---
+
+# Part XLIX — What have we really learned?
+
+The heart of this chapter is not a list of endpoints. Endpoints can change.
+
+The transferable knowledge is the method. A web application can be studied at multiple layers:
+
+```text
+UI
+DOM
+frontend runtime
+HTTP requests
+API responses
+backend state
+```
+
+PlumePilot observes the host runtime in the `MAIN` world, recognizes only expected API origins, temporarily reuses existing authentication, confines credentials to the component that needs them, and normalizes external data before passing it into the rest of the application.
+
+It uses passive caches when possible, explicit requests when necessary, and visual fallbacks when API assumptions are not reliable enough.
+
+The larger lesson is:
+
+> **Discovering an API does not remove uncertainty. It changes where uncertainty lives and how we manage it.**
+
+In **Chapter 05**, we will study JavaScript asynchrony: events, Promises, `async`/`await`, timeouts, retries, cancellation, and race conditions. We will see why `await` does not block the browser and why many seemingly random bugs are actually timing problems.
+
+---
+
+[← 03 — DOM and dynamic pages](03-dom-and-dynamic-pages.md) · [Contents](index.md) · 05 — JavaScript asynchrony (translation in progress)
