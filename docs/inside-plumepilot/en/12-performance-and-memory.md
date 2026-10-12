@@ -1471,4 +1471,4 @@ The next chapter shifts from one abstract browser to three actual WebExtension p
 
 ---
 
-[← 11 — UI without a framework](11-ui-without-a-framework.md) · [Contents](index.md) · 13 — Chrome, Edge, and Firefox (translation in progress)
+[← 11 — UI without a framework](11-ui-without-a-framework.md) · [Contents](index.md) · [13 — Chrome, Edge, and Firefox →](13-chrome-edge-and-firefox.md)
