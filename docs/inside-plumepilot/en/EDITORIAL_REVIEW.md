@@ -10,13 +10,16 @@ The Italian edition uses many Roman-numeral `# Parte ...` dividers. A direct aud
 
 | Chapter | Italian part headings | English before this pass | Numbered sections (IT = EN) |
 |---|---:|---:|---:|
-| 14 | 158 | 7 | 303 |
-| 15 | 202 | 99 | 380 |
-| 16 | 123 | 75 | 316 |
+| 14 | 158 | 7 → **158** | 303 |
+| 15 | 202 | 99 → **202** | 380 |
+| 16 | 123 | 75 → **123** | 316 |
 
-- [x] Chapter 14: restored English headings for Parts I–XXVI and XXVII–LVIII in two commits, leaving the 303 numbered subsections unchanged; **63 of 158** part headings now exist.
-- [ ] Chapter 14: restore Parts LIX–CLV, checking the placement and wording against the Italian original (Parts CLVI–CLVIII already existed).
-- [ ] Chapters 15–16: reconcile Roman numerals and section boundaries, including duplicates and consolidated headings.
+- [x] **Chapter 14:** restored all **158/158** Part dividers and eight individual exercises; retained all 303 numbered sections.
+- [x] **Chapter 15:** replaced inconsistent and consolidated English part dividers with the canonical **202/202** translated Part headings; retained all 380 numbered sections and eight individual exercises.
+- [x] **Chapter 16:** restored the canonical **123/123** English Part headings, including all eight exercises; retained all 316 numbered sections.
+- [x] Cross-checked the entire Part order **and the following numbered section** for each of the 483 headings in chapters 14–16 against Italian: **zero mismatches**, including grouped exercise boundaries.
+- [x] Audited all 21 English book Markdown files: balanced fenced blocks and no unresolved local file targets in standard Markdown links. This is a file-link test, **not** an anchor, live URL or browser test.
+- [x] Chapter 06, sections 25.7–25.20: recovered explanatory material on lookup/identity validation, semantic hits, boundedness, LRU trade-offs, and cache models (`testSourceCache`, `playbackCourseIndex`). Its 24 subsections and fenced blocks remain structurally valid.
 - [ ] Verify content fidelity independently: headings alone are not a substitute for translated examples, diagrams and explanations.
 - [ ] Offline reader build, link/anchor audit, browser smoke testing and final sign-off remain outstanding.
 
@@ -95,7 +98,7 @@ This pass compared **numbered sections and the untyped diagram/text material ins
 ### Still unresolved
 
 - [ ] **Long-form prose fidelity:** continue reviewing detailed worked explanations and `text` diagrams throughout chapters 11–17. Recover meaningful missing examples without duplicating material already faithfully expressed in English prose.
-- [ ] **Part-level navigation:** compare Roman-numeral `# Parte …` / `# Part …` headings. A structural audit showed **numerous consolidated or missing part dividers** in chapters 14–16 (including 150 in chapter 14, 105 in chapter 15 and 51 in chapter 16 before this pass). The 18 chapter numbers and all their numbered subsections still match, but the part hierarchy does not. Restore and translate section dividers where appropriate; do not automatically invent new headings or certify these chapters as finished.
+- [x] **Part-level navigation:** the fifth pass restored the complete hierarchy of chapters 14–16 and verified the Part/section boundaries. This resolves the earlier structural discrepancy, **not** the remaining prose-fidelity or offline-reader release gates.
 - [ ] **Remaining chapter 06 cache diagrams** and examples, especially the extended `25.1–25.24` discussion.
 - [ ] **Offline English HTML** and a subsequent browser smoke test for both languages.
 - [ ] Final check of links, anchors, localized controls, generated artifacts and editorial continuity.
@@ -111,8 +114,8 @@ This pass compared **numbered sections and the untyped diagram/text material ins
 - [x] Three remaining non-verbatim Mermaid blocks are **translations of labels only** (two in chapter 11, one in chapter 15); their graph/sequence structure is not missing.
 - [x] All Markdown links to neighboring English chapter files, index, and other book files in chapters 11–17 resolve to known filenames.
 - [x] Complete release/test matrices in chapters 13–14 were restored rather than being paraphrased only in prose.
-- [ ] Reconstruct the **Part-level editorial hierarchy** of chapters 14–16 in a systematic pass, ensuring each translated heading reflects the Italian original and appears at the corresponding place in the text.
-- [ ] Complete remaining prose/diagram fidelity checks and English offline reader generation and smoke testing.
+- [x] Reconstruct the **Part-level editorial hierarchy** of chapters 14–16 (fifth pass): all Roman-numeral Parts align with the Italian source, with identical following numbered-section boundaries.
+- [ ] Complete remaining prose/diagram fidelity checks, anchor validation, English offline reader generation and browser smoke testing.
 
 ---
 
