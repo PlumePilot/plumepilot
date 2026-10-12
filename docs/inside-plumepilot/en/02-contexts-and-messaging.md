@@ -977,7 +977,13 @@ A message response such as:
 { accepted: true }
 ```
 
-usually means the request was accepted for further handling. It does **not** mean the course materials have already been generated.
+usually means the request was accepted for further handling. For example, the bridge actually replies:
+
+```js
+sendResponse({ accepted: true, duplicate: false });
+```
+
+The `duplicate` field distinguishes a newly accepted request from a repeated one that is acknowledged without starting a second collection. It does **not** mean the course materials have already been generated.
 
 ```text
 accepted ≠ completed
@@ -1095,7 +1101,13 @@ chrome.tabs.sendMessage(tabId, message, (response) => {
 });
 ```
 
-In callback-style Chrome APIs, asynchronous runtime failures may be reported through `chrome.runtime.lastError`. If it is ignored, an undefined response might be mistaken for a meaningful domain result even though the request never reached its destination.
+In callback-style Chrome APIs, asynchronous runtime failures may be reported through `chrome.runtime.lastError`. If it is ignored, a result such as:
+
+```js
+response === undefined
+```
+
+might be mistaken for a meaningful domain response even though the message never reached its destination.
 
 Promise wrappers help turn this API-specific pattern into consistent handling for the rest of the code.
 
