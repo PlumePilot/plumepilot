@@ -2114,3 +2114,228 @@ assert.equal(...)
 ```
 
 ---
+
+# Part CXLVIII–CLV — Exercises
+
+### Exercise 1 — Divergent popup and floating-menu state
+
+A user reports that autoplay is displayed as **active** in the popup but **paused** in the floating menu.
+
+Write your hypotheses, logging points at the storage boundary, and the smallest reproducible test. How would `chrome.storage.onChanged` help establish which controller is stale?
+
+### Exercise 2 — The wrong first-incomplete chapter
+
+The master index reports chapter 3 as 100% and chapter 8 as 70%, but chapter 3 contains a pending test.
+
+Which regression test would protect against incorrectly navigating to chapter 8? Describe the expected first-pass and fallback behavior.
+
+### Exercise 3 — Firefox and DevTools
+
+Firefox behaves correctly with DevTools open but sometimes becomes unresponsive minutes later. Why should background lifecycle and context termination be among your first hypotheses?
+
+### Exercise 4 — Replace a flaky sleep
+
+A test waits for two real seconds:
+
+```js
+await sleep(2000);
+assert.equal(...)
+```
+
+Design a deterministic alternative using a fake clock, a condition, an event, or a deferred Promise barrier.
+
+### Exercise 5 — Test architecture or product regression?
+
+A refactor moves a function inside `content.js`. Ten source-slicing tests report `Missing function boundary`, but the browser behavior is unchanged. How do you fix the test extraction architecture without deleting the meaningful assertions?
+
+### Exercise 6 — A vendor checksum changes
+
+A new PDF.js update changes the SHA-256 digest and causes release validation to fail. What must you verify about upstream provenance, dependency version, transformation patterns, API behavior, and output tests **before** accepting a new checksum?
+
+### Exercise 7 — Visible but unreachable
+
+A button is visibly displayed but cannot be reached through the keyboard. Which test layer can prove or disprove this problem: source regex, Node VM, real browser fixture, or screenshot? Explain the difference between rendered visibility and accessible reachability.
+
+### Exercise 8 — A missing Edge locale
+
+The application tests pass but the Edge Add-ons ZIP is missing a locale. Which testing layer was missing, and at what point in the release pipeline should it run?
+
+---
+
+# Part CLVI — Chapter glossary
+
+## 282. Regression test
+
+A test written to prevent a previously observed failure from returning.
+
+## 283. Root cause
+
+The underlying structural or logical reason that makes a visible symptom possible.
+
+## 284. Minimal reproducer
+
+The smallest controlled scenario that still demonstrates the failure.
+
+## 285. Test double
+
+A controlled replacement for a dependency, such as a fake API, timer, DOM node, or storage adapter.
+
+## 286. Failure injection
+
+Deliberately creating an API error, timeout, malformed response, or resource failure to validate recovery behavior.
+
+## 287. Architecture test
+
+A test that protects dependencies, load order, declarations, boundaries, or other structural relationships.
+
+## 288. Artifact test
+
+A test performed against the generated deliverable—the ZIP, EPUB, PDF, or HTML file—rather than only the source code.
+
+## 289. Flaky test
+
+A test that fails intermittently under apparently identical relevant inputs.
+
+## 290. Hermetic test
+
+A test whose external inputs and dependencies are strongly controlled to improve repeatability.
+
+## 291. Golden test
+
+A test that compares an artifact or its relevant semantics against an established reference output.
+
+## 292. Transition coverage
+
+Coverage of meaningful transitions between states of a state machine, not just individual state visits.
+
+## 293. Behavioral coverage
+
+The set of real system behaviors and properties demonstrated by the test suite.
+
+## 294. Test seam
+
+A boundary at which a real dependency can be replaced by a controlled test implementation.
+
+## 295. Failure oracle
+
+The rule or assertion that determines whether a particular experiment succeeded or failed.
+
+## 296. Observer effect
+
+A situation in which observing the system changes its behavior. For example, debugger attachment may influence extension service-worker lifetime.
+
+## 297. Executable specification
+
+A requirement expressed as code that fails when the requirement is violated.
+
+---
+
+# Part CLVII — Further reading
+
+## 298. Node assert
+
+Node.js documentation:
+
+https://nodejs.org/api/assert.html
+
+## 299. Node VM
+
+Node.js documentation:
+
+https://nodejs.org/api/vm.html
+
+Remember that `node:vm` is not a sandbox for executing untrusted hostile code.
+
+## 300. Chrome extension testing
+
+Chrome for Developers:
+
+https://developer.chrome.com/docs/extensions/how-to/test/end-to-end-testing
+
+https://developer.chrome.com/docs/extensions/how-to/test/puppeteer
+
+## 301. Service-worker termination
+
+Chrome for Developers:
+
+https://developer.chrome.com/docs/extensions/how-to/test/test-serviceworker-termination-with-puppeteer
+
+## 302. Playwright
+
+https://playwright.dev/docs/running-tests
+
+https://playwright.dev/docs/test-projects
+
+## 303. Firefox tooling
+
+Mozilla Extension Workshop:
+
+https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/
+
+---
+
+# Part CLVIII — Recap
+
+In PlumePilot, debugging and testing are not separate activities. One real failure becomes a sequence of increasingly precise knowledge:
+
+```text
+unexpected user-visible behavior
+          ↓
+minimal reproduction
+          ↓
+identify execution context + identity + timeline
+          ↓
+form and challenge a hypothesis
+          ↓
+instrument the relevant boundary
+          ↓
+identify root cause
+          ↓
+implement the narrow correction
+          ↓
+add regression test
+          ↓
+record the protected invariant
+```
+
+The project combines Node and strict assertions, controlled VM contexts, fake clocks and DOM elements, failure injection, structural source checks, browser fixtures, EPUB fixtures, benchmarks, release archive validation, and live manual smoke tests. None of these is sufficient in isolation.
+
+> **A bug teaches us a property of the system that we did not previously understand. The fix is only the first benefit; an executable test preserves that lesson.**
+
+Knowledge held only by a maintainer can be forgotten. Knowledge expressed as an invariant and enforced by a test becomes part of the project's executable memory.
+
+---
+
+# Next chapter — 15: Git, branches, PRs, and release engineering
+
+We will follow a change through its complete delivery lifecycle:
+
+```text
+issue / idea
+    ↓
+branch
+    ↓
+commit
+    ↓
+tests
+    ↓
+pull request and review
+    ↓
+merge strategy
+    ↓
+version bump
+    ↓
+browser artifacts
+    ↓
+store submission
+    ↓
+tag and release
+```
+
+The examples will include integration branches, stacked PRs, squash merges, release preparation, the transition from 2.35.1 to 2.35.2, browser-store packages, and tagging.
+
+An important distinction emerges: **Git history, release history, and deployed-artifact history are related but not identical**.
+
+---
+
+[← 13 — Chrome, Edge, and Firefox](13-chrome-edge-and-firefox.md) · [Contents](index.md) · 15 — Git, PRs, and release engineering (translation in progress)
