@@ -2195,4 +2195,4 @@ The final chapter takes a critical but fair look at PlumePilot. Knowing what we 
 
 ---
 
-[← 15 — Git, branches, PRs, and release engineering](15-git-branches-prs-and-release-engineering.md) · [Contents](index.md) · 17 — What we would do differently today (translation in progress)
+[← 15 — Git, branches, PRs, and release engineering](15-git-branches-prs-and-release-engineering.md) · [Contents](index.md) · [17 — What we would do differently today →](17-what-we-would-do-differently-today.md)
