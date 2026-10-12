@@ -2338,4 +2338,4 @@ An important distinction emerges: **Git history, release history, and deployed-a
 
 ---
 
-[← 13 — Chrome, Edge, and Firefox](13-chrome-edge-and-firefox.md) · [Contents](index.md) · 15 — Git, PRs, and release engineering (translation in progress)
+[← 13 — Chrome, Edge, and Firefox](13-chrome-edge-and-firefox.md) · [Contents](index.md) · [15 — Git, PRs, and release engineering →](15-git-branches-prs-and-release-engineering.md)
