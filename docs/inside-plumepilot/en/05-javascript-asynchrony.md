@@ -1815,3 +1815,598 @@ timestamp
 These details help reconstruct **which event belongs to which operation and when it happened**.
 
 ---
+
+
+## 90. Build a timeline
+
+For timing-related bugs, turn logs into a timeline:
+
+```text
+12:00:00.000 A acquire requested
+12:00:00.010 B acquire requested
+12:00:00.020 A entered queue
+12:00:00.050 A wrote operation
+12:00:00.051 B entered queue
+12:00:00.060 B saw existing operation
+```
+
+The timeline reveals interleaving that static source code can hide. The source shows what **could** happen; the event timeline helps reconstruct what **did** happen.
+
+---
+
+## 91. Introduce artificial delays during testing
+
+To investigate a suspected race condition, we can temporarily insert:
+
+```js
+await sleep(500);
+```
+
+in development at the vulnerable point.
+
+This is a diagnostic tool, **not a fix**. If widening a time window makes the bug reproducible, that is strong evidence that timing and interleaving are involved.
+
+---
+
+# Part XLVII — What might we do with modern JavaScript?
+
+## 92. Promise-native APIs
+
+Some WebExtension APIs support Promises directly in modern browser versions. Where compatibility permits, the project could reduce manual callback wrappers.
+
+However, the current wrappers also offer something valuable: a central place to **normalize cross-browser behavior**.
+
+"More modern syntax" is not automatically "better for this project's compatibility requirements."
+
+---
+
+## 93. A reusable serialization helper
+
+Today the project has helpers such as:
+
+```text
+serialized
+serializedBuilder
+serializedCommission
+serializedAchievement
+...
+```
+
+They are short but repetitive. A future refactor could provide:
+
+```js
+function createSerialQueue() {
+  let tail = Promise.resolve();
+
+  return function run(task) {
+    const next = tail.then(task, task);
+    tail = next.catch(() => {});
+    return next;
+  };
+}
+```
+
+Then each domain can create its own queue. The underlying architectural decision does not change; only its expression becomes more reusable.
+
+---
+
+## 94. A more uniform cancellation contract
+
+PlumePilot currently uses both:
+
+```text
+AbortController
+```
+
+and:
+
+```text
+flag + ensureExportNotCancelled()
+```
+
+A possible future architecture could standardize more workflows on an `AbortSignal`-like contract, with adapters for steps requiring cooperative checks.
+
+This is not necessarily urgent. The current separation is pragmatic and works for different kinds of operations.
+
+---
+
+# Part XLVIII — A compact mental model
+
+## 95. Five questions to ask when reading async code
+
+### 1. What is in flight?
+
+```text
+Fetch request?
+Timer?
+DOM workflow?
+Message-based request?
+```
+
+### 2. Who owns the operation?
+
+```text
+Tab?
+Background?
+Builder?
+Operation ID?
+```
+
+### 3. What can change at each `await`?
+
+```text
+DOM?
+Settings?
+Route?
+Owner?
+Cache?
+```
+
+### 4. How can it terminate?
+
+```text
+Success?
+Error?
+Timeout?
+Cancellation?
+Tab closure?
+```
+
+### 5. Who performs cleanup?
+
+```text
+Who clears timers?
+Who removes Map entries?
+Who releases the lock?
+Who restores the UI?
+```
+
+Answering these questions makes most asynchronous code significantly easier to understand.
+
+---
+
+# Part XLIX — Full case study: starting a course-material export
+
+## 96. The timeline
+
+Let's revisit the materials export as an asynchronous system.
+
+### T0 — User click
+
+The user selects "Generate course materials". The popup sends:
+
+```js
+runtimeMessage({ type: "PEGASO_START_EXPORT", ... });
+```
+
+### T1 — Background dispatch
+
+The dispatcher starts the `startExport()` Promise and uses `return true` to keep the callback response channel available.
+
+### T2 — Critical section
+
+`acquire()` enters the serialized queue. It checks ownership and records the new operation.
+
+### T3 — Tab messaging
+
+The background sends a request to the specific course tab.
+
+### T4 — Bridge
+
+The bridge checks `operationId` for duplicates, then posts into the `MAIN` world.
+
+### T5 — Main-world handler
+
+`content.js` starts the long-running collection workflow without holding the initial message response open.
+
+### T6 — Long collection
+
+The workflow alternates between API requests, DOM reads, readiness waits, pacing, and cancellation checks.
+
+### T7 — Status events
+
+Progress is published asynchronously through the bridge to the background. The popup may no longer exist.
+
+### T8 — Collection completed
+
+The `MAIN` world emits a terminal event containing the payload and the operation ID.
+
+### T9 — Builder queue
+
+The background verifies that finalization has not happened already, serializes the transition, and records the builder job.
+
+### T10 — New tab
+
+A builder page opens with a small job identifier. It reads the payload from browser storage.
+
+### T11 — Build
+
+The builder starts PDF or EPUB generation and updates its UI state.
+
+### T12 — Optional cancellation
+
+A user may stop the build; supported work is aborted or checked cooperatively.
+
+### T13 — `finally`
+
+The operation releases resources, clears temporary controllers and flags, and restores the UI where appropriate.
+
+Notice that the initial popup response and the eventual generated document occur at **very different times**. They belong to one logical workflow, linked by explicit identifiers and state transitions.
+
+---
+
+# Part L — Sequence diagram
+
+## 97. Export as an asynchronous timeline
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant P as Popup
+    participant B as Background
+    participant Br as Bridge
+    participant C as content.js
+    participant API as Multiversity API
+    participant Bu as Builder
+
+    U->>P: click export
+    P->>B: PEGASO_START_EXPORT
+    B->>B: serialized acquire()
+    B->>Br: collect materials
+    Br-->>B: accepted
+    B-->>P: operation accepted
+    Br->>C: window.postMessage
+    C->>API: request lesson data
+    API-->>C: JSON
+    C->>C: pacing / cache / cancellation checks
+    C->>Br: materials collected
+    Br->>B: open builder
+    B->>B: serialized builder setup
+    B->>Bu: open job page
+    Bu->>Bu: generate document
+    opt user cancellation
+        U->>Bu: cancel
+        Bu->>Bu: AbortController / cleanup
+    end
+    Bu->>B: release operation
+```
+
+The important observation is that **the response to the initial click happens well before export completion**. That is asynchronous protocol design, not merely JavaScript syntax.
+
+---
+
+# Part LI — Exercises
+
+## 98. Exercise 1 — Where is the race?
+
+Consider:
+
+```js
+async function acquire() {
+  const operation = await currentOperation();
+  if (operation) return false;
+  await storageSet(newOperation);
+  return true;
+}
+```
+
+Two callers invoke this function almost simultaneously.
+
+Questions: What can both read? Which invariant is violated? Would a separate local `busy` flag in each caller help? Why is a **shared serialization point** needed?
+
+A possible answer: both can observe "no operation" before either writes, then both incorrectly report success. A local flag in unrelated callers does not protect the shared background state.
+
+---
+
+## 99. Exercise 2 — After an `await`
+
+```js
+if (!enabled) return;
+const row = currentLesson();
+await waitForSomething();
+clickRow(nextLesson(row));
+```
+
+List three assumptions that may be invalid after the wait.
+
+Possible answers: `enabled` may now be false; `row` may be detached; the current lesson or player may have changed; the page route may no longer match; the operation may have been cancelled.
+
+---
+
+## 100. Exercise 3 — `Promise.all` or `allSettled`?
+
+You need to send a cache-clearing message to ten open tabs. You want to clear every reachable tab even when some tabs fail.
+
+Which Promise combinator best represents the task?
+
+**`Promise.allSettled()`**, because each tab is independent and every outcome is useful. You can aggregate successes and failures afterward.
+
+---
+
+## 101. Exercise 4 — Timeout without abort
+
+Consider:
+
+```js
+const result = await Promise.race([
+  fetch(url),
+  timeoutPromise(5000),
+]);
+```
+
+If the timeout wins, is the underlying `fetch` necessarily cancelled?
+
+**No.** `Promise.race()` settles the outer Promise but does not automatically stop the losing operation.
+
+Connect a timer to `AbortController.abort()` and pass the controller's signal to Fetch if you need real network cancellation.
+
+---
+
+## 102. Exercise 5 — Duplicate timers
+
+Suppose this function is called five times:
+
+```js
+function schedule() {
+  timer = setTimeout(run, 1000);
+}
+```
+
+How many executions could be scheduled? Up to five, because previous timers were not cleared.
+
+If we instead use:
+
+```js
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(run, 1000);
+}
+```
+
+the code maintains at most one pending scheduled execution of that timer at a time.
+
+---
+
+# Part LII — Concepts to carry forward
+
+## 103. Event loop
+
+The runtime mechanism coordinating scheduled tasks, microtasks, and asynchronous JavaScript execution.
+
+## 104. Run-to-completion
+
+A synchronous portion of JavaScript executes to completion before another JavaScript job starts in the same agent.
+
+## 105. Call stack
+
+The stack of currently active execution contexts and function calls.
+
+## 106. Task
+
+A unit of work scheduled by the event loop, such as an event handler or timer callback.
+
+## 107. Microtask
+
+Work processed at a microtask checkpoint before advancing to the next task, used notably for Promise continuations.
+
+## 108. Promise
+
+An object representing a future fulfilled result or rejection.
+
+## 109. `async` / `await`
+
+Syntax for describing Promise-based workflows in a sequential style without blocking the browser during asynchronous waiting.
+
+## 110. Concurrency
+
+Several operations are in flight during overlapping periods of time.
+
+## 111. Parallelism
+
+Operations execute simultaneously using distinct execution resources.
+
+## 112. Race condition
+
+A defect or undesirable outcome caused by uncontrolled timing or interleaving.
+
+## 113. Critical section
+
+A logical region accessing shared state that requires controlled ordering or mutual exclusion.
+
+## 114. Serialization
+
+Forcing otherwise overlapping operations to execute in sequence.
+
+## 115. Reentrancy guard
+
+A guard preventing a workflow from starting again while a previous logical execution is still active.
+
+## 116. Cooperative cancellation
+
+A protocol in which a workflow periodically checks a stop signal or flag and voluntarily terminates.
+
+## 117. AbortController
+
+A standard browser API for generating an `AbortSignal` to cancel compatible operations.
+
+## 118. Timeout
+
+A deadline beyond which further waiting is no longer acceptable.
+
+## 119. Pacing
+
+A deliberate delay between valid operations to regulate the rate of work.
+
+## 120. Liveness
+
+A correctness property concerned with a system remaining able to make progress rather than becoming permanently stuck.
+
+## 121. Safety
+
+A correctness property concerned with forbidden states or transitions never occurring.
+
+## 122. Backpressure
+
+A mechanism that slows producers of work to avoid overwhelming consumers or external resources.
+
+---
+
+# Part LIII — Further reading
+
+## 123. JavaScript execution model
+
+### MDN — JavaScript execution model
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model
+
+Focus on agents, job queues, the event loop, and run-to-completion.
+
+---
+
+## 124. Tasks and microtasks
+
+### MDN — Using microtasks in JavaScript
+
+https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide
+
+### MDN — In depth: Microtasks and the JavaScript runtime environment
+
+https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide/In_depth
+
+These resources help distinguish:
+
+```text
+task queue
+microtask queue
+Promises
+MutationObserver
+rendering
+```
+
+---
+
+## 125. Promises
+
+### MDN — Using promises
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
+
+Also relevant to PlumePilot's recurring conversion:
+
+```text
+callback API → Promise wrapper
+```
+
+---
+
+## 126. Async functions
+
+### MDN — `async function`
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+
+### MDN — `await`
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await
+
+Pay special attention to how `await` suspends its async function, **not the browser's entire main thread**.
+
+---
+
+## 127. Timers
+
+### MDN — `setTimeout()`
+
+https://developer.mozilla.org/en-US/docs/Web/API/Window/setTimeout
+
+Remember that a timer delay is a minimum scheduling threshold, not a perfectly timed appointment.
+
+---
+
+## 128. Cancellation
+
+### MDN — `AbortController`
+
+https://developer.mozilla.org/en-US/docs/Web/API/AbortController
+
+### MDN — `AbortSignal`
+
+https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal
+
+Read these with both HTTP request cancellation and EPUB builder cancellation in mind.
+
+---
+
+## 129. Promise combinators
+
+### MDN — `Promise.all()`
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all
+
+### MDN — `Promise.allSettled()`
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled
+
+Compare:
+
+```text
+fail fast
+vs.
+collect every outcome
+```
+
+---
+
+# Part LIV — What have we really learned?
+
+The central lesson is not to memorize `async` syntax. It is to learn to recognize when a logical operation spans different moments in time.
+
+PlumePilot shows how ordinary browser code becomes a concurrent system:
+
+```text
+timers
++
+HTTP requests
++
+messaging
++
+DOM mutation
++
+user actions
++
+long-lived export jobs
+```
+
+The project protects its invariants using serialization, local reentrancy guards, explicit identifiers, cancellation signals, repeated state checks, deadlines, and cleanup.
+
+This gives us a practical rule:
+
+> **Every `await` is a place where your assumptions may need to be checked again. Every long-running workflow needs ownership, an ending, and cleanup.**
+
+These concepts prepare us for Chapter 06, where asynchronous state is stored and shared across the extension.
+
+---
+
+## In the next chapter
+
+We will examine **state, cache, and storage — where the truth lives**.
+
+In PlumePilot, a value can live in:
+
+```text
+a local variable
+a Map
+the DOM
+an observed API response
+chrome.storage
+a background operation record
+a builder job
+```
+
+These places have different lifetimes and levels of authority.
+
+Understanding them is essential before we can study autoplay as a state machine.
+
+---
+
+[← 04 — APIs and reverse engineering](04-apis-and-reverse-engineering.md) · [Contents](index.md) · 06 — State, cache, and storage (translation in progress)
