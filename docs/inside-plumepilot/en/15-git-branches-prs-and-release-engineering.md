@@ -1684,3 +1684,569 @@ Inspect merge base, graph, and tree hashes before interpreting a surprising GitH
 Consumers and CI may already have cached a published tag. Retargeting it undermines release provenance.
 
 ---
+
+# Part LX — Immutable tags and artifact provenance
+
+## 241. If the tagged release commit was wrong
+
+Prefer a corrective new release or a clearly documented replacement policy over silently moving a tag that consumers may already use.
+
+---
+
+## 242. Publish checksums
+
+An artifact digest in release assets provides a fixed reference against which downloaded packages can be verified.
+
+---
+
+## 243. A changed artifact is a new identity
+
+Changing even one byte changes SHA-256 with overwhelming probability, so a modified ZIP should not be represented as unchanged release bytes.
+
+---
+
+## 244. A tag is not a browser package
+
+The tag identifies source history; each target ZIP is a derived artifact built from that source.
+
+---
+
+## 245. Why checksums matter
+
+A commit and builder recipe can be connected to an exact produced archive digest, improving chain-of-custody evidence.
+
+---
+
+## 246. Strong reproducibility evidence
+
+Rebuild from the claimed tag and compare the package hash with the published checksum. Agreement supports the asserted provenance.
+
+---
+
+## 247. AMO reviewer evidence
+
+Provide the source archive, rebuild instructions, and expected artifact digest to let the reviewer confirm the uploaded add-on was generated from the disclosed sources.
+
+---
+
+# Part LXI — GitHub branch protection
+
+## 248. Branch protection in larger projects
+
+Require passing checks, review approvals, and restricted direct pushes to main, where project scale justifies those controls.
+
+---
+
+## 249. Trade-offs of stricter gates
+
+More protection can reduce accidents but also increase administrative friction and slow releases. Select controls appropriate to the actual risks.
+
+---
+
+# Part LXII — Human-error guardrails
+
+## 250. The accidental integration merge
+
+A wrong-click merge into main does not require a Git defect; it reveals a process opportunity.
+
+---
+
+## 251. Useful guardrails
+
+Review confirmations, protected main, branch naming, required checks, and a verified release checklist can make mistakes harder.
+
+---
+
+## 252. When a wrong merge happens
+
+First identify what merged, what has already shipped, and whether downstream work depends on it. Then choose revert, forward correction, or another safe method.
+
+---
+
+## 253. A wrong-merge checklist
+
+Inspect source graph, affected artifacts, published refs, store submissions, and collaborators before rewriting or reverting.
+
+---
+
+# Part LXIII — Candidates as long transactions
+
+## 254. A release candidate as a long transaction
+
+Over several days it accumulates features, fixes, tests, screenshots, review notes, and packaging decisions before final integration.
+
+---
+
+## 255. But not an ACID transaction
+
+Other developers, store drafts, and mainline changes can evolve concurrently. There is no automatic isolation or rollback; reconciliation remains necessary.
+
+---
+
+# Part LXIV — Coherent commits
+
+## 256. A coherent commit
+
+Ideally a commit represents one logically complete change with relevant code, tests, and documentation.
+
+---
+
+## 257. Why commit coherence matters
+
+A checkout at an intermediate commit should make sense. This improves bisectability, review, and rollback reasoning.
+
+---
+
+# Part LXV — Separate source from binaries
+
+## 258. Where release ZIPs belong
+
+Generated binary artifacts normally belong in GitHub Releases or store uploads rather than ordinary source history.
+
+---
+
+## 259. Source and artifact separation
+
+The Git repository holds source, tests, build recipe, and reproducibility metadata. The release publishes built ZIPs and checksums.
+
+---
+
+## 260. The build recipe belongs in source
+
+Version build-release.mjs with the code so a tag preserves how its runtime archives were constructed.
+
+---
+
+# Part LXVI — Release documentation
+
+## 261. Release documents in the repo
+
+Technical notes and reviewer instructions that help reconstruct the release can appropriately remain in version control.
+
+---
+
+## 262. Store-only dashboard fields
+
+Some listings and submission fields live on external dashboards. Preserve enough text or process description in the project to minimize drift.
+
+---
+
+## 263. Rebuild the explanation, not only the bytes
+
+Good release records establish what was published, how it was produced, who it was for, and why the change was made.
+
+---
+
+## 264. Changelogs record why
+
+Diffs answer what changed. Changelogs and release notes explain motivation, intended behavior, and known limitations.
+
+---
+
+# Part LXVII — Traceability
+
+## 265. A traceable feature flow
+
+Idea or report → issue/notes → branch → commit → tests → PR → release notes → tag → store package. Each handoff should preserve meaningful context.
+
+---
+
+## 266. Small-project feedback is often informal
+
+PlumePilot fixes sometimes start in direct feedback rather than a formal ticket. Record the decision in a PR, test, changelog, or documentation anyway.
+
+---
+
+## 267. Traceability across artifacts
+
+A reported defect should be traceable to a correction, regression test, release tag, and packaged browser version.
+
+---
+
+## 268. Why traceability helps
+
+When a user reports a problem months later, this chain helps identify whether their installed version includes the fix.
+
+---
+
+# Part LXVIII — Merge queues
+
+## 269. Merge queues for large teams
+
+A merge queue tests candidates against a recent integration state, reducing races where separately green PRs conflict when merged.
+
+---
+
+## 270. Probably unnecessary today
+
+For a small repository a full merge queue could be excessive, but testing the actual integration result remains good practice.
+
+---
+
+# Part LXIX — Packaging prerequisites
+
+## 271. Before packaging
+
+Confirm the intended release source, completed fixes, version metadata, tests, and package prerequisites.
+
+---
+
+## 272. Not necessarily the latest main
+
+If main already contains future unreleased features, start from the appropriate stable release branch rather than bundling everything indiscriminately.
+
+---
+
+# Part LXX — The real 2.35.2 release candidate
+
+## 273. The 2.35.2 candidate snapshot
+
+The earlier UI commit 4d32a8c2 represented the verified UI tree, while the later release candidate f6fcb4c2 added packaging and release preparation.
+
+---
+
+## 274. Why it is a real release candidate
+
+Its scope extends beyond visual redesign into manifest/version preparation, documentation, tests, and artifact readiness.
+
+---
+
+# Part LXXI — Candidate to main
+
+## 275. What follows final validation
+
+Merge the accepted candidate according to policy, confirm the resulting source tree, tag the release, and publish the intended artifacts.
+
+---
+
+## 276. Store approval comes later
+
+Store review is asynchronous and external. Code may be tagged and merged before any store formally accepts its submitted package.
+
+---
+
+# Part LXXII — A release sequence
+
+## 277. A clean 2.35.2 path
+
+Finish and test the candidate, merge the intended tree into main, verify package contents, publish release metadata, and submit target archives.
+
+---
+
+## 278. If upload must happen early
+
+Prepare store drafts or even upload verified candidate archives, then ensure post-merge build provenance agrees before final publication.
+
+---
+
+## 279. Squash can change the final commit
+
+Compare candidate and resulting main tree hashes. Equal trees support identical tracked content despite different commit hashes.
+
+---
+
+# Part LXXIII — Squash strategy and dependent branches
+
+## 280. Squashing the candidate
+
+A new mainline commit represents the whole 2.35.2 PR; the detailed candidate commits may no longer be direct ancestors of main.
+
+---
+
+## 281. Downstream implications
+
+Branches built on candidate commits can suffer the same ancestry mismatch that affected the earlier 2.35.1 transition.
+
+---
+
+## 282. Before squashing a base
+
+Ask whether other active branches depend on it. Plan their ancestry realignment before creating a confusing downstream PR graph.
+
+---
+
+## 283. A simple future workflow
+
+After 2.35.2 is integrated, branch 2.35.3 work from the actual mainline release commit rather than an obsolete candidate head when possible.
+
+---
+
+# Part LXXIV — Designing useful Git history
+
+## 284. What good history should convey
+
+The sequence of meaningful decisions, when integration occurred, what reached users, and how regressions were handled.
+
+---
+
+## 285. Linear history is not necessarily truer
+
+Removing every merge may hide actual dependencies; preserving every experimental commit can add noise. Choose what is useful and honest.
+
+---
+
+## 286. A simple mainline
+
+A small number of logical PR-sized commits makes major product changes easier to locate.
+
+---
+
+## 287. Detailed feature histories
+
+Original feature branches and PR discussions can preserve granular development history even when main receives a squash.
+
+---
+
+## 288. Human history survives merges
+
+PR discussions, review comments, attached test outcomes, and linked issues remain useful documentation after the code enters main.
+
+---
+
+# Part LXXV — Three independent histories
+
+## 289. Three timelines in one picture
+
+Git commits and PRs lead to tags/releases, which in turn lead to separate Chrome, Edge, and Firefox store publications.
+
+**Historical command or diagram:**
+
+```mermaid
+flowchart TD
+    A[User need / bug] --> B[Feature branch]
+    B --> C[Commits]
+    C --> D[Regression tests]
+    D --> E[Pull Request]
+    E --> F[Release candidate]
+    F --> G[Build script]
+    G --> H[Chrome ZIP]
+    G --> I[Firefox ZIP]
+    G --> J[Edge ZIP]
+    G --> K[AMO source ZIP]
+    H --> L[SHA256SUMS]
+    I --> L
+    J --> L
+    K --> L
+    F --> M[Merge main]
+    M --> N[Tag vX.Y.Z]
+    N --> O[GitHub Release]
+    H --> P[Chrome Store]
+    I --> Q[AMO]
+    J --> R[Edge Add-ons]
+```
+
+```text
+Git commit graph
+      ↓
+tag and release
+      ↓
+Chrome / Edge / Firefox store deployment
+      ↓
+user-installed versions
+```
+
+---
+
+## 290. Git history
+
+Records source commits, parent relationships, merges, and branch refs.
+
+---
+
+## 291. Release history
+
+Records versions, tags, changelog entries, GitHub Releases, and packaged artifacts.
+
+---
+
+## 292. Deployment history
+
+Records what each store accepted, published, and offered users over time.
+
+---
+
+## 293. Why they differ
+
+A version can exist in Git without being published; a store may lag behind the tag; and installed users may lag behind the store.
+
+---
+
+# Part LXXVI — Diagnosing users' actual versions
+
+## 294. Identify the user's deployed version
+
+Ask which browser, extension version, and store installation the person uses. A repository tag alone is insufficient.
+
+---
+
+## 295. Use the release tag
+
+A correct tag narrows the code snapshot relevant to that released version.
+
+---
+
+## 296. Read the installed manifest version
+
+chrome.runtime.getManifest().version identifies the installed version where that privileged API is available.
+
+---
+
+## 297. Respect execution worlds
+
+Do not call the privileged manifest API from an ordinary page-world context without a bridge; release identity crosses extension boundaries too.
+
+---
+
+# Part LXXVII — Scope reduces diagnostic uncertainty
+
+## 298. Smaller releases aid diagnosis
+
+If 2.35.2 mostly changes UI, a new autoplay regression may be easier to localize to setting propagation than a complete algorithm rewrite.
+
+---
+
+## 299. Scope helps isolate causes
+
+A disciplined release boundary acts as an imperfect but valuable debugging boundary.
+
+---
+
+# Part LXXVIII — Defining reliable main
+
+## 300. Main cannot be infallible
+
+A perfectly unbroken mainline is an aspiration. The realistic goal is detecting and recovering from problems quickly.
+
+---
+
+## 301. Small PRs and checks reduce detection time
+
+Useful tests, review, and branch protection reduce the chance that a mistake survives unnoticed.
+
+---
+
+## 302. A merge gate
+
+Require appropriate checks or review before a candidate is integrated or tagged.
+
+---
+
+## 303. Gates do not replace judgment
+
+A UI can pass source tests and still be confusing, inaccessible, or poorly laid out. Manual acceptance remains important.
+
+---
+
+# Part LXXIX — Definition of Done
+
+## 304. Definition of Done for a feature
+
+The code is implemented, relevant tests pass, behavioral expectations are checked, and documentation is adjusted.
+
+---
+
+## 305. Definition of Done for a release
+
+All target artifacts, version metadata, smoke tests, store documentation, checksums, and deployment readiness must be validated.
+
+---
+
+# Part LXXX — Automating release gates
+
+## 306. A future GitHub Actions pipeline
+
+CI could execute Node suites, packaging, validation, and perhaps browser fixture tests automatically on PRs.
+
+---
+
+## 307. Should store submission be fully automated?
+
+Automation can help, but credentials, changing store policies, review control, and publication timing add risk. Manual upload can remain reasonable.
+
+---
+
+# Part LXXXI — CI and CD
+
+## 308. Continuous Integration
+
+CI combines changes frequently and runs checks to detect regressions early.
+
+---
+
+## 309. Continuous Delivery versus Deployment
+
+Delivery keeps a releasable artifact ready; deployment automatically publishes it. These are different promises.
+
+---
+
+## 310. Stores complicate continuous deployment
+
+External store reviewers can delay publication even when the project automates its own packaging and submission.
+
+---
+
+# Part LXXXII — The human side of delivery
+
+## 311. Release engineering is not only tooling
+
+It encompasses scope, communication, verification, version identity, traceability, permissions, and collaboration.
+
+---
+
+## 312. Design the human handoffs
+
+Accurate reviewer credentials and concise test steps can be as important to approval as a technically valid ZIP.
+
+---
+
+# Part LXXXIII — Backend analogies
+
+## 313. Backend analogy
+
+A server has source commits, container digests, migrations, deployment environments, and observed running versions.
+
+---
+
+## 314. PlumePilot analogy
+
+An extension has source commits, ZIP digests, storage migrations, browser stores, and installed user versions.
+
+---
+
+## 315. Artifact immutability
+
+A container digest and an extension ZIP SHA-256 both identify exact immutable artifact bytes, even though their distribution systems differ.
+
+---
+
+# Part LXXXIV — Persistence and upgrades
+
+## 316. Deployment includes persistent state
+
+An update can change stored settings or cache schemas. Users already have data, so forward compatibility matters.
+
+---
+
+## 317. Test storage migrations
+
+Backward-compatible reads and platform-specific key migrations are part of release acceptance, not only unit behavior.
+
+---
+
+## 318. Downgrade risk
+
+A prior version may not understand newly persisted data. Formal downgrade support is optional, but the risk should be recognized.
+
+---
+
+## 319. Explain visible changes
+
+If the update changes how buttons or menus work, release notes should help users find those controls.
+
+---
+
+## 320. Permissions are release-sensitive
+
+A new privileged permission can trigger new review, user prompts, or trust concerns. It deserves more scrutiny than a minor CSS tweak.
+
+---
