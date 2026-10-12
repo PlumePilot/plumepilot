@@ -306,7 +306,26 @@ Ahead/behind counts and merge conflicts may be dominated by ancestry mismatch, n
 
 ## 30. Before candidate realignment
 
-Commit 170b21ec retained merge-oriented ancestry while its tree 992149b6 represented the intended 2.35.2 UI content.
+The candidate branch had inherited the original 2.35.1 integration history. The relevant commit was:
+
+```text
+170b21ec139c0f703a4f08809a9e51e479fc413c
+```
+
+It had two parents:
+
+```text
+2a97f9d8...
+1db590c8...
+```
+
+and its tree was:
+
+```text
+992149b6...
+```
+
+This illustrates why the commit's **ancestry** and its **file tree** must be inspected separately when a release candidate contains the intended changes but an unintended merge history.
 
 ---
 
@@ -415,7 +434,19 @@ The release-candidate branch pointer was moved from the old commit to the recons
 
 ## 45. The risk of rewriting shared history
 
-Collaborators using old hashes may be disrupted by a forced update. Prefer avoiding rewrites on shared protected branches.
+A forced update can surprise collaborators who have checked out a branch using the old commit history:
+
+```text
+Safer to rewrite:
+- a personal or private feature branch
+- a tightly controlled release candidate
+
+Much riskier to rewrite:
+- public main
+- a branch shared by many collaborators
+```
+
+Even if the tracked files remain identical, rewriting history changes commit IDs and may invalidate other people's work. Coordinate before using force-with-lease on a shared branch.
 
 ---
 
@@ -569,7 +600,15 @@ An explicit corrective commit preserves important evidence for people and automa
 
 ## 62. PR #30 and #32
 
-The integration branch also required revert and follow-up correction. Revert is a normal change and may itself need additional fixes.
+The integration branch contained a sequence like:
+
+```text
+revert branding
+    ↓
+restore branding after mistaken revert
+```
+
+This is important when reading PR #30 and PR #32: `git revert` is not a magical cancellation of history. It creates a **new change**, which may itself require a corrective commit. Keeping that sequence visible makes the history more auditable.
 
 ---
 
@@ -1729,7 +1768,21 @@ The answer depends on whether history is shared, how much audit detail matters, 
 
 ## 219. Choose based on collaboration
 
-Merge preserves public ancestry; rebase can clean private work; exceptional content-first reconstruction needs exact evidence.
+The choice depends on the branch's role:
+
+```text
+Shared branch?
+→ merge to preserve collaborators' ancestry
+
+Private branch and linear history desired?
+→ rebase may be simpler
+
+Squashed upstream dependency created confusing ancestry?
+→ content-aware reconstruction may be safer,
+  but demands explicit comparison and stronger verification
+```
+
+A tool preference does not decide the strategy. Collaboration, risk and the expected final tree do.
 
 ---
 
@@ -2703,7 +2756,23 @@ Merge or rebase-and-merge may retain multiple steps. Decide before other branche
 
 ## 347. A future release-record improvement
 
-Store a concise release plan with candidate SHA, build commands, checks, package hashes, store status, and known limitations near the release.
+For a nontrivial release, a possible decision record would be:
+
+```text
+docs/releases/2.35.2.md
+```
+
+with:
+
+```text
+scope
+test plan
+known limitations
+store state
+candidate SHA and artifact hashes
+```
+
+Earlier releases already had some similar notes. Months later, a question such as *Why was the Firefox package different?* could be answered from the release record rather than reconstructed from scattered conversations.
 
 ---
 
