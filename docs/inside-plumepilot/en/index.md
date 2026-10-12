@@ -35,7 +35,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 04 | [APIs and reverse engineering — Understanding the platform by observing its traffic](04-apis-and-reverse-engineering.md) |
 | 05 | [JavaScript asynchrony — Events, Promises, timeouts, and race conditions](05-javascript-asynchrony.md) |
 | 06 | [State, cache, and storage — Where the truth lives](06-state-cache-and-storage.md) |
-| 07 | Autoplay as a state machine |
+| 07 | [Autoplay as a state machine](07-autoplay-as-a-state-machine.md) |
 | 08 | Finding the first incomplete activity — Heuristics, master calls, and fallbacks |
 | 09 | Generating PDF, HTML, and EPUB in the browser |
 | 10 | A small rich-text editor — Selection, Range, lists, and callouts |
