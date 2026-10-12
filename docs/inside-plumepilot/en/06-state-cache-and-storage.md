@@ -887,7 +887,7 @@ Conceptually, the type would resemble:
 Map<string, LessonCacheEntry>
 ```
 
-The existing project is JavaScript rather than TypeScript, but imagining the type makes the intended contract easier to understand: keys identify lessons; values contain PlumePilot's normalized read model.
+The existing project is JavaScript rather than TypeScript. A normalized lesson cache entry contains data such as objective, videos, test, material, progressItems, routeKey, and fetchedAt. The key identifies the lesson, while these fields represent the domain facts known about it.
 
 ---
 
