@@ -153,3 +153,153 @@ A **Least Recently Used** policy evicting the least recently accessed entry when
 
 ## Read model
 Data organized for efficient application reads. `lessonApiCache` retains a normalized model useful to PlumePilot instead of raw API JSON.
+
+## Semantic freshness
+Whether data is valid based on its meaning as well as its age. A stale pending test may need refreshing, while already confirmed monotonic completion may remain reusable.
+
+## Credential minimization
+Making a credential accessible to as few components as possible and for no longer than reasonably necessary.
+
+## Defensive integration
+Integrating with an external system while anticipating schema changes, partial data and failures, using validation, fallbacks and explicit error categories.
+
+## Monotonic state
+State that may advance but should not regress under domain rules. Confirmed completed progress is often treated as monotonic in PlumePilot.
+
+## Passive caching
+Reusing data observed in requests the host application would make anyway, avoiding duplicate requests where possible.
+
+## Pacing
+Intentionally spreading requests over time to prevent excessive bursts; unlike a retry, this regulates ordinary operation.
+
+## Reconciliation
+Aligning two representations of the same domain, such as the visible course structure and an API course index.
+
+## Semantic retry
+Retrying when a technically successful response does not yet contain enough meaningful information to continue.
+
+## TTL
+**Time to live:** the interval after which cached data is considered too old for particular purposes.
+
+## Event loop
+Runtime machinery coordinating tasks, microtasks, events and asynchronous completions, determining when JavaScript continues.
+
+## Run-to-completion
+A synchronous JavaScript job finishes before another job runs in the same agent. It does not make a workflow containing `await` atomic.
+
+## Call stack
+The stack of currently active JavaScript execution contexts. When empty, the runtime can process queued microtasks and other event-loop work.
+
+## Task
+A unit scheduled by the event loop, such as a user event or timer callback.
+
+## Microtask
+Work run after the current task and before the next task. Promise continuations and `MutationObserver` callbacks use the microtask mechanism.
+
+## Promise
+An object representing a future outcome that moves from pending to fulfilled or rejected.
+
+## Concurrency
+Several operations are in flight during the same time interval, even when their JavaScript executes on only one thread.
+
+## Parallelism
+Truly simultaneous execution of several operations by separate execution resources.
+
+## Critical section
+A logical region accessing shared state that must be protected against incompatible interleavings.
+
+## Operation serialization
+Forcing concurrent operations to run in sequence. PlumePilot uses Promise queues to guard certain read-modify-write critical sections.
+
+## Reentrancy
+A workflow being invoked again before its previous invocation finishes. A local `busy` flag can serve as a reentrancy guard.
+
+## Cooperative cancellation
+Cancellation in which the workflow checks a flag or signal periodically and voluntarily stops at safe points.
+
+## AbortController
+A Web API producing an `AbortSignal` to communicate cancellation to compatible operations, such as `fetch()` or the EPUB builder.
+
+## Timeout
+An application deadline after which waiting is no longer acceptable. It is not synonymous with a delay, retry or cancellation.
+
+## Backpressure
+Slowing or limiting the producer when a later stage or external resource cannot consume work quickly enough. Pacing, sequential pipelines and bounded concurrency can provide backpressure.
+
+## Safety
+A guarantee that prohibited states or transitions never occur—for example, two incompatible global operations running simultaneously.
+
+## Liveness
+A guarantee that the system can continue to make progress instead of becoming stuck forever—for example, releasing an operation whose owner disappeared.
+
+## Ephemeral state
+State tied to one JavaScript instance that can be reconstructed without semantic loss after the instance ends.
+
+## Durable state
+State kept in storage outliving the context using it, so it can be recovered after reloads or runtime recreation.
+
+## Lifetime matching
+Choosing storage whose lifetime matches the actual need for the data, avoiding both premature loss and excessive persistence.
+
+## Stored intent
+Persisted configuration expressing a user's choice, even when runtime constraints temporarily require different effective behavior.
+
+## Effective state
+The state actually enforced by the runtime after combining preferences, constraints and current context.
+
+## Orphan state
+Persisted state referring to an owner or workflow that no longer exists and needs reconciliation or removal.
+
+## Negative caching
+Temporarily retaining failed or negative results to avoid redundant attempts or preserve diagnostic information.
+
+## Cache fingerprint
+A signature derived from meaningful inputs to determine whether a structural cache remains compatible with the current state.
+
+## Event-driven invalidation
+Invalidating a cache when a concrete event proves the data is no longer valid, instead of relying only on age.
+
+## Data provenance
+Information about where a value came from and how authoritative or complete its source was.
+
+## Rebase (state/cache)
+Realigning derived state with a new authoritative baseline and clearing or recomputing local deltas to prevent double counting.
+
+## Durable handoff
+Passing a payload between independently lived producer and consumer contexts through storage that survives until the consumer is created.
+
+## Lazy migration
+Migrating persistent values gradually as they are read or rewritten, rather than running a full conversion up front.
+
+## Schema migration
+Reading, normalizing or transforming data stored under an older schema into the current software version's expected format.
+
+## Finite State Machine (FSM)
+A behavior model with a finite set of states and transitions, usually triggered by events.
+
+## State
+A system's current mode determining which events and behaviors are valid at that moment.
+
+## Transition
+A move from one state to another in response to an event and any applicable guards.
+
+## Guard
+A condition that must be true for a state transition to be enabled.
+
+## Action / Effect
+A side effect associated with a transition, such as a click, HTTP request, storage write or notification.
+
+## Extended state / Context
+Data associated with a state machine that influences behavior without requiring every value to become a separate finite state.
+
+## Delayed transition
+A transition scheduled after a delay, allowed only if its guards and context are still valid when it runs.
+
+## State history
+Information about a previous state or context retained to resume an interrupted workflow correctly.
+
+## State explosion
+Combinatorial growth in the number of states when independent properties are flattened into one finite-state machine.
+
+## Hierarchical state
+A state containing substates, allowing complex workflows without flattening every detail onto one level.
