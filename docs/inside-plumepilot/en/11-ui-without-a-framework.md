@@ -1923,4 +1923,4 @@ We will now examine DOM scans, API pacing, caches, canvases, PDF.js, Blobs, work
 
 ---
 
-[← 10 — A small rich-text editor](10-small-rich-text-editor.md) · [Contents](index.md) · 12 — Performance and memory (translation in progress)
+[← 10 — A small rich-text editor](10-small-rich-text-editor.md) · [Contents](index.md) · [12 — Performance and memory →](12-performance-and-memory.md)
