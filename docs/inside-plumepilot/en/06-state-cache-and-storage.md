@@ -332,6 +332,14 @@ function courseStorageKey(courseCode, platformId = "pegaso") {
 }
 ```
 
+The keys distinguish platforms even when the course code is identical:
+
+```text
+pegaso:ABC123
+mercatorum:ABC123
+utsr:ABC123
+```
+
 This is illustrative pseudocode (the ellipsis omits input normalization), not a function to paste into production. What matters is that **platform identity belongs in the key**, not just the course code.
 
 ---
