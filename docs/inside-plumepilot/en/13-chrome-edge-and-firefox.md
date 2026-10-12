@@ -901,7 +901,7 @@ Reviewers lack internal project knowledge. Test credentials, exact steps, expect
 
 ---
 
-## 76. Reviewer instructions come API contract
+## 76. Reviewer instructions as an API contract
 
 Good reviewer instructions resemble an API contract: state the setup, command or action, expected outcome, and known limitations with minimal ambiguity.
 
