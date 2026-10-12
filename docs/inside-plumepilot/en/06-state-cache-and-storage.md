@@ -1112,7 +1112,12 @@ Does this new payload belong to the same logical route?
 
 A useful lookup key need not be sufficient to prove that two responses describe exactly the same underlying resource.
 
-This distinction matters when the host changes routing or numbering.
+```text
+indexing: which entry should I inspect?
+identity validation: does this payload still represent that entry's logical entity?
+```
+
+This is analogous to combining a database lookup key with additional consistency constraints. It matters when the host changes routing or numbering.
 
 ---
 
@@ -1203,7 +1208,9 @@ MISS
 STALE / SEMANTIC MISS
 ```
 
-For example, an entry may contain a material link but not complete playback information. Presence is not enough.
+For example, an entry may contain a material link but not complete playback information. Or it may contain a test marked pending ten minutes ago, while the current operation needs to verify the test's present status. Presence is not enough.
+
+A physical hit and a semantic hit therefore answer different questions: *is there an entry?* and *can this entry answer this specific request safely?*
 
 ---
 
@@ -1389,7 +1396,12 @@ Why can this still be reasonable? Its natural working set is limited by lessons 
 
 This gives practical boundedness through workload and lifetime, not a guaranteed numeric cap.
 
-We should distinguish those properties precisely.
+```text
+bounded by code: an explicit capacity or eviction rule
+bounded by domain/lifetime: the workload and the page lifecycle limit growth in practice
+```
+
+If PlumePilot later became a long-lived SPA that could visit hundreds of courses without reloading, we would need to revisit this assumption. The distinction matters: a *natural* bound is not a tested memory budget.
 
 ---
 
@@ -1436,6 +1448,13 @@ function setWithLru(cache, key, value, maxSize) {
 **This is an illustrative example, not current PlumePilot code.**
 
 An LRU could be useful with a very large working set, high memory pressure, or a long-lived cache shared across many courses. Today the page-scoped cache is simpler.
+
+```text
+LRU policy: capacity bound + recently used working set
+Cost: more update logic + eviction invariants + additional test cases
+```
+
+An eviction policy should earn its complexity by satisfying a real memory budget, rather than being added simply because LRU is available.
 
 ---
 
@@ -1538,11 +1557,17 @@ invalidation: structural fingerprint mismatch
 
 ### `testSourceCache`
 
-A cache for discovered test-source information, with identity and suitability rules specific to that workflow.
+```text
+key: course + chapter + test
+value: normalized test source
+purpose: avoid fetching content already inspected
+```
+
+Its identity and suitability rules belong to the test-source workflow, rather than to the lesson API cache's TTL policy.
 
 ### `playbackCourseIndex`
 
-Not a general-purpose `Map` but a single in-memory snapshot tied to the current course context—conceptually, a **capacity-one cache**.
+Not a general-purpose `Map` but a single in-memory snapshot tied to the current course context via `playbackCourseIndexCode`—conceptually, a **capacity-one cache** holding the most recently known course index.
 
 These are all called caches, yet their keys, values, expiration conditions, and uses are different.
 
