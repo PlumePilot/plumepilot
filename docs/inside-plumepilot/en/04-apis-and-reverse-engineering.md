@@ -165,7 +165,13 @@ This is essential. If the frontend writes:
 const response = await fetch(url);
 ```
 
-and our wrapper unexpectedly returns `undefined` instead of the original Promise, the host application can break.
+and our wrapper unexpectedly returns `undefined` instead of the original Promise, the host application can break. An explicitly broken replacement looks like:
+
+```js
+window.fetch = () => undefined;
+```
+
+The wrapper must preserve the observable contract, not merely call the original network endpoint.
 
 Instrumentation should preserve, as far as possible, the function's observable contract:
 
@@ -1077,7 +1083,13 @@ Often that limit matters more than the theoretical elegance of an eviction algor
 const lessonApiCache = new Map();
 ```
 
-with a composite key equivalent to course code plus lesson number.
+with a composite key derived from course code and lesson number:
+
+```js
+`${courseCode}:${lessonNumber}`
+```
+
+The key deliberately separates lessons from different courses. As Chapter 06 explains, that is a domain identity rule, not merely a cache implementation detail.
 
 Source: [`content.js` L2425–L2427](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2425-L2427).
 
@@ -1267,7 +1279,13 @@ lesson detail API
 material URL
 ```
 
-If the API route is unavailable, it returns `false` and the caller can continue with visual collection.
+If the API route is unavailable, the API-oriented helper can signal:
+
+```js
+return false;
+```
+
+The caller can then continue with visual collection instead of treating the preferred API path as the only possible route.
 
 ---
 
@@ -1447,7 +1465,14 @@ Source: [`commission-interceptor.js` L86–L88](https://github.com/PlumePilot/pl
 
 ## 65. Numeric identifiers
 
-Helpers such as `validPositiveInteger(...)` and `validNonNegativeInteger(...)` reject invalid route identifiers.
+The historical validation helpers are:
+
+```js
+validPositiveInteger(...)
+validNonNegativeInteger(...)
+```
+
+They reject invalid route identifiers.
 
 A value should not be trusted merely because it supposedly originated inside PlumePilot: a messaging boundary is still a validation boundary.
 
