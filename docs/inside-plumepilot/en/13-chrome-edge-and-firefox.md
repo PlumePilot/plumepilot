@@ -1473,3 +1473,339 @@ The AMO source archive contains the original readable inputs and instructions fo
 Checksum verification and restricted-pattern scans provide an evidence chain from upstream source to reviewed Firefox archive.
 
 ---
+
+# Part LXII — Cross-browser by architecture
+
+## 146. What cross-browser architecture really means
+
+It does not mean writing generic code at all costs. It means identifying what is universally true about the product, what differs by platform, and where those boundaries belong.
+
+---
+
+## 147. The principle to remember
+
+**Unavoidable differences should remain local; shared semantics should remain global.** This gives future developers a clear test for whether a new browser branch belongs in domain logic or in an adapter.
+
+---
+
+# Part LXIII — Backend analogies
+
+## 148. Browsers as deployment targets
+
+A backend service may deploy to different operating systems or orchestration environments while preserving its domain model. PlumePilot similarly ships one product to different browser runtimes; what changes is the adapter, execution environment, packaging, and deployment contract.
+
+---
+
+## 149. Stores as control planes
+
+Chrome Web Store, Microsoft Edge Add-ons, and AMO resemble separate distribution control planes. They evaluate metadata, permissions, executable artifacts, review materials, and updates. They do not implement PlumePilot's course-domain logic.
+
+---
+
+## 150. The build script as a deployment adapter
+
+build-release.mjs translates one logical product into target-specific packages, much as deployment tooling adapts a service to a particular environment. It is not literally a compiler or infrastructure orchestrator, but both analogies clarify the boundary.
+
+---
+
+# Part LXIV — Alternative architectures
+
+## 151. A universal manifest
+
+One theoretical option is to ship one manifest usable everywhere. It reduces artifact variation, but cannot remove browser-specific permissions, source-review rules, localization, and extension lifecycles. Since PlumePilot already needs target packaging, manifest specialization remains a reasonable choice.
+
+---
+
+## 152. A WebExtension polyfill
+
+A library might smooth differences between callback and Promise APIs or provide a consistent namespace. It would not solve service-worker versus background-script declarations, the Offscreen permission, store policies, or review-safe vendor output. It would cover only one layer of compatibility.
+
+---
+
+## 153. A multi-target bundler
+
+A general bundler could offer conditional transforms, target flags, and more advanced compilation features. It would also add dependencies, configuration, build complexity, and another supply-chain surface. PlumePilot's current readable first-party code and small custom Node build retain useful simplicity.
+
+---
+
+## 154. Conditional compilation
+
+A bundler could replace checks such as if (__FIREFOX__) at build time. This works, but target constants embedded everywhere in domain modules would spread compatibility knowledge. Prefer constrained adapters unless conditional compilation materially simplifies a clearly localized need.
+
+**Original technical examples:**
+
+```js
+if (__FIREFOX__) ...
+```
+
+---
+
+# Part LXV — The cost of target artifacts
+
+## 155. The cost of multiple artifacts
+
+Three browsers require three validated manifests, runtime archives, installation checks, metadata workflows, store submissions, and in Firefox's case an additional source-review archive. Complexity is real and must be budgeted.
+
+---
+
+## 156. The advantage of specialized artifacts
+
+Each target package can be explicit, compact, independently testable, and tailored to its store and runtime requirements. The complexity is concentrated in reproducible build tooling rather than distributed throughout the application.
+
+---
+
+# Part LXVI — Release as code
+
+## 157. Release scripts are production code
+
+If build-release.mjs is wrong, a release can ship an invalid extension even while the application tests pass. Build scripts deserve version control, code review, deterministic behavior, failure handling, and regression tests just like the runtime.
+
+---
+
+# Part LXVII — Supply-chain security
+
+## 158. Supply-chain threat models
+
+A vendored file could be modified accidentally, replaced maliciously, or upgraded with unexpected dynamic-execution behavior. Hash pinning, provenance records, controlled transformations, and output validation reduce some of these risks; they do not replace auditing or dependency maintenance.
+
+---
+
+## 159. The build dependency itself
+
+The ZIP builder relies on a readable locally retained JSZip distribution rather than downloading an unknown remote package at the last minute. This is a small but coherent part of the reproducibility strategy: build inputs should be explicit and verifiable.
+
+---
+
+# Part LXVIII — Policy versus security
+
+## 160. Policy is not the same as security
+
+A store policy can forbid something that might be technically safe in a narrow situation; a policy-permitted implementation can still be insecure. Compliance and security assessment are distinct obligations, even when well-designed solutions satisfy both.
+
+---
+
+# Part LXIX — Privacy across stores
+
+## 161. One privacy reality, multiple store vocabularies
+
+Stores ask about privacy and data use through different forms and category systems. PlumePilot must translate its real behavior—what it accesses, processes, stores, and sends—into each store's declaration vocabulary without changing the underlying facts.
+
+---
+
+## 162. A better privacy source of truth
+
+Ideally, the source of truth is a maintained inventory of actual data flows, permissions, destinations, retention, and user controls. Store forms derive from that inventory; a dashboard checkbox should not become the authoritative description of application behavior.
+
+---
+
+# Part LXX — Updates and backward compatibility
+
+## 163. A cross-browser release is also an upgrade
+
+An update must work over an existing installation. Validate identity continuity, storage compatibility, prior settings, new assets, update notices, and behavior after migration—not just a fresh installation of the new ZIP.
+
+---
+
+## 164. Firefox and cumulative “What's New”
+
+The project's history included cases where Firefox users skipped an intermediate release. Release notes for that target sometimes needed to cover changes since its last distributed version, not merely those from Chrome's most recent build. The installed-version path is input to the update experience.
+
+---
+
+# Part LXXII — Different release lifecycles
+
+## 166. Identical text today does not mean identical lifecycles forever
+
+The 2.35.2 snapshot aligned the update cards across browser targets, but future Firefox publication timing may differ from Chrome and Edge. Keeping small target-specific release-note data can be simpler than rebuilding complicated conditional history logic for every release.
+
+---
+
+# Part LXXIII — Retiring compatibility code
+
+## 167. Compatibility code has an expiration question
+
+Every browser workaround should carry a recurring question: is the underlying difference still present in supported minimum versions? If not, remove the branch. Otherwise compatibility code accumulates long after the environment that required it has disappeared.
+
+---
+
+# Part LXXIV — Minimum versions as a simplification tool
+
+## 168. Raising minimum versions can simplify code
+
+If an important API becomes reliably available above a certain browser version, raising the minimum version can eliminate workarounds. That choice also excludes some users. It is a product and maintenance decision, not merely a technical convenience.
+
+---
+
+# Part LXXV — Primary documentation
+
+## 169. Compatibility information changes
+
+Consult primary browser and extension API documentation, and pay attention to versions and publication dates. Old forum posts or cached browser tables should not be treated as permanent contracts.
+
+---
+
+# Part LXXVI — Operational method
+
+## 170. Checklist for a new browser-dependent feature
+
+Define the domain requirement, check primary documentation for every target, create a capability matrix, decide runtime detection or build specialization, retain common domain semantics, add a focused adapter, establish artifact assertions, test failure behavior, update reviewer documentation if necessary, and check current policies before submission.
+
+1. Define the domain requirement.
+2. Verify official support for every target.
+3. Record a capability matrix.
+4. Choose runtime detection or build specialization.
+5. Keep domain semantics shared.
+6. Add narrowly scoped adapters.
+7. Define artifact validation invariants.
+8. Test error and fallback behavior.
+9. Update reviewer documentation when needed.
+10. Review current store policies before submitting.
+
+**Original technical examples:**
+
+```js
+if (isChrome) width -= 8;
+```
+
+```js
+if (chrome.offscreen?.createDocument)
+```
+
+```js
+if (!isFirefox)
+```
+
+---
+
+# Part LXXVII — Principles to carry forward
+
+## 171. Compatibility is multidimensional
+
+Language syntax, Web APIs, privileged extension APIs, background lifecycles, manifest declarations, packaging, UI behavior, store rules, and reviewer expectations are distinct compatibility dimensions.
+
+---
+
+## 172. Shared core, specific boundaries
+
+Do not duplicate course, quiz, or autoplay business logic simply because a browser adapter differs. Keep shared semantics common and isolate unavoidable platform details.
+
+---
+
+## 173. Prefer feature detection when possible
+
+When a capability can be inspected during execution, check the capability itself rather than guessing from a browser brand or version string.
+
+---
+
+## 174. Use build specialization when required
+
+Manifest structure, packaged files, target permissions, and store-specific artifacts are natural candidates for build-time decisions.
+
+---
+
+## 175. Test the artifacts
+
+Verify the actual archives users will install, not only the source tree that generated them.
+
+---
+
+## 176. Fail closed
+
+If a target-specific patch no longer matches its expected input or output contract, stop the build rather than producing an ambiguous or partially transformed artifact.
+
+---
+
+## 177. Reviewability is engineering
+
+Readable code, reproducible builds, pinned dependencies, and source provenance belong to the quality of the shipped software, not to separate paperwork.
+
+---
+
+## 178. Semantic parity over implementation parity
+
+Browsers may use different internal adapters while delivering the same functionality and respecting the same domain guarantees.
+
+---
+
+## 179. Determinism reduces noise
+
+Stable timestamps, file ordering, and checksums make artifact comparisons and release debugging more meaningful.
+
+---
+
+## 180. Store policy is an external contract
+
+Policies must be monitored and rechecked; one successful review does not guarantee unchanged requirements forever.
+
+### Browser support matrix
+
+| Concern | Chrome | Edge | Firefox | Strategy |
+|---|---|---|---|---|
+| Background | Service worker | Service worker | Scripts | Build specialization |
+| Audio without DOM | Offscreen | Offscreen | Tab fallback | Capability + fallback |
+| Offscreen permission | Yes | Yes | No | Target manifest |
+| Gecko add-on ID | N/A | N/A | Required | Firefox metadata |
+| Source review | CWS policy | Edge policy | AMO review archive | Target release |
+
+---
+
+# Part LXXXV — Further reading
+
+## 181. Background execution model
+
+See MDN's WebExtensions background manifest documentation and Chrome's MV3 migration checklist for differences in service workers, background scripts, and event lifecycle.
+
+- [MDN — WebExtensions background](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background)
+- [Chrome — MV3 migration checklist](https://developer.chrome.com/docs/extensions/develop/migrate/checklist)
+
+---
+
+## 182. Offscreen API
+
+Chrome for Developers documents the Offscreen API used to provide document capabilities when extension service workers have no DOM.
+
+[Chrome — Offscreen API](https://developer.chrome.com/docs/extensions/reference/api/offscreen)
+
+---
+
+## 183. Firefox browser-specific settings
+
+MDN documents browser_specific_settings, including Gecko extension identity and minimum-version declarations.
+
+[MDN — browser_specific_settings](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings)
+
+---
+
+## 184. AMO policies and source submission
+
+Mozilla's Extension Workshop publishes add-on policies, source-code submission procedures, and third-party library guidance.
+
+- [AMO add-on policies](https://extensionworkshop.com/documentation/publish/add-on-policies/)
+- [Source submission](https://extensionworkshop.com/documentation/publish/source-code-submission/)
+- [Third-party libraries](https://extensionworkshop.com/documentation/publish/third-party-library-usage/)
+
+---
+
+## 185. Chrome Web Store code readability
+
+Chrome for Developers explains the store's code-readability and obfuscation policy. Read the current policy rather than assuming all minification is banned.
+
+[Chrome Web Store code readability policy](https://developer.chrome.com/docs/webstore/program-policies/code-readability)
+
+---
+
+# Part LXXXVI — Recap
+
+PlumePilot is developed from one shared source tree, but the installed product is **not one universal archive**. Its build produces Chrome, Edge, and Firefox runtime ZIPs and, for Firefox review, a source submission. The browsers share much of the web platform while differing in extension background models, API availability, manifest requirements, packaged resources, store policy, and review.
+
+Shared domain logic remains common; unavoidable differences are confined to runtime adapters, the build script, specialized manifests, and artifact validation. The project favors **semantic parity, minimum privilege, traceable vendor code, deterministic packaging, and documented fallback behavior** over identical bytes or identical implementation.
+
+> **A cross-browser product is not only software that runs in several browsers. It is software that can be built, tested, installed, reviewed, updated, and maintained correctly for each supported deployment target.**
+
+# Next chapter — 14: Debugging, tests, and regressions
+
+We will connect bug reports, reproducible examples, regression tests, validation, and historical fixes into a discipline for converting failures into long-term engineering knowledge.
+
+---
+
+[← 12 — Performance and memory](12-performance-and-memory.md) · [Contents](index.md) · 14 — Debugging, tests, and regressions (translation in progress)
