@@ -1370,7 +1370,7 @@ flowchart TD
     A[Feature branch] --> B[Regression tests]
     B --> C[Pull Request]
     C --> D[Release candidate]
-    D --> E[Version + Changelog + Novità]
+    D --> E[Version + Changelog + What's New]
     E --> F[Build Chrome / Edge / Firefox]
     F --> G[Validate artifacts]
     G --> H[Smoke test]
