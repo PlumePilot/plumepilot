@@ -2054,10 +2054,25 @@ click(row);
 false
 ```
 
-**Two design exercises:**
+# Parts CXIV–CXVII — Exercises 1–4
 
-1. You want to add activity navigation from a lesson's displayed text. What risks arise if the label changes, appears twice, or is translated? Define a stable domain identity and a guarded fallback.
-2. You want to persist all lesson API responses. Which keys, freshness rules, capacity limits and privacy/lifetime guarantees must be designed before implementation?
+### Exercise 1 — Resume yesterday's last activity
+
+Design “Automatically resume the last activity opened yesterday.” Specify identity, storage lifetime, authoritative source, staleness, and manual override. What risks arise when lesson identity is based only on its display text?
+
+### Exercise 2 — Persistent lesson API cache
+
+Design a persistent lesson API cache. Explain its TTL, monotonic fields, platform scoping, course-version changes, invalidation, privacy, and maximum size. When would `chrome.storage.local` become less appropriate than the current in-memory `Map`?
+
+### Exercise 3 — A Chrome-only browser API
+
+A new browser API improves a feature only on Chrome. Specify domain capability, Chrome adapter, Firefox fallback, manifest specialization, and artifact test. Avoid spreading `if (chrome)` across ten files.
+
+### Exercise 4 — A new university's DOM
+
+The LMS adds another university with a different DOM. Which components should change: DOM adapter, platform configuration, perhaps API normalizer? Which should stay independent: discovery semantics, operation model, and export pipeline?
+
+
 
 ---
 
