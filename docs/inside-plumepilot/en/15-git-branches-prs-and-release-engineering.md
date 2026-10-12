@@ -29,7 +29,53 @@ git push
 
 ## 2. Git's essential objects
 
-A blob contains file bytes, a tree records directory entries, a commit identifies a tree and its parent history, and a tag points to a chosen object. The graph, not file copying, is the fundamental model.
+Simplifying, Git works with objects such as:
+
+```text
+blob
+tree
+commit
+tag
+```
+
+### Blob
+
+The bytes of a file, without a filename.
+
+### Tree
+
+A directory snapshot connecting path names to blobs and nested trees:
+
+```text
+path → blob / tree
+```
+
+### Commit
+
+A Git commit records at least:
+
+```text
+tree
+parent(s)
+author / committer
+message
+```
+
+### Tag
+
+A reference to a Git object, commonly a release commit (annotated tags are themselves objects).
+
+For our purposes, the decisive formula is:
+
+```text
+commit
+   =
+tree
++ parent history
++ metadata
+```
+
+Changing the parent can change a commit's identity without changing its tracked file tree.
 
 ---
 
@@ -194,9 +240,31 @@ Squash turns the net effect of several commits into one new commit on the target
 
 ## 25. The real 2.35.1 release
 
-The work in PR #39 was squashed onto main as a8007425f81792e7570516dbdf1e7fb2cbda4d53, the 2.35.1 release commit.
+PR #39 contained:
+
+```text
+20 development commits
+```
+
+The final mainline commit:
+
+```text
+a8007425f81792e7570516dbdf1e7fb2cbda4d53
+```
+
+had:
+
+```text
+one parent
+```
+
+and became the actual **v2.35.1 release commit**. That is consistent with squash integration: a PR containing many commits is represented by one new commit on `main`.
+
+A downstream branch based on the original twenty commits does not automatically share that new ancestry, even if the resulting files are equivalent.
 
 ---
+
+# Part XIII — Why squash is attractive
 
 ## 26. A readable mainline
 
@@ -443,9 +511,35 @@ A public mainline may already have triggered CI, builds, reviews, or downstream 
 
 ## 61. An imperfect but truthful history
 
-Merge then revert records what actually occurred. A force reset may create the illusion that the integration never existed.
+A public `main` that shows:
+
+```text
+accidental merge
+corrective revert commit
+```
+
+records what really happened.
+
+A force reset might make the history look as if the integration:
+
+```text
+never happened
+```
+
+even if it has already triggered:
+
+```text
+CI workflows
+repository clones
+store-release preparation
+collaborator pulls
+```
+
+An explicit corrective commit preserves important evidence for people and automation that already observed the prior mainline state.
 
 ---
+
+# Part XXIX — The cost of reverts on integration branches
 
 ## 62. PR #30 and #32
 
