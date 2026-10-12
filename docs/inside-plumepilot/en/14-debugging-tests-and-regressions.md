@@ -1119,6 +1119,8 @@ Combine structural DOM checks, browser geometry/behavior assertions, and selecte
 
 ---
 
+# Part LIX — Screenshot testing
+
 ## 109. When screenshot tests help
 
 Screenshots are useful for typography, alignment, responsive layouts, color contrasts, and clipping. They are less useful for proving storage synchronization or race safety.
@@ -1130,6 +1132,8 @@ Screenshots are useful for typography, alignment, responsive layouts, color cont
 Control browser version, viewport, zoom, fonts, animations, theme, and fixture data before comparing screenshots; otherwise harmless environmental differences create noise.
 
 ---
+
+# Part LX — Accessibility regressions
 
 ## 111. Focus is state
 
@@ -1143,6 +1147,8 @@ After opening settings, focus should enter the detail appropriately. Back and Es
 
 ---
 
+# Part LXI — Testing order
+
 ## 113. Many bugs are ordering bugs
 
 Examples include loading shared UI helpers before consumers, registering background listeners before events occur, and processing asynchronous callbacks in the right generation.
@@ -1154,6 +1160,8 @@ Examples include loading shared UI helpers before consumers, registering backgro
 If two instructions can run in either order without changing semantics, do not assert an arbitrary sequence. When a dependency makes order essential, testing it is appropriate.
 
 ---
+
+# Part LXII — Concurrency testing
 
 ## 115. Concurrency does not require threads
 
@@ -1182,11 +1190,15 @@ storageGetMany: async (...) => {
 
 ---
 
+# Part LXIII — More rigorous race testing
+
 ## 117. Controlled barriers are stronger than tiny sleeps
 
 A deferred Promise lets the test deliberately resume operation B between two phases of operation A. This models an exact interleaving without relying on a real 2 ms timeout.
 
 ---
+
+# Part LXIV — Test determinism
 
 ## 118. Identify nondeterminism
 
@@ -1200,17 +1212,23 @@ Not every dependency needs mocking. Fix the inputs whose variation would invalid
 
 ---
 
+# Part LXV — Randomness and identifiers
+
 ## 120. Deterministic UUIDs
 
 crypto.randomUUID is useful in production for operation identity. When a test compares serialized outputs, inject stable IDs to avoid meaningless snapshot changes.
 
 ---
 
+# Part LXVI — Locale and time zone
+
 ## 121. Locale and timezone
 
 Date formatting and timestamps can depend on timezone or locale. Either fix the environment or assert a representation insensitive to those variations.
 
 ---
+
+# Part LXVII — Test isolation
 
 ## 122. Tests must not depend on preceding tests
 
@@ -1224,6 +1242,8 @@ Build new Maps, fake APIs, timers, DOM, and storage for each test unless the sce
 
 ---
 
+# Part LXVIII — Keep regression tests close to the fix
+
 ## 124. Add a regression test with the fix
 
 Ideally reproduce the failure as a red test, implement the correction, verify green, then refactor safely.
@@ -1235,6 +1255,8 @@ Ideally reproduce the failure as a red test, implement the correction, verify gr
 When the cause is unclear, manual experiments may precede automation. Before closing the issue, preserve the critical behavior in a repeatable test where feasible.
 
 ---
+
+# Part LXIX — Not every bug needs a huge test
 
 ## 126. Keep tests proportional
 
@@ -1248,11 +1270,15 @@ A small deterministic test is preferable to a slow browser test only if it actua
 
 ---
 
+# Part LXX — But not at a level that is too low
+
 ## 128. Do not choose a layer that is too low
 
 Regex matching a focus handler does not prove focus was correctly restored. Interaction semantics require a real DOM or browser fixture.
 
 ---
+
+# Part LXXI — Testing seams
 
 ## 129. What is a test seam?
 
@@ -1265,6 +1291,8 @@ A seam is a point at which a dependency can be replaced: a clock, request functi
 Several tests inject globals through VM contexts or controlled source extraction. Practical, but this indicates opportunities to make some dependencies explicit.
 
 ---
+
+# Part LXXII — The limits of textual extraction
 
 ## 131. Textual source extraction
 
@@ -1287,6 +1315,8 @@ Renaming or moving a function may break a string-based extractor even if runtime
 
 ---
 
+# Part LXXIII — Test brittleness
+
 ## 133. Brittle tests
 
 A brittle test fails because of harmless internal rewrites that do not change its promised property. Excessive DOM selector or source-text coupling is a common cause.
@@ -1298,6 +1328,8 @@ A brittle test fails because of harmless internal rewrites that do not change it
 Load ordering, manifest declarations, and specific guard placement can themselves be required. Testing them intentionally is appropriate.
 
 ---
+
+# Part LXXIV — Future evolution: testable modules
 
 ## 135. Extract pure helpers over time
 
@@ -1325,6 +1357,8 @@ Many PlumePilot functions legitimately depend on the host DOM. Pull out well-bou
 
 ---
 
+# Part LXXV — Contract tests
+
 ## 138. External boundaries require contract tests
 
 The LMS, browser messaging, extension storage, and generated document formats are external or shared contracts whose shapes can drift.
@@ -1343,6 +1377,8 @@ If the provider renames a lesson field, fail close to the adapter that reads it 
 
 ---
 
+# Part LXXVI — Defensive parsing tests
+
 ## 141. Malformed input matters
 
 Test missing entries, null IDs, invalid percentages, wrong types, duplicate display orders, and unexpected arrays in normalization helpers.
@@ -1355,6 +1391,8 @@ When a provider response is malformed, prefer explicit unavailability or a contr
 
 ---
 
+# Part LXXVII — Release artifact testing
+
 ## 143. Artifact validation revisited
 
 Chapter 13 showed that validate-release.mjs inspects the generated ZIP. Such verification is preventative debugging before any reviewer or user installs it.
@@ -1366,6 +1404,8 @@ Chapter 13 showed that validate-release.mjs inspects the generated ZIP. Such ver
 Source can contain the correct menu stylesheet while a build excludes it. The runtime source test passes; the artifact validator catches the omission.
 
 ---
+
+# Part LXXVIII — Manual smoke testing
 
 ## 145. Manual smoke testing still matters
 
@@ -1408,6 +1448,8 @@ Regression checklists protect known guarantees. Exploratory testing finds surpri
 
 ---
 
+# Part LXXX — Dogfooding
+
 ## 148. Dogfooding exposes reality
 
 Using PlumePilot on real courses reveals long-tail layouts, unusual lesson states, delayed responses, and actual user workflows that synthetic fixtures might miss.
@@ -1419,6 +1461,8 @@ Using PlumePilot on real courses reveals long-tail layouts, unusual lesson state
 A bug found through real use should become an issue description, minimal fixture, and regression case so knowledge no longer exists only in the maintainer's memory.
 
 ---
+
+# Part LXXXI — Writing good bug reports
 
 ## 150. A useful bug report
 
@@ -1432,11 +1476,15 @@ Recordings help with animations, focus, visual clipping, and timing sequences. S
 
 ---
 
+# Part LXXXII — Regression severity
+
 ## 152. Prioritize by risk
 
 Wrong activity navigation, data loss, uninterruptible work, or invalid release packages are more serious than cosmetic spacing. Severity should reflect impact and recovery options.
 
 ---
+
+# Part LXXXIII — Bugs that require fail-closed behavior
 
 ## 153. Fail closed on ambiguous identity
 
@@ -1456,11 +1504,15 @@ If replaceExactly cannot prove it matched precisely one expected pattern, fail t
 
 ---
 
+# Part LXXXIV — Bugs that require retries
+
 ## 156. Not every error means immediate failure
 
 A transient HTTP error may merit retry; missing DOM may merit waiting; ambiguous identity requires restraint. Classify the condition before choosing recovery.
 
 ---
+
+# Part LXXXV — Error taxonomy → recovery policy
 
 ## 157. A mental model for error recovery
 
@@ -1524,11 +1576,15 @@ sequenceDiagram
 
 ---
 
+# Part LXXXVII — Debugging storage races with timelines
+
 ## 160. The lost-update race
 
 A and B can read the same old object, modify different fields, then overwrite each other when saving. A serialized read-modify-write queue changes the order and preserves both updates.
 
 ---
+
+# Part LXXXVIII — Testing timelines
 
 ## 161. Control suspension points
 
@@ -1542,6 +1598,8 @@ await
 
 ---
 
+# Part LXXXIX — Regression budget
+
 ## 162. Features multiply state combinations
 
 New settings, browsers, operation types, and activities increase the state space. Exhaustively enumerating the Cartesian product is impractical.
@@ -1553,6 +1611,8 @@ New settings, browsers, operation types, and activities increase the state space
 Choose scenarios that represent invariant classes rather than every single data combination. One good ambiguity test can protect many datasets.
 
 ---
+
+# Part XC — Property-based thinking without a library
 
 ## 164. Candidate ordering as a property
 
@@ -1566,11 +1626,15 @@ A generator could vary chapter counts, percentages, missing identities, and cont
 
 ---
 
+# Part XCI — Lightweight fuzzing
+
 ## 166. Lightweight fuzzing
 
 Feed parsers and normalizers duplicate IDs, unusual arrays, missing fields, and invalid numeric values. Require deterministic, safe output instead of crashes or fabricated truth.
 
 ---
+
+# Part XCII — Mutation testing
 
 ## 167. Mutation testing
 
@@ -1583,6 +1647,8 @@ Deliberately change a guard, invert a condition, or remove cleanup. Would the te
 Critical routing, cancellation, state ownership, and release validator checks are good candidates for future mutation testing.
 
 ---
+
+# Part XCIII — Test smell: an overly generic assertion
 
 ## 169. A weak assertion
 
@@ -1610,6 +1676,8 @@ assert.deepEqual(requested, [4]);
 
 ---
 
+# Part XCIV — Test smell: sleeps in tests
+
 ## 171. A fragile sleep-based test
 
 await sleep(2000) relies on elapsed time, is slow, and may still fail on a busy CI host.
@@ -1627,6 +1695,8 @@ await new Promise(r => setTimeout(r, 3000));
 Use a captured callback, virtual clock, or deferred Promise to make the relevant asynchronous transition deterministic.
 
 ---
+
+# Part XCV — Test smell: overly clever mocks
 
 ## 173. An overly clever mock is a maintenance burden
 
@@ -1646,11 +1716,15 @@ currentLesson: () => null
 
 ---
 
+# Part XCVI — Test smell: coupling to implementation details
+
 ## 175. Avoid overcoupling tests to implementation
 
 Testing a private variable's exact shape can fail after harmless refactors. Prefer observable decisions and outcomes when they express the real contract.
 
 ---
+
+# Part XCVII — Test smell: no negative case
 
 ## 176. Include negative cases in regression fixes
 
@@ -1658,11 +1732,15 @@ Restoring a closed accordion is important; refusing to advance the wrong manuall
 
 ---
 
+# Part XCVIII — Test smell: unnecessarily enforcing implementation order
+
 ## 177. Do not freeze irrelevant implementation order
 
 If two equivalent implementations produce the same result, tests should not impose one call ordering unless ordering itself protects a dependency.
 
 ---
+
+# Part XCIX — CI as automatic memory
 
 ## 178. Continuous integration as automatic memory
 
@@ -1675,6 +1753,8 @@ Ideally every PR runs deterministic unit, structural, output, and artifact tests
 The repository already contains a meaningful set of tests even where CI coverage is incomplete. A central command would be a natural next step.
 
 ---
+
+# Part C — A test command as a public developer interface
 
 ## 180. A test command is a developer interface
 
@@ -1698,11 +1778,15 @@ Discover test files, run them in deterministic order, stop on failures, and prov
 
 ---
 
+# Part CI — Test command categories
+
 ## 182. Categorize test commands
 
 A future CLI could distinguish fast unit checks, browser integration, build validation, and full release verification so cost and prerequisites remain visible.
 
 ---
+
+# Part CII — Automated browser matrix
 
 ## 183. Browser matrix with Playwright
 
@@ -1716,11 +1800,15 @@ Testing ordinary Firefox webpage behavior cannot prove a Firefox MV3 background 
 
 ---
 
+# Part CIII — Testing the actual package
+
 ## 185. Test the actual installed package
 
 Generate, validate, install, and exercise the browser-specific release archive whenever practical. This more closely matches what users receive.
 
 ---
+
+# Part CIV — Store validation is not E2E testing
 
 ## 186. Store lint is not an E2E test
 
@@ -1734,6 +1822,8 @@ Source tests, browser interaction tests, final archive validation, lint, and man
 
 ---
 
+# Part CV — Debugging a store rejection
+
 ## 188. Store rejection is a symptom
 
 Before changing code, determine whether a rejection concerns manifest, remote code, obfuscation, missing source, reviewer access, or another policy category.
@@ -1746,11 +1836,15 @@ If a reviewer flags dynamic evaluation, scan the **generated Firefox ZIP**, not 
 
 ---
 
+# Part CVI — From rejection to invariant
+
 ## 190. Turn rejection into an invariant
 
 Identify the exact cause, add a deterministic package check, and include it in every future release process.
 
 ---
+
+# Part CVII — Testing release notes
 
 ## 191. Release metadata can regress
 
@@ -1758,11 +1852,15 @@ Outdated version strings, missing localization, incorrect What's New cards, and 
 
 ---
 
+# Part CVIII — Docs-as-code tests
+
 ## 192. Docs as operational input
 
 When a reviewer follows AMO_SOURCE_README.md or test instructions, those documents are part of delivery and deserve consistency checks.
 
 ---
+
+# Part CIX — Debugging CSS
 
 ## 193. Debug CSS geometry before guessing
 
@@ -1776,11 +1874,15 @@ A source check can ensure the right selector exists; a browser geometry check pr
 
 ---
 
+# Part CX — Reduced motion
+
 ## 195. Reduced motion is a test input
 
 Emulate prefers-reduced-motion and verify that interaction remains correct when smooth scrolling or animations are shortened or disabled.
 
 ---
+
+# Part CXI — Debugging generated files
 
 ## 196. Inspect generated files directly
 
@@ -1800,6 +1902,8 @@ diagnostics
 
 ---
 
+# Part CXII — Temporary diagnostics object
+
 ## 198. Prefer diagnostic objects to noisy logs
 
 Record structured data and let the caller decide whether to display, compare, or discard it. This separates observability from console output.
@@ -1811,6 +1915,8 @@ diagnostics.pages.push(record);
 ```
 
 ---
+
+# Part CXIII — Testability as an architectural quality
 
 ## 199. Difficulty testing often reveals coupling
 
@@ -1824,11 +1930,15 @@ Some operations genuinely require host DOM, extension messaging, or layout. The 
 
 ---
 
+# Part CXIV — Functional core, imperative shell
+
 ## 201. Functional core and imperative shell
 
 Keep deterministic decisions in a small functional core and environment effects in an imperative shell. Core logic is easy to unit test; DOM interaction and browser messaging require appropriate integration tests.
 
 ---
+
+# Part CXV — Future application to PlumePilot
 
 ## 202. A future discovery-engine boundary
 
@@ -1842,6 +1952,8 @@ autoplayPresentation() takes policy inputs and returns a view model without touc
 
 ---
 
+# Part CXVI — Observability contract
+
 ## 204. Stable observability fields
 
 Operation IDs, phase names, statuses, and error categories can form a shared structured diagnostic model for UI, background, and tests.
@@ -1853,6 +1965,8 @@ Operation IDs, phase names, statuses, and error categories can form a shared str
 Tests should consume structured events or result objects where available, not depend on exact formatting of a human-readable log line.
 
 ---
+
+# Part CXVII — Assert invariants near boundaries
 
 ## 206. Should we assert at runtime?
 
@@ -1872,6 +1986,8 @@ The release compiler can fail immediately on an invalid manifest, missing file, 
 
 ---
 
+# Part CXVIII — Regression triage
+
 ## 208. First record a new bug
 
 Record the symptom, expected and observed behavior, minimal steps, environment, affected identity, and possible consequences before changing code.
@@ -1883,6 +1999,8 @@ Record the symptom, expected and observed behavior, minimal steps, environment, 
 Decide whether the case needs an exact reproducer, fake timer, boundary fixture, browser integration, artifact test, or a combination.
 
 ---
+
+# Part CXIX — A debugging checklist for PlumePilot
 
 ## 210. Debug checklist: identity
 
@@ -1926,6 +2044,8 @@ What is the smallest deterministic environment that demonstrates the rule and it
 
 ---
 
+# Part CXX — From bug to test: closed accordion
+
 ## 217. Closed accordion: symptom
 
 Autoplay stops because it cannot find a visible lesson row after a chapter accordion has been closed or rebuilt.
@@ -1955,6 +2075,8 @@ Simulate a lesson row disappearing during an await and being recreated afterward
 Advance only the refreshed row for the intended lesson, and never advance a different manually selected lesson.
 
 ---
+
+# Part CXXI — From bug to test: skip completed
 
 ## 222. Skip-completed: symptom
 
@@ -1986,6 +2108,8 @@ A correct forward search should skip confidently completed chapters without open
 
 ---
 
+# Part CXXII — From bug to test: stale master 100%
+
 ## 227. Stale master: symptom
 
 The tool incorrectly concludes that every activity is finished even though a chapter has unfinished work.
@@ -2015,6 +2139,8 @@ Give the master an all-100% view while a detail response identifies unfinished w
 Aggregate completion is an index or heuristic, not always conclusive evidence about individual activities.
 
 ---
+
+# Part CXXIII — From bug to test: hidden tab
 
 ## 232. Hidden tab: symptom
 
@@ -2046,6 +2172,8 @@ A hidden tab alone must not cause a recovery reload; work should resume when the
 
 ---
 
+# Part CXXIV — From bug to test: platform collision
+
 ## 237. Platform collision: potential symptom
 
 Course state from Pegaso and Mercatorum might overwrite each other when their IDs happen to match.
@@ -2075,6 +2203,8 @@ Perform concurrent same-ID writes under two platforms and verify both records re
 Data from one LMS platform must not overwrite or be interpreted as another platform's state.
 
 ---
+
+# Part CXXV — From bug to test: Firefox review
 
 ## 242. Firefox review: symptom
 
@@ -2106,6 +2236,8 @@ The Firefox artifact must satisfy explicit review-safety and provenance contract
 
 ---
 
+# Part CXXVI — From bug to test: UI 2.35.2
+
 ## 247. UI redesign: symptoms
 
 The popup and floating menu drift in typography, checkbox styles, layout, scroll behavior, and visibility of controls.
@@ -2135,6 +2267,8 @@ Combine source invariants with a Chromium fixture that actually exercises popup 
 Both surfaces must agree on shared meanings, keep keyboard navigation stable, and leave controls for active work reachable.
 
 ---
+
+# Part CXXVII — What we would improve in today's tests
 
 ## 252. Improve source slicing over time
 
@@ -2166,6 +2300,8 @@ Use screenshot comparison where geometry and pixels are part of the user-facing 
 
 ---
 
+# Part CXXVIII — What we would NOT do again
+
 ## 257. Do not replace everything with E2E
 
 Browser-wide tests can be slow, flaky, costly to maintain, and difficult to diagnose. Preserve small deterministic tests where they genuinely prove a property.
@@ -2184,11 +2320,15 @@ The useful metric is which safety, liveness, and user-visible properties the sui
 
 ---
 
+# Part CXXIX — Future test strategy
+
 ## 260. A possible future test structure
 
 Organize fast tests, browser integration, release artifact checks, and manual live scenarios by purpose so their cost and prerequisites are explicit.
 
 ---
+
+# Part CXXX — Fast suite
 
 ## 261. Fast suite target
 
@@ -2196,11 +2336,15 @@ Run frequently during development and on each PR; include pure logic, VM scenari
 
 ---
 
+# Part CXXXI — Browser suite
+
 ## 262. Browser suite target
 
 Exercise real DOM, focus, shared settings, startup, Shadow DOM, and target-specific extension behavior.
 
 ---
+
+# Part CXXXII — Release suite
 
 ## 263. Release suite target
 
@@ -2208,11 +2352,15 @@ Regenerate the packages, run artifact validation and lint, check manifests, chec
 
 ---
 
+# Part CXXXIII — Manual live suite
+
 ## 264. Manual live suite target
 
 Test a concise set of real LMS flows—autoplay, incomplete discovery, quiz export, materials export, exam status, and cancellation—because fixture coverage cannot fully control an external provider.
 
 ---
+
+# Part CXXXIV — Debugging as search-space reduction
 
 ## 265. Debugging reduces the search space
 
@@ -2220,11 +2368,15 @@ A bug begins with many possible explanations. Each well-designed observation rul
 
 ---
 
+# Part CXXXV — Tests as future search-space reduction
+
 ## 266. Regression tests reduce future search work
 
 When a future change violates a known invariant, a targeted test fails close to the cause before users rediscover it.
 
 ---
+
+# Part CXXXVI — A test is executable memory
 
 ## 267. A comment can be ignored
 
@@ -2250,11 +2402,15 @@ assert.equal(nextRowReceived, restoredRow);
 
 ---
 
+# Part CXXXVII — Tests and refactoring
+
 ## 269. Tests change refactoring risk
 
 Without coverage, developers hesitate to change unfamiliar code; behavior-focused tests do not remove risk but expose unintended changes sooner.
 
 ---
+
+# Part CXXXVIII — When a test fails after refactoring
 
 ## 270. After a refactor, classify test failures
 
@@ -2262,17 +2418,23 @@ The code may have regressed, the test may be coupled to irrelevant structure, or
 
 ---
 
+# Part CXXXIX — Requirement changes
+
 ## 271. Intentional changes in autoplay requirements
 
 If the desired policy changes, an old regression test may correctly fail. Update the documented requirement, implementation, and test together.
 
 ---
 
+# Part CXL — Tests as change detectors, not oracles of truth
+
 ## 272. Tests record decisions, not eternal truth
 
 A test reflects a historical expectation that can be mistaken or superseded. Treat failures as change detectors requiring investigation, not absolute oracles independent of product requirements.
 
 ---
+
+# Part CXLI — Debugger vs. logging vs. tests
 
 ## 273. What the debugger is good for
 
@@ -2292,11 +2454,15 @@ Replay controlled scenarios and guard against future regression. Debuggers, logs
 
 ---
 
+# Part CXLII — The browser DevTools lifecycle trap
+
 ## 276. Remember the service-worker DevTools effect
 
 Inspecting a worker can keep it alive longer than production would. Reproduce termination-sensitive problems without accidentally changing the worker's normal lifecycle.
 
 ---
+
+# Part CXLIII — A practical method for async bugs
 
 ## 277. A practical async bug technique
 
@@ -2304,11 +2470,15 @@ Write three columns—before await, while suspended, and after resume—and list
 
 ---
 
+# Part CXLIV — A practical method for cache bugs
+
 ## 278. A practical cache bug technique
 
 Write down each entry's key, timestamp, source, freshness rule, and invalidation event. Then inspect how stale state could be reused.
 
 ---
+
+# Part CXLV — A practical method for DOM bugs
 
 ## 279. A practical DOM bug technique
 
@@ -2316,11 +2486,15 @@ Record the node's semantic identity, where it was obtained, which UI actions rer
 
 ---
 
+# Part CXLVI — A practical method for API bugs
+
 ## 280. A practical API bug technique
 
 Capture a sanitized response for success and failure, then test the parsing boundary independently of the UI.
 
 ---
+
+# Part CXLVII — A practical method for release bugs
 
 ## 281. A practical release bug technique
 
@@ -2337,11 +2511,15 @@ assert.equal(...)
 
 # Part CXLVIII–CLV — Exercises
 
+# Part CXLVIII — Exercise 1
+
 ### Exercise 1 — Divergent popup and floating-menu state
 
 A user reports that autoplay is displayed as **active** in the popup but **paused** in the floating menu.
 
 Write your hypotheses, logging points at the storage boundary, and the smallest reproducible test. How would `chrome.storage.onChanged` help establish which controller is stale?
+
+# Part CXLIX — Exercise 2
 
 ### Exercise 2 — The wrong first-incomplete chapter
 
@@ -2349,9 +2527,13 @@ The master index reports chapter 3 as 100% and chapter 8 as 70%, but chapter 3 c
 
 Which regression test would protect against incorrectly navigating to chapter 8? Describe the expected first-pass and fallback behavior.
 
+# Part CL — Exercise 3
+
 ### Exercise 3 — Firefox and DevTools
 
 Firefox behaves correctly with DevTools open but sometimes becomes unresponsive minutes later. Why should background lifecycle and context termination be among your first hypotheses?
+
+# Part CLI — Exercise 4
 
 ### Exercise 4 — Replace a flaky sleep
 
@@ -2364,17 +2546,25 @@ assert.equal(...)
 
 Design a deterministic alternative using a fake clock, a condition, an event, or a deferred Promise barrier.
 
+# Part CLII — Exercise 5
+
 ### Exercise 5 — Test architecture or product regression?
 
 A refactor moves a function inside `content.js`. Ten source-slicing tests report `Missing function boundary`, but the browser behavior is unchanged. How do you fix the test extraction architecture without deleting the meaningful assertions?
+
+# Part CLIII — Exercise 6
 
 ### Exercise 6 — A vendor checksum changes
 
 A new PDF.js update changes the SHA-256 digest and causes release validation to fail. What must you verify about upstream provenance, dependency version, transformation patterns, API behavior, and output tests **before** accepting a new checksum?
 
+# Part CLIV — Exercise 7
+
 ### Exercise 7 — Visible but unreachable
 
 A button is visibly displayed but cannot be reached through the keyboard. Which test layer can prove or disprove this problem: source regex, Node VM, real browser fixture, or screenshot? Explain the difference between rendered visibility and accessible reachability.
+
+# Part CLV — Exercise 8
 
 ### Exercise 8 — A missing Edge locale
 
