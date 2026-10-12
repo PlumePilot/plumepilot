@@ -638,9 +638,25 @@ node scripts/build-release.mjs
 
 ---
 
-## 47. Build offline
+## 47. Offline builds
 
-Offline builds avoid hidden reliance on live CDNs, mutable remote packages, and network availability. The process is close to hermetic, even if the project does not claim complete toolchain isolation.
+Building the release without a network dependency is valuable because the result does not rely on:
+
+```text
+a package registry temporarily serving different content
+a dependency being deleted
+a moving "latest" version
+a remote service being available
+```
+
+Required dependencies and vendor sources are already included. This makes the build **nearly hermetic**, though it is not perfectly independent of the environment:
+
+```text
+Node.js version
+operating system
+```
+
+Reducing external inputs makes reproduction and investigation substantially easier.
 
 ---
 
@@ -677,7 +693,30 @@ return files.sort();
 
 ## 51. SHA256SUMS
 
-SHA256SUMS records expected archive digests; the validator recomputes and compares them to identify exact output bytes.
+The builder generates `SHA256SUMS.txt` with checksums for each archive:
+
+```text
+Chrome ZIP
+Firefox ZIP
+Edge ZIP
+source ZIP
+```
+
+The validator recomputes those digests and compares them with the recorded values. The provenance chain becomes:
+
+```text
+source
+  ↓
+build
+  ↓
+artifact
+  ↓
+SHA-256
+  ↓
+review notes / verification
+```
+
+The source commit and the binary checksum answer **different** identity questions.
 
 ---
 
@@ -691,7 +730,41 @@ The installable runtime archive should contain needed extension resources, not d
 
 ## 53. Source submission
 
-The Firefox source-review archive serves a different purpose: it includes enough build inputs, scripts, instructions, and provenance to recreate and inspect the executable artifact.
+The Firefox review archive needs to allow reviewers to:
+
+```text
+understand
+rebuild
+verify
+```
+
+It therefore retains inputs such as:
+
+```text
+build scripts
+tests
+AMO README
+vendor metadata
+licenses
+source code
+```
+
+It excludes unnecessary material such as:
+
+```text
+.git
+previously built release artifacts
+unrelated public documentation
+```
+
+The two archives have almost opposite objectives:
+
+```text
+runtime package → minimal installable output
+source package  → explainable and reproducible inputs
+```
+
+Both must remain traceable to the intended source.
 
 ---
 
@@ -757,7 +830,34 @@ A downloaded PDF is data; a downloaded script executed with eval becomes code. T
 
 ## 60. Not all browser differences are API differences
 
-Cross-browser defects include scrollbars, CSS layout, focus, and timing, not just missing privileged WebExtension APIs.
+Some recorded incompatibilities look minor:
+
+```text
+Chromium scrollbar gutter
+Firefox popup shrink
+Gaming frame clipping
+right padding
+```
+
+They are nevertheless real cross-browser defects. They do **not** necessarily involve:
+
+```text
+chrome.tabs
+browser.storage
+manifest
+```
+
+Instead they arise from:
+
+```text
+layout engine
+popup viewport
+scrollbar behavior
+timing
+rendering
+```
+
+Treat visual and layout compatibility as seriously as privileged API compatibility.
 
 ---
 
@@ -845,9 +945,29 @@ Build-release specialization protects common domain code from store-specific man
 
 ---
 
-## 69. Backend analogy
+## 69. A backend analogy
 
-As with backend ports and adapters, keep the domain stable and translate its requirements at deployment boundaries.
+A backend developer might model external integrations as:
+
+```text
+domain model
+    ↓
+PostgreSQL adapter
+Redis adapter
+external REST API adapter
+```
+
+The equivalent separation for extension distribution is:
+
+```text
+extension core
+    ↓
+Chrome packaging adapter
+Firefox packaging adapter
+Edge packaging adapter
+```
+
+The details are different, but the principle is the same: **keep domain semantics stable while changing integration-specific representations**.
 
 ---
 
@@ -855,7 +975,20 @@ As with backend ports and adapters, keep the domain stable and translate its req
 
 ## 70. A feature is not finished when it only works in Chrome
 
-Release readiness spans runtime features, manifest validity, background model, audio fallback, localization, review transforms, source submission, and store checks—not just functionality in Chrome.
+Release readiness is a matrix, not a single browser success:
+
+| Area | Chrome | Edge | Firefox |
+|---|---|---|---|
+| Runtime feature | ✓ | ✓ | ✓ |
+| Manifest | ✓ | ✓ | ✓ |
+| Background | Service worker | Service worker | Scripts |
+| Audio path | Offscreen | Offscreen | Tab fallback |
+| Locale package | Base | `_locales` | Base |
+| Review-safe transforms | No | No | Yes |
+| Source-review archive | No | No | Yes |
+| Store validation | CWS | Edge Add-ons | AMO |
+
+A feature is done only when the relevant rows have been checked for each supported target. Runtime behavior alone cannot establish store readiness.
 
 ---
 
@@ -875,7 +1008,42 @@ menu-ux.js
 
 ## 72. Three testing layers
 
-Use three layers of verification: source-level tests, real or fixture-based runtime tests, and final ZIP artifact validation.
+A mature cross-browser pipeline distinguishes three levels:
+
+```text
+1. Source tests
+2. Browser / runtime tests
+3. Artifact tests
+```
+
+**Source tests** exercise functions, algorithms, and normalization.
+
+```text
+functions
+algorithms
+normalization
+```
+
+**Runtime tests** exercise the browser environment and actual extension behavior:
+
+```text
+browser fixture
+DOM
+messaging
+UI
+```
+
+**Artifact tests** inspect the exact distributable output:
+
+```text
+ZIP
+manifest
+required files
+checksums
+store-specific rules
+```
+
+PlumePilot has examples of all three. No single layer replaces the others.
 
 ---
 
@@ -925,7 +1093,23 @@ else pathC();
 
 ## 78. Divergence budget
 
-A divergence budget encourages each browser-specific difference to justify its long-term maintenance cost. Do not fork behavior speculatively.
+Every browser-specific difference creates a future maintenance cost: the **divergence budget**.
+
+Add a special path only when it addresses a demonstrated difference. The preferred shape is:
+
+```text
+large shared core
++
+small target-specific adapters
+```
+
+not:
+
+```text
+three nearly identical implementations
+```
+
+This reduces the number of places that must be changed and retested when a common behavior evolves.
 
 ---
 
@@ -1087,9 +1271,40 @@ Deterministic archives eliminate timestamp and ordering noise so genuine differe
 
 # Part XLI — Source and artifact identity
 
-## 99. Commit SHA vs artifact SHA
+## 99. Commit SHA versus artifact SHA
 
-Commit SHA identifies source state while ZIP SHA-256 identifies exact distribution bytes; one commit can generate several different valid artifacts.
+These identify two different objects.
+
+A **commit SHA** identifies a particular Git commit object and its source history:
+
+```text
+Git repository commit
+```
+
+A **ZIP SHA-256** identifies the exact binary bytes distributed to a browser store:
+
+```text
+distributed binary artifact
+```
+
+One commit can produce several archives:
+
+```text
+chrome.zip
+firefox.zip
+edge.zip
+source.zip
+```
+
+Therefore:
+
+```text
+commit identity
+≠
+artifact identity
+```
+
+Both identities are necessary to explain what code was reviewed and what bytes were actually shipped.
 
 ---
 
@@ -1242,7 +1457,31 @@ Every vendor change should state its upstream source, original checksum, reason 
 
 ## 115. Core plus adapters plus release compiler
 
-Model PlumePilot as one domain core plus runtime adapters and a release compiler. The build takes reusable inputs and lowers them into target-specific executable artifacts.
+We can visualize PlumePilot's boundaries as follows:
+
+```text
+            DOM / API / domain logic
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+ extension runtime adapters   UI adapters
+          │
+          ↓
+      source tree
+          │
+          ↓
+  release "compiler"
+          │
+   ┌──────┼──────┐
+   ↓      ↓      ↓
+Chrome Firefox  Edge
+```
+
+Here **compiler** is a deliberately architectural analogy, not a claim that we are compiling JavaScript into native code.
+
+The release builder, `build-release.mjs`, accepts a common **source representation** and emits several **target representations** with browser-specific manifest, resource, permission, and compatibility rules.
+
+This is why the build process belongs in an account of the architecture, not only in release administration.
 
 ---
 
