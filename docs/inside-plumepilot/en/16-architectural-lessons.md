@@ -2076,6 +2076,40 @@ The LMS adds another university with a different DOM. Which components should ch
 
 ---
 
+# Parts CXVIII–CXXI — Exercises 5–8
+
+### Exercise 5 — Irreversible action
+
+A feature performs an irreversible side effect. Design a policy specifying the required evidence, ambiguity that blocks execution, necessary user confirmation, and result to persist.
+
+### Exercise 6 — A global Map
+
+When someone adds a global `Map`, ask whether it is a cache or registry, what its key represents, who deletes entries, what bound exists, how long it lives, and what happens if the extension service worker dies.
+
+### Exercise 7 — Stale reference after an await
+
+Identify the architectural problem in:
+
+```js
+const row = currentLesson();
+await fetchSomething();
+click(row);
+```
+
+Re-express the correction as a general identity revalidation pattern, not a one-off patch.
+
+### Exercise 8 — Ambiguous Boolean results
+
+A function returns:
+
+```js
+false
+```
+
+for cancellation, not found, ambiguous identity, and network failure. Design a result type that lets callers distinguish the outcomes and react safely.
+
+---
+
 # Part LXXI — Architectural glossary
 
 ## 299. A boundary
