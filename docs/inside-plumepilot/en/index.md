@@ -10,7 +10,7 @@
 
 The English edition mirrors the Italian canonical edition and preserves the same technical snapshots and chapter structure.
 
-[Start with the introduction →](00-introduction.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
+[Start with the introduction →](00-introduction.md) · [Glossary](glossary.md) · [Sources](SOURCES.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
 
 ---
 
@@ -47,7 +47,25 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 16 | [Architectural lessons — Patterns that emerged from the real project](16-architectural-lessons.md) |
 | 17 | [What would we do differently today? — A retrospective without hindsight bias](17-what-we-would-do-differently-today.md) |
 
-The remaining chapters are translated on this documentation branch before publication. The public English landing is not merged until the edition is complete.
+**All 18 chapter drafts are available.** Editorial review is in progress, including preservation of original examples and diagrams, cross-links, and preparation of the offline English HTML. The English landing remains on a Draft PR until these checks pass.
+
+---
+
+## Suggested reading paths
+
+**Browser extension fundamentals**  
+`01 → 02 → 03 → 06 → 13`
+
+**Architecture and asynchrony**  
+`02 → 05 → 06 → 07 → 08 → 12 → 16 → 17`
+
+**Document generation**  
+`05 → 09 → 12`
+
+**Software engineering**  
+`14 → 15 → 16 → 17`
+
+The [glossary](glossary.md) and [sources and references](SOURCES.md) supplement all chapters.
 
 ---
 
