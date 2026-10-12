@@ -886,6 +886,16 @@ is the current row still visible?
      locate the row in the new DOM
 ```
 
+This is what the unsafe alternative would look like:
+
+```js
+const current = currentLesson();
+await somethingAsync();
+useForever(current);
+```
+
+The problem is not that `currentLesson()` fails immediately; it is that `current` may refer to a detached or no-longer-relevant node after `await`. Resolve the current row again and verify the intended lesson identity before acting.
+
 Much safer than keeping an element from before an asynchronous operation and using it without revalidation.
 
 ---
