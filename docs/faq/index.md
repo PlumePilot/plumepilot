@@ -67,4 +67,6 @@ La piattaforma ha restituito soltanto una parte della struttura del corso. Plume
 
 Controlla di usare l’ultima versione di PlumePilot e ripeti l’operazione dalla pagina dei contenuti del corso. Se il problema continua, [apri una segnalazione su GitHub](https://github.com/PlumePilot/plumepilot/issues) riportando il messaggio completo, il browser e i passaggi eseguiti. Non pubblicare password, token, matricola o altri dati personali.
 
+Per approfondire come funziona il progetto, leggi [Inside PlumePilot — Anatomia di una browser extension reale](../inside-plumepilot/): un percorso nel codice e nelle scelte tecniche dell’estensione.
+
 [Torna alla pagina principale](../)
