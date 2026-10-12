@@ -27,6 +27,19 @@ The Italian edition uses many Roman-numeral `# Parte ...` dividers. A direct aud
 
 ---
 
+## Sixth pass — recovering worked explanations (13 October 2026)
+
+The structural audit found source examples compressed into short English summaries. The following targeted restorations preserve the underlying teaching method, not just heading counts:
+
+- [x] **Chapter 14:** restored the concrete skip-completed reproduction, boundary/correlation logging, hypothesis-driven DOM replacement experiment, technical Five Whys, EPUB abort-stage test plan, and debugging search-space reduction diagram (numbered sections 5, 13, 17, 88, 98 and 265).
+- [x] **Chapter 15:** restored exact candidate-commit parent/tree example, shared-history rewrite safety distinctions, the PR #30/#32 revert-and-restoration story, branch-strategy decision tree and a concrete release decision-record file (sections 30, 45, 62, 219 and 347).
+- [x] **Chapter 16:** restored the list of boundary properties, examples of hidden boundary assumptions, master-index evidence role, and four cross-feature pattern diagrams (sections 2, 3, 17 and 155–158).
+- [x] After each content correction, verified original numeric section counts, Part counts and balanced Markdown fences.
+
+**Still open:** remaining source-equivalent technical examples, especially chapters 02–06 and long-form sections elsewhere; generated offline reader, full Markdown anchor audit, live URL checks, and browser tests. Structural alignment is necessary but **not** full editorial sign-off. PR #44 stays **Draft**.
+
+---
+
 ## Verified during first review pass
 
 - [x] English drafts for chapters **00–17** exist, and each has the same sequence of numbered `##` sections as its Italian counterpart.
