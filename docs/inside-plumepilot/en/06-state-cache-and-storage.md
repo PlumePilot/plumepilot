@@ -997,6 +997,14 @@ immediately communicates "dynamic key–value collection." A plain object can me
 
 `Map` provides `get`, `set`, `has`, `delete`, `clear`, `size`, and iteration without mixing cache entries with object-prototype concerns.
 
+A null-prototype object could avoid inherited-property collisions:
+
+```js
+Object.create(null)
+```
+
+It remains a possible dictionary implementation, but `Map` directly communicates the intended dynamic collection.
+
 ### Keys and iteration
 
 `Map` supports different key types and predictable iteration behavior. Even though this particular cache uses string keys, its interface communicates the intended data structure more directly.
