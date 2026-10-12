@@ -35,7 +35,8 @@ The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. Th
 - [x] **Chapter 05:** restored explanatory examples for `async`/Promises, `Promise.allSettled()`, recovery after `await`, serial-queue instances and cooperative cancellation. **Section 97's sequence diagram now matches the original**, including `serializedBuilder()` and acquisition of the builder operation.
 - [x] **Historical code references:** checked the original `github.com/PlumePilot/plumepilot/blob/...` URLs chapter by chapter. **97 out of 97** references in chapters 02–05 remain identical in the English edition. No other chapter uses these exact historical blob URLs.
 - [x] **Chapter 06 subsection structure:** all **24 numbered subsections (25.1–25.24)** of the extended cache data-structures chapter are present in both languages. This verifies the outline, **not** full content fidelity.
-- [ ] **Chapter 06 deeper fidelity:** restore the explicit `LessonCacheEntry` field inventory, the null-prototype `Object.create(null)` comparison, the full cache-hit examples, and the stale-versus-monotonic decision diagram where missing. Some surrounding principles are present in prose, but technical illustrations should match educational depth.
+- [x] **Chapter 06 cache details:** restored the `LessonCacheEntry` field inventory, null-prototype `Object.create(null)` comparison, additional settings and platform-key examples, and an explicit explanation of the stale-versus-monotonic decision policy.
+- [ ] **Chapter 06 further fidelity:** compare the remaining worked examples and visual decision sketches in subsections 25.1–25.24, in particular cache-hit scenarios and eviction alternatives, against the Italian original.
 - [ ] **Chapters 11–17:** complete the side-by-side review of diagrams and worked explanations that the initial drafts compressed.
 - [ ] **Offline reader:** generate and test the English HTML only after the Markdown content is stable.
 
