@@ -303,3 +303,153 @@ Combinatorial growth in the number of states when independent properties are fla
 
 ## Hierarchical state
 A state containing substates, allowing complex workflows without flattening every detail onto one level.
+
+## Orthogonal state
+Independent state dimensions active simultaneously, represented in a statechart as parallel regions.
+
+## Fail closed
+A conservative approach that blocks or limits a transition under significant uncertainty rather than assuming a favorable condition.
+
+## Invariant
+A property that must remain true across all relevant system states and transitions.
+
+## Transition coverage
+Coverage of meaningful state-machine transitions, including guards and negative paths, rather than merely executing their source lines.
+
+## Search space
+The set of candidates an algorithm may need to inspect. Reducing it can dramatically cut expensive work even when asymptotic complexity remains linear.
+
+## Heuristic
+A signal or rule directing a search toward promising candidates without independently guaranteeing the final answer.
+
+## Index
+A compact representation for locating data or candidates without reading every complete record. An index is not necessarily the source of truth.
+
+## Candidate ordering
+Choosing the order in which potential results are checked. It can reduce average cost while retaining all verifiable candidates.
+
+## Stable partition
+Grouping items while preserving their original relative order within each group. In PlumePilot's bookmark search, chapters suspected to be below 100% move first without being sorted by percentage.
+
+## Short-circuit
+Stopping a search or evaluation early once the necessary result has been determined.
+
+## Progressive refinement
+Starting with cheap, coarse information and escalating to more expensive and precise sources only when necessary.
+
+## Targeted fallback
+Applying a fallback to the specific uncertain candidate, preserving earlier work rather than restarting the entire workflow.
+
+## False positive
+A result incorrectly classified as belonging to the sought category.
+
+## False negative
+A result incorrectly excluded from the sought category. When finding the first incomplete activity, it can cause genuinely pending work to be skipped.
+
+## Ternary knowledge
+Representing three epistemic values such as `complete`, `incomplete` and `unknown` instead of converting missing knowledge into false certainty.
+
+## Evidence precedence
+Rules deciding which source prevails when observations differ in reliability, completeness or freshness.
+
+## Generation token
+A counter or version associated with an asynchronous operation. A stale continuation refrains from acting when its token no longer matches the current one.
+
+## Precision / Recall
+Information-retrieval concepts: precision measures how many selected candidates are relevant; recall measures how well the search avoids missing genuinely relevant candidates.
+
+## ArrayBuffer
+A raw binary-memory block used by Web APIs. It does not assign meaning to bytes; typed views such as `Uint8Array` interpret them.
+
+## Uint8Array
+A JavaScript typed array whose elements are unsigned eight-bit integers, useful for binary files, compressed images, PDFs and archives.
+
+## Blob (Web API)
+A Web API object representing immutable file-like binary data. It can carry a MIME type and be exposed through an Object URL for local display or download.
+
+## Object URL
+An opaque URL created by `URL.createObjectURL()` to expose a `Blob` or compatible object. Revoke it when no longer needed so the resource is not retained unnecessarily.
+
+## MIME type
+A content-type identifier such as `application/pdf`, `text/html` or `application/epub+zip` indicating how to interpret a resource.
+
+## Data serialization
+Converting a structure into transferable or persistent form, such as JavaScript objects to JSON or a PDF/EPUB model to final bytes.
+
+## Rasterization
+Converting vector or descriptive content into a pixel grid. PlumePilot uses PDF.js canvas rendering when visual fidelity is safer than reflow.
+
+## Reflow
+Content dynamically adapting to screen size, font and reader preferences. Typical of reflowable EPUB, unlike fixed-coordinate PDF layout.
+
+## Fixed layout
+A representation with mostly predefined element position and geometry, as in ordinary PDF pages.
+
+## Lossless / lossy transformation
+Lossless conversion preserves relevant information; lossy conversion may discard or reinterpret it. PDF merging is close to lossless, while PDF-to-EPUB necessarily makes interpretive choices.
+
+## Intermediate Representation (IR)
+A representation between a pipeline's input and final output. An explicit IR separates parsing, transformation and serialization for better testing and maintenance.
+
+## Content-addressable storage
+Identifying an asset by its content, typically through a cryptographic digest. PlumePilot's EPUB generator uses SHA-256 to recognize and reuse identical images.
+
+## Working set
+Resources that must remain simultaneously live during processing. Their size affects memory pressure more directly than the final file size alone.
+
+## Peak memory
+Maximum memory usage reached during a pipeline, potentially much greater than the resulting file's size.
+
+## Ownership
+A model defining which component is responsible for a resource and when it may release it. Useful in JavaScript for buffers, canvases, temporary URLs, listeners and binary assets.
+
+## Cooperative scheduling
+A long-running task periodically yields to the event loop so the browser can update its UI, process events or react to cancellation.
+
+## Partial success
+A batch produces a useful artifact despite recording failures in some items rather than imposing all-or-nothing completion.
+
+## Golden file
+A reference artifact used to compare generated output in tests. Checking structure and semantics is often preferable to comparing exact bytes.
+
+## Editing host
+An editable element, typically `contenteditable`, that the browser treats as the root of an editing region. It handles input and the caret without providing a high-level document model.
+
+## Selection
+The user's current selection in a document. It may cover a content range or be collapsed to one insertion point, the caret.
+
+## Range
+A structural DOM interval defined by start and end points, each with a container and offset. It can be cloned, extracted, collapsed or used to insert nodes.
+
+## Caret
+The text insertion-position indicator. In Selection APIs it can be modeled as a collapsed selection with identical start and end.
+
+## Collapsed selection
+A Selection or Range whose start and end coincide. It still identifies a precise insertion point even though no text is selected.
+
+## DocumentFragment
+A lightweight DOM container holding nodes outside the displayed document. `Range.extractContents()` returns a `DocumentFragment` containing extracted nodes.
+
+## Tree rewriting
+Structurally transforming a tree, such as splitting a highlighted wrapper into segments or moving an item out of a checklist while retaining node order.
+
+## DOM normalization
+An editing cleanup step restoring invariants after a change, correcting structures the browser accepts but the application does not consider semantically valid.
+
+## Structural guard
+A condition preventing a transformation when the affected structure cannot be safely changed, such as a selection spanning incompatible blocks.
+
+## Rich-text mark
+An inline annotation such as bold, italic, highlight, superscript or study mask.
+
+## Rich-text block
+A block-level structural element such as a paragraph, list item or callout, whose semantics span more than an inline text run.
+
+## Sanitization allowlist
+Reconstructing accepted content using only explicitly permitted tags, attributes and values rather than trying to enumerate everything forbidden.
+
+## Undo history
+The sequence of editorial actions allowing changes to be undone and redone. Native browser editing and custom DOM manipulation can affect this history differently.
+
+## Transaction model
+Representing an edit as an atomic operation on a document model, with prior state, transformation and resulting state; common in more structured rich-text editors.
