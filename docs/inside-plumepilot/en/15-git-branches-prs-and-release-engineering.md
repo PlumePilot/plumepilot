@@ -2465,13 +2465,181 @@ Check whether the downstream branch still contains the old unsquashed commits an
 
 Check whether other people or automation have seen it. On public history, prefer a deliberate revert or follow-up over silently force-resetting.
 
-| Situation | Primary tool |
+# Part CXCI — Error recovery table
+
+| Problem | Primary tool or recovery |
 |---|---|
-| Feature branch behind main | Merge or rebase |
-| One isolated fix to transfer | Cherry-pick |
-| Undo a published commit safely | Revert |
-| Unexpected squashed ancestry | Inspect tree and merge base before reconciling |
-| Public tag points to wrong source | New corrective release according to policy |
+| Feature branch merely out of date | Merge or rebase |
+| One selected commit to transfer | Cherry-pick |
+| Change to undo in published history | Revert |
+| Noisy private history | Interactive rebase |
+| Squash ancestry mismatch | Rebase, reparenting, or verified content reconstruction |
+| Wrong commit on public `main` | Revert or restorative commit |
+| Wrong release artifact | Rebuild; publish a new higher version if already distributed |
+| Wrong tag that is not public | Recreate carefully |
+| Wrong tag already public | Prefer a new corrective release |
+
+---
+
+# Parts CXCII–CXCIX — Exercises
+
+## Exercise 1 — Squash ancestry and dependent branches
+
+Given:
+
+```text
+main:
+A-B-S
+
+feature:
+A-B-D-E-F-G
+```
+
+where:
+
+```text
+S = squash of D-E-F
+G = new feature
+```
+
+Why might a normal merge produce a noisy or confusing history?
+
+Draw **two possible strategies** for obtaining the intended result:
+
+```text
+A-B-S-G'
+```
+
+Explain how you would verify that the resulting tree preserves the wanted file content.
+
+---
+
+## Exercise 2 — Identical tree, different parent
+
+Two commits have:
+
+```text
+identical tree
+different parent
+```
+
+Which properties are guaranteed to be the same? Which properties may differ?
+
+Distinguish tracked-file content, commit identity, ancestry, history comparisons, and metadata.
+
+---
+
+## Exercise 3 — Should this PR be squashed?
+
+A pull request contains 15 commits:
+
+```text
+5 feature commits
+4 fixes to earlier fixes
+3 typos
+3 tests
+```
+
+When would you prefer:
+
+```text
+squash
+```
+
+and when would preserving separate commits be more useful for review, bisectability, or audit history?
+
+---
+
+## Exercise 4 — A regression in a published version
+
+You have already published:
+
+```text
+v2.35.2
+```
+
+but discover a serious defect.
+
+Why would moving the Git tag to a corrected commit **not** repair installations that users have already received from browser stores?
+
+Explain why a newer corrective version may be needed.
+
+---
+
+## Exercise 5 — Three independent publication clocks
+
+Chrome Web Store shows:
+
+```text
+2.35.1
+```
+
+The latest GitHub Release shows:
+
+```text
+2.35.2
+```
+
+Firefox offers:
+
+```text
+2.35.0
+```
+
+Which version is “a PlumePilot user” running?
+
+```text
+It depends on the browser and distribution channel.
+```
+
+Explain why the question is incomplete without information about the installed extension.
+
+---
+
+## Exercise 6 — A non-reproducible Firefox ZIP
+
+The same release source commit now produces a Firefox ZIP whose checksum differs from yesterday's output.
+
+Investigate possible inputs:
+
+```text
+Node version
+builder changes?
+dirty working tree?
+timestamps?
+archive entry ordering?
+vendor source files?
+environment?
+```
+
+How would you isolate the source of the difference?
+
+---
+
+## Exercise 7 — Rewriting a shared feature branch
+
+Three people have based ongoing work on the same feature branch. You want to realign it with `main`.
+
+Why do:
+
+```bash
+git rebase main
+git push --force
+```
+
+require considerably more care than an ordinary merge?
+
+Describe what can happen to collaborators' commit references and why a guarded ref update matters.
+
+---
+
+## Exercise 8 — A clean merge with a semantic conflict
+
+A PR is marked mergeable and its files apply without textual conflicts.
+
+Which **semantic conflicts** might still exist?
+
+Consider manifest versions, shared state ownership, async callback ordering, incompatible preferences, and code that works independently but fails in the combined release tree.
 
 ---
 
