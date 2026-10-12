@@ -2264,4 +2264,4 @@ This is where integrating with a web application becomes especially interesting.
 
 ---
 
-[← 02 — Contexts and messaging](02-contexts-and-messaging.md) · [Contents](index.md) · 04 — APIs and reverse engineering (translation in progress)
+[← 02 — Contexts and messaging](02-contexts-and-messaging.md) · [Contents](index.md) · [04 — APIs and reverse engineering →](04-apis-and-reverse-engineering.md)
