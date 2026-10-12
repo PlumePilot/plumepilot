@@ -2667,4 +2667,4 @@ We will examine how PlumePilot builds fairly rich interfaces with DOM, CSS, and 
 
 ---
 
-[← 09 — Generating PDF, HTML, and EPUB](09-generating-pdf-html-and-epub.md) · [Contents](index.md) · 11 — UI without a framework (translation in progress)
+[← 09 — Generating PDF, HTML, and EPUB](09-generating-pdf-html-and-epub.md) · [Contents](index.md) · [11 — UI without a framework →](11-ui-without-a-framework.md)
