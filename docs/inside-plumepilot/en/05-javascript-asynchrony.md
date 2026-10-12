@@ -960,6 +960,18 @@ Source: [`commission-interceptor.js` L792–L795](https://github.com/PlumePilot/
 
 The map is more than request bookkeeping: it is a registry of **in-flight cancellable operations**.
 
+After aborting the registered controllers, the historical example clears the registry:
+
+```js
+for (const controller of turboControllers.values()) {
+  controller.abort();
+}
+
+turboControllers.clear();
+```
+
+Calling `abort()` without clearing the map would leave stale entries retained, even if the network operations stopped.
+
 ---
 
 # Part XVIII — Cooperative cancellation
