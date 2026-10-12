@@ -248,7 +248,13 @@ file on the user's computer
 
 As long as the Object URL remains active, the browser needs to keep the referenced Blob available.
 
-PlumePilot revokes it after a short delay—not immediately—to allow the download to start. This is a small, concrete example of **resource-lifetime management**.
+PlumePilot revokes it after a short delay—not immediately—to allow the download to start:
+
+```js
+URL.revokeObjectURL(url)
+```
+
+This is a small, concrete example of **resource-lifetime management**.
 
 ---
 
@@ -528,6 +534,12 @@ Quiz questions may contain images.
 
 ```js
 const imageCache = new Map();
+```
+
+The image loader is:
+
+```js
+loadImageAsset(image)
 ```
 
 `loadImageAsset(image)` caches the **download Promise itself**:
