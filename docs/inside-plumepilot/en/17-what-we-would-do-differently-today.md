@@ -649,3 +649,571 @@ Annotate a normalized lesson or operation record so editors and the TypeScript l
 Messaging, platform adapters, storage repositories and operation transitions should receive attention before spending effort typing arbitrary CSS class strings or stable local details.
 
 ---
+
+# Part XXIV — Types where they matter
+
+## 76. Do not type CSS class strings for its own sake
+
+Static typing creates the greatest value where wrong assumptions cross boundaries or cause broad effects. Annotating arbitrary stable local strings merely to raise a coverage percentage is not a priority.
+
+---
+
+# Part XXV — A single test entry point
+
+## 77. What Chapter 14 revealed
+
+Many individual Node .mjs regression scripts already protect PlumePilot, but running them by memory is error-prone. A single discoverable test entry point would improve reliability.
+
+---
+
+## 78. A simple runner
+
+A small Node runner can discover and execute scripts, report failures and return a nonzero exit code. No large test framework is required just to ensure the entire suite runs.
+
+---
+
+## 79. Separate suites by purpose
+
+Keep fast logic and VM tests separate from structural checks, browser integration and package verification so developers understand their costs and prerequisites.
+
+---
+
+# Part XXVI — Continuous integration
+
+## 80. Continuous Integration now has positive ROI
+
+On every pull request, run the fast suite, selected type checks, lint if practical, and relevant source or output invariants. The project is mature enough to benefit from automated verification.
+
+---
+
+## 81. Browser checks at a different cadence
+
+Full extension browser tests can run on candidate branches or periodically if their setup and runtime cost make them unsuitable for every small edit.
+
+---
+
+## 82. Automate the release build
+
+For a release candidate or tag, generate Chrome, Edge and Firefox artifacts, run validate-release.mjs, verify SHA256SUMS and report exact outputs.
+
+---
+
+# Part XXVII — Human-controlled publishing
+
+## 83. Keep a human publication gate
+
+A small project can reasonably retain manual approval before uploading or publishing browser-store packages. New permissions, reviewer access and store text deserve human judgment.
+
+---
+
+# Part XXVIII — Target-specific browser E2E
+
+## 84. High-value target-specific E2E cases
+
+Test actual extension loading, background startup/restart, popup-to-floating synchronization, Shadow DOM behavior, notification fallback, export cancellation and accessible focus where the platform differs.
+
+---
+
+## 85. A few meaningful E2E tests
+
+Browser-wide tests are expensive to write and maintain. Select scenarios that Node test doubles cannot prove instead of attempting hundreds of redundant screenshots.
+
+---
+
+# Part XXIX — Sanitized provider fixtures
+
+## 86. Versioned API fixtures
+
+Keep a small library of representative, sanitized master-index and lesson-detail responses from supported LMS platforms alongside synthetic edge-case fixtures.
+
+---
+
+## 87. The benefit of provider fixtures
+
+When the LMS changes response shape, normalization tests can detect contract drift while still checking known real-world cases.
+
+---
+
+# Part XXX — Privacy before fixtures
+
+## 88. Never commit private raw payloads
+
+Strip bearer tokens, cookies, email addresses, identifiers tied to actual people, course notes and unnecessary user content. Fixture realism is not a reason to expose private academic data.
+
+---
+
+# Part XXXI — Structured diagnostics
+
+## 89. Existing diagnostics are fragmented
+
+The converter has some structured diagnostic fields; other workflows rely more heavily on free-form logs. A common minimal event vocabulary could make debugging easier.
+
+---
+
+## 90. Standardize safe diagnostic events
+
+Use an operation ID, phase, source, duration, outcome and categorized reason where helpful. Avoid collecting arbitrary page data just because logging is convenient.
+
+**Code from the original chapter:**
+
+```js
+{
+  event: "playback.discovery.target",
+  courseCode,
+  lessonNumber,
+  source: "master+detail",
+  elapsedMs,
+}
+```
+
+---
+
+## 91. Not remote telemetry by default
+
+These records can remain local or be enabled only for a debugging session. A developer-operated analytics backend is not necessary to benefit from structured events.
+
+---
+
+## 92. Why structure helps
+
+A clear operation timeline and error category are easier to compare and test than hundreds of ad hoc console lines.
+
+---
+
+# Part XXXII — Explicit operation lifecycle
+
+## 93. The existing background operation model
+
+PlumePilot already coordinates long-running work using operation identities, stored snapshots, progress and cancellation. This is one of its stronger architectural foundations.
+
+---
+
+## 94. Formalize the operation lifecycle
+
+A small repository and state-transition layer could define accepted, running, cancelling, completed and failed states with guarded changes.
+
+---
+
+## 95. Share lifecycle, not content pipelines
+
+PDF material export, EPUB conversion and Turbo Test may share operation IDs, progress, error states and cancellation semantics while retaining different domain-specific processing logic.
+
+---
+
+# Part XXXIII — Shared cancellation capability
+
+## 96. Cancellation appears throughout the code
+
+A consistent signal-and-cleanup contract would reduce repeated policy interpretation across exports, requests and background coordination.
+
+**Code from the original chapter:**
+
+```js
+function createOperationContext({ signal, operationId, report }) {
+  ...
+}
+```
+
+---
+
+## 97. Pass cancellation context explicitly
+
+Each pipeline stage can receive its AbortSignal, operation ID and progress reporter instead of repeatedly reaching into mutable globals.
+
+---
+
+# Part XXXIV — Timing and deadline primitives
+
+## 98. Timeout behavior is spread across features
+
+Many existing timeouts are purpose-specific and justified, but the mechanics of deadlines, signal composition and cleanup repeat.
+
+---
+
+## 99. Extract deadline primitives carefully
+
+Helpers such as waitForCondition(condition, { signal, timeoutMs }) can centralize mechanics while callers specify the domain's readiness and timeout policy.
+
+---
+
+## 100. Never replace readiness with arbitrary sleep
+
+A universal sleep(1000) hides the difference among retry pacing, navigation readiness, deadline handling and intentional UI delay. An abstraction should make these purposes clearer, not blur them.
+
+---
+
+# Part XXXV — Architecture Decision Records
+
+## 101. Why ADRs would help now
+
+Decisions about service-worker lifecycle, API hierarchy, cross-browser packaging and cache ownership may be difficult to infer from source alone. Their alternatives and trade-offs deserve short records.
+
+---
+
+## 102. A small decision record
+
+An ADR can capture context, decision, alternatives, consequences, date and relevant code/PR links in a concise file.
+
+---
+
+## 103. Do not document every if
+
+Use ADRs for important choices with a lasting reversal cost, especially when a later maintainer could easily question an unusual but deliberate implementation.
+
+---
+
+# Part XXXVI — A concise project architecture map
+
+## 104. This book is not the everyday architecture reference
+
+The complete tutorial is useful for study, but too large to be the only operational index for contributors making focused changes.
+
+---
+
+## 105. Maintain a short architecture map
+
+Keep a concise document naming each subsystem, its owner, key state, adapters, entry points, dependencies, and relevant tests, with links to in-depth chapters.
+
+---
+
+# Part XXXVII — Keep local-first
+
+## 106. We would keep no proprietary backend
+
+Core features work through the user's already-authenticated LMS session and local browser resources. A server is not justified merely to make the architecture look more conventional.
+
+---
+
+## 107. Local-first benefits
+
+No extra account system, lower infrastructure and operations burden, local processing of learning materials and simpler user privacy boundaries are substantial benefits.
+
+---
+
+## 108. When to reconsider a backend
+
+Only if a concrete capability requires cross-device state, centralized scheduling or server-side processing with enough value to justify added trust, maintenance, cost and security commitments.
+
+---
+
+# Part XXXVIII — Keep API-assisted automation
+
+## 109. Avoid DOM-only automation
+
+Combining API evidence, master-index summaries and guarded DOM fallback provides robustness and efficiency that pure visual clicking would struggle to match.
+
+---
+
+## 110. Still treat host APIs as external contracts
+
+Normalize fields, handle inconsistent completion, guard missing responses, version fixtures and preserve safe verification paths. A private LMS endpoint is not our stable public API.
+
+---
+
+# Part XXXIX — Keep master-index prioritization
+
+## 111. Master-guided discovery remains sound
+
+Use cheap aggregate progress to prioritize likely incomplete chapters, then verify details and fall back when the index can be wrong.
+
+---
+
+## 112. Do not return to unconditional global scanning
+
+Future refactors should preserve the master-first algorithm and its correctness fallback, even if the implementation moves into a new discovery module.
+
+---
+
+# Part XL — Continue to fail closed
+
+## 113. Keep ambiguous identity unresolved
+
+When chapter identity cannot be established, the program should not confidently click an arbitrary plausible row.
+
+---
+
+## 114. Fail an unexpected vendor transform
+
+If a Firefox review-safe replacement no longer matches its expected source, fail the package build instead of shipping unreviewed output.
+
+---
+
+## 115. Do not invent completion
+
+If there is insufficient evidence that a lesson or test is complete, request verification or represent unknown rather than silently treating it as finished.
+
+---
+
+# Part XLI — Preserve user control
+
+## 116. Autoplay should not become an uncontrolled autopilot
+
+User-selected policies for tests, completed videos, chapter limits and the 70% threshold must remain explicit and understandable.
+
+---
+
+## 117. The latest manual action wins
+
+A manual lesson selection should invalidate older automatic navigation and recovery callbacks. This is a UX rule and a concurrency rule.
+
+---
+
+# Part XLII — Preserve the LMS player boundary
+
+## 118. Let the LMS own its player
+
+PlumePilot coordinates navigation and permitted behavior instead of replacing the platform's player engine with raw video.play() calls.
+
+---
+
+## 119. Respect the right boundary
+
+The extension works with the platform's playback lifecycle and visible course context; it should not assume direct DOM control equals ownership of every video event.
+
+---
+
+# Part XLIII — Keep browser-specific builds
+
+## 120. One universal ZIP is not inherently better
+
+Chrome, Edge and Firefox have legitimate differences in background models, permissions, store metadata and review policy.
+
+---
+
+## 121. Continue target-specific builds
+
+Produce explicit browser artifacts from common source, with deterministic transforms and automated package validation.
+
+---
+
+# Part XLIV — Readable vendors and deterministic outputs
+
+## 122. Readable vendors and build determinism pay off
+
+They improve provenance, security review, dependency updates, debugging and confidence that the shipped bytes match the intended sources.
+
+---
+
+# Part XLV — No remote executable behavior
+
+## 123. No remote executable code
+
+Fetching LMS PDFs, videos or quiz data is normal; downloading executable program code into the extension runtime would undermine the packaged-code trust boundary.
+
+---
+
+# Part XLVI — Vanilla as a proportional choice
+
+## 124. Do not interpret the lesson as “vanilla forever”
+
+The correct maxim is **use the least complexity that solves the present real problem**. A framework or type checker can become worthwhile when the evidence changes.
+
+---
+
+## 125. Vanilla was right at the beginning
+
+The original small extension gained simplicity from direct Web APIs. Adding some module structure today does not require repudiating that choice.
+
+---
+
+# Part XLVII — Preserve tests born from bugs
+
+## 126. Protect the imperfect existing test suite
+
+Current tests are not architecturally perfect, but they encode important regression knowledge. A refactor must make them more maintainable without discarding the behavior they protect.
+
+---
+
+# Part XLVIII — Priorities, not wish lists
+
+## 127. Prioritize by benefit and risk
+
+Consider expected maintenance value, implementation cost, risk of regressions and reversibility. Avoid treating every imaginable improvement as equally urgent.
+
+---
+
+## 128. High priority, low-to-medium risk
+
+One test runner, selected static checking, concise architecture mapping, clearer message contracts and more reliable CI checks offer tangible value.
+
+---
+
+## 129. High priority, medium risk
+
+Extract discovery decision logic and stable platform normalization boundaries with strong regression tests before modifying autoplay internals.
+
+---
+
+## 130. Medium-priority refinements
+
+Storage repositories, operation lifecycle clarity, shared cancellation helpers and consistent diagnostics can evolve as touched by relevant feature work.
+
+---
+
+## 131. Conditional investments
+
+Workers, a full editor command system, a frontend framework or sweeping TypeScript migration should wait for measured needs or clear scope growth.
+
+---
+
+# Part XLIX — Incremental roadmap
+
+## 132. Phase A: protect before moving
+
+Create or strengthen tests for existing high-risk behavior, including first-incomplete routing, hidden tabs, cancellation, cross-platform identity and the generated artifacts.
+
+---
+
+## 133. Phase B: extract pure decisions
+
+Move candidate ordering, route identity and effective policy calculations into directly importable modules without changing their observable behavior.
+
+---
+
+## 134. Phase C: define adapters
+
+Introduce normalized LMS API and DOM contracts so stable discovery logic does not parse provider-specific selectors or response fields.
+
+---
+
+## 135. Phase D: simplify content.js
+
+Leave it mainly coordinating browser events and imperative effects while cohesive decisions and adapters move to their natural modules.
+
+---
+
+## 136. Phase E: deepen browser integration coverage
+
+After boundaries stabilize, add a few high-value target-specific E2E tests for the lifecycles and effects pure unit tests cannot simulate.
+
+---
+
+# Part L — A possible target architecture
+
+## 137. A possible target map
+
+Domain includes identity and discovery decisions; platform adapters handle API and DOM; workflow controllers own operations; presentation helpers render shared view models; build tooling emits specialized artifacts.
+
+**Code from the original chapter:**
+
+```mermaid
+flowchart TD
+    UI[Popup / Floating UI] --> VM[Presentation Models]
+    UI --> MSG[Message Protocol]
+
+    MSG --> BG[Background Coordinator]
+    MSG --> CS[Content Orchestrator]
+
+    CS --> FSM[Autoplay State Machine]
+    CS --> DISC[Discovery Engine]
+    CS --> DOM[Platform DOM Adapter]
+    CS --> API[Multiversity API Adapter]
+
+    DISC --> CACHE[Cache Policies]
+    DISC --> API
+
+    BG --> REPO[Storage Repositories]
+    CS --> REPO
+
+    BG --> JOB[Operation Manager]
+    JOB --> EXPORT[Export Builders]
+
+    EXPORT --> IR[Document IR]
+    IR --> PDF[PDF Renderer]
+    IR --> EPUB[EPUB Renderer]
+    IR --> HTML[HTML Renderer]
+
+    BUILD[Release Compiler] --> CH[Chrome Artifact]
+    BUILD --> FF[Firefox Artifact]
+    BUILD --> ED[Edge Artifact]
+```
+
+---
+
+# Part LI — Benefits of modularity
+
+## 138. What modularity gains: locality
+
+A route-mapping bug can be diagnosed in a small adapter rather than by searching a huge content script with many unrelated responsibilities.
+
+---
+
+## 139. What modularity gains: testability
+
+Deterministic logic can be imported directly and tested with plain input objects instead of textual source slicing and dozens of fake globals.
+
+---
+
+## 140. What modularity gains: ownership
+
+Each subsystem has a clearer source of truth, state lifetime and reason to change.
+
+---
+
+## 141. What modularity gains: replaceability
+
+If Mercatorum changes its DOM, ideally the Mercatorum adapter changes without forcing a rewrite of the discovery engine.
+
+---
+
+# Part LII — Costs of modularity
+
+## 142. What modularity costs: more files
+
+The dependency graph grows and contributors need conventions to navigate module boundaries.
+
+---
+
+## 143. What modularity costs: import order
+
+Loading and execution across browser worlds require careful module compatibility, bundling decisions or well-tested script ordering.
+
+---
+
+## 144. What modularity costs: more abstractions
+
+Contributors may need to learn several names or intermediate representations before making a small change. These costs must be justified.
+
+---
+
+## 145. Therefore modularity is not free
+
+We would adopt more of it because the actual domain has grown, not because an architecture diagram looks prettier.
+
+---
+
+# Part LIII — Avoid architecture astronautics
+
+## 146. A warning sign
+
+A provider factory, registry, strategy hierarchy and dependency-injection framework for two simple implementations may create more complexity than they remove.
+
+---
+
+## 147. Prefer simple JavaScript interfaces
+
+Objects of functions, plain exported modules and small validators are often sufficient until actual variation or testing demands more ceremony.
+
+---
+
+# Part LIV — Abstract after evidence
+
+## 148. The first example reveals little
+
+With one use case, it is hard to know which details are intrinsic and which are accidental.
+
+---
+
+## 149. After two or three cases patterns emerge
+
+The shared menu-ux layer was introduced after popup and floating-menu behavior genuinely drifted. That is a defensible time to extract common rules.
+
+---
+
+# Part LV — The rule of three is not absolute
+
+## 150. The rule of three is not dogma
+
+When the downside of divergence is severe—identity safety, security, data corruption or important protocol semantics—an abstraction can be justified before the third duplication.
+
+---
