@@ -84,6 +84,18 @@ This pass compared **numbered sections and the untyped diagram/text material ins
 
 ---
 
+## Structural QA after fourth pass
+
+- [x] Chapters **11–17** retain the same numbered `## N.` headings and ordering as the Italian source; each has balanced Markdown fences.
+- [x] The number of Mermaid diagrams matches the Italian source in each chapter.
+- [x] Three remaining non-verbatim Mermaid blocks are **translations of labels only** (two in chapter 11, one in chapter 15); their graph/sequence structure is not missing.
+- [x] All Markdown links to neighboring English chapter files, index, and other book files in chapters 11–17 resolve to known filenames.
+- [x] Complete release/test matrices in chapters 13–14 were restored rather than being paraphrased only in prose.
+- [ ] Reconstruct the **Part-level editorial hierarchy** of chapters 14–16 in a systematic pass, ensuring each translated heading reflects the Italian original and appears at the corresponding place in the text.
+- [ ] Complete remaining prose/diagram fidelity checks and English offline reader generation and smoke testing.
+
+---
+
 ## Important remaining editorial work
 
 A matching heading count **does not prove equivalent content**. Several draft chapters compress explanatory code-like `text` blocks from the Italian source into prose. Some earlier chapters have fewer fenced technical examples than their originals.
