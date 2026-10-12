@@ -211,6 +211,16 @@ chrome.storage.local.get(
     autoplayChapterLimits: {},
     autoplayChapterLimitSessions: {},
     autoplayChapterLimitStatuses: {},
+    courseProgressOverlayEnabled: false,
+    autoplayStopAt70Enabled: false,
+    playbackErrorRecovery: "automatic",
+    visualStyle: "standard",
+    themePreference: "system",
+    menuSize: "medium",
+    floatingMenuEnabled: true,
+    commissionCheckEnabled: false,
+    commissionExams: [],
+    pegasoActiveOperation: null,
     // ...
   },
   (result) => {
