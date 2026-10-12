@@ -82,7 +82,26 @@ An early assumption that 100% progress always meant complete was contradicted by
 
 ## 5. “Sometimes” is not a reproducer
 
-A good report specifies browser, version, account or course conditions, state before the action, exact steps, expected result, and observed result. This description is already close to a test case.
+A hard-to-reproduce bug often produces a fragile fix. A good report describes the preconditions, actions, timing, initial state, expected result and actual result:
+
+```text
+Preconditions:
+- chapter 1 is current; its last video is completed
+- subsequent early chapters are fully completed
+- chapter 5 contains the next incomplete video
+- "Skip completed video lessons" is enabled
+
+When:
+- the current video finishes
+
+Then:
+- open the target in chapter 5 directly
+
+Not:
+- visibly open chapters 2, 3, and 4 along the way
+```
+
+The report should also identify the browser, version and account or course conditions. This description is already close to a regression test.
 
 ---
 
@@ -138,7 +157,23 @@ A MAIN-world event may be emitted correctly while its ISOLATED bridge fails to f
 
 ## 13. Instrumentation points
 
-For a chain A → B → C → D, log or assert at the transitions, not only at D. Boundary observations reveal where a command disappears or changes shape.
+For a flow:
+
+```text
+A → B → C → D
+```
+
+Logging only at D is weak. Observe the boundaries instead:
+
+```text
+A emitted request X
+B received request X
+B emitted response X
+C forwarded X
+D stored X
+```
+
+Useful correlation fields may include `requestId`, `operationId`, `sourceTabId`, `courseCode` and `lessonNumber`. This makes it easier to see where a command disappears or changes shape, without logging sensitive payloads.
 
 ---
 
@@ -172,7 +207,25 @@ For a routing bug, log lesson identity, display order, folder ID, target, and am
 
 ## 17. Hypothesis-driven debugging
 
-Avoid random edits followed by repeated manual checks. State the suspected cause, create a scenario that would disprove it, measure the result, then apply the narrowest correction.
+A weak debugging loop changes a timeout, retries, changes a selector, retries, then adds a sleep and retries again. The observations do not explain the cause.
+
+A stronger experiment is:
+
+```text
+Hypothesis:
+The DOM row is replaced during waitForLessonCompletion.
+
+Prediction:
+The old row object will no longer be === the new row.
+
+Experiment:
+Capture the logical lesson identity; wait; query the DOM again.
+
+Result:
+A new DOM row represents the same logical lesson.
+```
+
+The fix now has a reason: revalidate stable identity and reacquire the element after asynchronous suspension, rather than retaining the old DOM reference.
 
 ---
 
@@ -945,7 +998,21 @@ Hidden-tab failures may combine throttled timers, incorrect timeout interpretati
 
 ## 88. A technical Five Whys
 
-If routing chose the wrong chapter, ask why display_order was reused, why the route treated it as global identity, and why no ambiguity guard existed. The final question should identify the missing invariant.
+**Why did autoplay open the wrong chapter?** The route map matched `display_order = 1`.
+
+**Why was that ambiguous?** Because `display_order` restarts inside each folder.
+
+**Why was it treated as globally unique?** Identity had been inferred from a presentation field.
+
+**Why was there no second check?** The earlier mapping assumed only one layout.
+
+**Which invariant was missing?**
+
+```text
+Never use a local display label as a globally unique identity.
+```
+
+This chain of questions produces a specific regression property rather than another speculative selector fix.
 
 ---
 
@@ -1045,7 +1112,18 @@ Differentiate cancelled by user, network timeout, and ordinary operation failure
 
 ## 98. Cancellation latency
 
-A long operation should stop expensive stages promptly after cancellation; EPUB yields and abort checks are part of this contract.
+For a long operation, test how often it checks the abort signal and whether cancellation reaches all costly stages.
+
+EPUB generation uses `throwIfAborted()` and `yieldToBrowser()` at multiple points. A future regression test could request cancellation during each of these stages:
+
+```text
+render
+encode
+regional analysis
+ZIP preparation
+```
+
+Then verify that the operation stops promptly and that temporary canvases, buffers and other resources are cleaned up. Cancellation latency and cleanup are both parts of the contract.
 
 ---
 
@@ -2364,7 +2442,23 @@ Test a concise set of real LMS flows—autoplay, incomplete discovery, quiz expo
 
 ## 265. Debugging reduces the search space
 
-A bug begins with many possible explanations. Each well-designed observation rules out hypotheses and narrows the remaining causes.
+A bug begins with an enormous set of possible causes. Each well-designed observation narrows the search space:
+
+```text
+Firefox only?
+→ investigate browser-specific boundaries first
+
+Hidden tab only?
+→ investigate scheduling, visibility and timers
+
+Master progress at 100% only?
+→ investigate the evidence hierarchy
+
+After an await only?
+→ investigate stale references and race conditions
+```
+
+Debugging is the deliberate reduction of possible explanations—not a competition to make the most edits.
 
 ---
 
