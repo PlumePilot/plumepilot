@@ -1129,3 +1129,347 @@ flowchart TD
 ```
 
 ---
+
+# Part — Cross-browser invariants
+
+## 101. What must remain the same
+
+All targets should preserve the common domain rules: the course model, user preferences, autoplay decisions, test semantics, exports, and operation coordination. Platform-specific packaging must not silently change those promises.
+
+---
+
+## 102. What is allowed to vary
+
+Background declarations, audio implementation, store metadata, permission sets, and review-oriented vendor transformations may vary. Classify each difference explicitly instead of assuming everything should be identical.
+
+---
+
+# Part — Semantic parity
+
+## 103. Binary equality is unnecessary
+
+Chrome and Firefox ZIP files need not have identical bytes. They need semantic parity: the same user-facing feature and correctness properties, within explicitly documented browser constraints.
+
+---
+
+## 104. Audio as an example
+
+Chromium plays sounds through an offscreen document; Firefox may use a content tab. What we compare is the user-visible sound behavior and safety rules, not the underlying call path.
+
+---
+
+# Part — Regression coverage
+
+## 105. What to test per feature
+
+A cross-browser regression test should verify success, failure handling, cancellation if relevant, persisted state, and at least one platform-specific case. Testing only the happy path on Chrome is insufficient.
+
+---
+
+# Part — Review regressions
+
+## 106. Release builds can regress
+
+An upstream JSZip update may reintroduce a dynamic execution pattern in a new location. All functional tests might pass while AMO rejects the submission. Run artifact validation on every release, not only after rejection.
+
+---
+
+# Part — Store policies as external contracts
+
+## 107. Store policies can change
+
+Chrome, Edge, and AMO policies are external rules maintained by other organizations. They can change independently of the pinned vendor libraries or the project source.
+
+---
+
+## 108. The consequence
+
+Do not assume last month's review criteria remain unchanged forever. Revisit authoritative policy documents before important submissions, particularly when permissions, bundles, or data declarations change.
+
+---
+
+# Part — Avoiding policy-driven overfitting
+
+## 109. Avoid policy-driven overfitting
+
+Chasing each warning with an isolated patch can distort the architecture. Prefer changes that also improve legitimate engineering properties: provenance, determinism, minimum privilege, reviewability, and explicit behavior.
+
+---
+
+# Part — Anti-patterns
+
+## 110. Avoid permanent browser forks
+
+Do not maintain nearly identical Firefox, Edge, and Chrome implementations when a shared core with small adapters provides the same result.
+
+---
+
+## 111. Try/catch is not universal feature detection
+
+A try/catch around a missing API can be useful, but is not a universal compatibility strategy, especially for asynchronous errors. Prefer capability checks and documented API contracts.
+
+**Historical code or diagram:**
+
+```js
+try {
+  chrome.someApi.doThing();
+} catch {
+  ...
+}
+```
+
+---
+
+## 112. Chromium does not mean Chrome Web Store
+
+Edge may share Chromium with Chrome but still require different store listing metadata, localization resources, submission steps, and review handling.
+
+---
+
+## 113. Warnings are not noise
+
+A warning may be harmless, actionable, or evidence of a future failure. Classify it; never ignore all warnings or treat every warning as a blocking error.
+
+---
+
+## 114. Never modify vendor code without provenance
+
+Every vendor change should state its upstream source, original checksum, reason for modification, affected platform, and validation evidence. Otherwise supply-chain risk grows.
+
+---
+
+# Part — Core, adapters, and release compiler
+
+## 115. Core plus adapters plus release compiler
+
+Model PlumePilot as one domain core plus runtime adapters and a release compiler. The build takes reusable inputs and lowers them into target-specific executable artifacts.
+
+---
+
+# Part — The build as a compiler
+
+## 116. Compiler front-end
+
+The compiler front-end is the source tree, including first-party assets, pinned vendors, manifest inputs, and metadata.
+
+---
+
+## 117. Intermediate representation
+
+The intermediate representation is the selected runtime-file list together with base manifest data and release metadata.
+
+---
+
+## 118. Target lowering
+
+Target lowering applies browser-specific manifest rules, permissions, localized metadata, and review-safe transformations.
+
+---
+
+## 119. Code generation
+
+Code generation produces the installable browser-specific ZIP archives and source-review outputs.
+
+---
+
+## 120. Verification
+
+Verification is performed by validate-release.mjs over the resulting artifacts rather than merely their input files.
+
+---
+
+# Part — Release validation as a type system
+
+## 121. The validator as a release type system
+
+A type system rejects invalid programs before runtime; similarly, the release validator rejects known-invalid artifacts before store submission. Its assertions encode platform contracts.
+
+---
+
+# Part — Executable institutional knowledge
+
+## 122. Human memory is fragile
+
+“Remember to include both Edge locales” is fragile tribal knowledge: it relies on someone remembering an informal instruction.
+
+---
+
+## 123. Executable knowledge
+
+A validator assertion on the packaged locale set turns that instruction into executable knowledge. Automated failure scales better than memory alone.
+
+**Historical code or diagram:**
+
+```js
+if (
+  JSON.stringify(packagedLocales) !==
+  JSON.stringify(["en", "it"])
+) {
+  throw ...
+}
+```
+
+---
+
+# Part — Graceful degradation
+
+## 124. Feature parity can use graceful degradation
+
+Adapters do not need identical internals. If an optional feature cannot be supported, the product should choose a clear fallback or explicit unavailable state rather than silently pretending success.
+
+---
+
+# Part — A support matrix
+
+## 125. An explicit support matrix
+
+A documented capability matrix can show background mode, sound route, local storage, popup behavior, MAIN-world injection, and store source-review obligations for each browser.
+
+| Capability | Chrome | Edge | Firefox | Difference |
+|---|---|---|---|---|
+| Background | Service worker | Service worker | Scripts | Build |
+| Notification audio | Offscreen | Offscreen | Tab fallback | Runtime |
+| Storage | Local | Local | Local | Shared |
+| Reviewable source package | Not normally required | Not normally required | Required for this build | Distribution |
+
+---
+
+## 126. Today
+
+With only a few differences, a giant abstract capability framework could add more complexity than it removes. Keep the existing known variations localized.
+
+---
+
+## 127. Tomorrow
+
+If the number of browser-specific capabilities grows, a small capability descriptor may help—but only when it reduces real conditionals and duplication.
+
+**Historical code or diagram:**
+
+```js
+const capabilities = {
+  offscreenAudio: ...,
+  backgroundWorker: ...,
+  ...
+};
+```
+
+---
+
+# Part — Cross-browser debugging
+
+## 128. Debugging: same input?
+
+Before blaming Firefox, ensure both cases use the same course, account, data state, test steps, and relevant user preferences. Differing input can masquerade as a browser bug.
+
+---
+
+## 129. Debugging: same artifact class?
+
+Compare equivalent release artifacts, not a development checkout on Chrome against a store ZIP on Firefox. Package-generated differences matter to reproduction.
+
+---
+
+## 130. Debugging: runtime or package?
+
+If the browser refuses to load, investigate manifest and packaging; if it loads but a feature fails, examine runtime or API behavior; if stores reject it, investigate review policy and metadata.
+
+---
+
+# Part — Error taxonomy
+
+## 131. A cross-browser error taxonomy
+
+Classify failures into syntax/runtime incompatibility, absent API, lifecycle mismatch, packaging defect, UI/layout regression, behavioral race, and store-review issue.
+
+---
+
+# Part — Case study: sound notification
+
+## 132. Sound: requirement
+
+The requirement for the sound feature is to provide a suitable notification at the correct moment without disrupting the user's course experience.
+
+---
+
+## 133. Sound: domain API
+
+The domain operation should express the intent to play a notification sound, without making every caller decide which browser runtime is responsible.
+
+---
+
+## 134. Sound: Chrome and Edge
+
+For Chrome and Edge, the adapter can create or reuse an offscreen document and send it the playback instruction.
+
+---
+
+## 135. Sound: Firefox
+
+For Firefox, the adapter uses a supported tab-based message route because the Chromium Offscreen document API is not the chosen mechanism.
+
+---
+
+## 136. Sound: shared semantics
+
+The same sound can play, the same user preference is honored, and errors remain handled in both browsers, although the implementation differs.
+
+---
+
+## 137. Sound: artifact validation
+
+The Firefox ZIP must not advertise the unused offscreen permission or depend on a Chromium-only service-worker audio path. These checks make the fallback architecture auditable.
+
+---
+
+# Part — Case study: Edge localization
+
+## 138. Edge localization: requirement
+
+Edge needs appropriate localized extension metadata for its distribution target while the underlying PlumePilot feature set remains shared.
+
+---
+
+## 139. Edge localization: target lowering
+
+The build lowers generic extension display metadata into Edge-specific __MSG_ keys and includes the required _locales resources.
+
+---
+
+## 140. Edge localization: validation
+
+The validator checks the packaged localized keys and resource files rather than only the source manifest.
+
+---
+
+# Part — Case study: readable vendor code
+
+## 141. Readable vendors: requirement
+
+Readable and traceable vendor code should be usable by reviewers and should not carry unneeded forbidden dynamic execution paths.
+
+---
+
+## 142. Readable vendors: repository
+
+The repository preserves readable official upstream distributions and documented third-party provenance.
+
+---
+
+## 143. Readable vendors: Firefox target
+
+The Firefox artifact applies a small deterministic set of review-safe code transformations while keeping normal code paths functional.
+
+---
+
+## 144. Readable vendors: source package
+
+The AMO source archive contains the original readable inputs and instructions for reproducing the target-specific transformations.
+
+---
+
+## 145. Readable vendors: validation
+
+Checksum verification and restricted-pattern scans provide an evidence chain from upstream source to reviewed Firefox archive.
+
+---
