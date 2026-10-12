@@ -2102,17 +2102,25 @@ Stable timestamps, file ordering, and checksums make artifact comparisons and re
 
 ## 180. Store policy is an external contract
 
-Policies must be monitored and rechecked; one successful review does not guarantee unchanged requirements forever.
+Store requirements must be reviewed periodically; a successful review does not make today's rules permanent.
 
-### Browser support matrix
+# Part LXXXIV — Final browser support matrix
 
-| Concern | Chrome | Edge | Firefox | Strategy |
+| Concern | Chrome | Edge | Firefox | PlumePilot strategy |
 |---|---|---|---|---|
 | Background | Service worker | Service worker | Scripts | Build specialization |
-| Audio without DOM | Offscreen | Offscreen | Tab fallback | Capability + fallback |
-| Offscreen permission | Yes | Yes | No | Target manifest |
-| Gecko add-on ID | N/A | N/A | Required | Firefox metadata |
-| Source review | CWS policy | Edge policy | AMO review archive | Target release |
+| Audio without DOM | Offscreen | Offscreen | Tab fallback | Capability detection + fallback |
+| Offscreen permission | Yes | Yes | No | Target-specific manifest |
+| Gecko add-on ID | No | No | Yes | Target-specific manifest |
+| Gecko data declarations | No | No | Yes | Target-specific manifest |
+| Runtime/store locale | Base | `_locales` | Base | Package injection |
+| Readable vendor source | Yes | Yes | Yes | Pinned readable upstream |
+| Review-safe vendor transforms | No | No | Yes | Deterministic build patch |
+| Source submission | No | No | Yes | Dedicated source ZIP |
+| Artifact checksums | Yes | Yes | Yes | `SHA256SUMS.txt` |
+| UI timing/layout workaround | When needed | When needed | When needed | Localized behavioral fix |
+
+The matrix distinguishes four separate kinds of compatibility: runtime behavior, declared extension metadata, distributed artifact content, and store-review requirements.
 
 ---
 
