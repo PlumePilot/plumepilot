@@ -824,3 +824,512 @@ This is a valuable general principle for robust pipelines and distributed system
 > **When one stage fails, preserve as much already verified information as possible.**
 
 ---
+
+
+# Part VIII — Remember what has already been verified
+
+## 18. `verifiedCompleteChapters`
+
+Suppose the visual fallback opens a candidate and discovers that it is actually complete. We should not discard that evidence and start over.
+
+The code preserves a list:
+
+```js
+verifiedCompleteChapters: [
+  ...(options.verifiedCompleteChapters || []),
+  nextIdentity,
+]
+```
+
+When building `discoveryOrder`, already verified chapters are excluded:
+
+```js
+!(options.verifiedCompleteChapters || []).some((identity) =>
+  sameChapterIdentity(outline[index].identity, identity)
+)
+```
+
+This is a small example of **negative memoization inside a workflow**:
+
+```text
+this chapter has already been verified complete
+→ do not pay for the same check again
+```
+
+It is not a persistent global cache. It is local memory for the current search.
+
+---
+
+# Part IX — Finding the chapter is not yet navigation
+
+## 19. Selecting the candidate does not complete the job
+
+Once the algorithm identifies a candidate:
+
+```js
+nextIdentity = apiDiscovery.entry.identity;
+```
+
+PlumePilot must turn that logical identity into an action on a live page:
+
+```text
+candidate identity
+    ↓
+openChapter()
+    ↓
+wait for rendering
+    ↓
+reacquire current chapter
+    ↓
+select exact activity
+```
+
+The DOM can change between each step. The implementation therefore waits for the freshly rendered chapter:
+
+```js
+let chapterReady = await waitFor(() => {
+  const fresh = findChapter(nextIdentity);
+  if (!fresh) return null;
+
+  const rows = chapterRows(fresh);
+  return rows.length > 0 ? fresh : null;
+});
+```
+
+This connects Chapter 08 directly to the dynamic-DOM lessons from Chapter 03. Even a perfect search plan requires careful execution in an asynchronous, changing interface.
+
+---
+
+## 20. API evidence versus DOM evidence
+
+During bookmark-style search, PlumePilot chooses how to identify the activity.
+
+When the API has already identified it precisely:
+
+```js
+const activity = apiUnfinishedItem || ...;
+```
+
+When more verification is needed:
+
+```js
+visibleIncompleteActivity(nextIdentity, apiVerifiedActivities)
+```
+
+The overall information flow is:
+
+```text
+API
+ ↓
+provides evidence
+ ↓
+DOM
+ ↓
+confirms or supplements it
+```
+
+Neither source automatically replaces the other. The algorithm combines them according to their strengths.
+
+---
+
+## 21. Do not overwrite strong evidence with weak evidence
+
+A real code comment captures this principle:
+
+```js
+// Missing sidebar percentages are unknown, not 0%. A verified API
+// target must not be replaced by a completed Obiettivi row in the DOM.
+```
+
+When integrating information sources, we need an **evidence precedence** rule.
+
+For example:
+
+```text
+verified API: Video B = 42%
+incomplete DOM rendering: percentage unavailable
+```
+
+The missing visual percentage must not be reinterpreted as zero or used to discard the already verified API target.
+
+> **A weaker signal should not erase stronger evidence merely because it was observed later.**
+
+---
+
+# Part X — Tests are a different kind of target
+
+## 22. Activities do not all have the same semantics
+
+A chapter may contain:
+
+```text
+Objectives
+videos
+Test
+```
+
+The search respects user preferences and the type of activity requiring attention.
+
+A pending test may become the target:
+
+```js
+const testNeedsAttention =
+  Boolean(test) &&
+  (options.bookmarkSearch
+    ? pendingTest
+    : ...);
+```
+
+Later:
+
+```js
+if (activity?.contentType === "test") {
+  const test = getEndOfLessonTest(chapterReady);
+  // ...
+  test.scrollIntoView(...);
+  return true;
+}
+```
+
+So the result is not necessarily:
+
+```text
+click a video
+```
+
+It can mean:
+
+```text
+bring the user to the test
+```
+
+This is a search across **heterogeneous elements** that share one abstract property—needing attention—but require different final actions.
+
+---
+
+# Part XI — Concurrency and cancellation
+
+## 23. A long-running search can become obsolete
+
+At the start of discovery:
+
+```js
+smartResumeRunning = true;
+const generation = ++smartResumeGeneration;
+```
+
+The code defines:
+
+```js
+const isCancelled = () =>
+  generation !== smartResumeGeneration ||
+  courseCode !== courseCodeFromUrl() ||
+  !enabled ||
+  busy;
+```
+
+Source: `content.js`, `startFirstIncompleteDiscovery()`.
+
+The counter is a **generation token**.
+
+Suppose:
+
+```text
+search A starts
+    ↓
+await API
+    ↓
+user changes application state
+    ↓
+search B starts
+```
+
+When A resumes, it must not be allowed to manipulate the page.
+
+Compare:
+
+```text
+A's generation
+```
+
+with:
+
+```text
+current generation
+```
+
+If they differ:
+
+```text
+A is stale
+→ stop
+```
+
+This resembles an optimistic-concurrency token: a continuation must prove that it still belongs to the currently authorized operation.
+
+---
+
+## 24. Why `smartResumeRunning` is not enough
+
+A Boolean can answer:
+
+```text
+is a search running?
+```
+
+but not:
+
+```text
+which search is this callback from?
+```
+
+A generation counter adds temporal identity:
+
+```text
+run 17
+run 18
+run 19
+```
+
+An asynchronous continuation from run 17 cannot accidentally become valid during run 19.
+
+The two mechanisms protect different properties:
+
+```text
+Boolean running guard
+→ prevents overlapping starts
+
+generation token
+→ invalidates continuations from older runs
+```
+
+---
+
+# Part XII — How the algorithm evolved
+
+## 25. Version 2.14.4 — Smart sequential search
+
+The changelog records an early form of smart resume:
+
+```text
+cached outline
+→ skip completed chapters/videos
+→ consider Objectives
+→ find first video below 100%
+```
+
+That was already better than navigating blindly through every activity, but it still depended heavily on detailed sequential checks and the rendered UI.
+
+---
+
+## 26. Version 2.14.7 — Course-index-assisted discovery
+
+The course completion index was introduced.
+
+The idea:
+
+```text
+aggregate index
+→ avoid expensive detail checks for unlikely modules
+```
+
+The changelog describes reusing the index already loaded by the page, skipping modules reported as 100%, checking candidates below 100%, and using visual fallback when detailed verification was unavailable.
+
+This established the architecture:
+
+```text
+index → candidate → detail / fallback
+```
+
+---
+
+## 27. Version 2.15.0 — From saved preference to one-shot command
+
+The feature also changed its product semantics.
+
+Previously:
+
+```text
+Start from the first incomplete activity
+```
+
+was a persistent preference.
+
+It became:
+
+```text
+Find the first incomplete activity
+```
+
+an explicit user action.
+
+That change matters algorithmically. The feature is no longer a policy automatically applied at every startup. It becomes:
+
+```text
+user query
+→ search from the beginning
+→ navigate to the result
+```
+
+Essentially, a smart bookmark.
+
+---
+
+## 28. Version 2.15.3 — Master-index-first
+
+To reduce work further, the master index became the main tool for choosing a candidate.
+
+Conceptually:
+
+```text
+find first percentage below 100%
+→ map it to a visible chapter
+→ open the precise target
+```
+
+Very efficient—but later observations exposed the risks of treating a summary as definitive.
+
+---
+
+## 29. Version 2.35.1 — Prioritize with the index, do not treat it as dogma
+
+The newer algorithm takes a more conservative route:
+
+```text
+1. force a master refresh
+2. build course outline
+3. construct discovery order
+4. prioritize chapters below 100%
+5. verify candidates
+6. inspect chapters reported at 100% if needed
+7. use detail APIs
+8. use targeted visual fallback when needed
+```
+
+This is the most instructive design.
+
+The optimization remains, but becomes **reversible**:
+
+```text
+heuristic works
+→ very fast
+```
+
+If the heuristic fails to identify a valid target:
+
+```text
+second pass
+→ continue verification
+```
+
+A fast path is useful; preserving an alternative correctness path makes the system more resilient.
+
+---
+
+# Part XIII — Cost analysis
+
+## 30. Naive cost model
+
+With `N` chapters:
+
+```text
+N DOM openings
+N render waits
+potentially N detail requests
+```
+
+A rough model is:
+
+```text
+T_naive ≈ N × (DOM + render + network)
+```
+
+This is not an exact benchmark; it makes the relative cost sources visible.
+
+---
+
+## 31. Index-assisted cost model
+
+Suppose:
+
+```text
+N = 40 chapters
+K = 3 candidates below 100%
+```
+
+The master index requires approximately one retrieval.
+
+Then:
+
+```text
+1 master request
++ up to K detail verifications
++ 1 target DOM opening
+```
+
+In a favorable case:
+
+```text
+T ≈ index + K × detail + 1 × DOM
+```
+
+The improvement can be substantial even if building and filtering the arrays remains `O(N)`.
+
+The expensive operations—not the small in-memory loop—have been reduced.
+
+---
+
+## 32. Worst case
+
+The unfavorable case might involve a stale master index, candidates below 100% that turn out complete, a second pass over entries reported as 100%, detail requests requiring retries, incomplete responses, and visual verification.
+
+The cost may approach a full scan.
+
+But that is often a desirable property: optimize the **common case** without deliberately removing the **thorough verification path**.
+
+---
+
+# Part XIV — The strategy in pseudocode
+
+## 33. Simplified version of the current strategy
+
+The following is **illustrative pseudocode, not a verbatim PlumePilot function**:
+
+```js
+async function findFirstIncomplete(course) {
+  const outline = await getOutline(course);
+  const master = await getFreshMasterIndex(course);
+
+  const candidates = partitionStable(
+    outline,
+    chapter => masterPercentage(chapter) < 100 || !isMapped(chapter)
+  );
+
+  const verifiedComplete = new Set();
+
+  for (const chapter of candidates) {
+    if (verifiedComplete.has(chapter.id)) continue;
+
+    const detail = await getLessonDetail(chapter);
+
+    if (!detail.isReliable) {
+      const visual = await verifyVisually(chapter);
+
+      if (visual.target) return visual.target;
+
+      verifiedComplete.add(chapter.id);
+      continue;
+    }
+
+    const target = firstIncompleteActivity(detail);
+
+    if (target) return target;
+  }
+
+  return null;
+}
+```
+
+This does not reproduce every guard, retry, user preference, or navigation detail. It illustrates the separation of outline, index, ordered candidates, detail checks, and local fallback.
+
+---
