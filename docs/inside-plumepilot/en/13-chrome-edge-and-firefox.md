@@ -1113,6 +1113,8 @@ This reduces the number of places that must be changed and retested when a commo
 
 ---
 
+# Part XXXII — Compatibility layer
+
 ## 79. When is a wrapper useful?
 
 An adapter is valuable when it hides a stable difference behind a shared outcome, such as audio notification through offscreen or a tab.
@@ -1573,6 +1575,8 @@ A documented capability matrix can show background mode, sound route, local stor
 
 ---
 
+# Part LVI — When to introduce a compatibility module
+
 ## 126. Today
 
 With only a few differences, a giant abstract capability framework could add more complexity than it removes. Keep the existing known variations localized.
@@ -1848,6 +1852,27 @@ An update must work over an existing installation. Validate identity continuity,
 ## 164. Firefox and cumulative “What's New”
 
 The project's history included cases where Firefox users skipped an intermediate release. Release notes for that target sometimes needed to cover changes since its last distributed version, not merely those from Chrome's most recent build. The installed-version path is input to the update experience.
+
+---
+
+# Part LXXI — Why 2.35.2 aligned the What's New cards
+
+In the chapter's 2.35.2 snapshot:
+
+```text
+Chrome
+Edge
+Firefox
+```
+
+all three browser targets display the same six update cards. The builder nevertheless keeps these separate sources:
+
+```text
+whats-new.js
+scripts/whats-new-firefox.js
+```
+
+The reason is that store publication cycles may diverge again. This is **controlled flexibility**: a small duplication is justified by different release histories.
 
 ---
 
