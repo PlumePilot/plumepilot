@@ -40,7 +40,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 09 | [Generating PDF, HTML, and EPUB in the browser](09-generating-pdf-html-and-epub.md) |
 | 10 | [A small rich-text editor — Selection, Range, lists, and callouts](10-small-rich-text-editor.md) |
 | 11 | [UI without a framework — Popup, floating menu, and synchronization](11-ui-without-a-framework.md) |
-| 12 | Performance and memory — When the browser becomes our runtime |
+| 12 | [Performance and memory — When the browser becomes our runtime](12-performance-and-memory.md) |
 | 13 | Chrome, Edge, and Firefox — One codebase, different runtimes |
 | 14 | Debugging, tests, and regressions — Turning a bug into permanent knowledge |
 | 15 | Git, branches, PRs, builds, and release engineering — Software beyond the code |
