@@ -45,7 +45,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 14 | [Debugging, tests, and regressions — Turning a bug into permanent knowledge](14-debugging-tests-and-regressions.md) |
 | 15 | [Git, branches, PRs, builds, and release engineering — Software beyond the code](15-git-branches-prs-and-release-engineering.md) |
 | 16 | [Architectural lessons — Patterns that emerged from the real project](16-architectural-lessons.md) |
-| 17 | What would we do differently today? — A retrospective without hindsight bias |
+| 17 | [What would we do differently today? — A retrospective without hindsight bias](17-what-we-would-do-differently-today.md) |
 
 The remaining chapters are translated on this documentation branch before publication. The public English landing is not merged until the edition is complete.
 
