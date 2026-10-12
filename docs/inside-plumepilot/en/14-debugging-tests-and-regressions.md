@@ -1350,11 +1350,31 @@ A transient HTTP error may merit retry; missing DOM may merit waiting; ambiguous
 
 ---
 
-## 157. Error class determines recovery
+## 157. A mental model for error recovery
 
-Temporary network → retry/backoff; incomplete API → visual fallback; DOM not ready → wait; ambiguous identity → stop; hidden tab → defer; stale cache → refresh; user cancel → cleanup; invalid ZIP → fail build; store warning → assess.
+| Failure | Recovery |
+|---|---|
+| Temporary network failure | Retry / backoff |
+| Incomplete API response | Visual fallback |
+| DOM not ready | Wait / re-observe |
+| Ambiguous identity | Stop / guarded fallback |
+| Hidden-tab timeout | Defer |
+| Stale cache | Refresh |
+| User cancellation | Abort / cleanup |
+| Artifact invariant violation | Fail the build |
+| Store warning | Classify / document |
+
+The same generic word:
+
+```text
+error
+```
+
+is insufficient. The correct recovery depends on the **failure category**, whether the action is reversible, and which boundary owns the response.
 
 ---
+
+# Part LXXXVI — Debugging async timelines
 
 ## 158. Write an event timeline
 
