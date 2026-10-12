@@ -893,3 +893,713 @@ A test asks whether a required property holds; a benchmark asks how long or how 
 Use representative text, mathematical, visual, and table-heavy PDFs to verify conversion semantics, archive validity, and cancellation.
 
 ---
+
+## 101. Stable performance properties
+
+Instead of a fragile millisecond threshold, check request counts, cleanup, no duplicate expensive work, and memory-related invariants. These are often deterministic proxies for performance regressions.
+
+---
+
+## 102. Keep timing benchmarks separate
+
+Measure wall time and throughput under a fixed browser, machine, and fixture. Do not make a strict pass/fail unit test depend on fluctuating machine load.
+
+---
+
+## 103. EPUB fixtures
+
+Maintain representative PDFs for text, formulas, tables, diagrams, and page images. The same input should expose conversion regressions reproducibly.
+
+---
+
+## 104. Golden output
+
+Inspect chapter order, manifest, links, media types, page modes, and expected content. Byte-identical ZIP output is not always necessary.
+
+---
+
+## 105. The giant snapshot trap
+
+Committing every byte of a generated HTML or EPUB file as a snapshot can make harmless changes generate incomprehensible diffs.
+
+---
+
+## 106. Prefer semantic snapshots
+
+Extract a small stable representation, such as chapter titles, resource paths, table-of-contents entries, and specific content markers. Compare that instead of the entire archive.
+
+---
+
+## 107. The pixel problem
+
+Clipped labels, misaligned checkboxes, and inaccurate fonts may not be caught by DOM-state assertions alone.
+
+---
+
+## 108. Three visual regression levels
+
+Combine structural DOM checks, browser geometry/behavior assertions, and selected image comparisons. The last is necessary for some visual defects.
+
+---
+
+## 109. When screenshot tests help
+
+Screenshots are useful for typography, alignment, responsive layouts, color contrasts, and clipping. They are less useful for proving storage synchronization or race safety.
+
+---
+
+## 110. Make visual tests stable
+
+Control browser version, viewport, zoom, fonts, animations, theme, and fixture data before comparing screenshots; otherwise harmless environmental differences create noise.
+
+---
+
+## 111. Focus is state
+
+Keyboard focus is part of an interaction contract. A visual refactor can leave every pixel apparently correct while moving the user's focus to the wrong element.
+
+---
+
+## 112. Test focus explicitly
+
+After opening settings, focus should enter the detail appropriately. Back and Escape must restore focus to the opener; reordering should preserve a logical focused control.
+
+---
+
+## 113. Many bugs are ordering bugs
+
+Examples include loading shared UI helpers before consumers, registering background listeners before events occur, and processing asynchronous callbacks in the right generation.
+
+---
+
+## 114. Ordering is a contract when behavior depends on it
+
+If two instructions can run in either order without changing semantics, do not assert an arbitrary sequence. When a dependency makes order essential, testing it is appropriate.
+
+---
+
+## 115. Concurrency does not require threads
+
+Two asynchronous operations can interleave across await points on one JavaScript thread. Tests can control their promises and continuations explicitly.
+
+**Historical code example:**
+
+```js
+Promise.all([...])
+```
+
+---
+
+## 116. Expose a possible storage race
+
+Introduce a scheduled pause between reading and writing shared state so two updates compete. A serialized write queue should preserve both changes.
+
+**Historical code example:**
+
+```js
+storageGetMany: async (...) => {
+  await new Promise(resolve => setTimeout(resolve, 2));
+  ...
+}
+```
+
+---
+
+## 117. Controlled barriers are stronger than tiny sleeps
+
+A deferred Promise lets the test deliberately resume operation B between two phases of operation A. This models an exact interleaving without relying on a real 2 ms timeout.
+
+---
+
+## 118. Identify nondeterminism
+
+Review time, timers, UUIDs, network data, storage state, event order, browser lifecycle, fonts, and rendering. Any can make an otherwise simple assertion flaky.
+
+---
+
+## 119. Control only the relevant inputs
+
+Not every dependency needs mocking. Fix the inputs whose variation would invalidate the property you are trying to prove.
+
+---
+
+## 120. Deterministic UUIDs
+
+crypto.randomUUID is useful in production for operation identity. When a test compares serialized outputs, inject stable IDs to avoid meaningless snapshot changes.
+
+---
+
+## 121. Locale and timezone
+
+Date formatting and timestamps can depend on timezone or locale. Either fix the environment or assert a representation insensitive to those variations.
+
+---
+
+## 122. Tests must not depend on preceding tests
+
+A test that inherits modified storage or open tabs from another case is fragile. Isolation should be the default.
+
+---
+
+## 123. Create fresh state
+
+Build new Maps, fake APIs, timers, DOM, and storage for each test unless the scenario explicitly tests upgrades or migration.
+
+---
+
+## 124. Add a regression test with the fix
+
+Ideally reproduce the failure as a red test, implement the correction, verify green, then refactor safely.
+
+---
+
+## 125. Some bugs require exploration first
+
+When the cause is unclear, manual experiments may precede automation. Before closing the issue, preserve the critical behavior in a repeatable test where feasible.
+
+---
+
+## 126. Keep tests proportional
+
+A simple CSS label defect may need a small structure assertion or targeted browser check, not a complete three-browser E2E harness.
+
+---
+
+## 127. Use the lowest layer that can prove the property
+
+A small deterministic test is preferable to a slow browser test only if it actually exercises the behavior of interest.
+
+---
+
+## 128. Do not choose a layer that is too low
+
+Regex matching a focus handler does not prove focus was correctly restored. Interaction semantics require a real DOM or browser fixture.
+
+---
+
+## 129. What is a test seam?
+
+A seam is a point at which a dependency can be replaced: a clock, request function, storage adapter, browser method, or DOM resolver.
+
+---
+
+## 130. PlumePilot's current seams
+
+Several tests inject globals through VM contexts or controlled source extraction. Practical, but this indicates opportunities to make some dependencies explicit.
+
+---
+
+## 131. Textual source extraction
+
+The current technique locates source boundaries as text and evaluates selected production functions in a test VM. It avoids importing complex browser startup code.
+
+**Historical code example:**
+
+```js
+source.slice(
+  source.indexOf("async function X"),
+  source.indexOf("function Y")
+)
+```
+
+---
+
+## 132. The brittle boundary
+
+Renaming or moving a function may break a string-based extractor even if runtime behavior is unchanged. That is test brittleness, not necessarily a functional regression.
+
+---
+
+## 133. Brittle tests
+
+A brittle test fails because of harmless internal rewrites that do not change its promised property. Excessive DOM selector or source-text coupling is a common cause.
+
+---
+
+## 134. Sometimes structure is the contract
+
+Load ordering, manifest declarations, and specific guard placement can themselves be required. Testing them intentionally is appropriate.
+
+---
+
+## 135. Extract pure helpers over time
+
+Candidate ordering, summary formatting, normalized identities, and other deterministic logic can move into explicit exported modules.
+
+---
+
+## 136. The resulting test is simpler
+
+Import the helper and call it with controlled inputs instead of slicing and evaluating arbitrary sections of content.js.
+
+**Historical code example:**
+
+```js
+import {
+  courseIndexRouteMap
+} from "../playback-discovery.mjs";
+```
+
+---
+
+## 137. Avoid massive testability refactors
+
+Many PlumePilot functions legitimately depend on the host DOM. Pull out well-bounded pure logic without reorganizing the entire extension merely to satisfy one test framework.
+
+---
+
+## 138. External boundaries require contract tests
+
+The LMS, browser messaging, extension storage, and generated document formats are external or shared contracts whose shapes can drift.
+
+---
+
+## 139. What a contract test verifies
+
+Check input normalization, expected output fields, permissible missing data, errors, and safe fallback behavior at a boundary.
+
+---
+
+## 140. Contract drift
+
+If the provider renames a lesson field, fail close to the adapter that reads it rather than allowing incorrect decisions deeper in autoplay.
+
+---
+
+## 141. Malformed input matters
+
+Test missing entries, null IDs, invalid percentages, wrong types, duplicate display orders, and unexpected arrays in normalization helpers.
+
+---
+
+## 142. Safe parser outcome
+
+When a provider response is malformed, prefer explicit unavailability or a controlled fallback rather than inventing values that look authoritative.
+
+---
+
+## 143. Artifact validation revisited
+
+Chapter 13 showed that validate-release.mjs inspects the generated ZIP. Such verification is preventative debugging before any reviewer or user installs it.
+
+---
+
+## 144. A source-to-artifact failure
+
+Source can contain the correct menu stylesheet while a build excludes it. The runtime source test passes; the artifact validator catches the omission.
+
+---
+
+## 145. Manual smoke testing still matters
+
+Test real platform courses, popup and floating menu, autoplay, exports, and cancellation before submitting an update. Not everything can be reproduced in Node.
+
+---
+
+## 146. Make the smoke test a checklist
+
+Replace "try the extension" with repeatable steps, prerequisites, expected outcomes, and browser/platform coverage.
+
+---
+
+## 147. Exploration complements checklists
+
+Regression checklists protect known guarantees. Exploratory testing finds surprising combinations and unforeseen failure modes.
+
+---
+
+## 148. Dogfooding exposes reality
+
+Using PlumePilot on real courses reveals long-tail layouts, unusual lesson states, delayed responses, and actual user workflows that synthetic fixtures might miss.
+
+---
+
+## 149. Turn dogfooding discoveries into tests
+
+A bug found through real use should become an issue description, minimal fixture, and regression case so knowledge no longer exists only in the maintainer's memory.
+
+---
+
+## 150. A useful bug report
+
+Record browser and extension version, LMS platform, course context, setup, steps, expected versus observed behavior, frequency, safe logs, and whether the issue reproduces on a clean state.
+
+---
+
+## 151. When a screenshot or video helps
+
+Recordings help with animations, focus, visual clipping, and timing sequences. Structured logs and state snapshots may be more useful for storage or API identity collisions.
+
+---
+
+## 152. Prioritize by risk
+
+Wrong activity navigation, data loss, uninterruptible work, or invalid release packages are more serious than cosmetic spacing. Severity should reflect impact and recovery options.
+
+---
+
+## 153. Fail closed on ambiguous identity
+
+When two chapters are equally plausible, do not choose one arbitrarily and perform side effects on it. Require additional evidence or stop safely.
+
+---
+
+## 154. Unknown test completion
+
+If completion cannot be established, do not silently classify a pending test as complete. Verify or present a safe intermediate state.
+
+---
+
+## 155. Ambiguous vendor transformation
+
+If replaceExactly cannot prove it matched precisely one expected pattern, fail the build rather than producing questionable executable output.
+
+---
+
+## 156. Not every error means immediate failure
+
+A transient HTTP error may merit retry; missing DOM may merit waiting; ambiguous identity requires restraint. Classify the condition before choosing recovery.
+
+---
+
+## 157. Error class determines recovery
+
+Temporary network → retry/backoff; incomplete API → visual fallback; DOM not ready → wait; ambiguous identity → stop; hidden tab → defer; stale cache → refresh; user cancel → cleanup; invalid ZIP → fail build; store warning → assess.
+
+---
+
+## 158. Write an event timeline
+
+For difficult races, list each operation's start, await, resume, write, and completion. The overlap often becomes obvious before opening the debugger.
+
+---
+
+## 159. Sequence diagrams express timing
+
+A sequence diagram can show concurrent storage writes, messages, and callbacks. It is simultaneously an explanation and a temporal specification.
+
+**Historical code example:**
+
+```mermaid
+sequenceDiagram
+    participant V as Video
+    participant A as Autoplay
+    participant DOM as LMS DOM
+    participant U as User
+
+    V->>A: ended
+    A->>DOM: remember current lesson
+    A->>A: await completion
+
+    U->>DOM: close accordion
+    DOM->>DOM: destroy/recreate rows
+
+    A->>DOM: resume
+    Note over A,DOM: old row is stale
+
+    A->>DOM: recover by logical identity
+    DOM-->>A: fresh row
+    A->>DOM: select next activity
+```
+
+---
+
+## 160. The lost-update race
+
+A and B can read the same old object, modify different fields, then overwrite each other when saving. A serialized read-modify-write queue changes the order and preserves both updates.
+
+---
+
+## 161. Control suspension points
+
+Every await can let another operation run. During testing, explicitly decide what happens between yielding and resuming.
+
+**Historical code example:**
+
+```js
+await
+```
+
+---
+
+## 162. Features multiply state combinations
+
+New settings, browsers, operation types, and activities increase the state space. Exhaustively enumerating the Cartesian product is impractical.
+
+---
+
+## 163. Tests compress knowledge
+
+Choose scenarios that represent invariant classes rather than every single data combination. One good ambiguity test can protect many datasets.
+
+---
+
+## 164. Candidate ordering as a property
+
+Whatever the percentages, candidates within the preferred group should keep course order, and earlier unverified chapters must not be permanently discarded.
+
+---
+
+## 165. Property-based testing as a future option
+
+A generator could vary chapter counts, percentages, missing identities, and contradictory master values, then check stable properties automatically.
+
+---
+
+## 166. Lightweight fuzzing
+
+Feed parsers and normalizers duplicate IDs, unusual arrays, missing fields, and invalid numeric values. Require deterministic, safe output instead of crashes or fabricated truth.
+
+---
+
+## 167. Mutation testing
+
+Deliberately change a guard, invert a condition, or remove cleanup. Would the test suite fail? If not, the asserted property may be too weak.
+
+---
+
+## 168. Where mutation tests add value
+
+Critical routing, cancellation, state ownership, and release validator checks are good candidates for future mutation testing.
+
+---
+
+## 169. A weak assertion
+
+assert.ok(result) proves that some truthy value exists. It says little about which target was chosen or what side effect occurred.
+
+**Historical code example:**
+
+```js
+assert.ok(result);
+```
+
+---
+
+## 170. A stronger assertion
+
+Check the exact target identity, request order, absence of forbidden side effects, and a clear failure message when the property breaks.
+
+**Historical code example:**
+
+```js
+assert.equal(result.status, "target");
+assert.equal(result.entry.lessonNumber, 4);
+assert.deepEqual(requested, [4]);
+```
+
+---
+
+## 171. A fragile sleep-based test
+
+await sleep(2000) relies on elapsed time, is slow, and may still fail on a busy CI host.
+
+**Historical code example:**
+
+```js
+await new Promise(r => setTimeout(r, 3000));
+```
+
+---
+
+## 172. A better controlled continuation
+
+Use a captured callback, virtual clock, or deferred Promise to make the relevant asynchronous transition deterministic.
+
+---
+
+## 173. An overly clever mock is a maintenance burden
+
+A thousand-line fake reimplementation of the LMS duplicates product complexity and may repeat production bugs instead of exposing them.
+
+---
+
+## 174. Minimal test doubles
+
+Model only the critical observable facts—for example, a closed accordion returns no row until recovery produces a new one.
+
+**Historical code example:**
+
+```js
+currentLesson: () => null
+```
+
+---
+
+## 175. Avoid overcoupling tests to implementation
+
+Testing a private variable's exact shape can fail after harmless refactors. Prefer observable decisions and outcomes when they express the real contract.
+
+---
+
+## 176. Include negative cases in regression fixes
+
+Restoring a closed accordion is important; refusing to advance the wrong manually selected lesson is equally essential.
+
+---
+
+## 177. Do not freeze irrelevant implementation order
+
+If two equivalent implementations produce the same result, tests should not impose one call ordering unless ordering itself protects a dependency.
+
+---
+
+## 178. Continuous integration as automatic memory
+
+Ideally every PR runs deterministic unit, structural, output, and artifact tests; it prevents merging changes that break known invariants.
+
+---
+
+## 179. The project's current position
+
+The repository already contains a meaningful set of tests even where CI coverage is incomplete. A central command would be a natural next step.
+
+---
+
+## 180. A test command is a developer interface
+
+When dozens of individual Node test files exist, relying on maintainers to remember all names is error-prone. Offer one repeatable entry point.
+
+**Historical code example:**
+
+```bash
+npm test
+```
+
+```bash
+node scripts/test-all.mjs
+```
+
+---
+
+## 181. A simple test runner
+
+Discover test files, run them in deterministic order, stop on failures, and provide an overall exit status without necessarily adding a heavyweight dependency.
+
+---
+
+## 182. Categorize test commands
+
+A future CLI could distinguish fast unit checks, browser integration, build validation, and full release verification so cost and prerequisites remain visible.
+
+---
+
+## 183. Browser matrix with Playwright
+
+Playwright supports multiple browser engines, but WebExtensions require loading real extension contexts. A web-page test in Firefox does not automatically exercise the AMO extension runtime.
+
+---
+
+## 184. Firefox Playwright is not the AMO extension target
+
+Testing ordinary Firefox webpage behavior cannot prove a Firefox MV3 background script, manifest, or store ZIP is valid. Use appropriate target-specific extension tests.
+
+---
+
+## 185. Test the actual installed package
+
+Generate, validate, install, and exercise the browser-specific release archive whenever practical. This more closely matches what users receive.
+
+---
+
+## 186. Store lint is not an E2E test
+
+web-ext lint finds manifest and package issues but does not prove autoplay, notes, or exports work.
+
+---
+
+## 187. Use complementary validation layers
+
+Source tests, browser interaction tests, final archive validation, lint, and manual smoke checks detect different failure classes.
+
+---
+
+## 188. Store rejection is a symptom
+
+Before changing code, determine whether a rejection concerns manifest, remote code, obfuscation, missing source, reviewer access, or another policy category.
+
+---
+
+## 189. Reproduce review warnings locally
+
+If a reviewer flags dynamic evaluation, scan the **generated Firefox ZIP**, not merely the repository source. This motivated review-safe transforms and validators.
+
+---
+
+## 190. Turn rejection into an invariant
+
+Identify the exact cause, add a deterministic package check, and include it in every future release process.
+
+---
+
+## 191. Release metadata can regress
+
+Outdated version strings, missing localization, incorrect What's New cards, and stale reviewer instructions are genuine release defects.
+
+---
+
+## 192. Docs as operational input
+
+When a reviewer follows AMO_SOURCE_README.md or test instructions, those documents are part of delivery and deserve consistency checks.
+
+---
+
+## 193. Debug CSS geometry before guessing
+
+For clipping, inspect the actual scroll container, bounding boxes, computed style, scrollbar gutter, and viewport rather than changing random margins.
+
+---
+
+## 194. CSS invariants plus browser measurements
+
+A source check can ensure the right selector exists; a browser geometry check proves the content actually fits and remains reachable.
+
+---
+
+## 195. Reduced motion is a test input
+
+Emulate prefers-reduced-motion and verify that interaction remains correct when smooth scrolling or animations are shortened or disabled.
+
+---
+
+## 196. Inspect generated files directly
+
+PDF, EPUB, and offline HTML are independent artifacts. The builder UI saying “complete” does not prove that files parse, link correctly, or preserve content.
+
+---
+
+## 197. Structured EPUB diagnostics
+
+The builder can expose page modes, asset counts, bytes, and elapsed time through a diagnostics object, enabling targeted tests and benchmarks.
+
+**Historical code example:**
+
+```js
+diagnostics
+```
+
+---
+
+## 198. Prefer diagnostic objects to noisy logs
+
+Record structured data and let the caller decide whether to display, compare, or discard it. This separates observability from console output.
+
+**Historical code example:**
+
+```js
+diagnostics.pages.push(record);
+```
+
+---
+
+## 199. Difficulty testing often reveals coupling
+
+If checking candidate order requires stubbing an entire LMS page, pure decision logic and DOM effects may be too tightly intertwined.
+
+---
+
+## 200. But not every browser feature should be pure
+
+Some operations genuinely require host DOM, extension messaging, or layout. The goal is to isolate deterministic logic where beneficial, not pretend platform effects can disappear.
+
+---
