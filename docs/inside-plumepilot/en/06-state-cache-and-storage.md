@@ -1551,3 +1551,1229 @@ lessonApiCache.get(key);
 is no longer "just a Map call." It is the visible tip of a small data-structure and cache-coherence design.
 
 ---
+
+
+# Part XI — Cache identity is part of the algorithm
+
+## 26. Not all fields become stale at the same rate
+
+`cachedLessonResponse()` first calculates:
+
+```js
+const fresh =
+  Date.now() - Number(entry.fetchedAt || 0) <=
+  API_LESSON_CACHE_FRESH_MS;
+```
+
+Then applies data-specific rules:
+
+```js
+if (!allowStaleMutableData) {
+  if (requiredData === "data" && !fresh) return null;
+  if (requiredData === "playback" && !fresh) return null;
+
+  if (
+    requiredData === "test" &&
+    !fresh &&
+    entry.test?.completed !== true
+  ) return null;
+
+  if (
+    requiredData === "objective" &&
+    !fresh &&
+    entry.objective?.completed !== true
+  ) return null;
+}
+```
+
+This is an example of **semantic cache policy**. We are not merely saying, "older than five minutes means unusable." We are saying:
+
+```text
+How freshness affects correctness depends on
+which kind of data the caller needs.
+```
+
+---
+
+## 27. Monotonic state and caching
+
+Recall the concept of **monotonic state** from Chapter 04.
+
+If a test is marked completed:
+
+```text
+0% → 100%
+```
+
+we normally do not expect it to become:
+
+```text
+100% → 0%
+```
+
+merely because several minutes passed.
+
+PlumePilot can therefore reuse some confirmed completion facts more generously than still-mutable information.
+
+In progress merges, the code also preserves the maximum percentage for the **same** identified activity:
+
+```js
+const percentage = Math.max(
+  Number(activity.percentage) || 0,
+  sameActivity ? Number(previousActivity.percentage) || 0 : 0,
+);
+```
+
+A stale response should not necessarily erase a stronger completion observation.
+
+This is a domain-specific choice, not a universal law of caches.
+
+---
+
+## 28. A cache can return valid data for the wrong thing
+
+A dangerous failure is not only:
+
+```text
+cache miss
+```
+
+but also:
+
+```text
+cache hit with the wrong identity
+```
+
+`rememberLessonResponse()` therefore tracks a `routeKey` and can avoid overwriting an entry when the route identity conflicts.
+
+The nominal key:
+
+```text
+courseCode:lessonNumber
+```
+
+is useful for fast lookup, but may not prove that two responses refer to exactly the same host-platform resource.
+
+As in Chapter 03, **identity must be checked independently from representation**.
+
+---
+
+# Part XII — Material-link caching
+
+## 29. Remembering a successful result
+
+Downloadable course materials have a separate cache:
+
+```js
+const materialLinkCache = new Map();
+```
+
+When a usable URL is found:
+
+```js
+materialLinkCache.set(key, {
+  status: "ready",
+  url: safeUrl,
+  section: entry.identity.sectionText,
+  chapterTitle: entry.identity.chapterText,
+  order: entry.order,
+  lessonNumber: entry.lessonNumber,
+  source,
+  attempts: (previous?.attempts || 0) + 1,
+  lastAttemptAt: Date.now(),
+  error: null,
+});
+```
+
+This is more than acceleration. Diagnostic metadata records where a URL came from, which attempt discovered it, and when.
+
+---
+
+## 30. Negative caching
+
+When discovery fails, the cache can also remember an unsuccessful attempt:
+
+```js
+materialLinkCache.set(key, {
+  status,
+  url: null,
+  // ...
+  attempts: (previous?.attempts || 0) + 1,
+  lastAttemptAt: Date.now(),
+  error,
+});
+```
+
+This is **negative caching**:
+
+```text
+I already tried to obtain this value,
+and it was not available.
+```
+
+However, PlumePilot protects an already known positive result. A later failed attempt should not blindly destroy a previously confirmed usable URL.
+
+---
+
+## 31. Invalidation triggered by real failure
+
+When the builder fails to download a material, it can collect the corresponding cache keys and send them back to the source page.
+
+The content script performs:
+
+```js
+materialLinkCache.delete(cacheKey);
+```
+
+only after checking that the key belongs to the current course.
+
+The loop is:
+
+```text
+cache says URL is valid
+        ↓
+builder tries to download
+        ↓
+actual download fails
+        ↓
+invalidate entry
+        ↓
+next export rediscovers URL
+```
+
+This is **event-driven invalidation**, not TTL.
+
+---
+
+# Part XIII — Structural cache: `materialOutlineCache`
+
+## 32. When cached data depends on external structure
+
+For the course outline, PlumePilot uses:
+
+```js
+const materialOutlineCache = new Map();
+```
+
+It does not reuse an entry merely because one exists. It computes a structural signature:
+
+```js
+const sectionSignature = initialSections.join("\u001f");
+```
+
+and compares it with the cached version.
+
+This is **cache validation by fingerprint**. When the host platform does not provide a formal version of its rendered course structure, PlumePilot can derive a signature from meaningful input.
+
+When the signature changes, the outline must be rebuilt.
+
+---
+
+## 33. TTL, fingerprint, and event: three different invalidation methods
+
+### Time-based
+
+```text
+lessonApiCache
+fetchedAt + TTL
+```
+
+### Fingerprint-based
+
+```text
+materialOutlineCache
+sectionSignature
+```
+
+### Event-based
+
+```text
+materialLinkCache
+real download failure
+```
+
+There is no universally correct invalidation method. The correct method depends on **how the cached fact can become false**.
+
+---
+
+# Part XIV — The hard part: cache invalidation
+
+## 34. Why "There are only two hard things..." is a famous joke
+
+A popular programming joke, commonly attributed to Phil Karlton, mentions:
+
+```text
+cache invalidation
+naming things
+```
+
+The joke contains an important reality.
+
+Caching is useful precisely because it avoids repeatedly asking the authoritative system for the truth. But each time we avoid checking, we must decide **how long our local copy remains trustworthy**.
+
+That tension can be managed but not completely eliminated.
+
+---
+
+## 35. Four questions for every cache
+
+### 1. What is the source of truth?
+
+For `lessonApiCache`:
+
+```text
+Multiversity API
+```
+
+### 2. How quickly can it change?
+
+Incomplete progress can change within seconds. A lesson title is likely to be much more stable.
+
+### 3. How costly would stale data be?
+
+Displaying 80% rather than 81% briefly is usually less serious than incorrectly deciding to skip an unfinished lesson.
+
+### 4. How do we know when the cache is invalid?
+
+Possible strategies include TTL, fingerprints, runtime events, explicit failure feedback, route identity, and comparison with authoritative state.
+
+A good cache policy reflects the **cost of making the wrong decision**.
+
+---
+
+# Part XV — Course progress combines sources
+
+## 36. There is not always one perfect reading
+
+The course progress model in `content.js` includes:
+
+```js
+courseProgressState = {
+  courseCode,
+  baselinePercent: null,
+  domPercent: null,
+  sessionDelta: 0,
+  exactPercent: null,
+  chapterCount: 0,
+  expectedKeys: null,
+  expectedSignature: null,
+};
+```
+
+Different sources coexist.
+
+### `baselinePercent`
+
+The percentage observed in the official Multiversity UI.
+
+### `sessionDelta`
+
+Progress PlumePilot has observed during the current session and can add to the baseline.
+
+### `exactPercent`
+
+A percentage calculated when sufficiently complete course data becomes available.
+
+The displayed value may be:
+
+```js
+const value = exactAvailable
+  ? Number(state.exactPercent)
+  : state.baselinePercent + Math.max(0, Number(state.sessionDelta) || 0);
+```
+
+This is derived state with explicit sources, not one magic counter.
+
+---
+
+## 37. Rebasing when the external source updates
+
+When the official DOM percentage changes:
+
+```js
+if (
+  domPercent !== null &&
+  courseProgressState.domPercent !== null &&
+  domPercent !== courseProgressState.domPercent
+) {
+  courseProgressState.baselinePercent = domPercent;
+  courseProgressState.domPercent = domPercent;
+  courseProgressState.sessionDelta = 0;
+  courseProgressState.exactPercent = null;
+}
+```
+
+Conceptually, PlumePilot performs a **rebase**.
+
+Before:
+
+```text
+official baseline = 63%
+observed delta    = +2%
+local estimate    = 65%
+```
+
+If the official UI updates to 65%, keeping the old +2% delta would count the same progress twice.
+
+The new official value becomes the baseline, and the local delta resets.
+
+This is state reconciliation across different timelines.
+
+---
+
+## 38. Data provenance: know where a value comes from
+
+When PlumePilot publishes progress status, it includes metadata such as:
+
+```js
+{
+  percent,
+  chapterCount,
+  knownChapters,
+  exact: exactAvailable,
+  updatedByStudyWing: exactAvailable || state.sessionDelta >= 1,
+  message: ...
+}
+```
+
+The value is not merely:
+
+```text
+65%
+```
+
+It also indicates whether that value is exact, how much chapter data is known, and whether PlumePilot has updated the progress estimate.
+
+This is **data provenance**. Numerically identical values can have different levels of authority depending on their origin.
+
+---
+
+# Part XVI — Durable handoff of temporary jobs
+
+## 39. The `pegasoExportJob:<jobId>` pattern
+
+After collection, the background must open a builder page that does not exist yet. The payload may be large and needs to survive this transition.
+
+The background generates:
+
+```js
+const jobId = crypto.randomUUID();
+const storageKey = `pegasoExportJob:${jobId}`;
+```
+
+Then stores:
+
+```js
+await storageSet({
+  [storageKey]: {
+    ...message.payload,
+    format,
+    operationId: operation.id,
+    courseTabId: operation.sourceTabId,
+  },
+});
+```
+
+The builder is opened with a URL containing only the job ID. It reads the payload using that identifier and removes the temporary job after consuming it.
+
+---
+
+## 40. Persistent storage can hold temporary data
+
+This sounds paradoxical:
+
+```text
+durable storage
+used for temporary information
+```
+
+But durability and retention duration are not the same thing.
+
+The requirement is not that the job live forever. It is that the data **survive the gap between the producer and consumer**:
+
+```text
+background writes payload
+       ↓
+builder tab is created
+       ↓
+builder reads payload
+       ↓
+temporary entry is removed
+```
+
+The storage key functions as a small **durable mailbox**, conceptually similar to a simplified work queue.
+
+---
+
+# Part XVII — Versioning stored state
+
+## 41. Local data also has a schema
+
+`commission-state.js` creates snapshots shaped like:
+
+```js
+return {
+  version: 2,
+  state: classifyExam(exam),
+  commission: ...,
+  result: ...,
+  reject_motivation: ...,
+  vote: ...,
+  status: ...,
+};
+```
+
+The field:
+
+```js
+version: 2
+```
+
+matters because stored state can outlive the extension version that wrote it. A new release may encounter data generated by older code.
+
+---
+
+## 42. Reading legacy state
+
+`normalizeStoredSnapshot()` handles multiple representations:
+
+```js
+if (value && typeof value === "object" && value.version === 2) {
+  return createSnapshot(value);
+}
+
+if (typeof value !== "string") return null;
+
+try {
+  const legacy = JSON.parse(value);
+  return legacy && typeof legacy === "object"
+    ? createSnapshot(legacy)
+    : null;
+} catch {
+  return null;
+}
+```
+
+```text
+schema v2 ─────┐
+               ├──► current model
+legacy format ─┘
+```
+
+This is **schema migration at read time**.
+
+---
+
+## 43. Postel's law? Yes, with caution
+
+We might summarize the migration approach as:
+
+```text
+accept supported legacy input formats
+produce one normalized current output format
+```
+
+But backward compatibility should not imply accepting arbitrary values.
+
+The code validates types, normalizes strings, reconstructs the current snapshot, and returns `null` for data it cannot safely interpret.
+
+A compatibility layer is still a validation layer.
+
+---
+
+# Part XVIII — What PlumePilot deliberately does not persist
+
+## 44. Choosing not to persist is an important design decision
+
+Chapter 04 showed that:
+
+```js
+let bearerToken = null;
+```
+
+is held in memory in the `MAIN`-world interceptor.
+
+It is not written into:
+
+```text
+chrome.storage.local
+sessionStorage
+localStorage
+```
+
+That is consistent with a security principle:
+
+> **Persist only what actually needs persistence.**
+
+Extension local storage should not be treated as encrypted secret storage. Keeping a temporary session credential out of persistent storage reduces its lifetime and exposure surface.
+
+---
+
+# Part XIX — Storage as reactive communication
+
+## 45. When storage also carries change notifications
+
+The bridge listens:
+
+```js
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+
+  if (
+    changes.enabled ||
+    changes.stopAtTests ||
+    changes.autoCompleteTests
+    // ...
+  ) {
+    readAndSendState(false);
+  }
+});
+```
+
+This produces:
+
+```text
+popup
+  │ storage.local.set
+  ▼
+storage
+  │ onChanged
+  ▼
+bridge
+  │ read current state
+  ▼
+window.postMessage
+  ▼
+content.js
+```
+
+It is a simple form of **reactive state propagation** across extension contexts.
+
+---
+
+## 46. Why reread the whole snapshot?
+
+The bridge could try to apply only the new values from the change event:
+
+```js
+changes.enabled.newValue
+changes.stopAtTests.newValue
+// ...
+```
+
+Instead, for related settings it calls:
+
+```js
+readAndSendState(false);
+```
+
+This matters because effective settings are derived from **multiple persisted preferences together**.
+
+For example, `autoCompleteTests` may temporarily deactivate `stopAtTests` without erasing it.
+
+Rereading and recomputing gives the bridge a consistent view of the current configuration rather than piecing together a partial state from one notification.
+
+---
+
+# Part XX — Where does the truth actually live?
+
+## 47. The answer depends on the domain
+
+### User preferences
+
+Authoritative local source:
+
+```text
+chrome.storage.local
+```
+
+### Active PlumePilot operation
+
+Application coordination source:
+
+```text
+pegasoActiveOperation in storage.local
++
+reconciliation with existing tabs
+```
+
+### Page recovery
+
+Temporary, tab-scoped state:
+
+```text
+sessionStorage
+```
+
+### Recently observed API response
+
+Reusable local optimization:
+
+```text
+in-memory cache
+```
+
+### Actual course/activity state
+
+Ultimately owned by the **Multiversity platform**; PlumePilot observes it through APIs and DOM signals with differing reliability.
+
+The source of truth is not simply "where the easiest object to read happens to live."
+
+---
+
+## 48. A complete map
+
+```mermaid
+flowchart TD
+    U[User] --> P[Preferences]
+    P --> SL[chrome.storage.local]
+
+    SL --> POP[Popup]
+    SL --> BR[Bridge]
+    SL --> BG[Background]
+
+    BG --> OP[Operation record]
+    OP --> SL
+
+    PAGE[Multiversity page] --> SS[sessionStorage recovery]
+    PAGE --> MEM[In-memory Maps and caches]
+    API[Multiversity API] --> MEM
+    API --> PAGE
+
+    BG --> JOB[Export job mailbox]
+    JOB --> SL
+    SL --> BUILDER[Builder page]
+```
+
+```text
+persisted state
+cache
+source of truth
+derived state
+```
+
+are different concepts, even when implemented with ordinary JavaScript objects and browser storage APIs.
+
+---
+
+# Part XXI — Failure modes from choosing the wrong storage
+
+## 49. User preference stored only in memory
+
+```text
+user enables a feature
+closes the popup
+preference disappears
+```
+
+Cause: **lifetime too short**.
+
+---
+
+## 50. API cache persisted unnecessarily
+
+```text
+reopen browser tomorrow
+old cache is treated as current
+activities are skipped incorrectly
+```
+
+Cause: **lifetime too long**.
+
+---
+
+## 51. Recovery guard persisted globally
+
+```text
+yesterday's error in course A
+affects course B today
+```
+
+Cause: **scope too broad**.
+
+---
+
+## 52. Operational state stored only in the service worker
+
+```text
+worker is recreated
+logical lock is lost
+second incompatible operation starts
+```
+
+Cause: **insufficient persistence**.
+
+---
+
+## 53. Token written to persistent storage
+
+```text
+credential lifetime unnecessarily extended
+larger accidental exposure surface
+```
+
+Cause: **excessive persistence for a sensitive value**.
+
+---
+
+# Part XXII — A state pyramid
+
+## 54. From volatile representations to external authority
+
+A useful conceptual picture:
+
+```text
+                 PLATFORM / SERVER
+               external source of truth
+                         ▲
+                         │ reconcile
+                  persisted state
+                chrome.storage.local
+                         ▲
+                         │ hydrate / events
+                   session state
+                   sessionStorage
+                         ▲
+                         │ initialize
+                   process/page memory
+                   Maps, timers, flags
+                         ▲
+                         │ render
+                         DOM / UI
+```
+
+The top is not always "better"; each level has a different contract, lifetime, and access cost.
+
+---
+
+## 55. Authoritative versus convenient state
+
+The most convenient value is often closest to the UI:
+
+```text
+DOM: 80%
+```
+
+But it may be less complete or authoritative than a detailed API response.
+
+Conversely, fetching every lesson's complete API data may be more informative but also more expensive.
+
+A good architecture balances:
+
+```text
+correctness
+freshness
+performance
+available evidence
+cost of stale decisions
+```
+
+rather than always choosing either the closest or the most powerful source.
+
+---
+
+# Part XXIII — Backend analogies
+
+## 56. `chrome.storage.local` as a small durable store
+
+It is not PostgreSQL, but it can be understood as:
+
+```text
+an application-owned durable key–value store
+```
+
+with read, write, remove, and change notification operations.
+
+---
+
+## 57. `Map` as a process cache
+
+```js
+const lessonApiCache = new Map();
+```
+
+resembles a local process cache. When the owning script instance ends, the cache ends. That can be perfectly appropriate.
+
+---
+
+## 58. `sessionStorage` as client-session-scoped state
+
+It is closer to a temporary client-session context than a global application database.
+
+For PlumePilot it can represent:
+
+```text
+this tab has already attempted this specific recovery once
+```
+
+without affecting unrelated tabs or future sessions.
+
+---
+
+## 59. A lease as a simplified distributed lock
+
+`commissionCheckLeases` resembles an expiring ownership record:
+
+```text
+owner
+lease ID
+expiresAt
+```
+
+The entire system runs inside one browser, but the conceptual pattern is similar to a simplified distributed lease.
+
+---
+
+## 60. `pegasoExportJob:*` as work queue / mailbox
+
+The producer stores a payload. The consumer starts later and retrieves it.
+
+There is no full-fledged message queue, but the architectural responsibility is similar: **durable handoff between independently created components**.
+
+---
+
+# Part XXIV — Alternative architectural choices
+
+## 61. A central State Store
+
+A future version might expose:
+
+```js
+StateStore.getPreferences()
+StateStore.updatePreferences(...)
+StateStore.getOperation()
+StateStore.claimOperation(...)
+StateStore.getCourseState(...)
+```
+
+Advantages:
+
+```text
+centralized schemas
+clearer migrations
+fewer scattered storage calls
+uniform validation
+```
+
+Costs:
+
+```text
+another abstraction
+migration of existing code
+cross-context module organization
+risk of over-generalization
+```
+
+PlumePilot's current architecture is understandable because these patterns emerged incrementally when the project needed them.
+
+---
+
+## 62. A generic TTL cache?
+
+We could introduce:
+
+```js
+new Cache({ ttl: 300_000, maxEntries: 100 })
+```
+
+But a generic abstraction might hide essential domain behavior:
+
+```text
+confirmed completion may remain reusable after TTL
+a material URL is invalidated by an actual download failure
+a course outline depends on a section signature
+```
+
+A generic cache helps only when it does not erase the rules that make a cached value safe to use.
+
+---
+
+## 63. Could `storage.session` be useful?
+
+It may fit extension-wide state that must survive service worker recreation but need not persist to disk between browser sessions.
+
+Some coordination metadata might be candidates in theory.
+
+However, we would need to evaluate browser support, which extension contexts can access it, restart requirements, and whether the intended scope is per-tab or global.
+
+The decisive criterion should be **required lifecycle**, not how recently an API was introduced.
+
+---
+
+# Part XXV — A practical decision checklist
+
+## 64. Questions to ask
+
+Whenever we add a feature, define:
+
+### Identity
+
+```text
+Who does the value belong to?
+user? course? platform? tab? operation?
+```
+
+### Authority
+
+```text
+Who owns the truth?
+user? extension? DOM? external API?
+```
+
+### Lifetime
+
+```text
+Must it survive a function return?
+a popup close?
+a page reload?
+a service worker restart?
+a browser restart?
+```
+
+### Freshness
+
+```text
+How quickly can it become stale?
+```
+
+### Invalidation
+
+```text
+Timeout?
+TTL?
+Fingerprint?
+Event?
+Observed failure?
+Owner reconciliation?
+```
+
+### Security
+
+```text
+Does it contain secrets?
+Which contexts truly need access?
+```
+
+### Migration
+
+```text
+Could a future release encounter an older schema?
+```
+
+When these questions have clear answers, the choice of browser storage API becomes substantially easier.
+
+---
+
+# Part XXVI — Exercises
+
+## 65. Where would you store these values?
+
+### A. Light/dark theme
+
+```text
+chrome.storage.local
+```
+
+It is a durable user preference.
+
+### B. Promise resolver waiting for a `requestId` reply
+
+```text
+in-memory Map
+```
+
+It cannot meaningfully be serialized and belongs to the current script runtime.
+
+### C. "This tab already attempted this recovery reload"
+
+```text
+document sessionStorage
+```
+
+It needs per-tab scope and reload survival, but not indefinite persistence.
+
+### D. Current Bearer token
+
+```text
+interceptor memory only
+```
+
+The secret should remain confined to the component that needs it.
+
+### E. Recently discovered course-material PDF URL
+
+```text
+materialLinkCache in page memory
+```
+
+with an invalidation mechanism if the builder discovers that the link no longer works.
+
+---
+
+## 66. Why not store everything?
+
+Imagine persisting every API response in `chrome.storage.local`. Problems would include:
+
+```text
+stale data
+schema migration
+storage quotas
+unnecessary I/O
+privacy
+cleanup
+multiple competing sources of truth
+```
+
+Persistence has an architectural cost.
+
+---
+
+## 67. Why not keep everything in RAM?
+
+The opposite problems:
+
+```text
+popup closes → state lost
+worker terminates → coordination lost
+reload → recovery lost
+independent contexts cannot synchronize state directly
+```
+
+Volatility has a cost too.
+
+---
+
+# Part XXVII — Concepts to carry forward
+
+## 68. State does not mean storage
+
+State is information with meaning and a lifecycle. Storage is only the mechanism used to retain it.
+
+---
+
+## 69. Lifetime matching
+
+The storage lifetime should match the data's required lifetime.
+
+```text
+script memory < page session < extension storage < external server state
+```
+
+These are conceptual durability levels, not a strict total order of authority. More persistence is not automatically better engineering.
+
+---
+
+## 70. Source of truth
+
+The system that has final authority over a particular fact.
+
+A cache does not become authoritative merely because it is easier to read.
+
+---
+
+## 71. Cache invalidation
+
+The policy under which a cache stops being trusted.
+
+PlumePilot uses:
+
+```text
+TTL
+structural fingerprint
+event-driven invalidation
+monotonic domain knowledge
+```
+
+---
+
+## 72. Reconciliation
+
+Comparing stored state against reality and correcting it.
+
+Examples:
+
+```text
+Does the operation owner tab still exist?
+Has the official DOM percentage changed?
+Does the route identity still match?
+```
+
+---
+
+## 73. Lease
+
+Time-limited ownership with explicit expiration. More resilient than an eternal lock when owners can disappear.
+
+---
+
+## 74. Durable handoff
+
+Temporarily using durable storage to transfer a payload between a producer and consumer with independent lifecycles.
+
+`pegasoExportJob:*` is a concrete example.
+
+---
+
+## 75. Stored intent versus effective state
+
+A persisted preference represents the user's choice, while the runtime derives a compatible operational configuration under current constraints.
+
+---
+
+## 76. Data provenance
+
+Knowing not only a value, but where it came from and how reliable it is.
+
+For progress:
+
+```text
+DOM baseline
+session delta
+exact API-derived value
+```
+
+---
+
+## 77. Schema migration
+
+Even local storage is a small database. When formats change, we need a way to read or migrate data created by earlier releases.
+
+---
+
+# Part XXVIII — Connecting to the next chapter
+
+We now have the essential ingredients:
+
+```text
+Chapter 02 → messaging
+Chapter 03 → dynamic DOM
+Chapter 04 → APIs and sources of truth
+Chapter 05 → asynchrony and race conditions
+Chapter 06 → state, cache, lifetime, and persistence
+```
+
+We can finally study autoplay not as one enormous chain of `if` statements, but as a system moving between states:
+
+```text
+IDLE
+  ↓
+PLAYING
+  ↓
+WAITING_COMPLETION
+  ↓
+TEST_BOUNDARY
+  ↓
+ADVANCING
+  ↓
+RECOVERY
+  ↓
+STOPPED
+```
+
+Those states have transitions, guards, invariants, and cancellation paths. Some depend on DOM readiness; some depend on APIs; all must respect the shared state and lifetime decisions studied here.
+
+**Chapter 07 — Autoplay as a state machine** will put those pieces together.
+
+---
+
+[← 05 — JavaScript asynchrony](05-javascript-asynchrony.md) · [Contents](index.md) · 07 — Autoplay as a state machine (translation in progress)
