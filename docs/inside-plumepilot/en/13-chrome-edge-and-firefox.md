@@ -1661,19 +1661,147 @@ Define the domain requirement, check primary documentation for every target, cre
 9. Update reviewer documentation when needed.
 10. Review current store policies before submitting.
 
-**Original technical examples:**
+# Parts LXXVII–LXXXII — Exercises
+
+## Exercise 1 — A browser-dependent API
+
+We want to add:
+
+```text
+automatically copying content into notes
+```
+
+but the relevant API is only available in certain browser contexts.
+
+Answer each question:
+
+1. Is it a Web API or a privileged extension API?
+2. Can you use capability detection?
+3. Does it require a permission?
+4. What should happen if it is unavailable?
+5. Does the difference require a runtime adapter or manifest specialization?
+6. How would you validate the generated browser artifact?
+
+---
+
+## Exercise 2 — An additional Edge locale
+
+Suppose Edge Add-ons requires a third locale:
+
+```text
+fr
+```
+
+Where should the change be made?
+
+A desirable plan touches:
+
+```text
+edgeLocales
++
+the localized messages file
++
+the artifact validator
+```
+
+It should **not** involve:
+
+```text
+manually editing the ZIP after building it
+```
+
+Explain why the latter would break reproducibility.
+
+---
+
+## Exercise 3 — A PDF.js upstream change
+
+A PDF.js upgrade changes the pattern expected by:
+
+```text
+replaceExactly()
+```
+
+and the Firefox build fails.
+
+Is that necessarily a bug in the builder? **No.** The failure is intentional when a pinned transformation no longer matches its assumed upstream code.
+
+Before changing the transform, investigate:
+
+```text
+inspect the upstream changes
+understand the new behavior
+decide whether the patch is still required
+update the transform and validator
+```
+
+Explain why silently bypassing the failed assertion would be unsafe.
+
+---
+
+## Exercise 4 — Firefox review rejection
+
+The Firefox package works locally, but AMO reports:
+
+```text
+unknown minified code
+```
+
+Build a layered diagnosis:
+
+```text
+runtime?
+manifest?
+generated artifact?
+vendor provenance?
+store policy?
+source submission?
+```
+
+What evidence belongs at each layer?
+
+---
+
+## Exercise 5 — A clipped Chrome popup
+
+Chrome and Firefox render the same popup, but Chrome clips the right edge.
+
+Why is it a mistake to begin with:
 
 ```js
 if (isChrome) width -= 8;
 ```
 
+without measuring:
+
+```text
+scrollbar
+viewport
+box sizing
+overflow
+```
+
+Which observations would justify a browser-specific correction, and which indicate a general layout problem?
+
+---
+
+## Exercise 6 — Feature detection versus manifest specialization
+
+Why is:
+
 ```js
 if (chrome.offscreen?.createDocument)
 ```
 
+usually a better runtime capability test than:
+
 ```js
 if (!isFirefox)
 ```
+
+yet insufficient to replace browser-specific manifest generation?
+
+Distinguish **runtime API availability** from **static package declarations, permissions, and store policy**.
 
 ---
 
