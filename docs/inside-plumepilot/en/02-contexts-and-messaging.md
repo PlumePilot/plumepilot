@@ -1623,4 +1623,4 @@ Reading an HTML element is easy. Building reliable automation on top of a contin
 
 ---
 
-[← 01 — Anatomy of PlumePilot](01-anatomy-of-an-extension.md) · [Contents](index.md) · 03 — DOM and dynamic pages (translation in progress)
+[← 01 — Anatomy of PlumePilot](01-anatomy-of-an-extension.md) · [Contents](index.md) · [03 — DOM and dynamic pages →](03-dom-and-dynamic-pages.md)
