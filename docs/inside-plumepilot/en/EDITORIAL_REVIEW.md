@@ -28,6 +28,21 @@ The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. Th
 
 ---
 
+## Second editorial pass — verified findings
+
+- [x] **Chapter 03:** reviewed discrepancies in DOM adapters, initial NodeList caching, observer scope, percentage ambiguity, conditional rendering, and the fake page adapter; restored illustrative code and preserved all 95 numbered sections. Some source `text` diagrams were consolidated into equivalent English explanations.
+- [x] **Chapter 04:** restored API wrapper failure illustration, composite lesson key, explicit `return false` fallback, and identifier validators. Source-literal differences remain where code comments and diagrams were translated or examples were combined.
+- [x] **Chapter 05:** restored explanatory examples for `async`/Promises, `Promise.allSettled()`, recovery after `await`, serial-queue instances and cooperative cancellation. **Section 97's sequence diagram now matches the original**, including `serializedBuilder()` and acquisition of the builder operation.
+- [x] **Historical code references:** checked the original `github.com/PlumePilot/plumepilot/blob/...` URLs chapter by chapter. **97 out of 97** references in chapters 02–05 remain identical in the English edition. No other chapter uses these exact historical blob URLs.
+- [x] **Chapter 06 subsection structure:** all **24 numbered subsections (25.1–25.24)** of the extended cache data-structures chapter are present in both languages. This verifies the outline, **not** full content fidelity.
+- [ ] **Chapter 06 deeper fidelity:** restore the explicit `LessonCacheEntry` field inventory, the null-prototype `Object.create(null)` comparison, the full cache-hit examples, and the stale-versus-monotonic decision diagram where missing. Some surrounding principles are present in prose, but technical illustrations should match educational depth.
+- [ ] **Chapters 11–17:** complete the side-by-side review of diagrams and worked explanations that the initial drafts compressed.
+- [ ] **Offline reader:** generate and test the English HTML only after the Markdown content is stable.
+
+**Gate:** the checks above do not authorize changing PR #44 from Draft or merging. Section headings and historical links are necessary checks but cannot prove full translation fidelity.
+
+---
+
 ## Important remaining editorial work
 
 A matching heading count **does not prove equivalent content**. Several draft chapters compress explanatory code-like `text` blocks from the Italian source into prose. Some earlier chapters have fewer fenced technical examples than their originals.
