@@ -286,7 +286,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 ---
 
-## 10. Why not always call §renderEverything()§?
+## 10. Why not always call `renderEverything()`?
 
 Calling one global render on every storage change would be simpler to write but more expensive to live with. It could rebuild unnecessary DOM, lose keyboard focus, reset `<details>` disclosure state, jump the scroll position, restart animations, overwrite temporary controls, and perform needless work.
 
@@ -316,7 +316,7 @@ The features are not removed; the presentation hierarchy is changed to reduce co
 
 ---
 
-## 12. §bindCourseNavigation()§
+## 12. `bindCourseNavigation()`
 
 The shared `bindCourseNavigation(root, scrollElement, onChange)` function finds the home view, detail view, opener, and back control through semantic `data-ux-*` attributes. On opening the detail view it records the current scroll position, hides home, shows detail, updates `aria-expanded`, scrolls to the top, and focuses the detail title without an unnecessary extra jump.
 
@@ -349,7 +349,7 @@ detail.querySelector("[data-ux-detail-title]").focus({ preventScroll: true });
 
 ---
 
-## 13. Why preserve §homeScroll§?
+## 13. Why preserve `homeScroll`?
 
 Imagine scrolling halfway down Course, opening Autoplay Settings, then pressing Back. Returning to the very top technically works, but the user has lost their **spatial context**.
 
@@ -485,7 +485,7 @@ panel.scrollIntoView();
 
 ---
 
-## 20. §bindExpansionScroll()§
+## 20. `bindExpansionScroll()`
 
 This shared helper receives the root element, the scroll container, and a layout callback. It distinguishes document scrolling from scrolling an element by comparing against `document.scrollingElement`.
 
@@ -566,7 +566,7 @@ requestAnimationFrame(...)
 
 ---
 
-## 23. §prefers-reduced-motion§
+## 23. `prefers-reduced-motion`
 
 The scroll behavior checks the user's motion preference through `window.matchMedia("(prefers-reduced-motion: reduce)")`. If reduced motion is requested, the helper uses automatic rather than smooth scrolling.
 
@@ -643,7 +643,7 @@ This repeats a recurring architectural rule: **stable logical identity must not 
 
 ---
 
-## 27. §normalizeLayout()§ as a small schema migration
+## 27. `normalizeLayout()` as a small schema migration
 
 The normalizer constructs a lookup of saved entries, rejects malformed values, unknown IDs, and duplicates, and appends any newly introduced actions that are missing from old layouts.
 
@@ -708,7 +708,7 @@ This illustrates the difference between user preference and operational safety. 
 
 ---
 
-## 31. §applyActionLayout()§
+## 31. `applyActionLayout()`
 
 The shared helper determines the action corresponding to `operation?.kind`. Its visibility rule is essentially: hide an item only if the user disabled it **and** it is not the active operation's action.
 
@@ -844,7 +844,7 @@ root.querySelector("[data-ux-home]")
 
 ---
 
-## 38. Why not extract everything into §renderMenu()§?
+## 38. Why not extract everything into `renderMenu()`?
 
 A single markup generator for both menus may sound attractive, but each surface still differs in lifecycle, root document, scroll container, available screen space, event coordination, and integration with host or extension UI.
 
@@ -1059,7 +1059,7 @@ fetch(url)
 
 ---
 
-## 48. Why §WeakMap§?
+## 48. Why `WeakMap`?
 
 The module declares `const gamingFonts = new WeakMap()`. Each document is used as a key; the corresponding value tracks its pending or completed font-loading Promise.
 
@@ -1441,7 +1441,7 @@ Similarly, PlumePilot's controllers may differ in HTML and layout while agreeing
 
 ---
 
-## 74. §menu-ux.js§ as a shared presentation service
+## 74. `menu-ux.js` as a shared presentation service
 
 The shared module acts like a small application/presentation service: it derives summaries, normalizes action layouts, handles navigation behavior, and helps keep interaction rules consistent.
 
