@@ -1808,4 +1808,4 @@ We will connect bug reports, reproducible examples, regression tests, validation
 
 ---
 
-[← 12 — Performance and memory](12-performance-and-memory.md) · [Contents](index.md) · 14 — Debugging, tests, and regressions (translation in progress)
+[← 12 — Performance and memory](12-performance-and-memory.md) · [Contents](index.md) · [14 — Debugging, tests, and regressions →](14-debugging-tests-and-regressions.md)
