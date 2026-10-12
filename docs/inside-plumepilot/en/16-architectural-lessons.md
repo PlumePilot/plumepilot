@@ -2040,7 +2040,7 @@ Fail the build on deterministic packaging violations; prefer explicit errors ove
 
 ## 298. A checklist for new features
 
-Before implementing, identify the domain goal, state owner, stable identity, trusted evidence, asynchronous lifecycle, failure handling, cancellation, privacy boundaries, runtime compatibility and regression-test level.
+Before implementing, answer twelve questions: What identifies each entity? What is authoritative versus only a hint? How long does state live? Who owns it? What crosses an external boundary? Which side effects are risky? How is unknown represented? What fallback applies? How does cancellation work? How is memory growth bounded? Which test protects the invariant?
 
 **Historical code or diagram:**
 
