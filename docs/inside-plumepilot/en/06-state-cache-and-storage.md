@@ -1318,6 +1318,8 @@ But PlumePilot also evaluates **semantic freshness**.
 
 An incomplete test cached some time ago may now have been completed, so the old "incomplete" fact is risky. A confirmed `completed` result may be much more stable under the project's domain assumptions.
 
+The source chapter also illustrates the policy as a decision tree: if an entry is fresh, reuse it; if stale, ask whether it contains a confirmed monotonic fact. Reuse such a fact only when identity and required fields still match; otherwise refresh the mutable data. This makes the distinction between time-based freshness and semantic validity explicit.
+
 Thus an older entry may be reusable for one kind of information but not another. **TTL alone does not decide every cache hit.**
 
 ---
