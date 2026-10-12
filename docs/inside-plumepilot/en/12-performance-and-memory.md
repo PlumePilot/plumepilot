@@ -999,3 +999,476 @@ Regional mode tries to preserve selected diagrams, equations, or tables as image
 We can describe a page with several costs: CPU time `C`, peak memory `M`, output bytes `B`, and semantic or visual loss `L`. The converter chooses among text, regional, and visual strategies while trying to respect a quality threshold and a practical resource budget. PlumePilot does not solve a mathematical optimization problem globally; its heuristics approximate the same trade-off. The model clarifies why "fastest" alone cannot select the right mode.
 
 ---
+
+# Part XXVII — Main thread versus workers
+
+## 81. The PDF.js worker does not remove all main-thread work
+
+PDF.js configures its worker using `pdfjsLib.GlobalWorkerOptions.workerSrc`. Some parsing and document processing may run away from the main thread, but the builder page still coordinates conversion, canvas rendering, image encoding, DOM progress updates, and ZIP packaging. A worker is **not** a guarantee that every expensive operation has moved off the main thread. Profile the complete pipeline before concluding that the UI is protected from long tasks.
+
+**Examples from the historical implementation:**
+
+```js
+pdfjsLib.GlobalWorkerOptions.workerSrc = ...
+```
+
+**Historical reference:** `epub-core.mjs:8–11`
+
+---
+
+## 82. What might move to workers in the future?
+
+Possible candidates include image analysis, hashing, parts of encoding, or other transformations that do not require normal DOM access. But `OffscreenCanvas` capabilities, extension browser compatibility, PDF.js integration, and moving large buffers between contexts bring their own complications. Worker extraction should follow measured bottlenecks, not an assumption that worker code is automatically faster.
+
+---
+
+## 83. Transfer versus copy
+
+When sending a large `ArrayBuffer` to a worker, **copying** it can produce another large allocation, while **transferring** ownership can avoid that copy but detach the sender's access. For a 50 MB buffer the difference may matter to peak memory. Ownership transfers are therefore a natural design question for any future worker-based converter, but do not justify a refactor without representative measurements.
+
+---
+
+# Part XXVIII — Extension background and performance
+
+## 84. The background is not a permanent process
+
+On Chromium Manifest V3, the extension's background service worker may be terminated when idle and started again later. Termination can free process-local caches and queues, but startup adds latency and forces important state to be reconstructed. Ephemeral lifetimes are therefore simultaneously a memory advantage and a coordination constraint. Durable operation state must not depend solely on globals in a worker that can disappear.
+
+---
+
+# Part XXIX — Cross-context performance
+
+## 85. Messaging has a cost, but it is rarely the first suspect
+
+PlumePilot communicates among popup, background, content bridge, MAIN world, and builder. Crossing these boundaries requires serialization, dispatch, validation, and sometimes copying. However, optimizing small status messages is unlikely to help if PDF rasterization dominates a 30-second export. **Measure the actual payload and frequency** before treating messaging as the bottleneck.
+
+---
+
+## 86. Large payloads deserve different handling
+
+Sending a command such as `{ type: "START" }` is very different from transporting several megabytes of binary material. PlumePilot generally leaves large artifacts in the context where they are generated and uses messaging to communicate operation IDs, commands, progress, and completion. For builder handoff, the background uses extension storage rather than embedding huge payloads in a URL. Avoid unnecessary cross-context buffer movement.
+
+**Examples from the historical implementation:**
+
+```js
+{ type: "START" }
+```
+
+---
+
+# Part XXX — Data locality
+
+## 87. Keep data near its consumer
+
+`lessonApiCache` lives alongside lesson discovery. `turboControllers` are kept in the MAIN-world interceptor owning abortable requests. EPUB assets live with the document builder. This is **data locality**: keep information close to the code that uses or controls it unless sharing is necessary. Reducing transfers can simplify ownership, reduce copies, and avoid making a single background process the bottleneck for unrelated work.
+
+---
+
+# Part XXXI — UI performance
+
+## 88. Selective rendering
+
+Chapter 11 examined `chrome.storage.onChanged` updates. The floating menu does not indiscriminately rebuild its entire UI for each preference change; it chooses which render functions apply. This is manual dependency tracking. It reduces unnecessary DOM updates and preserves ephemeral interaction state such as focus, expanded panels, and scroll position.
+
+**Historical reference:** `floating-menu.js:4588–4664`
+
+---
+
+## 89. Why not always rerender everything?
+
+For a very small UI, a complete rerender may be perfectly acceptable. But replacing many nodes can restart transitions, lose focus, reset disclosures, and cause visual jumps even when its CPU cost is small. Selective rendering protects both **runtime efficiency** and **interaction stability**. Which approach is better depends on component complexity and the cost of keeping dependencies synchronized.
+
+---
+
+# Part XXXII — CSS and layout
+
+## 90. Shared CSS reduces divergence, not necessarily runtime cost
+
+`menu-ux.css` exists primarily to give popup and floating menu consistent visual rules. A shared file does not automatically make CSS application faster: the browser still needs to match selectors and compute style for each relevant node. The main benefit is **maintainability, coherent design tokens, and fewer regressions**, which are forms of development performance.
+
+---
+
+# Part XXXIII — Developer performance
+
+## 91. Team performance
+
+Another resource budget is the team's time to diagnose, review, and safely modify code. Clear ownership, small presentation helpers, explicit state schemas, regression fixtures, and controlled scope can make code slightly more verbose yet drastically reduce debugging time. These gains will not appear in Chrome's Performance panel, but matter directly to the lifetime cost of the project.
+
+---
+
+# Part XXXIV — Logging and performance
+
+## 92. Toggleable debug logs
+
+`epub-core.mjs` has `STUDYWING_DEBUG = false` and a guarded `debugLog()` helper. Detailed diagnostics are invaluable when investigating conversion problems, but high-frequency logging can consume CPU, retain objects in debugging environments, and distort benchmark results. Keep diagnostic instrumentation intentional and clearly separated from normal production behavior.
+
+**Examples from the historical implementation:**
+
+```js
+const STUDYWING_DEBUG = false;
+const debugLog = (...values) => {
+  if (STUDYWING_DEBUG) console.info(...values);
+};
+```
+
+**Historical reference:** `epub-core.mjs:5–7`
+
+---
+
+# Part XXXV — Benchmarking pitfalls
+
+## 93. Benchmarking with DevTools open
+
+Developer tools can influence observed behavior through instrumentation, stack traces, console recording, source maps, CPU profiling, and heap snapshots. This does not mean DevTools should be avoided; it means test conditions should be documented and measurements repeated. Comparing two versions requires comparable environments and a clear description of any profiling overhead.
+
+---
+
+## 94. Warm cache versus cold cache
+
+A second run may benefit from browser HTTP cache, warmed JavaScript code paths, decoded resources, or already loaded fonts. A first run may incur startup or download costs that the second avoids. Relevant benchmarks should distinguish **cold** and **warm** runs when they produce different conclusions. It is not fair to compare one version cold and another warm.
+
+---
+
+## 95. A fixture that is too small
+
+A three-page PDF may never expose the resource behavior of a 300-page export. A course with five chapters may not reveal cache growth encountered after visiting two hundred. Representative performance testing must cover **scale**, not only functional correctness on a tiny fixture. Include image-rich PDFs, text-heavy PDFs, mathematical pages, and large quizzes when those workloads matter to users.
+
+---
+
+# Part XXXVI — An EPUB profiling plan
+
+## 96. First question: wall time
+
+Measure elapsed duration from explicit start and end events with `performance.now()` and repeat the workload several times. Separate network download, page conversion, ZIP finalization, and other major stages where possible. A single total time can tell us that a regression exists, but phase timings make it easier to locate the cause.
+
+---
+
+## 97. Second question: where does the time go?
+
+Use the browser's Performance panel to inspect script execution, long tasks, PDF.js work, canvas rendering, image encoding, layout, and compression. Avoid assuming the most visible stage is the dominant cost. A download spinner can remain visible while most time is actually spent preparing images or serializing the archive.
+
+---
+
+## 98. Third question: memory trend
+
+Record snapshots before export, during peak conversion, after completion, and after a comparable settling period. Repeat the export if appropriate. Look for a cumulative rise in retained memory over successive runs, not just a high temporary peak. Keep the browser, fixture, and test environment consistent.
+
+---
+
+## 99. Fourth question: retained objects
+
+If memory does not return toward a stable baseline, inspect retained objects and their retaining paths. Candidates include image byte arrays, canvases, Maps, closures, listeners, PDF.js objects, and archive buffers. The **retained size** of an object graph may be more informative than an object's shallow size because one small owner can keep a much larger structure reachable.
+
+---
+
+# Part XXXVII — An autoplay profiling plan
+
+## 100. Measure the observer callback
+
+Record a long autoplay session while the LMS dynamically updates its DOM. Determine how frequently the global `MutationObserver` callback runs, how much CPU it consumes, and whether it triggers meaningful work or redundant scans. If the cost is negligible, leave the implementation alone. If it is a hotspot, evaluate more targeted observation or scheduling.
+
+---
+
+## 101. Measure DOM scanning against API discovery
+
+For the same course, compare visual/DOM-first discovery with master-index/API-first discovery. Track wall time, number of chapter openings, network detail requests, retries, and successful target identification. The most important metric may not be JavaScript CPU time at all—it may be the number of LMS UI transitions avoided while preserving a correct target.
+
+---
+
+# Part XXXVIII — An offline quiz profiling plan
+
+## 102. Large image collections
+
+Build a quiz fixture containing many distinct images, repeated images, and images of different sizes. Measure total HTML build time, peak working set, request count, number of simultaneous downloads, and output size. Compare the current nested `Promise.all()` strategy with a bounded-concurrency implementation only after obtaining this baseline. A queue's added complexity should pay for itself in a real workload.
+
+---
+
+# Part XXXIX — A backend analogy
+
+## 103. The browser as a small application server with a UI
+
+A backend developer can map PlumePilot's work onto familiar concepts: API requests, caches, job coordination, retry/backpressure, transformation pipelines, queues, serialization, and operation ownership. The crucial difference is that the browser's main thread also needs to process clicks, key presses, scrolling, and painting. A CPU-heavy synchronous task has an immediately visible UX cost. The browser is therefore not simply a JavaScript VM hosting a tiny server.
+
+---
+
+# Part XL — Performance invariants
+
+## 104. Useful performance invariants
+
+We can express resource-oriented guarantees as testable properties:
+
+**EPUB:** no page canvas remains at full resolution after its processing ends; PDF.js documents are destroyed on success or cancellation; a cancelled export does not proceed into an unwanted download; final assets retain valid EPUB structure.
+
+**API:** request pacing and bounded snapshot caches remain enforced; a cache optimization never permanently hides an unfinished activity.
+
+**UI:** active work remains observable and cancellable where supported; opening a secondary view or rerendering settings does not arbitrarily lose focus.
+
+These invariants protect both correctness and resource behavior more reliably than comparing a single elapsed-millisecond value.
+
+---
+
+# Part XLI — Performance regression tests
+
+## 105. Not every performance test needs a timing assertion
+
+Many stable regression tests can verify structural behavior: a cache never exceeds its configured cap; abort listeners are removed; canvases are reduced; no unnecessary duplicate URL request starts; after cancellation no further archive generation occurs. These are less sensitive to hardware and machine load than asserting that an operation always completes in less than an arbitrary number of milliseconds.
+
+---
+
+## 106. The Node benchmark already verifies cleanup
+
+`scripts/benchmark-epub-node.mjs` contains a resource-oriented check that observed canvases have minimal dimensions after cancellation. This does not measure how much RAM Chromium consumes. It proves an important cleanup path ran and left an expected invariant true. Such tests complement browser memory profiling rather than replacing it.
+
+**Historical reference:** `scripts/benchmark-epub-node.mjs:151–176`
+
+---
+
+# Part XLII — What to optimize next
+
+## 107. First: measure the `MutationObserver`
+
+The global observer is a possible source of repeated work, but rewriting it immediately would be premature. Instrument callback frequency and duration, profile a representative LMS session, and only then consider coalescing, a narrower subtree, or targeted invalidation if the results show a meaningful hotspot.
+
+---
+
+## 108. Second: measure nested `Promise.all` in quizzes
+
+Only a sufficiently large, image-rich quiz can tell us whether a bounded image-download pool is needed. A queue changes scheduling state and failure handling. Do not introduce this machinery merely because limiting concurrency sounds more sophisticated; demonstrate a workload where it improves memory or responsiveness without unacceptable wall-time cost.
+
+---
+
+## 109. Third: measure JSZip peak memory
+
+If EPUB still has high peak memory after page-level cleanup and asset deduplication, archive finalization may be the next bottleneck. At that point evaluate compression level, retained buffers, or a streaming-compatible packaging strategy using realistic fixtures. The added complexity is justified only when the peak-memory reduction matters to target browsers and devices.
+
+---
+
+## 110. Fourth: standardized diagnostics
+
+A small, optional diagnostic object could consistently record `elapsedMs`, `networkRequests`, `cacheHits`, `cacheMisses`, `pagesText`, `pagesRegional`, `pagesVisual`, `inputBytes`, and `outputBytes` across development benchmarks. Standardized fields make releases easier to compare than scattered one-off logs. This would belong in benchmark or development mode, not necessarily in every user-facing operation.
+
+**Examples from the historical implementation:**
+
+```js
+{
+  elapsedMs,
+  networkRequests,
+  cacheHits,
+  cacheMisses,
+  pagesText,
+  pagesRegional,
+  pagesVisual,
+  inputBytes,
+  outputBytes,
+  uniqueAssetBytes
+}
+```
+
+---
+
+# Part XLIII — What not to optimize today
+
+## 111. I would not rewrite `Map` with objects
+
+There is no evidence that JavaScript `Map` lookups dominate the observed workloads. Replacing maps with plain objects solely for hypothetical micro-performance could damage semantic clarity, key handling, and maintainability. Measure before paying that cost.
+
+---
+
+## 112. I would not remove every `await sleep()`
+
+Some waits are **pacing**, others are **readiness synchronization**, **retries**, or **recovery deadlines**. Deleting them indiscriminately could increase server load, reintroduce race conditions, or cause navigation before the LMS is ready. Classify each delay by purpose, then benchmark any change while verifying behavior.
+
+---
+
+## 113. I would not parallelize all EPUB chapters
+
+The cost of overlapping PDF documents, canvases, images, and ZIP buffers makes unbounded chapter-level parallelism risky. Without benchmarks showing a safe improvement, sequential conversion remains a reasonable conservative choice for memory-limited browsers.
+
+---
+
+## 114. I would not depend on a nonportable memory API in production
+
+`performance.measureUserAgentSpecificMemory()` is useful to study where supported, but its compatibility and security prerequisites make it unsuitable as a universal production dependency. Existing benchmark harnesses and DevTools can support targeted investigations without imposing that API on all browser users.
+
+---
+
+# Part XLIV — A practical checklist
+
+## 115. When something feels slow
+
+First ask which operation is slow; whether the delay is network, CPU, layout, image decoding, or synchronization; whether the problem appears on cold or warm runs; how large the workload is; what the peak memory trend looks like; and whether cancellation or progress updates remain responsive. These diagnostic questions are more useful than reflexively adding `Promise.all()` or changing data structures.
+
+---
+
+# Part XLV — A complete PlumePilot map
+
+## 116. Technique → resource budget
+
+The following comparison is qualitative, not a benchmark. The arrows indicate typical intended effects and important trade-offs; actual results depend on workload.
+
+| Technique | CPU | Network | Memory | Responsiveness |
+|---|---|---|---|---|
+| Course master index | ↓ | ↓ | Slight ↑ | ↑ |
+| `lessonApiCache` | ↓ | ↓ | ↑ | ↑ |
+| Request pacing | ≈ | Burst ↓ | Peak ↓/≈ | ↑ |
+| Unbounded `Promise.all` | Wall time ↓ | Concurrency ↑ | Peak ↑ | Depends |
+| Sequential EPUB conversion | Wall time ↑ | ≈ | Peak ↓ | Predictable |
+| Text fast path | ↓ | ≈ | ↓ | ↑ |
+| Regional rendering | ↑ | ≈ | Depends | Improved by yields |
+| Canvas size cap | ↓/≈ | ≈ | ↓ | ↑ |
+| SHA-256 asset deduplication | ↑ | ≈ | ↓ | Depends |
+| `yieldToBrowser()` | Overhead ↑ | ≈ | ≈ | ↑↑ |
+| Bounded cache | ≈ | Possible ↑ after eviction | ↓ | Predictable |
+| Selective UI rendering | ↓ | ≈ | ≈ | ↑ |
+
+The goal is not to make every arrow point downward. It is to choose acceptable trade-offs while protecting correctness and the actual user experience.
+
+---
+
+# Part XLVI — Concepts to carry forward
+
+## 117. Performance is resource management
+
+Instead of thinking only "How many milliseconds does this function need?", ask which CPU, network, memory, and responsiveness budgets it consumes and how long it holds each resource. This makes performance a first-class architectural concern.
+
+---
+
+## 118. The best optimization often avoids work
+
+Examples include using an index before detailed API calls, reusing a valid cache response, deduplicating an in-flight image download, skipping unnecessary visual rasterization, or avoiding DOM rerenders for unrelated settings. Eliminated work is usually a stronger improvement than making the same work marginally faster.
+
+---
+
+## 119. Working-set control may matter more than output size
+
+In a binary-processing pipeline, an archive's final size and the maximum live memory during its creation are different metrics. Releasing pages, canvases, and temporary buffers early can matter more for reliability than shaving a few megabytes off the final EPUB.
+
+---
+
+## 120. Yielding is different from doing less work
+
+`yieldToBrowser()` does not automatically reduce the amount of computation or total wall time. It enables cooperation with the browser's event loop. A more responsive UI can be worth a modest scheduling overhead.
+
+---
+
+## 121. Parallelism and memory are often in tension
+
+More concurrent operations usually mean more simultaneously live buffers, requests, Promises, and state. Concurrency should be a chosen limit informed by workload measurements, not an automatic response to a slow operation.
+
+---
+
+## 122. Cleanup is part of the algorithm
+
+`finally`, `destroy()`, listener removal, clearing large buffers, and revoking Object URLs are not optional accessory code. They define the **temporal correctness** and memory lifetime of the overall workflow.
+
+---
+
+## 123. Declarative benchmarks
+
+Every benchmark should state its environment, fixture, metric, included stages, excluded stages, and interpretation limits. Without those declarations, an isolated performance number risks becoming folklore instead of actionable engineering evidence.
+
+**Examples from the historical implementation:**
+
+```js
+new MutationObserver(scan).observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+```
+
+```js
+const cache = new Map();
+```
+
+# Part XLVII — Exercises
+
+### Exercise 1 — Canvas budget
+
+Consider a canvas of **2400 × 3000 pixels** using 8-bit RGBA. Calculate the pixel-buffer bytes and approximate MiB; explain why a JPEG output may be much smaller; name at least three additional structures that might coexist in memory.
+
+### Exercise 2 — Serial versus parallel
+
+You have eight PDFs to convert. Each operation requires about **70 MB peak working set** and **3 seconds** of mixed CPU/I/O work. Compare sequential conversion, §Promise.all§ for all eight, a pool of two, and a pool of four. Which approach would you choose on an average laptop, and why?
+
+### Exercise 3 — Observer coalescing
+
+Given the original observer below, design a version that calls §scan()§ at most once per task or frame while still detecting newly inserted §<video>§ elements:
+
+```js
+new MutationObserver(scan).observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+```
+
+### Exercise 4 — Cache bounds
+
+Turn §const cache = new Map()§ into a collection with a maximum of 100 entries. Explain how **FIFO**, **LRU**, and **TTL** differ. Does a TTL automatically limit the number of retained keys?
+
+### Exercise 5 — Measurement plan
+
+Write a benchmark protocol to prove a new EPUB implementation uses less RAM. Specify browser, fixture, cold/warm runs, repetitions, snapshot times, output metric, and regression threshold.
+
+### Exercise 6 — Offline quiz HTML
+
+A nested §Promise.all()§ loads too many images at once. Sketch the state and behavior of §mapWithConcurrency(items, 4, mapper)§ without needing to implement it fully. What state must the pool retain?
+
+### Exercise 7 — Fast paths
+
+Find three real PlumePilot fast paths. For each identify the inexpensive evidence, the expensive work avoided, and the correctness fallback.
+
+### Exercise 8 — Leak or peak?
+
+After five exports, one run measures **80 MB before**, **300 MB peak**, and **92 MB after**; the second measures **305 MB peak** and **94 MB after**. Is this sufficient evidence of a leak? Explain why not and what should be measured next.
+
+---
+
+# Part XLVIII — Further reading
+
+## 124. Performance API
+
+For elapsed intervals, use [`performance.now()`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/now). For named marks and measures, see the [Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance). Monotonic intervals are better suited to duration measurements than wall-clock timestamps.
+
+---
+
+## 125. `MutationObserver`
+
+See [MDN: MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver). The API reports DOM changes, but the application's cost depends on observer scope, callback work, and scheduling choices.
+
+---
+
+## 126. `MessageChannel`
+
+See [MDN: MessageChannel](https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel). PlumePilot's converter uses a channel as a cooperative yield mechanism between tasks.
+
+---
+
+## 127. Pixel data
+
+See [MDN: CanvasRenderingContext2D.getImageData()](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/getImageData). It returns an `ImageData` object holding pixel information from the requested region, which has an allocation and processing cost.
+
+---
+
+## 128. Memory measurement
+
+See [MDN: measureUserAgentSpecificMemory()](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measureUserAgentSpecificMemory). This API is not a universally available portable measurement tool; availability and security requirements matter. For practical investigations, use [Chrome DevTools](https://developer.chrome.com/docs/devtools/) with clearly documented benchmarks and snapshots.
+
+---
+
+# Part XLIX — Recap
+
+PlumePilot does not have one generic issue called “performance.” It has several interdependent resource budgets. We followed master indexes, cache design, bounded Maps, pacing, retries, DOM scans, MutationObservers, PDF.js, canvas and pixel buffers, text-first and regional EPUB conversion, image deduplication, SHA-256, JSZip, cooperative yielding, cancellation, and cleanup.
+
+> **Good performance comes from avoiding unnecessary work, keeping fewer large objects alive at once, and returning control to the browser regularly—without sacrificing correctness.**
+
+We must not confuse a smaller file with lower peak RAM, more parallel Promises with a faster system, or the same Big-O classification with equal real-world cost.
+
+**The browser is our runtime.** Optimizing means respecting its constraints rather than pretending it is only a JavaScript virtual machine.
+
+# Next chapter — 13: Chrome, Edge, and Firefox
+
+The next chapter shifts from one abstract browser to three actual WebExtension platforms: Chromium/Chrome, Chromium/Edge, and Firefox. We will study manifests, extension contexts, runtime APIs, vendor bundles, permissions, CSP, browser-specific requirements, and real AMO review warnings. **Code compatibility, API compatibility, store packaging, and review compatibility are different problems.**
+
+---
+
+[← 11 — UI without a framework](11-ui-without-a-framework.md) · [Contents](index.md) · 13 — Chrome, Edge, and Firefox (translation in progress)
