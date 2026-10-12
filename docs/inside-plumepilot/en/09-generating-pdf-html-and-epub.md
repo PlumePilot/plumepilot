@@ -870,3 +870,454 @@ The reader chooses font size, line width, margins, pagination, and orientation.
 That makes EPUB comfortable on Kindle and other ereaders—but only when we can **reconstruct semantics** from a source format that may no longer contain them explicitly.
 
 ---
+
+
+## 22. Extracting text is not reconstructing a document
+
+PDF.js can provide a list of text items, but:
+
+```text
+"The"
+"function"
+"f(x)"
+"is"
+"continuous"
+```
+
+does not tell us automatically which items belong to one paragraph, whether the page contains multiple columns, whether something is a formula, whether a line is a fraction bar, whether an image is essential, or whether a table has lost its row/column relationships.
+
+So conversion is not just:
+
+```text
+PDF text → HTML
+```
+
+but:
+
+```text
+PDF operators
++ text items
++ coordinates
++ images
++ vector graphics
+        ↓
+classification
+        ↓
+preservation strategy
+```
+
+---
+
+# Part VIII — Classifying pages
+
+## 23. Three strategies, not one
+
+PlumePilot's EPUB converter supports three conceptual modes:
+
+```text
+TEXT
+VISUAL
+REGIONAL / HYBRID
+```
+
+The code records:
+
+```js
+const record = {
+  chapterIndex,
+  pageNumber,
+  mode: regional?.html
+    ? "regional"
+    : visual
+      ? "visual"
+      : "text",
+  ...
+};
+```
+
+### Text
+
+For pages that can be reliably reconstructed:
+
+```text
+PDF text items
+      ↓
+reconstruct blocks
+      ↓
+reflowable XHTML
+```
+
+Benefits: selectable text, adjustable fonts, smaller files, better accessibility, and a more natural ebook experience.
+
+### Visual
+
+For complex content:
+
+```text
+PDF page
+   ↓
+canvas
+   ↓
+PNG / JPEG
+   ↓
+<img>
+```
+
+Benefit: high visual fidelity.
+
+Costs: text is not truly reflowable, files are larger, zoom controls readability, and accessibility is weaker.
+
+### Regional
+
+A compromise that separates the page into regions:
+
+```text
+┌─────────────────────────┐
+│ reflowable text         │
+│                         │
+├─────────────────────────┤
+│ formula / diagram       │ ← image
+├─────────────────────────┤
+│ reflowable text         │
+└─────────────────────────┘
+```
+
+We need not choose between **an entirely textual page** and **one full-page image**.
+
+---
+
+## 24. `pageNeedsVisual()` as a classifier
+
+Before converting a page:
+
+```js
+const classification = await pageNeedsVisual(page, content);
+```
+
+The function considers significant images, vector graphics, rotated text, parallel columns, tables, suspicious patterns, formulas, and text that cannot be reconstructed safely.
+
+This is a **classification heuristic**. It does not mathematically prove that a page can be converted. Instead, it chooses the strategy that appears to minimize information loss.
+
+---
+
+## 25. Verification after conversion
+
+Even if the initial classifier chooses text, PlumePilot verifies the result:
+
+```js
+converted = textPageToHtml(...);
+```
+
+then:
+
+```js
+visual = textConversionLooksIncomplete(converted);
+```
+
+The process is:
+
+```text
+pre-check
+   ↓
+conversion
+   ↓
+post-check
+```
+
+This resembles the progressive refinement from Chapter 08: make a cheap initial decision, then check the actual result.
+
+---
+
+## 26. Equations: why they are difficult
+
+A PDF formula might be represented with Unicode, mathematical fonts, individual glyphs, vector lines, images, or combinations of these.
+
+For example:
+
+```text
+ a + b
+───────
+   c
+```
+
+might not be present as one meaningful string: the fraction bar could be an independent drawing command.
+
+PlumePilot looks for cases such as:
+
+```js
+hasSimpleFractionRule(...)
+```
+
+and unsupported mathematical characters.
+
+When the risk is high, a rendered region may be more faithful than selectable but mathematically incorrect reconstructed text.
+
+> **Selectable text is not worth more than correct content.**
+
+---
+
+# Part IX — Canvas as a rasterizer
+
+## 27. From PDF to pixels
+
+For visually preserved pages, PDF.js renders into `<canvas>`:
+
+```text
+PDF page
+    ↓
+PDF.js render task
+    ↓
+CanvasRenderingContext2D
+    ↓
+RGBA pixels
+```
+
+The code calls:
+
+```js
+const task = page.render({
+  canvasContext: context,
+  viewport,
+  intent: "print",
+});
+```
+
+A canvas is a temporary rendering surface.
+
+---
+
+## 28. From canvas to image
+
+`encodeCanvas()` chooses PNG or JPEG and calls:
+
+```js
+canvas.toBlob(...)
+```
+
+then:
+
+```js
+new Uint8Array(await blob.arrayBuffer())
+```
+
+The data flow is:
+
+```text
+canvas pixels
+     ↓
+toBlob()
+     ↓
+PNG/JPEG Blob
+     ↓
+ArrayBuffer
+     ↓
+Uint8Array
+     ↓
+EPUB asset
+```
+
+---
+
+## 29. PNG or JPEG?
+
+No format is universally better.
+
+JPEG often compresses photographic material more efficiently. PNG can preserve rasterized text, diagrams, sharp lines, and images with limited colors better.
+
+`chooseCanvasFormat()` samples the content to choose between strategies.
+
+This is another **adaptive decision based on data**.
+
+---
+
+# Part X — Memory as an architectural constraint
+
+## 30. Why EPUB can consume a lot of RAM
+
+The final file size does not equal the memory required to construct it.
+
+A rasterized page with:
+
+```text
+2000 × 2800 pixels
+```
+
+requires approximately:
+
+```text
+2000 × 2800 × 4 bytes
+= 22,400,000 bytes
+≈ 21.4 MiB
+```
+
+for an uncompressed RGBA buffer, even if its PNG encoding occupies only a few megabytes.
+
+Several representations may coexist:
+
+```text
+PDF bytes
+PDF.js structures
+text items
+operator list
+RGBA canvas
+encoded image bytes
+JSZip entries
+final ZIP buffer
+```
+
+Therefore an **80 MB EPUB does not imply an 80 MB peak-memory footprint**. Its working set can be considerably larger.
+
+---
+
+## 31. Peak memory, not total allocation
+
+The key question is not just "How many bytes do we allocate in total?" It is:
+
+> **How many bytes remain live simultaneously at the worst point?**
+
+This is **peak memory**.
+
+Compare:
+
+### Strategy A
+
+```text
+load 100 pages
+render 100 canvases
+retain everything
+create ZIP
+```
+
+with:
+
+### Strategy B
+
+```text
+load chapter
+  page 1 → convert → release
+  page 2 → convert → release
+  ...
+clean up PDF
+next chapter
+```
+
+Both may do similar total work. Strategy B keeps fewer large objects alive simultaneously.
+
+PlumePilot attempts to follow the second strategy.
+
+---
+
+## 32. `page.cleanup()`
+
+The code uses:
+
+```js
+finally {
+  page.cleanup();
+}
+```
+
+`finally` is important: even after conversion failure, we want PDF.js to release resources belonging to the page.
+
+```text
+success ─┐
+         ├──→ cleanup
+error ───┘
+```
+
+This is exactly the resource-lifetime principle studied in Chapter 05.
+
+---
+
+## 33. Shrinking canvas dimensions to `1 × 1`
+
+Several paths end with:
+
+```js
+canvas.width = 1;
+canvas.height = 1;
+```
+
+A canvas can retain a large backing buffer. Resizing it encourages the browser to replace that surface with an almost empty one:
+
+```text
+2000 × 2800 canvas
+      ↓
+no longer needed
+      ↓
+1 × 1 canvas
+```
+
+This is not a direct call to the garbage collector. JavaScript does not provide a general:
+
+```js
+free(canvasMemory);
+```
+
+But we can release references and reduce native resources that objects retain.
+
+---
+
+## 34. Destroying the PDF.js document
+
+At the end of `convertMaterial()`:
+
+```js
+if (pdf) {
+  await pdf.destroy().catch(() => {});
+} else if (loadingTask) {
+  await loadingTask.destroy().catch(() => {});
+}
+```
+
+PDF.js can retain caches, worker state, fonts, operator lists, pages, and streams. We want the lifetime:
+
+```text
+convertMaterial(chapter)
+    ↓
+PDFDocumentProxy alive
+    ↓
+convert all pages
+    ↓
+destroy()
+    ↓
+next chapter
+```
+
+---
+
+## 35. Yielding to the browser
+
+After each page:
+
+```js
+await yieldToBrowser(signal);
+```
+
+This does not necessarily reduce overall work. It lets the browser update the UI, process events, respond to cancellation, and render progress smoothly.
+
+This is **cooperative scheduling**.
+
+---
+
+# Part XI — Asset deduplication
+
+## 36. Identical content may appear multiple times
+
+Visual conversion can produce repeated images:
+
+```text
+image A → 1 MB
+image A → 1 MB
+image A → 1 MB
+```
+
+Without deduplication, these copies occupy 3 MB.
+
+`epub-assets.mjs` defines:
+
+```js
+const byHash = new Map();
+```
+
+---
