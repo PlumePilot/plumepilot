@@ -549,3 +549,527 @@ Notification sounds and achievement events have bounded recent-event memory to r
 Even if the transport is simple, ask what happens on duplicated, late or out-of-order events. Event identity and idempotent handling often provide inexpensive resilience.
 
 ---
+
+# Part XVII — Snapshot and event convergence
+
+## 81. Snapshots and events together
+
+A UI should subscribe to change notifications but also read the current operation snapshot when it starts. Events tell an already-open interface what changed; snapshots let a newly opened interface reconstruct the latest state.
+
+---
+
+## 82. Why event-only is fragile
+
+A popup opened after an export-completed notification cannot recover the state from an event that it never observed. The component lifecycle is shorter than the workflow lifecycle.
+
+---
+
+## 83. Why snapshot-only is expensive
+
+Polling extension storage repeatedly wastes work and introduces latency. With events available, the UI can react promptly instead of constantly requesting the whole state.
+
+---
+
+## 84. The combined approach
+
+Read a snapshot on initialization; subscribe to updates; reconcile events against current identity. This is robust under popup reopening and independent floating-menu lifecycles.
+
+```text
+read state snapshot → subscribe to events → reconcile by operation ID
+```
+
+---
+
+## 85. Two views converge asynchronously
+
+Popup and floating menu may show slightly different values for a brief period. The goal is not perfectly simultaneous updates but convergence on one authoritative persisted value.
+
+---
+
+## 86. chrome.storage.onChanged as reactive channel
+
+Changes to extension storage notify interested contexts. This becomes a lightweight reactive propagation mechanism without introducing a shared UI process or full state-management framework.
+
+---
+
+# Part XVIII — Semantically fresh caches
+
+## 87. What a cache promises
+
+A cache says “I have evidence previously obtained for this identity with a particular freshness contract,” not “I hold eternal truth.”
+
+---
+
+## 88. A complete cache entry
+
+Store content with the relevant identity, timestamp, source, partial/completion status and any schema or confidence metadata needed for reuse. The raw value alone is often insufficient.
+
+---
+
+## 89. Semantic freshness
+
+A previously established completed activity may remain useful longer than a “video currently playing” observation. TTL alone cannot describe the different staleness semantics of all fields.
+
+---
+
+## 90. Monotonic information
+
+Within a stable activity identity, completion normally progresses from unfinished to finished, not backward. Such monotonicity may allow a stronger fact to survive a weaker older response.
+
+---
+
+## 91. Merging cache observations
+
+When identity is unchanged, combine compatible evidence without downgrading a known completed result merely because a partial response omitted it.
+
+---
+
+## 92. Identity before monotonicity
+
+Never merge “complete” from one route with “incomplete” from another route only because both happen to have the same display order. Monotonicity rules are valid **after** entity identity is established.
+
+---
+
+# Part XIX — Bounded growth
+
+## 93. An unbounded cache is a logical leak
+
+A perfectly functioning garbage collector cannot reclaim objects deliberately held forever by a Map. Capacity and lifetime rules are required for long-lived caches.
+
+---
+
+## 94. pageLessonSnapshots has a limit
+
+The MAIN-world interception cache caps retained lesson snapshots at 50 entries. Bounded insertion-order eviction is simple, predictable and often sufficient.
+
+---
+
+## 95. Notification event memory is bounded
+
+Short-lived event deduplication uses a limited history or time window rather than indefinitely remembering every sound or achievement.
+
+---
+
+## 96. Every cache needs four answers
+
+Who owns it? Which identity does a key represent? When does an entry expire or become invalid? What maximum amount of state may remain resident?
+
+---
+
+# Part XX — Cooperative cancellation
+
+## 97. A Cancel button is not cancellation
+
+Hiding an interface or acknowledging a click does not stop requests, rendering, and packaging. Cancellation must be respected by the actual workflow stages.
+
+---
+
+## 98. Cooperative cancellation
+
+JavaScript does not terminate arbitrary work on command. Long-running code checks an AbortSignal, propagates it into abortable APIs and yields between expensive stages.
+
+---
+
+## 99. Cancellation latency
+
+A signal checked only once every thirty seconds offers poor practical cancellation. Processing units and checks should keep the time between user request and work stopping acceptably small.
+
+---
+
+# Part XXI — Resource ownership
+
+## 100. Allocation implies cleanup ownership
+
+For canvases, PDF.js page objects, event listeners, Object URLs and large buffers, define which stage acquires the resource and which stage is responsible for releasing or invalidating it.
+
+---
+
+## 101. A resource lifecycle
+
+The general lifecycle is acquire → use → transfer ownership or release, with cleanup on success, failure and cancellation. finally blocks are part of algorithm correctness.
+
+---
+
+## 102. Document generation peaks
+
+A 30 MB final EPUB may require much more RAM during conversion because PDF buffers, parsed pages, canvases, images and ZIP data coexist.
+
+---
+
+## 103. Working-set reasoning
+
+Peak memory reflects concurrently live representations. Reducing overlapping lifetimes can be more effective than reducing final archive bytes.
+
+---
+
+## 104. Memory-aware architecture
+
+Sequential conversion, bounded canvas dimensions, banded image processing, asset deduplication and prompt buffer release are architectural choices, not isolated micro-optimizations.
+
+---
+
+# Part XXII — Concurrency and backpressure
+
+## 105. More concurrency is not always better
+
+Promise.all over a large PDF collection might reduce wall-clock time yet multiply active documents, canvas buffers, requests and peak memory.
+
+---
+
+## 106. Pacing is backpressure
+
+Delays between API calls limit bursts and protect the external LMS and local browser from uncontrolled request fan-out.
+
+---
+
+## 107. Possible future concurrency limiter
+
+For some workloads a bounded worker pool may regulate simultaneous requests more precisely than fixed delays. Add one only when measurements justify its complexity.
+
+---
+
+# Part XXIII — Graceful degradation
+
+## 108. Robust features may use different paths
+
+The same user-facing capability may need different adapters or fallbacks. Consistent behavior is more important than identical internal function calls everywhere.
+
+---
+
+## 109. EPUB quality fallback
+
+Text-first conversion, hybrid regions and full visual rendering form a controlled escalation in rendering cost and fidelity.
+
+---
+
+## 110. Materials export fallback
+
+If a high-quality transformation cannot preserve essential information, a safer visual representation can protect document usefulness instead of silently dropping content.
+
+---
+
+## 111. Graceful degradation is not silent corruption
+
+A fallback should produce a valid, understandable result—or report why it cannot. Hiding lost formulas or pretending an export succeeded violates the user contract.
+
+---
+
+# Part XXIV — Semantic parity across runtimes
+
+## 112. Cross-browser semantic parity
+
+Chrome and Edge may use Offscreen API audio; Firefox can use tab messaging. Different mechanisms preserve the same notification goal.
+
+---
+
+## 113. UI semantic parity
+
+Popup and floating menu use different DOM roots and lifecycles, yet should agree on settings, operation availability and effective autoplay policy.
+
+---
+
+## 114. What semantic parity means
+
+Do not force identical HTML trees and lifecycle management. Require both surfaces to satisfy the same meaningful product invariants.
+
+---
+
+# Part XXV — Sharing UI meaning rather than markup
+
+## 115. The 2.35.2 redesign choice
+
+The project did not replace popup and floating menu with one massive shared component. It extracted common presentation rules and retained separate controllers.
+
+---
+
+## 116. Why separate controllers?
+
+The popup is an extension page; the floating panel is embedded in the LMS in Shadow DOM. Scroll geometry, initialization, and focus behavior differ.
+
+---
+
+## 117. What is actually shared?
+
+Autoplay policy summaries, layout normalization, groups, accessibility helpers, typography tokens and other stable rules of meaning.
+
+---
+
+## 118. The rule
+
+**Share stable semantics without forcibly merging surfaces whose lifecycles differ.** Duplicated small DOM wiring can be less harmful than one tangled universal renderer.
+
+---
+
+# Part XXVI — Derived presentation state
+
+## 119. Do not render raw state blindly
+
+Saved preferences and effective runtime behavior can diverge under policy overrides. The UI needs a deliberate interpretation of state, not a direct text label copied from a storage key.
+
+---
+
+## 120. A presentation function
+
+autoplayPresentation() computes summary, testOverride and stopHint from policy inputs. This is an inexpensive shared view model.
+
+---
+
+## 121. Why it matters
+
+Separate popup and floating-menu controllers consume the same interpretation, avoiding two manually maintained rule sets.
+
+---
+
+## 122. Not everything needs persistence
+
+A derived summary can be computed from saved preferences instead of stored as a second independent value.
+
+---
+
+## 123. Duplicate state creates drift
+
+If both enabled and a separately stored “enabledLabel” change independently, one may become stale. Keep one authoritative representation and derive the rest.
+
+---
+
+# Part XXVII — Architectural invariants
+
+## 124. An invariant is a strong sentence
+
+Examples: no ambiguous chapter is clicked; an active export retains a reachable cancellation control; a cancelled EPUB export does not continue expensive work; no unknown vendor transform silently succeeds.
+
+---
+
+## 125. An invariant is better than one patch
+
+A patch says “add a condition after this bug.” An invariant says which behavior must remain true even if the implementation changes.
+
+---
+
+## 126. Tests are executable invariants
+
+Chapter 14 showed how reproductions become assertions. This is an important step from reactive bug fixing to explicit architectural guarantees.
+
+---
+
+# Part XXVIII — Build artifacts are part of the program
+
+## 127. Repository source is not the installed product
+
+An extension runs from a target-specific ZIP, with its own manifest, included files and adapted vendor bundles.
+
+---
+
+## 128. The build belongs to the architecture
+
+Browser specialization, locale inclusion, packaging, pinned vendor transforms, validation and checksums change what users install. They are part of program correctness.
+
+---
+
+## 129. Testing only the source tree is insufficient
+
+A missing stylesheet or invalid Firefox manifest can leave all pure function tests green. The final artifact must be inspected and exercised.
+
+---
+
+# Part XXIX — A build as a compiler
+
+## 130. Build front end
+
+The release pipeline reads shared source, vendor dependencies, manifest definitions and release inputs as its initial representation.
+
+---
+
+## 131. Target lowering
+
+Each browser target receives manifest adjustments, permissions, resource selection and documented compatibility transforms.
+
+---
+
+## 132. Code generation
+
+The builder emits runtime ZIP archives and the Firefox source-review archive.
+
+---
+
+## 133. Verification
+
+The validator inspects the generated artifact for required files, manifest contracts, restricted patterns and checksums. The build resembles a small compiler with validation.
+
+---
+
+# Part XXX — Runtime versus release error behavior
+
+## 134. Runtime workflow fallback
+
+When an external platform is unavailable or content is uncertain, recovery or graceful fallback may be a valid runtime response.
+
+---
+
+## 135. Build failure should be explicit
+
+A deterministic precondition violation—such as a vendor patch matching zero or two times—should fail the release build rather than fall back to unknown output.
+
+---
+
+## 136. Why these failure policies differ
+
+At runtime, users may benefit from an alternate valid route. During packaging, silently emitting an unexpected binary undermines reproducibility and trust.
+
+---
+
+# Part XXXI — Observability and privacy
+
+## 137. Log only useful evidence
+
+A good diagnostic record answers which operation, identity, phase, expected state and observed failure were involved. Dumping all objects indiscriminately rarely helps.
+
+---
+
+## 138. Better diagnostics
+
+“Candidate rejected because lesson ID differs after await” conveys more than “navigation failed.” Logs should explain a decision boundary and its reason.
+
+---
+
+## 139. Structured EPUB diagnostics
+
+Capture elapsedMs, pagesText, pagesVisual, outputBytes and related metrics as structured values. Tests and benchmarks can inspect them without parsing console prose.
+
+---
+
+## 140. Authenticated extensions see sensitive data
+
+Debug output can expose course content, notes, session context or credentials. Treat logs as a privacy-sensitive output, not harmless toy text.
+
+---
+
+## 141. Minimize diagnostic payloads
+
+Log IDs, categories, timings and redacted safe metadata where possible—not passwords, cookies, raw authorization tokens or unnecessary personal content.
+
+---
+
+# Part XXXII — Boundaries around volatility
+
+## 142. Multiversity is an external source of volatility
+
+The LMS can alter API payloads, DOM structure, identifiers and page behavior without a simultaneous extension release.
+
+---
+
+## 143. Browsers evolve independently
+
+Supported browsers differ in lifecycle, rendering, APIs and version cadence. Compatibility contracts must be checked and adapted at their own boundary.
+
+---
+
+## 144. Stores evolve independently
+
+Review rules, metadata schemas, submission processes and automated validators can change even when runtime code does not.
+
+---
+
+## 145. Design for change at integration boundaries
+
+Every external integration should have a documented contract, explicit failure behavior and tests for likely changes.
+
+---
+
+## 146. Ask how, not whether, an external system changes
+
+It is safer to ask which assumptions are likely to vary and where those assumptions are isolated.
+
+---
+
+## 147. A useful response
+
+Put volatile provider parsing in adapters, runtime capability differences in wrappers or build rules, and store-specific constraints in reproducible packaging.
+
+---
+
+# Part XXXIII — Containing essential complexity
+
+## 148. Complexity cannot always be removed
+
+PlumePilot must accommodate multiple universities, evolving LMS code, three browsers and document formats. These are essential product constraints.
+
+---
+
+## 149. But complexity can be contained
+
+An adapter keeps API quirks local, a normalized identity model localizes route collisions, and one release compiler localizes manifest differences.
+
+---
+
+## 150. The alternative spreads exceptions
+
+If every browser or LMS exception appears across ten modules, changing one external rule requires risky edits in many unrelated areas.
+
+---
+
+# Part XXXIV — Principles that generalize
+
+## 151. Patterns compress exception handling
+
+Instead of scattered “if Firefox,” “if Mercatorum,” and “if this chapter was just rerendered,” use stable interfaces, lifecycle rules and identity checks at well-defined boundaries.
+
+---
+
+## 152. A principle replaces many patches
+
+“Revalidate identity after await” explains and prevents an entire family of DOM-race failures more effectively than dozens of isolated extra null checks.
+
+---
+
+## 153. That is architecture
+
+A small vocabulary of boundaries, ownership, identity, evidence and lifetime allows us to reason about many otherwise unrelated defects.
+
+---
+
+# Part XXXV — Pattern map across subsystems
+
+## 154. An emerging pattern map
+
+Core recurring patterns: boundary translation, stable identity, evidence hierarchy, unknown state, progressive refinement, guarded effects, single-source ownership, revalidation, bounded resources, and artifact verification.
+
+---
+
+## 155. First-incomplete example
+
+The search combines platform normalization, scoped identities, index-first evidence, generation tokens, fail-closed ambiguity handling, and expensive fallback only when necessary.
+
+---
+
+## 156. EPUB export example
+
+The converter combines controlled input parsing, quality escalation, memory ownership, cooperative yielding, abort propagation, deduplication and output validation.
+
+---
+
+## 157. Popup and floating menu example
+
+The pair illustrates shared semantics, derived view models, reactive storage synchronization, local UI lifetime and focus-preserving DOM adapters.
+
+---
+
+## 158. Chrome and Firefox example
+
+Targeted build adapters provide shared domain behavior while honoring background, permission, audio, review and artifact differences.
+
+---
+
+# Part XXXVI — Architecture without overengineering
+
+## 159. A hypothetical concept-oriented module map
+
+One might group domain, adapters, workflow coordination, presentation, build, and tests more explicitly. Such a diagram is **conceptual**, not a proposal to immediately relocate every file.
+
+---
+
+## 160. Beware architecture astronautics
+
+Introducing layers, protocols and frameworks solely to make diagrams tidy can add accidental complexity. The architecture must be justified by concrete maintenance or correctness benefits.
+
+---
