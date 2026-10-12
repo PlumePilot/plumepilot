@@ -600,3 +600,402 @@ image.bytes = null;
 Several references to one buffer do not necessarily mean duplicated physical bytes, but they make it harder to determine when that buffer can become unreachable. Maintaining separate full copies is worse. The useful rule is that **every large buffer should have one clearly identifiable owner** at each phase of the pipeline, with explicit handoff and cleanup when ownership changes.
 
 ---
+
+## 41. Not all images should use the same codec
+
+PlumePilot samples a 64×64 representation of the rendered canvas before deciding how to encode an image. JPEG often compresses photographic or continuous-tone content more efficiently. PNG is usually more faithful for diagrams, sharp lines, and rasterized text. `chooseCanvasFormat()` returns the extension, media type, and optionally JPEG quality. The choice is a **representation-level performance optimization**, not simply a file-extension preference.
+
+**Examples from the historical implementation:**
+
+```js
+sample.width = 64;
+sample.height = 64;
+context.drawImage(canvas, 0, 0, sample.width, sample.height);
+```
+
+```js
+return photographic
+  ? { extension: "jpg", mediaType: "image/jpeg", quality: 0.9 }
+  : { extension: "png", mediaType: "image/png", quality: undefined };
+```
+
+**Historical reference:** `epub-core.mjs:1036–1050`
+
+---
+
+# Part XII — Text first: avoid rasterization when possible
+
+## 42. Optimize before encoding
+
+The converter does not always encode both PNG and JPEG and compare output sizes. That could double expensive encoding work. Instead it applies a relatively cheap classification heuristic **before** the costly transformation, then encodes once. The pattern is familiar from chapter discovery: **use inexpensive evidence to choose which expensive operation is worth executing**.
+
+---
+
+## 43. The most powerful optimization is not doing the work
+
+For a simple PDF page, the converter first attempts `textPageToHtml()` when the page classifier does not demand visual rendering. If the text is reliable, it avoids allocating a large canvas, rasterizing pixels, encoding a PNG/JPEG, and storing a heavyweight image in the EPUB. Text-first conversion can improve CPU, memory, output size, selectability, and reader accessibility at the same time.
+
+**Examples from the historical implementation:**
+
+```js
+converted = textPageToHtml(...);
+```
+
+**Historical reference:** `epub-core.mjs:1684–1717`
+
+---
+
+## 44. Fast paths and slow paths
+
+A **fast path** handles common, simpler cases at low cost. A **slow path** performs more expensive but higher-fidelity work when necessary. In EPUB conversion, text reconstruction is one fast path; regional or visual rendering is the fallback for complex pages. A well-designed fast path does not abolish the slow path—it avoids paying for it when its stronger guarantees are unnecessary.
+
+---
+
+## 45. Progressive refinement
+
+The pipeline progressively increases the cost of its investigation: look at extracted text and operators, classify the page, try text conversion where appropriate, verify the result, and invoke regional or full visual preservation only when uncertainty warrants it. This is the same algorithmic principle as finding an incomplete activity: **start with the cheapest useful evidence, escalate only when necessary**.
+
+---
+
+# Part XIII — Cooperative scheduling
+
+## 46. The long-task problem
+
+JavaScript on the main thread runs synchronous work to completion. A long uninterrupted conversion loop may prevent the browser from painting progress, responding to input, or processing a Cancel click. Even if the computation eventually finishes correctly, the user experience can be unacceptable. Thus responsiveness is not just the total elapsed time of conversion: the longest uninterrupted period of main-thread work also matters.
+
+---
+
+## 47. `yieldToBrowser()`
+
+The EPUB converter creates a `MessageChannel` and a queue of callbacks. `yieldToBrowser(signal)` queues a resume function and sends a message through `port2`. The message handled on `port1` resumes the waiting Promise in a later task. This does not turn the conversion into parallel work; it divides one logical workflow into **cooperative chunks** that let the browser interleave other tasks.
+
+**Examples from the historical implementation:**
+
+```js
+const browserYieldChannel = new MessageChannel();
+const browserYieldQueue = [];
+browserYieldChannel.port1.onmessage = () =>
+  browserYieldQueue.shift()?.();
+```
+
+```js
+function yieldToBrowser(signal) {
+  ...
+  browserYieldQueue.push(resume);
+  browserYieldChannel.port2.postMessage(null);
+}
+```
+
+**Historical reference:** `epub-core.mjs:137–167`
+
+---
+
+## 48. Yielding does not necessarily reduce total work
+
+Doing 100 units of computation in one uninterrupted task may have slightly less overhead than performing the same work in ten chunks with yields. However, the second approach gives the browser opportunities to react to events and update the UI. A small increase in wall time can be an excellent trade when it avoids visible freezing. **Yielding improves scheduling responsiveness, not necessarily CPU cost.**
+
+---
+
+## 49. Where PlumePilot yields control
+
+The converter uses `await yieldToBrowser(signal)` after visual blocks, during regional planning, after regions, and after pages. These are deliberate **cooperative scheduling points**. Position matters: a yield once every hundred pages would not help if each page already monopolized the thread for a long time. Their locations should match the actual units of expensive work.
+
+**Historical reference:** `epub-core.mjs:1198
+epub-core.mjs:1487
+epub-core.mjs:1551
+epub-core.mjs:1764`
+
+---
+
+## 50. Why `MessageChannel`?
+
+`MessageChannel` is usually introduced as a communication API between contexts or endpoints. Here it serves as a browser scheduling primitive: posting a message arranges for its handler to run as a subsequent task. The purpose is not to send data to another frame but to allow the current computation to pause and resume without a long synchronous block. It is an interesting reuse of a standard browser API.
+
+---
+
+## 51. Would `requestIdleCallback()` be better?
+
+Not automatically. `requestIdleCallback()` is designed for lower-priority work when the browser is idle; support and scheduling behavior vary among browsers, and callbacks without a timeout may be delayed. An EPUB export is **explicitly requested by the user** and should keep progressing while still allowing the browser to respond. The existing `MessageChannel` approach is a reasonable trade-off for that contract; substituting another API requires measurements and compatibility analysis.
+
+---
+
+# Part XIV — Cancellation is performance too
+
+## 52. Unwanted work is wasted work
+
+When the user presses Cancel, the benefit is not merely that the interface acknowledges a command. Cancellation should stop future downloads, PDF rendering, image encoding, and other expensive stages that no longer contribute to a desired artifact. It protects CPU, network, memory, and responsiveness. **Cancellation is a form of resource management.**
+
+---
+
+## 53. Abort inside rendering
+
+`renderPage()` attaches the external `AbortSignal` to the PDF.js render task with `task.cancel()`. Cancelling only the UI button while letting rendering continue would fail to reclaim resources promptly. Cancellation must propagate into the actual worker and rendering stages, and the associated listener must be removed during cleanup.
+
+**Examples from the historical implementation:**
+
+```js
+const task = page.render(...);
+const cancel = () => task.cancel();
+signal?.addEventListener("abort", cancel, { once: true });
+```
+
+**Historical reference:** `epub-core.mjs:1074–1096`
+
+---
+
+## 54. Cancellation latency
+
+A workflow is not fully characterized by whether it *eventually* cancels. Ask how much time passes between a user's cancellation and actual cessation of expensive work. This is **cancellation latency**. Smaller processing units, frequent signal checks, abortable network operations, and cancellable PDF.js tasks reduce it. An uninterruptible final packaging stage should be presented honestly rather than as cancellable.
+
+---
+
+# Part XV — Output size and RAM are different metrics
+
+## 55. A misleading comparison
+
+Imagine output A is 80 MB and output B is 50 MB. We cannot automatically conclude that B needed less RAM. B may have allocated more temporary canvases, held several encoded representations, or performed extra compression. **Output size measures the artifact; peak memory measures the build process.** They must be benchmarked independently.
+
+---
+
+## 56. Compression: space versus CPU
+
+JSZip uses DEFLATE at compression level 6 in the historical builder. Higher compression may reduce output size but increase CPU time and temporary work; lower compression can finish sooner but produce a larger file. There is no universally optimal setting without considering target ereader limits, expected file sizes, and browser responsiveness. Again, optimization is about choosing which resource matters for the actual product.
+
+**Examples from the historical implementation:**
+
+```js
+compression: "DEFLATE",
+compressionOptions: { level: 6 }
+```
+
+**Historical reference:** `epub-core.mjs:2098–2103`
+
+---
+
+# Part XVI — Selective parallelism
+
+## 57. Where `Promise.all()` makes sense
+
+The quiz PDF builder loads a small, known set of independent font files in parallel with `Promise.all()`. This is bounded fan-out: two assets, predictable size, no large cascade of dependent work. Parallelism can reduce wall time without creating an unacceptable peak working set. The problem is not `Promise.all()` itself but **unbounded concurrency applied to large or unpredictable workloads**.
+
+**Examples from the historical implementation:**
+
+```js
+const [regularBytes, boldBytes] = await Promise.all([...]);
+```
+
+**Historical reference:** `test-builder.js:197`
+
+---
+
+## 58. Where concurrency can increase the working set
+
+The offline HTML quiz builder uses nested `Promise.all()` operations to prepare question images. This is readable and may accelerate small quizzes, while `imageCache` deduplicates requests to the same URL. However, a very large image-rich quiz can still have many **different** downloads in flight. The cache does not impose a global concurrency limit. Profiling a realistic large fixture should come before adding a queue.
+
+**Historical reference:** `test-builder.js:326–347`
+
+---
+
+## 59. Concurrency limits as a compromise
+
+A potential future image pipeline could allow, for example, four downloads at a time rather than one or hundreds. This resembles a database connection pool or backend worker pool. It balances wall time, memory, network load, and complexity. But a concurrency limiter introduces additional state, cancellation handling, and failure semantics, so it should be justified by measured need.
+
+---
+
+# Part XVII — Strings, Base64, and duplication
+
+## 60. Self-contained offline HTML
+
+The quiz HTML embeds images as Data URLs. This meets the product requirement that one saved HTML file should open without fetching assets from the LMS. But Base64 expands the representation: three binary bytes typically become four encoded characters, and generation may temporarily retain raw bytes, encoded strings, JSON data, and the final HTML. A portability benefit can have a real memory and output-size cost.
+
+---
+
+## 61. Self-contained is a requirement, not a micro-optimization
+
+We could reduce some string duplication by storing images in separate files and linking to them. That would weaken the convenience of sharing or reopening **one** offline document, which is central to this feature. The correct architecture must optimize **subject to the product's requirements**, not simply the easiest memory metric. Packaging choices that improve a benchmark but break offline portability are not valid optimizations for this use case.
+
+---
+
+# Part XVIII — Object URLs and resource lifetime
+
+## 62. Blob URLs
+
+The builder creates an Object URL from a `Blob` containing final bytes, assigns that URL to an anchor's `href`, triggers the download, and eventually calls `URL.revokeObjectURL()`. A Blob URL makes binary resources available through a URL-like interface while they remain owned by the browser. Even the final download path has a lifetime and a cleanup requirement.
+
+**Examples from the historical implementation:**
+
+```js
+const url = URL.createObjectURL(
+  new Blob([bytes], { type: mime })
+);
+```
+
+```js
+setTimeout(() => URL.revokeObjectURL(url), 5000);
+```
+
+**Historical reference:** `materials-builder.js:75–84`
+
+---
+
+## 63. Why not revoke immediately?
+
+If we revoke the Blob URL before the browser has consumed the triggered download, the download may fail. PlumePilot uses a short delayed revocation—5,000 ms in the historical example—as a pragmatic compromise. It allows the click to initiate the transfer while avoiding indefinitely retaining the associated binary resource. A fixed delay is not a universal perfect lifetime mechanism, but makes the cleanup decision explicit.
+
+---
+
+# Part XIX — Memory leaks versus high memory usage
+
+## 64. High memory usage and leaks are not synonyms
+
+An export that starts near 80 MB, temporarily rises to 300 MB, then returns near baseline demonstrates **high peak memory**, not necessarily a leak. An export that finishes but leaves progressively higher retained memory after every run suggests a different problem: memory retention or leakage. These patterns require different investigations and should not be conflated.
+
+---
+
+## 65. A leak is unjustified retained memory
+
+Possible causes include permanent Maps, forgotten event listeners, closures retaining buffers, Object URLs never revoked, or libraries whose documents are not destroyed. PlumePilot reduces these risks through bounded caches, temporary listener removal, PDF.js cleanup, canvas shrinking, page-lifetime caches, and operation cleanup. The key symptom is retained resources after their logical usefulness has ended.
+
+---
+
+## 66. Three snapshots as a mental method
+
+Compare memory **before export**, **during peak work**, and **after completion and settling**. The middle snapshot is expected to grow; the diagnostic question is whether the post-export baseline gradually rises over repeated runs. Garbage collection, JIT behavior, and browser caches can make exact values noisy, so observe trends and object retention rather than demanding identical numbers after every execution.
+
+---
+
+# Part XX — Garbage collection makes memory noisy
+
+## 67. Do not measure just one point
+
+The garbage collector decides when to reclaim unreachable objects. A heap that remains elevated immediately after an export may contain reclaimable memory that has not yet been collected. Repeated runs, comparable conditions, snapshots, and retained-object analysis provide more trustworthy evidence than one live counter. Distinguish allocation, reachability, reclamation, and operating-system memory reporting.
+
+---
+
+## 68. `performance.memory` is not universal truth
+
+The historical `performance.memory` property is non-standard and deprecated. `performance.measureUserAgentSpecificMemory()` is a more recent API but has limited availability and security/isolation requirements. It is unsuitable as an assumed portable production metric for PlumePilot. Browser DevTools, representative fixtures, and clearly scoped benchmarks remain essential for concrete memory investigations.
+
+**Examples from the historical implementation:**
+
+```js
+performance.measureUserAgentSpecificMemory()
+```
+
+---
+
+# Part XXI — Cache and memory pressure
+
+## 69. Useful cache versus eternal cache
+
+Each cache should answer: who owns it, how many entries it may retain, how entries become stale, and when it ends. `lessonApiCache` applies freshness and semantic reuse rules. `pageLessonSnapshots` has a numeric cap. Other page-scoped caches disappear with their owning content context. These are different but legitimate ways to control staleness and growth.
+
+---
+
+## 70. TTL controls staleness, not size
+
+`API_LESSON_CACHE_FRESH_MS = 5 * 60 * 1000` defines a freshness interval. But a TTL does not automatically remove expired entries or cap the number of keys in memory. A long-lived Map can retain thousands of expired records until they are explicitly evicted, replaced, or the context ends. **Freshness policy and capacity policy are independent.**
+
+**Examples from the historical implementation:**
+
+```js
+const API_LESSON_CACHE_FRESH_MS = 5 * 60 * 1000;
+```
+
+**Historical reference:** `content.js:64`
+
+---
+
+# Part XXII — The cost of intermediate structures
+
+## 71. `Array.from`, spread, and copies
+
+Modern JavaScript often uses spread syntax to turn a NodeList into an array or combine existing arrays. Such operations allocate new collection structures. In PlumePilot's ordinary UI and course logic, that overhead is usually minor compared with network, PDF rendering, or canvas work. In a genuinely hot loop with many thousands of items, it might matter. Do not sacrifice clarity for speculative micro-allocations without profiling evidence.
+
+**Examples from the historical implementation:**
+
+```js
+[...document.querySelectorAll(...)]
+```
+
+```js
+[...arrayA, ...arrayB]
+```
+
+---
+
+## 72. Premature optimization
+
+It is easy to rewrite a readable `array.filter(...).map(...)` pipeline into a complex manual loop to save one array allocation. If 95% of actual execution time is spent in Fetch, layout, or rendering, we have optimized the wrong thing. **Premature optimization** means changing code for a presumed bottleneck before measuring whether that bottleneck matters in representative workloads.
+
+**Examples from the historical implementation:**
+
+```js
+array.filter(...).map(...)
+```
+
+---
+
+# Part XXIII — Performance and correctness
+
+## 73. An optimization that changes semantics is a bug
+
+The history of first-incomplete search shows the danger: permanently skipping all chapters reported at 100% would be faster, but a stale master index could make the result incorrect. The more conservative algorithm preserves a second verification pass. Performance should be measured **under correctness constraints**. Saving five requests is not an improvement if it silently skips work the user still needs.
+
+---
+
+## 74. Conservative optimization
+
+A useful pattern in uncertain systems is **fast path first, thorough fallback available**. Examples include master-index prioritization followed by detailed verification, text conversion followed by visual preservation when needed, and cache use followed by fresh data when stale. This creates graceful performance degradation: the common case is efficient, while unusual cases remain supported rather than producing incorrect answers.
+
+---
+
+# Part XXIV — Responsiveness as a functional requirement
+
+## 75. Progress updates are not decoration
+
+During EPUB generation the builder publishes stages, percentages, messages, and counters. These updates do not reduce CPU usage, but make a long task observable. An interface saying "Converting page 14 of 90" helps distinguish legitimate ongoing work from a frozen application. Progress visibility improves perceived latency, supports problem reports, and tells the user whether cancellation or patience is appropriate.
+
+---
+
+## 76. Cancellable and non-cancellable phases
+
+During final ZIP compression, the builder reports `cancellable: false` and changes its UI accordingly. The code can check `AbortSignal` in earlier stages, but cannot guarantee immediate safe interruption of every finalization step. This is a **truthful UI** requirement: never present an operational control as available when the underlying process cannot honor it reliably.
+
+**Examples from the historical implementation:**
+
+```js
+cancellable: false
+```
+
+**Historical reference:** `epub-core.mjs:2089–2116`; `materials-builder.js:69–72`
+
+---
+
+# Part XXV — The price of visual fidelity
+
+## 77. Quality and performance compete
+
+A page containing a complicated equation might convert quickly to text, but become wrong if essential mathematical symbols are omitted. Full rasterization preserves appearance at the expense of memory, encoding time, output bytes, reflow, and accessibility. Regional preservation attempts to separate clean text from fragile formulas or diagrams. A faster algorithm that changes the educational meaning of a page is not a successful optimization.
+
+---
+
+## 78. Quality as a budget
+
+Each page has several competing objectives: semantic correctness, visual fidelity, selectable/reflowable text, encoded size, CPU time, memory pressure, and accessibility. No single representation dominates on every dimension. `pageNeedsVisual()` and related logic form a small **policy engine**, selecting a compromise according to observable page characteristics.
+
+---
+
+## 79. Regional preservation under constraints
+
+Regional mode tries to preserve selected diagrams, equations, or tables as images while retaining surrounding text as reflowable XHTML. This can save final file size and improve reading flexibility compared with a full-page raster image. However, detecting regions requires operator lists, bounding boxes, row-ink calculations, region planning, and pixel coverage checks. Better output quality can legitimately require **more CPU during conversion**.
+
+---
+
+# Part XXVI — Resource budget per page
+
+## 80. A conceptual optimization model
+
+We can describe a page with several costs: CPU time `C`, peak memory `M`, output bytes `B`, and semantic or visual loss `L`. The converter chooses among text, regional, and visual strategies while trying to respect a quality threshold and a practical resource budget. PlumePilot does not solve a mathematical optimization problem globally; its heuristics approximate the same trade-off. The model clarifies why "fastest" alone cannot select the right mode.
+
+---
