@@ -2214,4 +2214,4 @@ In **Chapter 05**, we will study JavaScript asynchrony: events, Promises, `async
 
 ---
 
-[← 03 — DOM and dynamic pages](03-dom-and-dynamic-pages.md) · [Contents](index.md) · 05 — JavaScript asynchrony (translation in progress)
+[← 03 — DOM and dynamic pages](03-dom-and-dynamic-pages.md) · [Contents](index.md) · [05 — JavaScript asynchrony →](05-javascript-asynchrony.md)
