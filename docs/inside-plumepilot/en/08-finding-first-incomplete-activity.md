@@ -1333,3 +1333,467 @@ async function findFirstIncomplete(course) {
 This does not reproduce every guard, retry, user preference, or navigation detail. It illustrates the separation of outline, index, ordered candidates, detail checks, and local fallback.
 
 ---
+
+
+# Part XV — An information-retrieval problem
+
+## 34. Precision and recall as a mental model
+
+Without turning PlumePilot into a machine-learning system, we can borrow two concepts from information retrieval.
+
+### Precision
+
+Among the candidates we choose to inspect, how many actually contain unfinished work?
+
+### Recall
+
+Among all genuinely incomplete chapters, how many does the search avoid missing?
+
+An aggressive index filter might provide:
+
+```text
+high precision
+low checking cost
+but imperfect recall
+```
+
+The second pass over entries reported as 100% improves recall by preserving candidates excluded from the fast path.
+
+In simplified terms:
+
+```text
+master-prioritized pass
+→ speed
+
+additional verification pass
+→ resilience against missed candidates
+```
+
+It is a common trade-off in search systems.
+
+---
+
+# Part XVI — What this algorithm teaches us
+
+## 35. An index reduces the search space
+
+The index does not have to contain the entire truth.
+
+It may be enough to transform:
+
+```text
+40 chapters
+    ↓
+3 candidates worth checking immediately
+```
+
+This is valuable even when a fallback is still required.
+
+---
+
+## 36. Domain order comes before heuristic order
+
+We are not searching for:
+
+```text
+the lowest completion percentage
+```
+
+but:
+
+```text
+the first incomplete activity
+```
+
+Thus any prioritization strategy must be judged against the pedagogical ordering requirement, not only average speed.
+
+---
+
+## 37. Unknown must remain unknown
+
+One of the most dangerous errors in real systems is a silent conversion such as:
+
+```text
+missing → false
+missing → 0
+missing → completed
+```
+
+If the system does not know a value, **unknown** may be the only honest representation.
+
+---
+
+## 38. The best optimizations are reversible
+
+A good optimization says:
+
+```text
+try the cheaper path first
+```
+
+not:
+
+```text
+delete the more expensive path permanently
+```
+
+Here:
+
+```text
+master below 100% → first pass
+master at 100%    → second pass when needed
+```
+
+is more resilient than:
+
+```text
+master at 100% → never check again
+```
+
+---
+
+## 39. Preserve previously verified work
+
+When module 12 cannot be verified:
+
+```text
+do not restart at module 1
+```
+
+Open module 12.
+
+If module 12 turns out to be complete:
+
+```text
+remember that within the current search
+```
+
+Then continue.
+
+This eliminates redundant checks and keeps fallbacks local.
+
+---
+
+## 40. Separate discovery from execution
+
+Discovery answers:
+
+```text
+where should I go?
+```
+
+DOM interaction answers:
+
+```text
+how do I get there?
+```
+
+These are distinct responsibilities.
+
+They are still intertwined in parts of the existing implementation, but conceptually we could separate them:
+
+```text
+Discovery Engine
+    ↓
+Target
+    ↓
+Navigation / DOM Adapter
+```
+
+That could be a future architectural evolution, without implying that a refactor is necessary now.
+
+---
+
+# Part XVII — What we might model differently today
+
+## 41. An explicit `DiscoveryCandidate`
+
+A model could make information provenance clearer:
+
+```ts
+type DiscoveryCandidate = {
+  chapter: ChapterIdentity;
+  lessonNumber: number;
+  masterPercentage: number | null;
+  confidence: "indexed" | "detailed" | "visual";
+  activity?: ActivityIdentity;
+  needsVisualVerification: boolean;
+};
+```
+
+This would give the candidate an explicit confidence/source field rather than relying on loosely related flags.
+
+---
+
+## 42. A result type instead of scattered flags
+
+For example:
+
+```ts
+type DiscoveryResult =
+  | { type: "target"; candidate: DiscoveryCandidate }
+  | { type: "end" }
+  | { type: "cancelled" }
+  | { type: "unavailable"; reason: string };
+```
+
+The current JavaScript already represents something similar implicitly:
+
+```text
+status: target
+status: end
+status: cancelled
+status: fallback
+```
+
+The lesson is not "rewrite PlumePilot in TypeScript." It is:
+
+> **When an algorithm can end in semantically different ways, representing those outcomes explicitly reduces ambiguity.**
+
+---
+
+# Part XVIII — Testing the search algorithm
+
+## 43. The happy path is not enough
+
+A useful test matrix should include at least:
+
+| Scenario | Master | Detail | DOM | Expected behavior |
+|---|---|---|---|---|
+| First module incomplete | below 100% | valid | — | Target in module 1 |
+| First four complete | `100,100,100,100,<100` | valid | — | Target in module 5 |
+| Stale master | all 100% | module 3 incomplete | — | Module 3 found during second pass |
+| Missing mapping | entry without route | — | valid | Targeted visual verification |
+| Incomplete detail | below 100% | exhausted retries | valid | Visual verification of candidate |
+| False candidate | below 100% | complete | complete | Continue without a full restart |
+| Missing DOM percentage | below 100% | partial | unknown | Do not invent 0% |
+| Cancelled search | any | await in progress | — | No navigation |
+| Course changes | any | await in progress | — | Old run invalidated |
+| Pending test | below 100% | pending test | valid | Bring test into view |
+
+This kind of matrix often reveals more than line coverage alone, because it tests the relationship between **evidence, decisions, and actions**.
+
+---
+
+# Part XIX — A backend developer's analogy
+
+Imagine a very large database table:
+
+```sql
+SELECT *
+FROM activities
+WHERE completed = false
+ORDER BY course_order
+LIMIT 1;
+```
+
+Without a useful index, the database may need to examine many rows.
+
+PlumePilot faces a similar problem, but the information is spread across:
+
+```text
+master endpoint
+lesson endpoint
+local cache
+DOM
+```
+
+The course index acts like a **coarse index**. A lesson detail request resembles fetching the complete row. The DOM is like a legacy subsystem we can inspect when structured data is insufficient.
+
+This is not a perfect analogy. There is no full query planner, and PlumePilot does not have a transactionally consistent snapshot across all sources.
+
+But the principle transfers well:
+
+> **Start with the cheapest representation that meaningfully narrows the search; access expensive detail only for promising candidates.**
+
+---
+
+# Part XX — Concepts to carry forward
+
+## 1. Index and source of truth are different concepts
+
+An index can be tremendously useful even when it is not fully authoritative.
+
+---
+
+## 2. Reordering checks is different from eliminating candidates
+
+```text
+check chapters below 100% first
+```
+
+is safer than:
+
+```text
+never check chapters reported at 100%
+```
+
+---
+
+## 3. The important cost is often I/O, not CPU
+
+Avoiding DOM openings and HTTP requests can save far more time than micro-optimizing one JavaScript loop.
+
+---
+
+## 4. Unknown is not false
+
+The absence of information must remain representable, rather than being silently converted into a known outcome.
+
+---
+
+## 5. The best fallbacks are local
+
+When module 12 cannot be verified, inspect module 12. Do not restart at module 1.
+
+---
+
+## 6. Preserve verified evidence
+
+`verifiedCompleteChapters` avoids repeating checks that already produced trustworthy results.
+
+---
+
+## 7. Asynchronous operations must be allowed to become stale
+
+Generation tokens and cancellation guards prevent obsolete searches from acting on the page.
+
+---
+
+## 8. Discovery and execution are conceptually distinct responsibilities
+
+```text
+discover target
+    ↓
+navigate to target
+```
+
+is a cleaner model than treating decision-making and DOM manipulation as an inseparable operation.
+
+---
+
+# Part XXI — Exercises
+
+## Exercise 1 — Stable partition
+
+Given:
+
+```js
+const chapters = [
+  { id: 1, percentage: 100 },
+  { id: 2, percentage: 75 },
+  { id: 3, percentage: 100 },
+  { id: 4, percentage: 20 },
+];
+```
+
+Produce the order:
+
+```text
+[2, 4, 1, 3]
+```
+
+without sorting numerically by percentage. Preserve the relative ordering within both groups.
+
+---
+
+## Exercise 2 — Why can `sort()` be semantically wrong?
+
+Explain why:
+
+```js
+chapters.sort((a, b) => a.percentage - b.percentage);
+```
+
+does not correctly express "first incomplete activity."
+
+---
+
+## Exercise 3 — Three-valued knowledge
+
+Represent progress as:
+
+```ts
+"complete" | "incomplete" | "unknown"
+```
+
+rather than a Boolean.
+
+Which parts of the algorithm become easier to express?
+
+---
+
+## Exercise 4 — Worst case
+
+Imagine 50 chapters and a master index that incorrectly reports everything at 100%.
+
+How many detailed verifications might be required to preserve thoroughness? Why is this worst-case degradation acceptable?
+
+---
+
+## Exercise 5 — A query planner
+
+Sketch three plans:
+
+```text
+DOM-first
+API-detail-first
+master-index-first
+```
+
+For each, compare the number of requests, number of DOM openings, reliability, and behavior when data is stale.
+
+---
+
+# Part XXII — Further reading
+
+For the JavaScript data operations used directly in this algorithm:
+
+- MDN — `Array.prototype.find()`  
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find
+
+- MDN — `Array.prototype.filter()`  
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+
+- MDN — `Map`  
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
+
+Studying relational database indexes and query planning will also provide useful analogies. Keep in mind, however, that PlumePilot is not implementing a database management system.
+
+---
+
+# Part XXIII — In the next chapter
+
+We now understand how PlumePilot decides **which information to retrieve, and in which order**.
+
+Chapter 09 changes the kind of problem completely:
+
+**Generating PDF, HTML, and EPUB in the browser.**
+
+We will study a pipeline from course structures and resource URLs to downloadable binary files:
+
+```text
+collection
+    ↓
+normalization
+    ↓
+asset fetching
+    ↓
+parsing
+    ↓
+transformation
+    ↓
+layout / reflow
+    ↓
+serialization
+    ↓
+Blob / download
+```
+
+And we will ask a very practical question when the browser processes tens or hundreds of megabytes:
+
+> **What does it mean to use the browser not merely as a user interface, but as a full document-generation runtime?**
+
+---
+
+[← 07 — Autoplay as a state machine](07-autoplay-as-a-state-machine.md) · [Contents](index.md) · 09 — Generating PDF, HTML, and EPUB (translation in progress)
