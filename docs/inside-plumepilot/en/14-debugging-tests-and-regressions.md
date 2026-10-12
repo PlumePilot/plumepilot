@@ -628,6 +628,8 @@ await Promise.all([
 
 ---
 
+# Part XXVII — Backward compatibility testing
+
 ## 52. Legacy keys
 
 Old unprefixed data can remain valid for legacy Pegaso behavior without being incorrectly interpreted as Mercatorum data.
@@ -639,6 +641,8 @@ Old unprefixed data can remain valid for legacy Pegaso behavior without being in
 A schema upgrade must define not only the new shape but what old keys mean, how long they remain readable, and what is not allowed to leak into another platform.
 
 ---
+
+# Part XXVIII — Source invariant tests
 
 ## 54. Not every test runs the feature
 
@@ -668,6 +672,8 @@ Source tests are effective for required IDs, manifest declarations, load orderin
 
 ---
 
+# Part XXIX — What they cannot protect well
+
 ## 56. Source matching is not behavior
 
 Seeing a function name or guard expression in source does not prove the function runs correctly. Structural tests complement but cannot replace behavioral tests.
@@ -682,6 +688,8 @@ assert.match(
 ```
 
 ---
+
+# Part XXX — Structural tests as architecture tests
 
 ## 57. A particularly valid use
 
@@ -703,6 +711,8 @@ assert.ok(
 These verify wiring, dependency order, presence of declared features, and component boundaries. They protect system shape without impersonating an end user.
 
 ---
+
+# Part XXXI — Testing generated output
 
 ## 59. Generated HTML quiz tests
 
@@ -732,6 +742,8 @@ new Function(script);
 
 ---
 
+# Part XXXII — Testing in a real browser
+
 ## 62. Node is not a browser
 
 A fake DOM cannot faithfully reproduce native focus, Shadow DOM, CSS layout, keyboard navigation, or Chromium rendering. Those contracts require integration tests in a real browser.
@@ -744,6 +756,8 @@ The v2.35.2 fixture exercises both UI controllers with a shared fake extension s
 
 ---
 
+# Part XXXIII — E2E and internal state
+
 ## 64. Prefer user-visible E2E contracts
 
 An E2E test that asserts private variable shapes can break on harmless refactors. Verify observable behavior whenever that is the contract being promised.
@@ -755,6 +769,8 @@ An E2E test that asserts private variable shapes can break on harmless refactors
 Prefer “the Back button restores focus and the previous scroll position” over “internal homeScroll equals a particular number,” unless that internal value itself is an explicit contract.
 
 ---
+
+# Part XXXIV — Testing service worker termination
 
 ## 66. The debugger can affect lifecycle
 
@@ -774,6 +790,8 @@ Terminate the worker in a controlled browser test, restart the relevant workflow
 
 ---
 
+# Part XXXV — Flaky tests
+
 ## 69. What is a flaky test?
 
 A flaky test sometimes passes and sometimes fails without relevant source changes. Async timing and browser scheduling are common causes.
@@ -785,6 +803,8 @@ A flaky test sometimes passes and sometimes fails without relevant source change
 Uncontrolled timers, real network latency, shared persistent storage, animations, unexpected background termination, and unstable DOM readiness can all alter outcomes.
 
 ---
+
+# Part XXXVI — How PlumePilot avoids some flakiness
 
 ## 71. Fake time
 
@@ -813,11 +833,15 @@ Create only the nodes, attributes, and events needed by the invariant. Avoid imp
 
 ---
 
+# Part XXXVII — But do not eliminate reality entirely
+
 ## 74. Do not fake away all reality
 
 A perfect fake may conceal the browser quirk that caused the original bug. Combine deterministic tests with browser fixtures and selected manual checks.
 
 ---
+
+# Part XXXVIII — Test pyramid? Not exactly
 
 ## 75. The traditional test pyramid
 
@@ -831,6 +855,8 @@ PlumePilot integrates with browser APIs, remote LMS behavior, cross-world messag
 
 ---
 
+# Part XXXIX — Test matrix
+
 ## 77. Build a test matrix from each bug
 
 For autoplay, axes include chapter identity, completion, visibility, cache freshness, test policy, browser, and DOM lifecycle. Do not try to enumerate every Cartesian combination.
@@ -842,6 +868,8 @@ For autoplay, axes include chapter identity, completion, visibility, cache fresh
 Select combinations likely to expose interactions. For example, a closed accordion combined with an autoplay recovery transition uncovered a real regression.
 
 ---
+
+# Part XL — State transition coverage
 
 ## 79. State-transition coverage
 
@@ -855,11 +883,15 @@ Each critical guard deserves at least a test where it permits an action and one 
 
 ---
 
+# Part XLI — Code coverage is not behavioral coverage
+
 ## 81. Line coverage is not behavior coverage
 
 Executing every line does not establish correctness under ambiguous identities, unusual timing, malformed responses, or missing browser capabilities. Ask which property was proven.
 
 ---
+
+# Part XLII — Test names as documentation
 
 ## 82. Assertions document intent
 
@@ -873,11 +905,15 @@ A meaningful test name describes the scenario and protected result, not just an 
 
 ---
 
+# Part XLIII — Bug archaeology
+
 ## 84. Use changelog, tests, and source together
 
 The changelog explains when and why a workaround appeared; the test defines the intended invariant; source shows the implementation. Triangulate them before removing old-looking code.
 
 ---
+
+# Part XLIV — Git bisect as a conceptual tool
 
 ## 85. Git bisect as a mental model
 
@@ -897,17 +933,23 @@ node tests/foo.mjs
 
 ---
 
+# Part XLV — Root cause versus contributing factors
+
 ## 87. Root cause and contributing factors
 
 Hidden-tab failures may combine throttled timers, incorrect timeout interpretation, and an overly aggressive reload fallback. A useful postmortem distinguishes these factors instead of naming one vague cause.
 
 ---
 
+# Part XLVI — Five Whys, with technical answers
+
 ## 88. A technical Five Whys
 
 If routing chose the wrong chapter, ask why display_order was reused, why the route treated it as global identity, and why no ambiguity guard existed. The final question should identify the missing invariant.
 
 ---
+
+# Part XLVII — Temporary versus permanent instrumentation
 
 ## 89. Temporary debug logging
 
@@ -927,11 +969,15 @@ Structured events such as operationStarted, candidateRejected, fallbackSelected,
 
 ---
 
+# Part XLVIII — Privacy in debugging
+
 ## 91. Protect privacy during debugging
 
 Extensions handle course data, authentication context, and personal notes. Avoid logging passwords, cookies, raw tokens, or unnecessary user content. Redact and limit diagnostic payloads.
 
 ---
+
+# Part XLIX — Error messages as diagnostic tools
 
 ## 92. “Failed” is not enough
 
@@ -939,17 +985,23 @@ A helpful error identifies which phase and resource failed, whether the conditio
 
 ---
 
+# Part L — User-visible errors and developer diagnostics
+
 ## 93. Two audiences
 
 Users need a concise action-oriented message; developers may need operation IDs, response status, retry counts, and safe technical metadata. Do not expose all raw diagnostics to every user.
 
 ---
 
+# Part LI — Testing the fallback
+
 ## 94. A fallback must be tested
 
 Any code path that claims to recover from an API or DOM failure should have a test that deliberately triggers that failure and observes the fallback.
 
 ---
+
+# Part LII — First-incomplete: failure injection
 
 ## 95. Inject an incomplete lesson response
 
@@ -983,6 +1035,8 @@ assert.equal(
 
 ---
 
+# Part LIII — Testing cancellation
+
 ## 97. Cancellation is semantic behavior
 
 Differentiate cancelled by user, network timeout, and ordinary operation failure. Abortion is not merely one more error.
@@ -994,6 +1048,8 @@ Differentiate cancelled by user, network timeout, and ordinary operation failure
 A long operation should stop expensive stages promptly after cancellation; EPUB yields and abort checks are part of this contract.
 
 ---
+
+# Part LIV — Benchmark ≠ test
 
 ## 99. Benchmark versus test
 
@@ -1007,6 +1063,8 @@ Use representative text, mathematical, visual, and table-heavy PDFs to verify co
 
 ---
 
+# Part LV — Performance regression testing
+
 ## 101. Stable performance properties
 
 Instead of a fragile millisecond threshold, check request counts, cleanup, no duplicate expensive work, and memory-related invariants. These are often deterministic proxies for performance regressions.
@@ -1018,6 +1076,8 @@ Instead of a fragile millisecond threshold, check request counts, cleanup, no du
 Measure wall time and throughput under a fixed browser, machine, and fixture. Do not make a strict pass/fail unit test depend on fluctuating machine load.
 
 ---
+
+# Part LVI — Golden and fixture testing
 
 ## 103. EPUB fixtures
 
@@ -1031,6 +1091,8 @@ Inspect chapter order, manifest, links, media types, page modes, and expected co
 
 ---
 
+# Part LVII — Snapshot testing: useful but risky
+
 ## 105. The giant snapshot trap
 
 Committing every byte of a generated HTML or EPUB file as a snapshot can make harmless changes generate incomprehensible diffs.
@@ -1042,6 +1104,8 @@ Committing every byte of a generated HTML or EPUB file as a snapshot can make ha
 Extract a small stable representation, such as chapter titles, resource paths, table-of-contents entries, and specific content markers. Compare that instead of the entire archive.
 
 ---
+
+# Part LVIII — UI regression testing
 
 ## 107. The pixel problem
 
