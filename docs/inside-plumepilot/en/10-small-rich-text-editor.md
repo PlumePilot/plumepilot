@@ -2251,3 +2251,408 @@ ADD_CALLOUT
 This is **snapshot persistence**, not event sourcing.
 
 ---
+
+
+# Part XXIV — What the real bugs teach us
+
+## 59. Bug: the checklist comes back
+
+Lesson:
+
+> The browser editing engine maintains its own structure and context; after a command, inspect and normalize the resulting DOM rather than assuming it matches the intention.
+
+Pattern:
+
+```text
+command
+↓
+inspect
+↓
+normalize
+```
+
+---
+
+## 60. Bug: a callout captures the wrong block
+
+Lesson:
+
+> A collapsed selection is information, not the absence of information.
+
+It may mean:
+
+```text
+insertion point
+```
+
+not:
+
+```text
+arbitrarily use the previous block
+```
+
+The interface needs to interpret the Selection's meaning correctly.
+
+---
+
+## 61. Bug: formatting continues
+
+Lesson:
+
+> Formatting can belong not only to previously entered text, but also to the caret's current position.
+
+That is why Escape must affect the **future state of typing**.
+
+---
+
+## 62. Potential bug: toolbar loses the selection
+
+Lesson:
+
+> Focus and Selection are part of application state.
+
+A seemingly harmless UI click can destroy the context another operation needs.
+
+Hence:
+
+```text
+rememberSelection()
++
+preventDefault(mousedown)
++
+restore range
+```
+
+---
+
+# Part XXV — Concepts to carry forward
+
+## 63. First principle: editor = tree + selection
+
+Thinking in terms of:
+
+```text
+text + style
+```
+
+is not sufficient. We need:
+
+```text
+DOM tree
++
+Selection / Range
++
+editing engine
++
+application semantics
+```
+
+---
+
+## 64. Second principle: a transformation must preserve invariants
+
+Every command should ask:
+
+```text
+Does the text remain unchanged?
+Does the structure remain valid?
+Is the caret still valid?
+Does the command affect only the intended editor?
+Does the markup remain inside the allowed schema?
+```
+
+---
+
+## 65. Third principle: custom semantics require normalization
+
+The browser knows:
+
+```text
+UL
+LI
+```
+
+but does not understand PlumePilot's extra concepts:
+
+```text
+checklist
+checked
+```
+
+When these two models interact, a normalization layer is necessary.
+
+---
+
+## 66. Fourth principle: live DOM is not persistence
+
+Editors are destroyed and recreated.
+
+Notes survive because they are stored in a separate model:
+
+```text
+notes Map
+```
+
+The DOM is an editable representation, not the definitive storage location.
+
+---
+
+## 67. Fifth principle: sanitize even when we own the UI
+
+HTML content crosses boundaries involving browser editing, saved files, and different software versions.
+
+Persisting only a recognized subset keeps the system predictable.
+
+---
+
+## 68. Sixth principle: a legacy API needs isolation and tests
+
+Using `execCommand()` can be pragmatic in a limited scope.
+
+But we should remember:
+
+```text
+deprecated API
++
+browser-specific behavior
++
+regression-test requirements
+```
+
+Technical debt is less risky when it is **deliberate and contained**.
+
+---
+
+# Part XXVI — Exercises
+
+## 69. Exercise 1 — Draw the Range
+
+Given:
+
+```html
+<p>La <strong>risposta corretta</strong> è B.</p>
+```
+
+Imagine selecting:
+
+```text
+corretta
+```
+
+Describe the corresponding:
+
+```text
+startContainer
+startOffset
+endContainer
+endOffset
+```
+
+Then consider what changes when selecting:
+
+```text
+risposta corretta è
+```
+
+across the boundary between `<strong>` and ordinary text.
+
+The Italian sentence is retained as the concrete historical HTML example.
+
+---
+
+## 70. Exercise 2 — Simulate `splitChecklist()`
+
+Begin with:
+
+```text
+☑ A
+☐ B ← caret
+☐ C
+☐ D
+```
+
+Draw the DOM before and after changing the selected item to a normal bulleted list.
+
+Verify that the textual order:
+
+```text
+A B C D
+```
+
+has not changed.
+
+---
+
+## 71. Exercise 3 — Partial highlight
+
+Start with:
+
+```html
+<span class="highlight" data-color="yellow">
+  abc def ghi
+</span>
+```
+
+Select `def` and apply blue.
+
+Write the desired resulting DOM without unnecessary nesting.
+
+---
+
+## 72. Exercise 4 — Sanitizer invariant
+
+Mentally insert:
+
+```html
+<a href="https://example.com" onclick="alert(1)">test</a>
+```
+
+into the notes.
+
+What should the current `cleanHtml()` produce?
+
+Would you choose the same policy for a more general editor? Why?
+
+---
+
+## 73. Exercise 5 — Removing `execCommand()`
+
+Choose just one command:
+
+```text
+bold
+```
+
+Try to implement it entirely with:
+
+```text
+Selection
+Range
+DOM
+beforeinput
+```
+
+Then account for:
+
+```text
+selection already partially bold
+selection crossing two nodes
+collapsed caret
+undo
+redo
+paste
+nested marks
+```
+
+The exercise is mainly intended to demonstrate why a complete editor is difficult to build.
+
+---
+
+# Part XXVII — Further reading
+
+## 74. Recommended primary documentation
+
+### `contenteditable`
+
+HTML Standard:
+
+https://html.spec.whatwg.org/multipage/interaction.html#contenteditable
+
+MDN:
+
+https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/contenteditable
+
+### Selection API
+
+MDN:
+
+https://developer.mozilla.org/en-US/docs/Web/API/Selection
+
+W3C Selection API:
+
+https://www.w3.org/TR/selection-api/
+
+### Range
+
+MDN:
+
+https://developer.mozilla.org/en-US/docs/Web/API/Range
+
+### `beforeinput`
+
+MDN:
+
+https://developer.mozilla.org/en-US/docs/Web/API/Element/beforeinput_event
+
+Input Events specification:
+
+https://www.w3.org/TR/input-events-2/
+
+### `execCommand()`
+
+MDN:
+
+https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
+
+Read this last reference with particular attention to the API's explicitly **deprecated** status.
+
+---
+
+# Conclusion
+
+PlumePilot's small notes editor brings us unexpectedly close to challenges faced by much larger rich-text editors.
+
+We started with:
+
+```text
+"I want bold text in my notes."
+```
+
+but encountered:
+
+```text
+contenteditable
+Selection
+Range
+caret
+focus
+DOM tree rewriting
+lists
+normalization
+state machine
+sanitization
+data schema
+persistence
+undo history
+cross-browser behavior
+```
+
+The key lesson is:
+
+> **Rich-text editing means keeping content, structure, and editing position consistent at the same time.**
+
+PlumePilot addresses this using an intentionally small hybrid editor:
+
+```text
+browser editing engine
++
+execCommand for simple operations
++
+Range/DOM for custom semantics
++
+cleanHtml as the boundary
++
+Map as persistable state
+```
+
+This is not necessarily the architecture we would choose for Google Docs. But it is proportionate to the actual task and, for that reason, an excellent real-world case study.
+
+In Chapter 11, we return to the extension's UI as a whole:
+
+**UI without a framework — Popup, floating menu, and synchronization.**
+
+We will examine how PlumePilot builds fairly rich interfaces with DOM, CSS, and vanilla JavaScript; how popup and floating menu share state; and how the recent UI/UX redesign provides opportunities to separate the model, rendering, and layout more clearly.
+
+---
+
+[← 09 — Generating PDF, HTML, and EPUB](09-generating-pdf-html-and-epub.md) · [Contents](index.md) · 11 — UI without a framework (translation in progress)
