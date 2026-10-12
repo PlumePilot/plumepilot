@@ -38,7 +38,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 07 | [Autoplay as a state machine](07-autoplay-as-a-state-machine.md) |
 | 08 | [Finding the first incomplete activity — Heuristics, master calls, and fallbacks](08-finding-first-incomplete-activity.md) |
 | 09 | [Generating PDF, HTML, and EPUB in the browser](09-generating-pdf-html-and-epub.md) |
-| 10 | A small rich-text editor — Selection, Range, lists, and callouts |
+| 10 | [A small rich-text editor — Selection, Range, lists, and callouts](10-small-rich-text-editor.md) |
 | 11 | UI without a framework — Popup, floating menu, and synchronization |
 | 12 | Performance and memory — When the browser becomes our runtime |
 | 13 | Chrome, Edge, and Firefox — One codebase, different runtimes |
