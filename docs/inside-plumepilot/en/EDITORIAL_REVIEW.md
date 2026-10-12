@@ -14,6 +14,19 @@ The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. Th
 - [x] English index links to the glossary and references, no longer incorrectly claiming that chapters are still missing.
 - [x] PR remains **Draft**; Italian files on main and extension packages are unchanged.
 
+## Fidelity pass — corrections already committed (12 October 2026)
+
+- [x] **Chapter 02, section 11:** restored the actual §runtimeMessage()§ implementation from the 2.35.1 snapshot. §chrome.runtime.lastError§ becomes a resolved application value (§{ accepted: false, reason }§), **not** a rejected Promise. Restored the callback/PROMISE translation diagram and real §PEGASO_START_EXPORT§ example.
+- [x] **Chapter 03, section 28:** restored the unsafe stale-DOM-reference example to explain why using a node across §await§ without revalidation is dangerous.
+- [x] **Chapter 04, section 59:** restored the authenticated §originalFetch.call§ example, including credentials and abort signal.
+- [x] **Chapter 05, section 42:** restored cancellation registry cleanup (§turboControllers.clear()§).
+- [x] **Chapter 06:** restored a course-scoped storage-key example, the lesson-cache composite key function, monotonic progress-item merge, §WeakMap§ counterexample, numeric key normalization, lease-expiry guards, conflicting route-key guards, negative-cache preservation guard, and cached-outline fingerprint check.
+- [x] After these updates, numbered sections **02–06** still match the Italian source, all five Markdown files have balanced fences, and each preserves the index navigation link.
+
+**Remaining:** these are targeted corrections, **not full editorial sign-off**. Across 02–06, 125+ source technical snippets still fail an exact-string comparison with the current English snippets. Some only differ by translated code comments or because separate examples were combined; other examples or explanatory §text§ diagrams may genuinely be absent. Inspect each discrepancy in context. Do not automatically paste all source blocks, which would introduce duplicates and untranslated Italian annotations.
+
+---
+
 ## Important remaining editorial work
 
 A matching heading count **does not prove equivalent content**. Several draft chapters compress explanatory code-like `text` blocks from the Italian source into prose. Some earlier chapters have fewer fenced technical examples than their originals.
