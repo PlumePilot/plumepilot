@@ -29,7 +29,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | # | Chapter |
 |---|---|
 | 00 | [Introduction — From problem to product](00-introduction.md) |
-| 01 | Anatomy of PlumePilot — What happens when the extension comes to life |
+| 01 | [Anatomy of PlumePilot — What happens when the extension comes to life](01-anatomy-of-an-extension.md) |
 | 02 | Contexts and messaging — Making separate worlds communicate |
 | 03 | DOM and dynamic pages — Working inside a UI we do not control |
 | 04 | APIs and reverse engineering — Understanding the platform by observing its traffic |
