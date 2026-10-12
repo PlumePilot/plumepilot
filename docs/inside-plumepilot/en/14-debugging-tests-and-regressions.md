@@ -1603,3 +1603,514 @@ If checking candidate order requires stubbing an entire LMS page, pure decision 
 Some operations genuinely require host DOM, extension messaging, or layout. The goal is to isolate deterministic logic where beneficial, not pretend platform effects can disappear.
 
 ---
+
+## 201. Functional core and imperative shell
+
+Keep deterministic decisions in a small functional core and environment effects in an imperative shell. Core logic is easy to unit test; DOM interaction and browser messaging require appropriate integration tests.
+
+---
+
+## 202. A future discovery-engine boundary
+
+Candidate ordering, identity comparison, and confidence rules could be extracted from the DOM adapter, making first-incomplete discovery easier to test directly.
+
+---
+
+## 203. The UI already provides an example
+
+autoplayPresentation() takes policy inputs and returns a view model without touching the DOM. This separation is a successful example of testable presentation logic.
+
+---
+
+## 204. Stable observability fields
+
+Operation IDs, phase names, statuses, and error categories can form a shared structured diagnostic model for UI, background, and tests.
+
+---
+
+## 205. Do not parse console output as an API
+
+Tests should consume structured events or result objects where available, not depend on exact formatting of a human-readable log line.
+
+---
+
+## 206. Should we assert at runtime?
+
+Production code cannot throw assertions indiscriminately, but normalization at trust boundaries should reject or classify invalid data. Test those guards explicitly.
+
+**Historical code example:**
+
+```js
+if (!validIdentity(...)) return fallback;
+```
+
+---
+
+## 207. Assert strongly at build time
+
+The release compiler can fail immediately on an invalid manifest, missing file, or unexpected vendor transform. Shipping a questionable artifact is worse than failing the build.
+
+---
+
+## 208. First record a new bug
+
+Record the symptom, expected and observed behavior, minimal steps, environment, affected identity, and possible consequences before changing code.
+
+---
+
+## 209. Then choose the strategy
+
+Decide whether the case needs an exact reproducer, fake timer, boundary fixture, browser integration, artifact test, or a combination.
+
+---
+
+## 210. Debug checklist: identity
+
+Which platform, course code, folder, lesson number, activity ID, or request ID identifies the affected object? Could any field be duplicated?
+
+---
+
+## 211. Debug checklist: context
+
+Which script and execution world owns the relevant API, event, listener, or DOM node? Is a background process ephemeral?
+
+---
+
+## 212. Debug checklist: source of truth
+
+Did the value come from master progress, lesson detail, DOM, local storage, or an old cache? How authoritative and fresh is it?
+
+---
+
+## 213. Debug checklist: lifetime
+
+Could an await, rerender, tab visibility change, or worker restart make the data or node stale before the action?
+
+---
+
+## 214. Debug checklist: side effects
+
+What harm follows a wrong decision: clicking another lesson, reloading a hidden tab, losing notes, concealing cancellation, or submitting an invalid package?
+
+---
+
+## 215. Debug checklist: fallback
+
+Is there a safer, targeted verification or recovery route than proceeding with an uncertain result?
+
+---
+
+## 216. Debug checklist: regression test
+
+What is the smallest deterministic environment that demonstrates the rule and its dangerous counterexample?
+
+---
+
+## 217. Closed accordion: symptom
+
+Autoplay stops because it cannot find a visible lesson row after a chapter accordion has been closed or rebuilt.
+
+---
+
+## 218. Closed accordion: root cause
+
+A stale DOM reference or premature lookup assumed the row was still present across a rendering boundary.
+
+---
+
+## 219. Closed accordion: fix
+
+recoverPlaybackLesson() reacquires the currently rendered row before the next playback transition.
+
+---
+
+## 220. Closed accordion: test
+
+Simulate a lesson row disappearing during an await and being recreated afterward.
+
+---
+
+## 221. Closed accordion: invariant
+
+Advance only the refreshed row for the intended lesson, and never advance a different manually selected lesson.
+
+---
+
+## 222. Skip-completed: symptom
+
+To reach incomplete chapter 5, autoplay unnecessarily opens chapters 2, 3, and 4.
+
+---
+
+## 223. Skip-completed: root cause
+
+The search took an expensive visual traversal path despite master-index information that could prioritize later candidates.
+
+---
+
+## 224. Skip-completed: fix
+
+Use master-guided forward API discovery to identify the target without opening each intermediate chapter.
+
+---
+
+## 225. Skip-completed: test
+
+Set the first incomplete module beyond multiple completed ones and assert the request order and number of unnecessary DOM openings.
+
+---
+
+## 226. Skip-completed: invariant
+
+A correct forward search should skip confidently completed chapters without opening each one, while retaining the appropriate verification behavior.
+
+---
+
+## 227. Stale master: symptom
+
+The tool incorrectly concludes that every activity is finished even though a chapter has unfinished work.
+
+---
+
+## 228. Stale master: root cause
+
+An aggregate 100% summary was treated as an unchallengeable source of truth.
+
+---
+
+## 229. Stale master: fix
+
+Prioritize candidates below 100% but preserve detail verification and a second pass when summaries fail.
+
+---
+
+## 230. Stale master: test
+
+Give the master an all-100% view while a detail response identifies unfinished work; ensure discovery does not stop prematurely.
+
+---
+
+## 231. Stale master: invariant
+
+Aggregate completion is an index or heuristic, not always conclusive evidence about individual activities.
+
+---
+
+## 232. Hidden tab: symptom
+
+A background tab triggers repeated recovery reloads after a timeout.
+
+---
+
+## 233. Hidden tab: root cause
+
+Time spent hidden with throttled callbacks was interpreted as a broken page.
+
+---
+
+## 234. Hidden tab: fix
+
+Use visibility-aware waiting and recovery rather than treating a hidden timeout as fatal.
+
+---
+
+## 235. Hidden tab: test
+
+Advance a fake clock, fire visibilitychange, and assert successful resumption without reload.
+
+---
+
+## 236. Hidden tab: invariant
+
+A hidden tab alone must not cause a recovery reload; work should resume when the page becomes visible and ready.
+
+---
+
+## 237. Platform collision: potential symptom
+
+Course state from Pegaso and Mercatorum might overwrite each other when their IDs happen to match.
+
+---
+
+## 238. Platform collision: root cause
+
+Storage keys did not fully encode the platform identity domain.
+
+---
+
+## 239. Platform collision: fix
+
+Use composite keys scoped by university and relevant course or operation identity.
+
+---
+
+## 240. Platform collision: test
+
+Perform concurrent same-ID writes under two platforms and verify both records remain distinct.
+
+---
+
+## 241. Platform collision: invariant
+
+Data from one LMS platform must not overwrite or be interpreted as another platform's state.
+
+---
+
+## 242. Firefox review: symptom
+
+A Firefox store submission fails even though the extension passes functional smoke tests.
+
+---
+
+## 243. Firefox review: root cause
+
+Packaged vendor files retain review-sensitive dynamic execution patterns or insufficient provenance.
+
+---
+
+## 244. Firefox review: fix
+
+Keep readable pinned upstream sources and apply controlled deterministic target transformations.
+
+---
+
+## 245. Firefox review: test
+
+Inspect the finished ZIP with a restricted-pattern scanner and checksum validator.
+
+---
+
+## 246. Firefox review: invariant
+
+The Firefox artifact must satisfy explicit review-safety and provenance contracts on every build.
+
+---
+
+## 247. UI redesign: symptoms
+
+The popup and floating menu drift in typography, checkbox styles, layout, scroll behavior, and visibility of controls.
+
+---
+
+## 248. UI redesign: root cause
+
+Presentation rules and interaction behavior were independently repeated across the two surfaces.
+
+---
+
+## 249. UI redesign: fix
+
+Introduce shared menu UX helpers, design tokens, and stable DOM conventions while preserving independent controllers.
+
+---
+
+## 250. UI redesign: test
+
+Combine source invariants with a Chromium fixture that actually exercises popup and floating-menu behavior.
+
+---
+
+## 251. UI redesign: invariant
+
+Both surfaces must agree on shared meanings, keep keyboard navigation stable, and leave controls for active work reachable.
+
+---
+
+## 252. Improve source slicing over time
+
+Source extraction through string boundaries accelerated development, but explicit exported testable modules would make future refactors less brittle.
+
+---
+
+## 253. Provide one test runner
+
+A single discoverable command lowers the risk of accidentally omitting one of many regression scripts.
+
+---
+
+## 254. More browser-specific E2E testing
+
+Exercise the actual Chrome/Edge and Firefox extension contexts, including background restart and packaged resource differences.
+
+---
+
+## 255. Versioned API contract fixtures
+
+Sanitized real-world LMS responses could protect parsers and normalizers when upstream response shapes change.
+
+---
+
+## 256. Selective visual regression
+
+Use screenshot comparison where geometry and pixels are part of the user-facing contract, not for every invisible behavior.
+
+---
+
+## 257. Do not replace everything with E2E
+
+Browser-wide tests can be slow, flaky, costly to maintain, and difficult to diagnose. Preserve small deterministic tests where they genuinely prove a property.
+
+---
+
+## 258. Do not replace everything with pure unit tests
+
+Real focus behavior, Shadow DOM styling, extension background lifecycles, and packaged manifests need integration or artifact coverage.
+
+---
+
+## 259. Do not equate quality with coverage percentage
+
+The useful metric is which safety, liveness, and user-visible properties the suite actually protects.
+
+---
+
+## 260. A possible future test structure
+
+Organize fast tests, browser integration, release artifact checks, and manual live scenarios by purpose so their cost and prerequisites are explicit.
+
+---
+
+## 261. Fast suite target
+
+Run frequently during development and on each PR; include pure logic, VM scenarios, normalizers, and lightweight structural checks.
+
+---
+
+## 262. Browser suite target
+
+Exercise real DOM, focus, shared settings, startup, Shadow DOM, and target-specific extension behavior.
+
+---
+
+## 263. Release suite target
+
+Regenerate the packages, run artifact validation and lint, check manifests, checksums, and source-review material before submissions.
+
+---
+
+## 264. Manual live suite target
+
+Test a concise set of real LMS flows—autoplay, incomplete discovery, quiz export, materials export, exam status, and cancellation—because fixture coverage cannot fully control an external provider.
+
+---
+
+## 265. Debugging reduces the search space
+
+A bug begins with many possible explanations. Each well-designed observation rules out hypotheses and narrows the remaining causes.
+
+---
+
+## 266. Regression tests reduce future search work
+
+When a future change violates a known invariant, a targeted test fails close to the cause before users rediscover it.
+
+---
+
+## 267. A comment can be ignored
+
+A comment explains why an odd guard exists, but nothing forces future code changes to honor it.
+
+**Historical code example:**
+
+```js
+// Don't break closed accordions
+```
+
+---
+
+## 268. A test is executable memory
+
+An assertion that fails if the guard's invariant disappears encodes the same knowledge in a form the release process can enforce.
+
+**Historical code example:**
+
+```js
+assert.equal(nextRowReceived, restoredRow);
+```
+
+---
+
+## 269. Tests change refactoring risk
+
+Without coverage, developers hesitate to change unfamiliar code; behavior-focused tests do not remove risk but expose unintended changes sooner.
+
+---
+
+## 270. After a refactor, classify test failures
+
+The code may have regressed, the test may be coupled to irrelevant structure, or the requirement may intentionally have changed. Do not blindly change assertions to green.
+
+---
+
+## 271. Intentional changes in autoplay requirements
+
+If the desired policy changes, an old regression test may correctly fail. Update the documented requirement, implementation, and test together.
+
+---
+
+## 272. Tests record decisions, not eternal truth
+
+A test reflects a historical expectation that can be mistaken or superseded. Treat failures as change detectors requiring investigation, not absolute oracles independent of product requirements.
+
+---
+
+## 273. What the debugger is good for
+
+Inspect call stacks, live state, current DOM, breakpoints, and step-by-step control flow during one concrete failure.
+
+---
+
+## 274. What logging is good for
+
+Track asynchronous events across contexts and time, especially when a debugger would change the relevant lifecycle.
+
+---
+
+## 275. What tests are good for
+
+Replay controlled scenarios and guard against future regression. Debuggers, logs, and tests solve complementary problems.
+
+---
+
+## 276. Remember the service-worker DevTools effect
+
+Inspecting a worker can keep it alive longer than production would. Reproduce termination-sensitive problems without accidentally changing the worker's normal lifecycle.
+
+---
+
+## 277. A practical async bug technique
+
+Write three columns—before await, while suspended, and after resume—and list which state, identities, and DOM nodes may change between them.
+
+---
+
+## 278. A practical cache bug technique
+
+Write down each entry's key, timestamp, source, freshness rule, and invalidation event. Then inspect how stale state could be reused.
+
+---
+
+## 279. A practical DOM bug technique
+
+Record the node's semantic identity, where it was obtained, which UI actions rerender it, and when it must be reacquired.
+
+---
+
+## 280. A practical API bug technique
+
+Capture a sanitized response for success and failure, then test the parsing boundary independently of the UI.
+
+---
+
+## 281. A practical release bug technique
+
+Inspect the generated ZIP, its manifest, files, checksums, and transforms; do not assume the repository checkout describes the installed artifact.
+
+**Historical code example:**
+
+```js
+await sleep(2000);
+assert.equal(...)
+```
+
+---
