@@ -32,7 +32,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 01 | [Anatomy of PlumePilot — What happens when the extension comes to life](01-anatomy-of-an-extension.md) |
 | 02 | [Contexts and messaging — Making separate worlds communicate](02-contexts-and-messaging.md) |
 | 03 | [DOM and dynamic pages — Working inside a UI we do not control](03-dom-and-dynamic-pages.md) |
-| 04 | APIs and reverse engineering — Understanding the platform by observing its traffic |
+| 04 | [APIs and reverse engineering — Understanding the platform by observing its traffic](04-apis-and-reverse-engineering.md) |
 | 05 | JavaScript asynchrony — Events, Promises, timeouts, and race conditions |
 | 06 | State, cache, and storage — Where the truth lives |
 | 07 | Autoplay as a state machine |
