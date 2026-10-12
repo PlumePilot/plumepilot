@@ -973,3 +973,511 @@ interrupted fetch
 Chapter 05 will study this in greater depth.
 
 ---
+
+
+# Part XVII — The page cache as a free source
+
+## 40. Observe first, then request if necessary
+
+The interceptor can reuse course outlines already observed in the host page's network traffic:
+
+```js
+if (message.action === "outline") {
+  const cached = courseOutlines.get(courseCode);
+  if (cached?.length) {
+    return { entries: cached, source: "page-cache" };
+  }
+}
+```
+
+Source: [`commission-interceptor.js` L437–L442](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L437-L442).
+
+```text
+host page requests API data
+          ↓
+PlumePilot observes the response
+          ↓
+in-memory cache
+          ↓
+a later feature needs the same data
+          ↓
+no additional network request
+```
+
+This is **passive caching**.
+
+---
+
+## 41. Observation and explicit requests work together
+
+The system has two complementary modes.
+
+### Passive
+
+```text
+the host page makes a request → PlumePilot observes
+```
+
+### Active
+
+```text
+PlumePilot needs data → PlumePilot makes a request
+```
+
+Together, they implement a common strategy: **reuse if available, otherwise fetch**.
+
+---
+
+# Part XVIII — Lesson snapshots
+
+## 42. Reusing detailed responses observed from the page
+
+When the interceptor observes a detailed lesson route, it creates:
+
+```js
+const snapshot = {
+  type: PAGE_LESSON_SNAPSHOT,
+  courseCode,
+  displayOrder,
+  lpId,
+  paragraphId,
+  data: normalizedLessonData(body),
+};
+```
+
+Source: [`commission-interceptor.js` L399–L417](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L399-L417).
+
+The cache is explicitly bounded:
+
+```js
+if (pageLessonSnapshots.size > 50) {
+  pageLessonSnapshots.delete(pageLessonSnapshots.keys().next().value);
+}
+```
+
+Thus it does not grow indefinitely.
+
+---
+
+## 43. Bounded cache
+
+An unbounded cache can become a memory leak with a nicer name. A rule such as "keep at most 50 snapshots" is not an elaborate LRU policy, but it provides an essential constraint: predictable limits on retained entries.
+
+Often that limit matters more than the theoretical elegance of an eviction algorithm.
+
+---
+
+# Part XIX — The cache in `content.js`
+
+## 44. `lessonApiCache`
+
+`content.js` maintains:
+
+```js
+const lessonApiCache = new Map();
+```
+
+with a composite key equivalent to course code plus lesson number.
+
+Source: [`content.js` L2425–L2427](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2425-L2427).
+
+This cache contains **normalized domain data**, not the Bearer token:
+
+```text
+credential cache  → interceptor only
+application cache → course logic
+```
+
+---
+
+## 45. TTL
+
+The freshness window is defined by:
+
+```js
+const API_LESSON_CACHE_FRESH_MS = 5 * 60 * 1000;
+```
+
+Source: [`content.js` L64](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L64).
+
+This is a **time to live (TTL)**: the period after which cached data may no longer be fresh enough for certain purposes.
+
+---
+
+## 46. Different data ages differently
+
+`cachedLessonResponse()` handles general data, playback, tests, and objectives differently.
+
+For example:
+
+```js
+if (requiredData === "test" && !fresh && entry.test?.completed !== true) {
+  return null;
+}
+```
+
+Source: [`content.js` L2560–L2574](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2560-L2574).
+
+A completed test is generally a more stable fact than an incomplete one, which may change shortly. Cache validity therefore depends not just on time, but on the **meaning of the data**.
+
+---
+
+# Part XX — Monotonic state
+
+## 47. Preventing progress regression after stale responses
+
+For activity progress, PlumePilot often keeps the higher of the old and new percentages:
+
+```js
+const percentage = Math.max(
+  Number(activity.percentage) || 0,
+  sameActivity ? Number(previousActivity.percentage) || 0 : 0,
+);
+```
+
+Source: [`content.js` L2461–L2484](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2461-L2484).
+
+The domain assumption is that recorded completion progress should not decrease. This protects against temporarily stale responses.
+
+---
+
+## 48. When would `Math.max()` be dangerous?
+
+If a domain allows genuine decreases—a bank balance, stock inventory, a revised score, or a revoked permission—always retaining the highest value would be incorrect.
+
+Caching can encode **domain rules**, not merely technical optimizations.
+
+---
+
+# Part XXI — Connecting API identifiers to the DOM
+
+## 49. APIs know IDs; the DOM knows visible structure
+
+PlumePilot must correlate a visual chapter with an API entry. The `courseIndexRouteMap()` strategy considers:
+
+1. A unique title.
+2. An unambiguous visual number.
+3. Course-wide ordering, only when titles confirm the mapping.
+
+Source: [`content.js` L2857–L2923](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2857-L2923).
+
+This is a **reconciliation problem**: aligning different representations of the same domain.
+
+---
+
+## 50. Never trust an ambiguous match
+
+The code contains:
+
+```js
+// A stale label must never make us skip a genuinely unfinished chapter as "100%".
+```
+
+Source: [`content.js` L2913–L2919](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2913-L2919).
+
+A false positive ("this chapter is complete") is worse than admitting uncertainty and checking further.
+
+This is **asymmetric error cost**: mistakes have different consequences.
+
+---
+
+# Part XXII — The master call as an index, not absolute truth
+
+## 51. Aggregate progress is extremely useful
+
+`getPlaybackCourseIndex()` retrieves, normalizes, and sorts the course index:
+
+```js
+const entries = response.data.entries
+  .map(...)
+  .filter(Boolean)
+  .sort((a, b) => a.displayOrder - b.displayOrder);
+```
+
+Source: [`content.js` L5760–L5823](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L5760-L5823).
+
+If the summary is:
+
+```text
+A 100%
+B 100%
+C  80%
+D 100%
+```
+
+there is little reason to open A and B before investigating C.
+
+---
+
+## 52. But it is not a perfect source of truth
+
+During development, aggregate percentages proved insufficient to identify every specific incomplete activity with certainty.
+
+The right model is:
+
+```text
+master percentage = excellent search index
+```
+
+rather than:
+
+```text
+master percentage = definitive truth about every activity
+```
+
+---
+
+## 53. Index versus source of truth
+
+An index answers:
+
+```text
+"Where should I search first?"
+```
+
+A source of truth answers:
+
+```text
+"What is the actual final state?"
+```
+
+Imperfect information can still be highly valuable when used for the right purpose. This will be central to Chapter 08.
+
+---
+
+# Part XXIII — API-first, visual fallback
+
+## 54. A concrete example: material collection
+
+`collectCourseMaterialsViaApi(...)` first tries to gather materials from API data.
+
+Source: [`content.js` L2995–L3188](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L2995-L3188).
+
+The process combines:
+
+```text
+visual course outline
+        +
+master course index
+        ↓
+route mapping
+        ↓
+lesson detail API
+        ↓
+material URL
+```
+
+If the API route is unavailable, it returns `false` and the caller can continue with visual collection.
+
+---
+
+## 55. Graceful degradation
+
+```text
+is API path available?
+     ├── yes → faster, structured path
+     └── no  → slower, visual path
+```
+
+This is **graceful degradation**: the preferred method need not always work.
+
+---
+
+## 56. Why retain the DOM fallback?
+
+API access may fail because credentials have not been observed yet, the response is incomplete, route mapping is ambiguous, endpoints change, some data is absent, or platform versions differ.
+
+The DOM is structurally fragile. An inferred API is contractually fragile. Both paths together offer resilience to different failure modes.
+
+---
+
+# Part XXIV — Source hierarchy
+
+## 57. No single source knows everything
+
+At runtime, PlumePilot may have:
+
+```text
+master response
+lesson detail response
+page-observed snapshot
+in-memory cache
+DOM percentage
+video player state
+```
+
+Which is authoritative? **It depends on the decision being made.**
+
+---
+
+## 58. Example: course progress
+
+A possible hierarchy is:
+
+```text
+complete API data
+      ↓
+DOM baseline + observed session updates
+      ↓
+visible indicator
+      ↓
+heuristic
+```
+
+A different operation may prioritize differently. The principle is not "always use APIs first," but **use the appropriate source for the decision**.
+
+---
+
+# Part XXV — Commission status and existing authentication
+
+## 59. A different endpoint, the same principle
+
+The commission feature targets:
+
+```js
+const TARGET_PATH = "/student/exam-online/exams-list-done";
+```
+
+Source: [`commission-interceptor.js` L11](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L11).
+
+Its authenticated fetch uses the original implementation with the remembered token, includes browser credentials, and accepts an abort signal.
+
+Source: [`commission-interceptor.js` L640–L671](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L640-L671).
+
+---
+
+## 60. `credentials: "include"`
+
+This setting tells Fetch to include compatible browser-managed credentials, such as cookies where applicable.
+
+An explicit Authorization header and browser-managed credentials can coexist; the backend determines what is required.
+
+PlumePilot operates in the context of an already authenticated browser session.
+
+---
+
+# Part XXVI — 401 and 403
+
+## 61. When credentials are no longer valid
+
+The commission flow contains:
+
+```js
+if (error?.message === "API_401" || error?.message === "API_403") {
+  bearerToken = null;
+}
+```
+
+Source: [`commission-interceptor.js` L662–L665](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L662-L665).
+
+In simplified terms:
+
+```text
+401 → missing or invalid authentication
+403 → request recognized but not authorized
+```
+
+Services vary in how they use these statuses, but both reasonably indicate that the cached credential should no longer be trusted.
+
+---
+
+## 62. Why not persist an expired credential?
+
+When the page context ends, a memory-only credential is naturally forgotten.
+
+The secret's lifetime stays close to the lifetime of the component that actually needs it.
+
+---
+
+# Part XXVII — The token does not cross the bridge
+
+## 63. A design decision worth emphasizing
+
+The protocol sends:
+
+```text
+action
+courseCode
+lessonNumber
+lpId
+paragraphId
+requestId
+```
+
+not:
+
+```text
+bearerToken
+```
+
+The calling component requests a permitted capability, not the secret needed to implement it independently. This resembles **capability-based design**.
+
+---
+
+# Part XXVIII — Validate at the boundary
+
+## 64. Course codes
+
+Before constructing URLs:
+
+```js
+function validCourseCode(value) {
+  return typeof value === "string" &&
+    /^[A-Za-z0-9_-]{3,80}$/.test(value);
+}
+```
+
+Source: [`commission-interceptor.js` L86–L88](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L86-L88).
+
+---
+
+## 65. Numeric identifiers
+
+Helpers such as `validPositiveInteger(...)` and `validNonNegativeInteger(...)` reject invalid route identifiers.
+
+A value should not be trusted merely because it supposedly originated inside PlumePilot: a messaging boundary is still a validation boundary.
+
+---
+
+## 66. Limit payload sizes
+
+Normalization uses bounds such as:
+
+```text
+slice(0, 1000)
+slice(0, 200)
+slice(0, 20)
+safeString(..., maxLength)
+```
+
+They limit pathological payloads and protect against uncontrolled memory growth. This is **defensive parsing**.
+
+---
+
+# Part XXIX — The anti-corruption layer
+
+## 67. Protect the internal domain from an external schema
+
+Suppose the API changes `display_order` to `position`.
+
+If the raw name appears across dozens of modules, every call site may require modification. With a single adapter:
+
+```text
+raw API response
+       ↓
+normalizeCourseOutline()
+       ↓
+internal displayOrder
+```
+
+the change can remain localized.
+
+---
+
+## 68. Anti-corruption layer
+
+Domain-Driven Design describes an **anti-corruption layer** that prevents an external system's model from contaminating the internal model.
+
+PlumePilot does not formally implement DDD, but the interceptor's normalization serves much the same purpose.
+
+---
