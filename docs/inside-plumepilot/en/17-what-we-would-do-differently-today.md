@@ -1770,13 +1770,62 @@ TypeScript Handbook, type checking JavaScript files: https://www.typescriptlang.
 
 ---
 
-## 215. Further reading: Input Events
+## 215. Input Events
 
 W3C Input Events Level 2: https://www.w3.org/TR/input-events-2/
 
 ---
 
-# Part XCIV — Final architectural insight
+# Part XCII — The final answer
+
+If we began PlumePilot today with everything we now know, we would probably introduce a more modular structure earlier:
+
+```text
+message contracts
+platform adapters
+storage repositories
+discovery engine
+explicit state transitions
+```
+
+We would also make tests easier to import and run directly.
+
+But that is not the most important part of the answer. The important question is **why those structures were not present at the beginning**: we did not yet know enough about the real problem.
+
+---
+
+# Part XCIII — The real project as a learning process
+
+PlumePilot did not move directly from:
+
+```text
+bad architecture
+→ good architecture
+```
+
+It followed a more realistic, recurring sequence:
+
+```text
+concrete problem
+       ↓
+simple solution
+       ↓
+real-world use
+       ↓
+edge case
+       ↓
+new information
+       ↓
+refactor
+       ↓
+new invariant
+```
+
+Then the cycle begins again. The point is not to claim perfection, but to turn discoveries into clearer decisions, tested contracts, and appropriate boundaries.
+
+---
+
+# Part XCIV — Perhaps the book's most important lesson
 
 ## 216. Architecture is not the initial diagram
 
@@ -1786,51 +1835,149 @@ The architecture is the continuing collection of decisions, contracts and verifi
 
 ## 217. Good architecture does not eliminate change
 
-It makes necessary change more local, understandable, verifiable and reversible when possible.
+It makes change:
+
+```text
+local
+understandable
+verifiable
+reversible when possible
+```
 
 ---
 
-# Part XCII — The final answer
-
-If we were starting PlumePilot today with everything we now know, we would establish clearer modules and contracts sooner: **platform adapters, message schemas, persistent-state repositories, a separate discovery engine, and more directly importable tests**.
-
-But the important point is why we did not already have all of these at the beginning: **we had not yet discovered enough about the real problem**. Reliable software architecture emerges as constraints become visible and are translated into enduring rules.
-
-# Part XCIII — A real project as a learning process
-
-PlumePilot did not move from “bad code” to “perfect code.” It evolved from an initially useful extension into a project with broader responsibilities and a richer understanding of its operating environment. Each feature, regression and release contributed evidence about what needed to be explicit.
-
 # Part XCV — Back to the beginning
 
-Chapter 00 asked **Where does the truth live?** There is no universal single answer. The system observes server authority, API snapshots, DOM state, caches, extension storage, user intent and operation state. Architecture helps us choose the appropriate source **for each decision, for a particular lifetime and confidence level**.
+Chapter 00 asked:
 
-# Part XCVI — A second thread: execution contexts
+> **Where does the truth live?**
 
-PlumePilot is not one JavaScript program. It is a set of locally bounded execution contexts, coordinated by protocols around an external platform that the developer does not control.
+After everything we have studied, the mature answer is that it is **not always in one place**:
 
-# Part XCVII — A third thread: identity
+```text
+server authority
+API snapshots
+DOM observations
+cache
+storage
+user intent
+operation state
+```
 
-Many difficult bugs were identity bugs: **DOM node ≠ lesson**, **label ≠ global identity**, **exam ID ≠ cross-platform identity**, **Git history ≠ tree content**, and **version ≠ ZIP bytes**. Once identity is distinguished from temporary representation, the rules become clearer.
+Architectural quality is the ability to determine:
 
-# Part XCVIII — A fourth thread: time
+```text
+which source to use
+for which decision
+with which lifetime
+at which confidence level
+```
 
-Other problems were temporal: suspension after `await`, rendering delay, hidden-tab throttling, service-worker termination, retries and store-review timing. **Time is part of state**, not an implementation detail outside the model.
+---
 
-# Part XCIX — A fifth thread: boundaries
+# Part XCVI — A second recurring thread: execution contexts
 
-The most fragile places are often the transitions: page ↔ extension, DOM ↔ logical model, API ↔ normalized model, storage ↔ state, source ↔ artifact, and artifact ↔ store. The project's strongest improvements made these boundaries more explicit.
+We have also learned that a browser extension is not one JavaScript program. A useful conceptual picture is:
+
+```text
+PlumePilot
+=
+a set of local bounded contexts
+coordinated through protocols
+around an external platform
+that we do not control
+```
+
+This is not a formal definition, but it captures the distributed nature of the extension's execution contexts.
+
+---
+
+# Part XCVII — A third recurring thread: identity
+
+Many of the hardest bugs were identity bugs:
+
+```text
+DOM node ≠ lesson
+label ≠ global identity
+exam_id ≠ cross-platform identity
+branch history ≠ tree content
+version ≠ artifact bytes
+```
+
+Separating durable identity from temporary representation resolves many apparent contradictions.
+
+---
+
+# Part XCVIII — A fourth recurring thread: time
+
+Other bugs were temporal:
+
+```text
+await
+render delay
+hidden tab
+service worker lifetime
+retry
+release review
+```
+
+**Time is part of state**, not an external detail.
+
+---
+
+# Part XCIX — A fifth recurring thread: boundaries
+
+The most fragile places are often transitions between different worlds:
+
+```text
+page ↔ extension
+DOM ↔ logical model
+API ↔ normalized model
+storage ↔ state
+source ↔ artifact
+artifact ↔ store
+```
+
+PlumePilot's strongest improvements made these boundaries more explicit.
+
+---
 
 # Part C — Closing
 
-What appeared to be JavaScript layered over a university platform led us to process isolation, RPC, state machines, caching, optimistic revalidation, anti-corruption layers, resource ownership, binary conversion, rich-text editing, cross-browser build adaptation, artifact provenance, regression engineering, Git DAGs and release state machines.
+We began with what might have appeared to be:
 
-Not because complexity was the goal, but because following a real-world problem far enough reveals deeper engineering principles.
+```text
+JavaScript on top of a university platform
+```
 
-# Part CI — If there is one idea to remember
+We ended up encountering:
 
-> **You do not have to design the final architecture on day one. You need to build a system where each new piece of information can become a clearer decision, a better boundary, or a testable invariant.**
+```text
+process isolation
+RPC
+state machines
+cache algorithms
+optimistic revalidation
+anti-corruption layers
+resource ownership
+binary pipelines
+rich-text editing
+cross-browser compilers
+artifact provenance
+regression engineering
+Git DAG
+release state machines
+```
 
-That is what turns a useful script into maintainable software—and the most transferable lesson PlumePilot offers for the next project.
+Not because complexity was the goal, but because a real problem, followed carefully for long enough, leads naturally to deeper engineering concepts.
+
+---
+
+# Part CI — If there is only one idea to remember
+
+> **You do not need to design the final architecture on day one. You need to build a system where every new piece of information can become a more explicit decision, a clearer boundary, or a verifiable invariant.**
+
+That is what turns a useful script into maintainable software—and what is worth carrying from PlumePilot into the next project, more than any particular library or design pattern.
 
 ---
 
@@ -1838,7 +1985,7 @@ That is what turns a useful script into maintainable software—and the most tra
 
 **Inside PlumePilot — Anatomy of a real browser extension**
 
-JavaScript, WebExtensions, DOM, APIs, asynchrony and software engineering through a real project.
+JavaScript, WebExtensions, DOM, APIs, asynchrony, and software engineering through a real project.
 
 ---
 
