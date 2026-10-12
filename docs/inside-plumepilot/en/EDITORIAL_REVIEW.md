@@ -4,6 +4,26 @@
 
 The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. The English drafts live in `docs/inside-plumepilot/en/`. The book follows three historical snapshots; source paths and commit identifiers must remain accurate.
 
+## Fifth pass — part-level hierarchy audit (13 October 2026)
+
+The Italian edition uses many Roman-numeral `# Parte ...` dividers. A direct audit (ignoring fenced code blocks) found:
+
+| Chapter | Italian part headings | English before this pass | Numbered sections (IT = EN) |
+|---|---:|---:|---:|
+| 14 | 158 | 7 | 303 |
+| 15 | 202 | 99 | 380 |
+| 16 | 123 | 75 | 316 |
+
+- [x] Chapter 14: restored English headings for Parts I–XXVI and XXVII–LVIII in two commits, leaving the 303 numbered subsections unchanged; **63 of 158** part headings now exist.
+- [ ] Chapter 14: restore Parts LIX–CLV, checking the placement and wording against the Italian original (Parts CLVI–CLVIII already existed).
+- [ ] Chapters 15–16: reconcile Roman numerals and section boundaries, including duplicates and consolidated headings.
+- [ ] Verify content fidelity independently: headings alone are not a substitute for translated examples, diagrams and explanations.
+- [ ] Offline reader build, link/anchor audit, browser smoke testing and final sign-off remain outstanding.
+
+**Do not merge PR #44 yet.**
+
+---
+
 ## Verified during first review pass
 
 - [x] English drafts for chapters **00–17** exist, and each has the same sequence of numbered `##` sections as its Italian counterpart.
