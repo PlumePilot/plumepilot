@@ -2409,4 +2409,4 @@ Understanding them is essential before we can study autoplay as a state machine.
 
 ---
 
-[← 04 — APIs and reverse engineering](04-apis-and-reverse-engineering.md) · [Contents](index.md) · 06 — State, cache, and storage (translation in progress)
+[← 04 — APIs and reverse engineering](04-apis-and-reverse-engineering.md) · [Contents](index.md) · [06 — State, cache, and storage →](06-state-cache-and-storage.md)
