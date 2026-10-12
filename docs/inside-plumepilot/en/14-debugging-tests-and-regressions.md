@@ -17,9 +17,52 @@ A proper fix follows a loop: observe a symptom, reproduce it, identify its cause
 
 ## 2. A symptom is not the root cause
 
-If autoplay opens too many chapters, hiding intermediate UI transitions may conceal the symptom. The cause could be incorrect interpretation of the master index or ambiguous chapter identity. The test should protect the actual search contract, not a particular click sequence.
+Consider this reported failure:
+
+```text
+"Autoplay stops when I close the accordion."
+```
+
+The superficial response might be:
+
+```text
+reopen the accordion
+```
+
+But the architectural problem was deeper: the autoplay logic had implicitly coupled the **logical identity of the lesson** to the **current existence of its DOM row**.
+
+The root cause was not simply:
+
+```text
+accordion closed
+```
+
+It was:
+
+```text
+temporary DOM representation
+used as durable domain identity
+```
+
+The lasting correction is an identity-aware sequence:
+
+```text
+remember the logical lesson identity
+        ↓
+await asynchronous work
+        ↓
+resolve a fresh DOM row
+        ↓
+validate the intended lesson
+        ↓
+perform the guarded action
+```
+
+The regression test should protect **this property**, not merely one click sequence that happened to expose the bug.
 
 ---
+
+# Part II — A bug falsifies part of our model
 
 ## 3. Debugging as the scientific method
 
@@ -455,11 +498,33 @@ Test stale summaries, missing mappings, malformed responses, conflicting percent
 
 ---
 
-## 45. Complete, incomplete, unknown
+## 45. Known complete, known incomplete, unknown
 
-A missing or non-finite percentage is not automatically 0% or 100%. Tests should preserve the third state: unknown.
+A useful regression scenario distinguishes:
+
+```text
+percentage = 100
+percentage = 0
+percentageKnown = false
+```
+
+The test verifies that an `unknown` observation cannot silently become either:
+
+```text
+complete
+```
+
+or:
+
+```text
+incomplete
+```
+
+without additional evidence. This protects the three-valued knowledge model introduced in Chapter 08 and prevents missing data from being interpreted as a domain fact.
 
 ---
+
+# Part XXIV — Regression test 5: repeated `display_order`
 
 ## 46. Identity collisions
 
@@ -1198,9 +1263,32 @@ Test real platform courses, popup and floating menu, autoplay, exports, and canc
 
 ## 146. Make the smoke test a checklist
 
-Replace "try the extension" with repeatable steps, prerequisites, expected outcomes, and browser/platform coverage.
+A smoke test is not:
+
+```text
+"I'll try the extension for a moment"
+```
+
+It should be a repeatable sequence, such as:
+
+```text
+ 1. Install the correct browser package
+ 2. Verify the target course loads
+ 3. Check popup state
+ 4. Check floating-menu state
+ 5. Find the first incomplete activity
+ 6. Generate PDF / HTML quiz
+ 7. Open the EPUB builder
+ 8. Cancel an active operation
+ 9. Confirm preferences persist
+10. Check for fatal console errors
+```
+
+Record prerequisites, expected results, target browser/platform, and any exceptions. Manual testing also benefits from repeatability.
 
 ---
+
+# Part LXXIX — Exploratory testing
 
 ## 147. Exploration complements checklists
 
