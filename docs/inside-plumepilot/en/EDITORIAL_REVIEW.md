@@ -57,6 +57,33 @@ The canonical source is the Italian Markdown under `docs/inside-plumepilot/`. Th
 
 ---
 
+## Fourth editorial pass — restoring explanatory depth
+
+This pass compared **numbered sections and the untyped diagram/text material inside them** across chapters 11–17. Counts of technical code fences and numbered headings alone did not detect these missing explanations.
+
+### Corrections committed
+
+- [x] **11 `1:** restored the full popup-versus-floating-menu illustration, common domain-state questions, distinct lifecycles, and Shadow DOM creation path.
+- [x] **12 `1, `7, `25:** restored the four resource budgets (CPU, I/O, memory and responsiveness), their trade-off flows, the I/O-heavy practical cost equation, and concrete peak-memory figures. Restored the Part XI image-codec divider.
+- [x] **13:** restored the browser-specific release matrix, three test layers, source-versus-runtime archive inventories, SHA-256 provenance flow, the core/adapters/build-compiler diagram, and the cross-browser layout examples. Restored the compatibility section dividers and the standalone 2.35.2 What's New rationale.
+- [x] **14 `2, `45, `146, `157:** restored the **actual closed-accordion root cause** (stale DOM representation used as lesson identity) rather than the substituted chapter-index example; restored three-valued evidence, the ten-step smoke-test checklist, and the failure-category/recovery matrix.
+- [x] **15 `2, `25, `61:** restored Git's blob/tree/commit/tag object model, the factual **20 commits** in PR #39 followed by a one-parent v2.35.1 squash commit, and the explanation of why a public revert is more truthful than erasing history.
+- [x] **16 `1, `154, `159:** restored the diagram relating MAIN/ISOLATED worlds, background, menus and builders; restored **all 25 architectural principles** in the original order; and restored the detailed conceptual directory tree.
+- [x] **17 conclusion:** restored the missing "final answer" and learning-cycle flows, plus the original concluding diagrams about authority, identity, time, boundaries and architectural learning.
+- [x] The two tables previously lost or shortened have been restored: chapter 13's complete final cross-browser matrix and chapter 14's failure/recovery table.
+
+### Still unresolved
+
+- [ ] **Long-form prose fidelity:** continue reviewing detailed worked explanations and `text` diagrams throughout chapters 11–17. Recover meaningful missing examples without duplicating material already faithfully expressed in English prose.
+- [ ] **Part-level navigation:** compare Roman-numeral `# Parte …` / `# Part …` headings. A structural audit showed **numerous consolidated or missing part dividers** in chapters 14–16 (including 150 in chapter 14, 105 in chapter 15 and 51 in chapter 16 before this pass). The 18 chapter numbers and all their numbered subsections still match, but the part hierarchy does not. Restore and translate section dividers where appropriate; do not automatically invent new headings or certify these chapters as finished.
+- [ ] **Remaining chapter 06 cache diagrams** and examples, especially the extended `25.1–25.24` discussion.
+- [ ] **Offline English HTML** and a subsequent browser smoke test for both languages.
+- [ ] Final check of links, anchors, localized controls, generated artifacts and editorial continuity.
+
+**Release gate remains CLOSED:** do not mark PR #44 ready or merge it solely based on the structural tests already passing.
+
+---
+
 ## Important remaining editorial work
 
 A matching heading count **does not prove equivalent content**. Several draft chapters compress explanatory code-like `text` blocks from the Italian source into prose. Some earlier chapters have fewer fenced technical examples than their originals.
