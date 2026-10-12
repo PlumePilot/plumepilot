@@ -378,7 +378,7 @@ const suspectedIncomplete = (index) => {
   return !route || Number(route.percentage) < 100;
 };
 
-discoveryOrder = [
+ discoveryOrder = [
   ...discoveryOrder.filter(suspectedIncomplete),
   ...discoveryOrder.filter((index) => !suspectedIncomplete(index)),
 ];
@@ -985,7 +985,7 @@ Later:
 ```js
 if (activity?.contentType === "test") {
   const test = getEndOfLessonTest(chapterReady);
-  // ...
+  ...
   test.scrollIntoView(...);
   return true;
 }
