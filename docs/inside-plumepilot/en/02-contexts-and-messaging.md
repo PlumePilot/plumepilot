@@ -467,40 +467,74 @@ Think of a route that needs a database query before producing its response. The 
 
 ## 11. Why PlumePilot wraps callbacks in Promises
 
-The popup includes an adapter around the callback-oriented runtime API. Conceptually:
+The popup defines this adapter around the callback-oriented runtime API:
 
 ```js
 function runtimeMessage(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      resolve(response);
-    });
-  });
+  return new Promise((resolve) =>
+    chrome.runtime.sendMessage(message, (response) =>
+      resolve(
+        chrome.runtime.lastError
+          ? { accepted: false, reason: chrome.runtime.lastError.message }
+          : response,
+      ),
+    ),
+  );
 }
 ```
 
-Now the caller can write:
+Source: [`popup.js` L1296–L1306](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/popup.js#L1296-L1306).
+
+The caller can then write:
 
 ```js
-try {
-  const response = await runtimeMessage({
-    type: "PEGASO_GET_OPERATION",
-  });
-  // use response
-} catch (error) {
-  // handle delivery/runtime failure
+const response = await runtimeMessage({
+  type: "PEGASO_START_EXPORT",
+  // ...
+});
+```
+
+instead of nesting callbacks. The helper has **two responsibilities**:
+
+1. It converts a callback-based browser API into a Promise.
+2. It converts `chrome.runtime.lastError` into a regular application response.
+
+The second detail is especially important. Rather than making every caller remember:
+
+```js
+if (chrome.runtime.lastError) {
+  // ...
 }
 ```
 
-The adapter turns two different mechanisms—callback completion and browser runtime errors—into a single Promise-based interface.
+the helper provides one consistent result shape:
+
+```js
+{
+  accepted: false,
+  reason: "..."
+}
+```
 
 ### A small asynchronous adapter
 
-This is not merely syntax sugar. It creates a clearer contract for callers and makes sequential workflows easier to reason about. **A rejected Promise still differs from a successfully delivered application-level response such as `{ accepted: false }`.**
+We can describe the actual boundary as:
+
+```text
+Browser API
+(callback + runtime.lastError)
+          │
+          ▼
+runtimeMessage()
+          │
+          ▼
+PlumePilot internal API
+(Promise + accepted/reason)
+```
+
+The adapter in this historical snapshot **resolves** with an error-shaped value; it does **not** reject the Promise for `chrome.runtime.lastError`. The caller is responsible for checking the returned `accepted` field.
+
+> Boundaries are natural places to translate one interface into another.
 
 ---
 
