@@ -56,13 +56,46 @@ Files are an implementation detail. **Relationships among responsibilities const
 
 ## 2. What is a boundary?
 
-A boundary is a point where trust, execution context, ownership, identity, lifecycle, data representation, or contract changes. PlumePilot crosses boundaries among the LMS, isolated content world, MAIN world, background, popup, builder, and distribution channels.
+A boundary is a point at which fundamental properties change:
+
+```text
+ownership
+trust
+lifetime
+available APIs
+data format
+source of truth
+failure model
+```
+
+PlumePilot crosses many such boundaries:
+
+```text
+page world ↔ extension world
+popup ↔ background
+background ↔ storage
+DOM ↔ API
+raw platform response ↔ normalized model
+source tree ↔ browser artifact
+```
+
+A boundary is therefore more than a file or a module interface; it is where assumptions must be made explicit.
 
 ---
 
 ## 3. Why boundaries matter
 
-Many real defects occurred not inside an isolated algorithm but because something crossing a boundary was assumed safe: a lesson node remained current after rerender, a privileged API existed in the page world, or a browser accepted another target's manifest.
+Many defects originate not inside one function, but where an incorrect assumption crosses a boundary:
+
+```text
+"This DOM object will still be valid after await."
+"The master percentage is definitive truth."
+"This API exists in every browser."
+"This event will certainly reach the popup."
+"This ZIP is exactly the contents of the repository."
+```
+
+These are different technical failures, but they share the same architectural problem: a property was assumed to survive a change of runtime, evidence, identity, time or build target.
 
 ---
 
@@ -161,7 +194,21 @@ Master progress, lesson detail APIs, visible DOM, and cached snapshots can disag
 
 ## 17. Master call
 
-The master index is cheap and useful for prioritizing chapters or discovering broad completion. It cannot always certify that every activity inside a chapter is complete.
+The master index is valuable for:
+
+```text
+routing
+candidate ordering
+coarse progress
+```
+
+But it does not always prove that:
+
+```text
+every activity inside a chapter is actually complete
+```
+
+It is therefore a useful **index for where to verify**, not necessarily the final source of truth.
 
 ---
 
@@ -1131,13 +1178,60 @@ These patterns are not independent; together they explain the safeguards explore
 
 ## 155. First-incomplete example
 
-The search combines platform normalization, scoped identities, index-first evidence, generation tokens, fail-closed ambiguity handling, and expensive fallback only when necessary.
+The first-incomplete search brings together several patterns:
+
+```text
+master index
+→ evidence hierarchy
+
+course/chapter identity
+→ stable identity
+
+API detail
+→ progressive refinement
+
+unknown progress
+→ three-valued knowledge
+
+ambiguous route
+→ fail closed
+
+generation token
+→ async revalidation / cancellation
+```
+
+A single feature puts many of the chapter's architectural ideas to work.
 
 ---
 
 ## 156. EPUB export example
 
-The converter combines controlled input parsing, quality escalation, memory ownership, cooperative yielding, abort propagation, deduplication and output validation.
+The EPUB export pipeline combines:
+
+```text
+PDF.js input
+→ external boundary
+
+page-mode choice
+→ progressive refinement
+
+asset hash map
+→ identity / deduplication
+
+canvas cleanup
+→ ownership / lifetime
+
+yieldToBrowser
+→ cooperative scheduling
+
+AbortSignal
+→ cancellation
+
+ZIP
+→ artifact thinking
+```
+
+The technical details differ from playback, but the same ownership, boundary and lifecycle principles apply.
 
 ---
 
@@ -1145,7 +1239,26 @@ The converter combines controlled input parsing, quality escalation, memory owne
 
 ## 157. Popup and floating menu example
 
-The pair illustrates shared semantics, derived view models, reactive storage synchronization, local UI lifetime and focus-preserving DOM adapters.
+The popup and floating menu show how two independent interfaces can preserve one behavioral contract:
+
+```text
+shared presentation rules
+→ semantic parity
+
+separate controllers
+→ lifecycle-aware adapters
+
+storage onChanged
+→ snapshot + event
+
+autoplayPresentation
+→ derived state / functional core
+
+active-operation invariant
+→ safety property
+```
+
+Sharing meaning does not require sharing the entire DOM or controller lifecycle.
 
 ---
 
@@ -1153,7 +1266,26 @@ The pair illustrates shared semantics, derived view models, reactive storage syn
 
 ## 158. Chrome and Firefox example
 
-Targeted build adapters provide shared domain behavior while honoring background, permission, audio, review and artifact differences.
+The browser-specific builds use different mechanisms to deliver the same intended behavior:
+
+```text
+domain: play sound
+→ shared semantics
+
+offscreen document / tab
+→ compatibility adapter
+
+manifest specialization
+→ release compiler
+
+replaceExactly
+→ fail closed
+
+checksums
+→ artifact identity
+```
+
+The release and browser boundaries are therefore architectural concerns, not packaging details to ignore.
 
 ---
 
