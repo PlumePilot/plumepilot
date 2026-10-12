@@ -9,6 +9,8 @@ A bug fixed today can return tomorrow. A bug explained through a minimal reprodu
 
 ---
 
+# Part I — The complete debugging cycle
+
 ## 1. From symptom to invariant
 
 A proper fix follows a loop: observe a symptom, reproduce it, identify its cause, define the invariant, implement the change, and preserve that invariant in a regression test. Fixing only what is visible leaves the same underlying risk alive.
@@ -76,6 +78,8 @@ An early assumption that 100% progress always meant complete was contradicted by
 
 ---
 
+# Part III — First rule: reproduce it
+
 ## 5. “Sometimes” is not a reproducer
 
 A good report specifies browser, version, account or course conditions, state before the action, exact steps, expected result, and observed result. This description is already close to a test case.
@@ -87,6 +91,8 @@ A good report specifies browser, version, account or course conditions, state be
 A failure in a large course can often be recreated with only two chapters and one unusual progress state. Minimal reproduction removes unrelated variables and makes the causal path easier to inspect.
 
 ---
+
+# Part IV — Isolating the dimensions of a problem
 
 ## 7. A reproduction matrix
 
@@ -100,6 +106,8 @@ Hold the course, settings, and interaction sequence constant while changing only
 
 ---
 
+# Part V — Debugging an extension means choosing the right context
+
 ## 9. One extension, several programs
 
 Popup, service worker or background script, content script, MAIN-world code, and builder page have separate JavaScript lifecycles. Logs appearing in a different console are not evidence that a function failed to execute.
@@ -112,6 +120,8 @@ To debug privileged messages, inspect the extension context that owns the API. T
 
 ---
 
+# Part VI — MAIN world vs. isolated world
+
 ## 11. Same document, separate globals
 
 MAIN and ISOLATED worlds can observe the same DOM yet have different global objects, patched functions, and event access. Debugging a shared page is not equivalent to debugging a shared JavaScript environment.
@@ -123,6 +133,8 @@ MAIN and ISOLATED worlds can observe the same DOM yet have different global obje
 A MAIN-world event may be emitted correctly while its ISOLATED bridge fails to forward it. Instead of asking whether one function was called, trace the entire event pipeline across its trust boundaries.
 
 ---
+
+# Part VII — Debugging across boundaries
 
 ## 13. Instrumentation points
 
@@ -142,6 +154,8 @@ requestId
 
 ---
 
+# Part VIII — Useful logs vs. noise
+
 ## 15. A useful log answers a question
 
 A vague “failed” message has little value. Prefer a structured record with operation identity, phase, expected condition, observed condition, and a safe failure reason.
@@ -154,11 +168,15 @@ For a routing bug, log lesson identity, display order, folder ID, target, and am
 
 ---
 
+# Part IX — Hypothesis-driven debugging
+
 ## 17. Hypothesis-driven debugging
 
 Avoid random edits followed by repeated manual checks. State the suspected cause, create a scenario that would disprove it, measure the result, then apply the narrowest correction.
 
 ---
+
+# Part X — PlumePilot's test architecture
 
 ## 18. There is more than one test type
 
@@ -171,6 +189,8 @@ PlumePilot uses small Node tests, DOM and timer fakes, source-structure checks, 
 Separate pure unit behavior, state transitions, adapter boundaries, structure, browser integration, and final artifacts. A generic “test passed” label does not reveal what was actually validated.
 
 ---
+
+# Part XI — `node:assert/strict`
 
 ## 20. The minimal Node assertion runner
 
@@ -206,6 +226,8 @@ Identity-sensitive assertions should not accidentally treat numeric 1 as string 
 ```
 
 ---
+
+# Part XII — `node:vm` as a small laboratory
 
 ## 22. Using node:vm as a small laboratory
 
@@ -255,11 +277,15 @@ function advance({
 
 ---
 
+# Part XIII — But `vm` is not a security sandbox
+
 ## 25. A VM context is not a security sandbox
 
 Node's vm contexts are not suitable for safely executing arbitrary hostile code. PlumePilot uses them with trusted project sources and deliberately controlled test inputs.
 
 ---
+
+# Part XIV — The value of small fakes
 
 ## 26. The closed-accordion test
 
@@ -286,6 +312,8 @@ recoverPlaybackLesson:
 The fake does not implement the LMS's framework. It models only the observable condition required by the invariant: a lesson element can disappear and be recreated before the next action.
 
 ---
+
+# Part XV — Regression test 1: a closed accordion
 
 ## 28. What the test requires
 
@@ -319,6 +347,8 @@ assert.equal(
 
 ---
 
+# Part XVI — Testing a race without waiting for real time
+
 ## 30. Controlled timers
 
 Capture the timeout callback rather than allowing real seconds to pass. The test decides precisely when the scheduled continuation runs.
@@ -344,6 +374,8 @@ Force a state change before invoking the captured callback. The race becomes rep
 
 ---
 
+# Part XVII — Regression test 2: a reused player
+
 ## 32. One video element, different content
 
 The LMS may reuse the same HTMLVideoElement across lesson changes. A test changes the media identity while retaining the object reference.
@@ -366,6 +398,8 @@ const reused = {
 Autoplay must recognize a changed lesson even when the video DOM node remains identical. The semantic media identity must be checked, not only object equality.
 
 ---
+
+# Part XVIII — Regression test 3: a hidden tab
 
 ## 34. Hidden-tab recovery
 
@@ -428,6 +462,8 @@ assert.equal(
 
 ---
 
+# Part XIX — Testing safety and liveness
+
 ## 38. Safety
 
 A safety property says something bad never happens: for instance, do not advance a different active lesson or reload a hidden tab unnecessarily.
@@ -439,6 +475,8 @@ A safety property says something bad never happens: for instance, do not advance
 A liveness property says something good eventually happens: once the tab becomes visible and the DOM appears, the workflow should proceed. A system can be safe but stuck, or active but unsafe.
 
 ---
+
+# Part XX — Regression test 4: the first incomplete activity
 
 ## 40. An algorithmic regression suite
 
@@ -468,6 +506,8 @@ assert.deepEqual(
 
 ---
 
+# Part XXI — Performance can be part of the specification
+
 ## 42. Performance can be a specification
 
 With a master index prioritizing chapter 4 as incomplete, a test can require that only chapter 4 is queried on the successful fast path. This protects the optimization from regressions.
@@ -492,11 +532,15 @@ requested === [4, 1]
 
 ---
 
+# Part XXII — Positive and adversarial examples
+
 ## 44. Happy paths are insufficient
 
 Test stale summaries, missing mappings, malformed responses, conflicting percentages, failed requests, and user cancellation. These are adversarial inputs to an algorithm, not necessarily security attacks.
 
 ---
+
+# Part XXIII — Three-valued states in tests
 
 ## 45. Known complete, known incomplete, unknown
 
@@ -547,11 +591,15 @@ assert.equal(
 
 ---
 
+# Part XXV — Testing non-action
+
 ## 48. Test that a dangerous action does not occur
 
 Some of the best tests assert no unwanted reload, no wrong-row click, no ambiguous match, and no inappropriate confirmation. Preventing harmful side effects is as important as successful execution.
 
 ---
+
+# Part XXVI — Testing storage contracts
 
 ## 49. Multiversity isolation
 
