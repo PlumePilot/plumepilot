@@ -1217,3 +1217,572 @@ The shared menu-ux layer was introduced after popup and floating-menu behavior g
 When the downside of divergence is severe—identity safety, security, data corruption or important protocol semantics—an abstraction can be justified before the third duplication.
 
 ---
+
+# Part LVI — Static types versus runtime data
+
+## 151. TypeScript does not validate runtime API data
+
+Even if a property is declared as a number, an external LMS endpoint can send a string, null or an unexpected object. Static types do not change bytes arriving from outside the program.
+
+**Code from the original chapter:**
+
+```ts
+interface LessonResponse { ... }
+```
+
+---
+
+## 152. Use both typing and runtime validation
+
+Static checking catches mistakes in our code; runtime checks protect the boundary where untrusted or changing input enters. Both are needed for high-impact adapter contracts.
+
+---
+
+# Part LVII — Frameworks do not create architecture
+
+## 153. A UI framework does not create good boundaries automatically
+
+It is possible to build an entangled React application just as it is possible to build a clear vanilla JavaScript one. Components alone do not assign state ownership or solve cross-context messaging.
+
+---
+
+## 154. Ask a better framework question
+
+Not “Should we use React because this is now a serious project?” but “Which current coordination problems would the framework remove, and which additional dependencies would it create?”
+
+---
+
+# Part LVIII — Lessons for a backend developer
+
+## 155. Many ideas will be familiar to backend developers
+
+Message contracts resemble API schemas, background coordination resembles job orchestration, cache policy resembles backend caching, and adapters resemble ports and translation layers.
+
+---
+
+## 156. The browser-specific difference
+
+DOM lifecycle, layout, user focus, rendering, isolated worlds and tab visibility become fundamental correctness concerns alongside normal async and storage issues.
+
+---
+
+# Part LIX — Frontend work goes beyond pixels
+
+## 157. Frontend is more than rendering
+
+A mature browser extension deals with queues, caching, retries, state machines, transactions in miniature, message contracts, storage and resource ownership.
+
+---
+
+## 158. It also has extra constraints
+
+Host-page styles, extension permissions, reviewer requirements, native focus and user input introduce concerns many conventional server services do not encounter in the same way.
+
+---
+
+# Part LX — Distributed systems on one computer
+
+## 159. A client can be a miniature distributed system
+
+Popup, background worker, MAIN world, ISOLATED world and builder communicate asynchronously despite running on one user's device. Multiple lifecycles can create the same kinds of race and ownership problems as distributed services.
+
+---
+
+# Part LXI — Working with an external host
+
+## 160. The host is not ours
+
+We do not control LMS deploys, DOM shapes, API responses, player lifecycle or site-specific JavaScript. An extension is an integration with someone else's moving system.
+
+---
+
+## 161. Robustness requires adaptation
+
+Expect external boundaries to change. Normalize input, protect identities and effects, retry cautiously and maintain safe fallbacks.
+
+---
+
+# Part LXII — Observe before reverse engineering
+
+## 162. Observe before imitating behavior
+
+Understand the host's real API semantics, timing, navigation model and state before attempting to automate it. Making guesses in a controlled lab can miss crucial production conditions.
+
+---
+
+## 163. A private API is not our API
+
+Treat undocumented host endpoints as unstable contracts. Validate responses, monitor shape drift and preserve alternative paths where necessary.
+
+---
+
+# Part LXIII — The real cost of browser operations
+
+## 164. Big-O is not enough
+
+Opening a chapter, performing a network request, rasterizing a PDF page and looking up a Map key carry radically different real costs even if two algorithms share a complexity class.
+
+---
+
+## 165. Avoid work before optimizing work
+
+Prioritize master-index queries, valid cache hits, in-flight request reuse and text-first extraction. Eliminating expensive steps can matter more than faster local loops.
+
+---
+
+# Part LXIV — Regression testing as knowledge
+
+## 166. The most valuable fix becomes a property
+
+A regression correction is strongest when expressed as an invariant and executable test, not left as one special-case conditional.
+
+---
+
+# Part LXV — Git history and source content
+
+## 167. Content and ancestry are separate axes
+
+The 2.35.2 candidate's identical Git tree with different parent commits is an especially clear lesson: the same source snapshot is not the same historical commit.
+
+---
+
+# Part LXVI — A repository is not the installed product
+
+## 168. The product is not the repository
+
+Users run browser-specific artifacts published through different stores. Packaging, review state, extension identity and installed version determine the actual product they receive.
+
+---
+
+# Part LXVII — The first questions for a new feature
+
+## 169. Ask architectural questions before code
+
+Who owns state? Which identity is stable? What source is authoritative? Can an await invalidate our assumption? What must happen on failure or cancellation?
+
+---
+
+## 170. Unknown answers reveal likely future debt
+
+An unanswered design question need not stop development, but it identifies a place where an implicit dependency may later become a regression.
+
+---
+
+# Part LXVIII — An architectural scorecard
+
+## 171. A subsystem scorecard
+
+Check ownership, identity, authority, lifetime, unknown-state handling, side-effect guards, cancellation, failure categories, fallback safety, test coverage, integration boundary and observability.
+
+| Question | Desired answer |
+|---|---|
+| State owner | One clear owner |
+| Identity | Stable and scoped |
+| Authority | Explicit evidence hierarchy |
+| Lifetime | Matches persistence mechanism |
+| Unknown | Representable |
+| Side effects | Protected by guards and revalidation |
+| Cancellation | Defined |
+| Failure | Classified |
+| Fallback | Safe and observable |
+| Tests | A verifiable property |
+| Boundary | Normalized |
+| Observability | Useful and privacy-aware |
+
+---
+
+# Part LXIX — What to bootstrap at the beginning
+
+## 172. Bootstrap the repository sensibly
+
+Start with an understandable README, runtime entry points, small domain modules, basic test entry point and release notes. Do not create dozens of placeholder directories before the project has meaningful responsibilities.
+
+---
+
+## 173. Separate execution contexts
+
+Distinguish background, content, MAIN-world bridge, popup and builder early because they genuinely have different APIs and lifecycles.
+
+---
+
+## 174. Shared message contracts
+
+Use one discoverable home for message types and critical payload validation before duplicated string protocols become difficult to change.
+
+---
+
+## 175. Centralize storage naming
+
+Keep persistent key construction, platform scoping and schema parsing in explicit helpers rather than spreading string conventions across every feature.
+
+---
+
+## 176. Tests when regressions become real
+
+A simple runner can be added at the first serious regression suite, not necessarily the project's first commit. Capture discovered behavior instead of relying on maintainer memory.
+
+---
+
+## 177. Specialize build output when it becomes necessary
+
+Once browser differences matter, express them in a reproducible build and validator, rather than maintaining unrelated forks or manually patching ZIPs.
+
+---
+
+# Part LXX — What not to build prematurely
+
+## 178. What we would not prepare on day one
+
+Avoid a microservices backend, universal RPC framework, statechart library for every button, global application framework and abstractions with no actual second use case.
+
+---
+
+# Part LXXI — Architecture is discovered
+
+## 179. Some architecture is deliberate from the start
+
+Separating privileged execution contexts, respecting authentication boundaries and requiring clear user controls are foundational constraints worth recognizing early.
+
+---
+
+## 180. Some architecture is discovered
+
+Closed-accordion recovery, stale progress, cross-platform collisions, PDF memory pressure and Firefox store checks taught us which invariants actually mattered.
+
+---
+
+## 181. Discovery is not failure
+
+Software integrating an external system will necessarily encounter unknown behavior. Engineering maturity is how quickly experience becomes a clear contract, test or boundary.
+
+---
+
+# Part LXXII — Technical debt versus bad code
+
+## 182. Technical debt is not simply ugly code
+
+It is a future cost created by a current design decision. It can be deliberate, justified and valuable until the interest becomes substantial.
+
+---
+
+## 183. A deliberate historical example
+
+Textual source extraction and VM tests provided rapid regression protection before the code had cleanly exported modules. It created value before its maintenance limitations became evident.
+
+---
+
+# Part LXXIII — The interest on debt
+
+## 184. When is it worth paying down debt?
+
+Look for repeated regressions, large coordination edits, brittle tests, duplicated meaning, ambiguous ownership or increasingly expensive modifications to one subsystem.
+
+---
+
+# Part LXXIV — UI drift as debt
+
+## 185. Popup and floating menu had drift
+
+Shared menu UX presentation helpers were introduced when duplicated typography, navigation and settings semantics were creating real maintenance cost.
+
+---
+
+# Part LXXV — Search cost as debt
+
+## 186. Global scans once worked
+
+Full DOM chapter scans were acceptable at small scale but became expensive on long courses. Master-index-first discovery was introduced when the practical cost justified a different algorithm.
+
+---
+
+# Part LXXVI — Browser packaging as debt
+
+## 187. One mostly common package once sufficed
+
+Firefox and Edge review/runtime requirements later made deterministic target-specific packages worthwhile. Specialization responded to a demonstrated need.
+
+---
+
+# Part LXXVII — Overengineering debt
+
+## 188. Too much architecture is also debt
+
+Every abstraction must be learned, kept consistent, tested and modified. Excess hierarchy can raise the price of simple future work.
+
+---
+
+## 189. The wrong abstraction may cost more than duplication
+
+Duplicating small environment-specific wiring can be a good temporary decision when the supposed common behavior is not yet understood.
+
+---
+
+# Part LXXVIII — Cost of reversing decisions
+
+## 190. Ask before adopting technology
+
+What real issue will this solve? What does it cost in maintenance, deployment and review? How can we verify improvement? How expensive would reversal be?
+
+---
+
+## 191. An easily reversible decision
+
+A private helper or local CSS arrangement can usually be changed with modest cost. Experimentation is reasonable.
+
+---
+
+## 192. An expensive-to-reverse decision
+
+Extension IDs, persistent schema, publicly distributed API behavior, background execution choices or release provenance have more far-reaching commitments.
+
+---
+
+# Part LXXIX — One-way and two-way doors
+
+## 193. Two-way versus one-way-ish doors
+
+Some decisions can be reversed cheaply; others create long-lived dependence for users, collaborators or stored data. Spend more evidence and design effort on the latter.
+
+---
+
+## 194. Apply reversal cost to PlumePilot
+
+Do not overdesign a simple local UI helper, but review changes to persisted identities, browser permissions or external messaging contracts much more carefully.
+
+---
+
+# Part LXXX — Only three refactors
+
+## 195. First priority: discovery engine and platform adapters
+
+These address coupling in one of the project's most safety-sensitive areas: matching activity identity and navigating reliably across changing host layouts.
+
+---
+
+## 196. Second priority: message and operation contracts
+
+Browser contexts are fundamental to the extension. Explicit protocols and lifecycle states would clarify ownership, failure handling and cancellation.
+
+---
+
+## 197. Third priority: test runner, CI and importable modules
+
+These make subsequent changes safer and create a dependable feedback loop before deeper structural refactors.
+
+---
+
+# Part LXXXI — The rewrite we would avoid
+
+## 198. The change we would not make: a total rewrite
+
+The risk would be disproportionate to the benefit. Proven behavior, bug knowledge, cross-browser packaging and user-facing features would become simultaneously unverified.
+
+---
+
+## 199. Why a rewrite is the wrong answer today
+
+The existing architecture contains tested workflows, unusual LMS workarounds and release knowledge. Incremental improvements preserve those investments while increasing clarity.
+
+# Part LXXXII–LXXXIX — Exercises
+
+### Exercise 1 — Extract or keep together?
+
+You have a 400-line function. When is it better to extract a pure decision helper, and when is the function itself a cohesive browser-effect coordinator? Define the evidence you would look for.
+
+### Exercise 2 — A normalized playback target
+
+Design a `PlaybackTarget` capable of identifying platform, course, chapter and lesson without exposing an `HTMLElement`. How should an adapter resolve it into a fresh node?
+
+### Exercise 3 — Shared operation state
+
+Which fields belong in a common `OperationState` for PDF export, EPUB export and Turbo Test? Which stages and details should remain job-specific?
+
+### Exercise 4 — Migrating content.js
+
+Which module would you extract first, which tests must pass before moving it, and how would you verify that the published script load order still works?
+
+### Exercise 5 — Cache identity and freshness
+
+Design a lesson-detail cache with platform-qualified keys, pending-request coalescing, expiry rules and safe failure behavior. Explain why a generic TTL alone is insufficient.
+
+### Exercise 6 — Framework decision
+
+List the actual UI problems you would expect React to solve and the problems it would not solve, including storage synchronization, extension lifecycles and focus.
+
+### Exercise 7 — Worker ownership
+
+A PDF conversion uses a 50 MB buffer. Describe when transferring it to a Worker is preferable to copying it, and how cancellation changes ownership.
+
+### Exercise 8 — A release gate
+
+Design a minimum CI/release gate that checks Node tests, version consistency, Chrome/Edge/Firefox manifests, checksum integrity, and the correct source submission for AMO.
+
+---
+
+# Part XC — Final glossary
+
+## 200. Hindsight bias
+
+Judging a past decision using information that became available only after it was made.
+
+---
+
+## 201. Scaling debt
+
+A previously suitable simple design that becomes costly as scope and usage grow.
+
+---
+
+## 202. Strangler refactor
+
+Replacing a system gradually through stable boundaries rather than rebuilding everything simultaneously.
+
+---
+
+## 203. Functional core and imperative shell
+
+Deterministic decision logic with few effects surrounded by code that talks to browsers, storage and external systems.
+
+---
+
+## 204. Platform adapter
+
+A module translating browser or host-platform differences into a stable internal contract.
+
+---
+
+## 205. Repository pattern
+
+A boundary centralizing persistence access, key construction, schema and relevant migrations.
+
+---
+
+## 206. Intermediate representation
+
+A normalized model between acquisition/parsing and one or more format-specific renderers.
+
+---
+
+## 207. In-flight request coalescing
+
+Sharing one pending Promise or request among concurrent consumers seeking equivalent data.
+
+---
+
+## 208. Structured diagnostics
+
+Observability events represented as structured fields rather than only free-form console text.
+
+---
+
+## 209. Architecture Decision Record
+
+A short decision document recording context, selected solution, alternatives and consequences.
+
+---
+
+## 210. Decision reversal cost
+
+The cost of undoing a technical choice after other parts of the system or deployed users have come to depend on it.
+
+---
+
+## 211. Wrong abstraction
+
+An abstraction created before accurately understanding what is truly common across its intended use cases.
+
+---
+
+# Part XCI — Further reading
+
+## 212. Further reading: Architecture Decision Records
+
+AWS Prescriptive Guidance describes documenting architecture decisions: https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html
+
+---
+
+## 213. Further reading: Strangler Fig
+
+Martin Fowler's Strangler Fig Application: https://martinfowler.com/bliki/StranglerFigApplication.html
+
+---
+
+## 214. Further reading: JavaScript type checking
+
+TypeScript Handbook, type checking JavaScript files: https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html
+
+---
+
+## 215. Further reading: Input Events
+
+W3C Input Events Level 2: https://www.w3.org/TR/input-events-2/
+
+---
+
+# Part XCIV — Final architectural insight
+
+## 216. Architecture is not the initial diagram
+
+The architecture is the continuing collection of decisions, contracts and verified properties that allows software to evolve without losing what matters.
+
+---
+
+## 217. Good architecture does not eliminate change
+
+It makes necessary change more local, understandable, verifiable and reversible when possible.
+
+---
+
+# Part XCII — The final answer
+
+If we were starting PlumePilot today with everything we now know, we would establish clearer modules and contracts sooner: **platform adapters, message schemas, persistent-state repositories, a separate discovery engine, and more directly importable tests**.
+
+But the important point is why we did not already have all of these at the beginning: **we had not yet discovered enough about the real problem**. Reliable software architecture emerges as constraints become visible and are translated into enduring rules.
+
+# Part XCIII — A real project as a learning process
+
+PlumePilot did not move from “bad code” to “perfect code.” It evolved from an initially useful extension into a project with broader responsibilities and a richer understanding of its operating environment. Each feature, regression and release contributed evidence about what needed to be explicit.
+
+# Part XCV — Back to the beginning
+
+Chapter 00 asked **Where does the truth live?** There is no universal single answer. The system observes server authority, API snapshots, DOM state, caches, extension storage, user intent and operation state. Architecture helps us choose the appropriate source **for each decision, for a particular lifetime and confidence level**.
+
+# Part XCVI — A second thread: execution contexts
+
+PlumePilot is not one JavaScript program. It is a set of locally bounded execution contexts, coordinated by protocols around an external platform that the developer does not control.
+
+# Part XCVII — A third thread: identity
+
+Many difficult bugs were identity bugs: **DOM node ≠ lesson**, **label ≠ global identity**, **exam ID ≠ cross-platform identity**, **Git history ≠ tree content**, and **version ≠ ZIP bytes**. Once identity is distinguished from temporary representation, the rules become clearer.
+
+# Part XCVIII — A fourth thread: time
+
+Other problems were temporal: suspension after `await`, rendering delay, hidden-tab throttling, service-worker termination, retries and store-review timing. **Time is part of state**, not an implementation detail outside the model.
+
+# Part XCIX — A fifth thread: boundaries
+
+The most fragile places are often the transitions: page ↔ extension, DOM ↔ logical model, API ↔ normalized model, storage ↔ state, source ↔ artifact, and artifact ↔ store. The project's strongest improvements made these boundaries more explicit.
+
+# Part C — Closing
+
+What appeared to be JavaScript layered over a university platform led us to process isolation, RPC, state machines, caching, optimistic revalidation, anti-corruption layers, resource ownership, binary conversion, rich-text editing, cross-browser build adaptation, artifact provenance, regression engineering, Git DAGs and release state machines.
+
+Not because complexity was the goal, but because following a real-world problem far enough reveals deeper engineering principles.
+
+# Part CI — If there is one idea to remember
+
+> **You do not have to design the final architecture on day one. You need to build a system where each new piece of information can become a clearer decision, a better boundary, or a testable invariant.**
+
+That is what turns a useful script into maintainable software—and the most transferable lesson PlumePilot offers for the next project.
+
+---
+
+# The end
+
+**Inside PlumePilot — Anatomy of a real browser extension**
+
+JavaScript, WebExtensions, DOM, APIs, asynchrony and software engineering through a real project.
+
+---
+
+[← 16 — Architectural lessons](16-architectural-lessons.md) · [Contents](index.md)
