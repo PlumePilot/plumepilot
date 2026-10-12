@@ -274,7 +274,27 @@ async function example() {
 }
 ```
 
-Calling `example()` yields a Promise fulfilled with `42`, not a bare number. An exception thrown from an async function normally rejects that Promise.
+Calling `example()`:
+
+```js
+example();
+```
+
+produces a Promise equivalent in outcome to:
+
+```js
+Promise.resolve(42);
+```
+
+not a bare number. If the async function throws:
+
+```js
+async function example() {
+  throw new Error("boom");
+}
+```
+
+the returned Promise rejects, and the caller can handle it with `await`/`try/catch` or `.catch()`.
 
 This helps us understand why callers use `await` or `.then()`/`.catch()`.
 
@@ -1303,7 +1323,17 @@ or:
 { status: "rejected", reason: ... }
 ```
 
-The background can count successful and failed deliveries without abandoning the overall attempt when one tab fails.
+The background can count accepted successful deliveries:
+
+```js
+results.filter(
+  (result) =>
+    result.status === "fulfilled" &&
+    result.value?.accepted
+).length;
+```
+
+It can inspect failed deliveries as well, without abandoning the overall attempt when one tab fails.
 
 ---
 
@@ -1444,7 +1474,13 @@ then waits:
 const completed = await waitForLessonCompletion(cur, v);
 ```
 
-During that wait, the sidebar may be rebuilt or closed. Therefore the code re-resolves the lesson afterward rather than blindly trusting `cur`.
+During that wait, the sidebar may be rebuilt or closed. Therefore the code re-resolves the lesson afterward:
+
+```js
+const stableCur = await recoverPlaybackLesson(v);
+```
+
+rather than blindly trusting `cur`. This is the temporal reason for the *resolve late* pattern introduced in Chapter 03.
 
 **Asynchrony explains why DOM references become stale.**
 
@@ -1924,6 +1960,14 @@ flag + ensureExportNotCancelled()
 ```
 
 A possible future architecture could standardize more workflows on an `AbortSignal`-like contract, with adapters for steps requiring cooperative checks.
+
+A small helper at cooperative cancellation points could look like:
+
+```js
+function throwIfAborted(signal) {
+  signal?.throwIfAborted();
+}
+```
 
 This is not necessarily urgent. The current separation is pragmatic and works for different kinds of operations.
 
