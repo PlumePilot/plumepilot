@@ -11,7 +11,7 @@ The old candidate `170b21ec` and realigned candidate `4d32a8c2` share tree `9921
 
 ---
 
-# Part I — Git objects rather than version folders
+# Part I — Git is not a folder of versions
 
 ## 1. The wrong mental model
 
@@ -79,7 +79,7 @@ Changing the parent can change a commit's identity without changing its tracked 
 
 ---
 
-# Part II — Trees and commit identity
+# Part II — Trees: file states
 
 ## 3. Tree SHA
 
@@ -93,6 +93,8 @@ The old candidate had merge ancestry; the new candidate was attached to the actu
 
 ---
 
+# Part III — Commit identity
+
 ## 5. Why does the commit SHA change?
 
 A commit's hash covers parent links, tree reference, message, and author/committer metadata. Changing ancestry creates a new commit identity even with unchanged files.
@@ -105,7 +107,7 @@ Two branches may check out the same filesystem state yet appear divergent in Git
 
 ---
 
-# Part III — Branches and HEAD
+# Part IV — Branches: movable references
 
 ## 7. A branch is a moving reference
 
@@ -124,13 +126,15 @@ A──B──C  ← main
 
 ---
 
+# Part V — HEAD
+
 ## 9. HEAD
 
 HEAD normally refers to the checked-out branch. In detached HEAD mode it points at a commit directly without an intermediary branch ref.
 
 ---
 
-# Part IV — Working tree, index, and commits
+# Part VI — Working tree, index, and commit
 
 ## 10. Three states
 
@@ -154,7 +158,7 @@ git add moves selected changes into the index; git commit records those staged c
 
 ---
 
-# Part V — Feature branches and pull requests
+# Part VII — Feature branches
 
 ## 12. Why not always work on main?
 
@@ -168,6 +172,8 @@ A branch expresses a proposed implementation that may evolve or be discarded. It
 
 ---
 
+# Part VIII — Pull requests
+
 ## 14. A pull request is not a Git primitive
 
 GitHub adds a collaboration object around Git: base, head, review, discussion, status checks, and a decision to merge.
@@ -180,7 +186,7 @@ A pull request asks whether the proposed changes should enter its target base. P
 
 ---
 
-# Part VI — Stacked PRs
+# Part IX — Base and head
 
 ## 16. Base and head
 
@@ -193,6 +199,8 @@ The base is the target branch; the head carries the proposed commits. Selecting 
 Comparing the same head to main versus a prerequisite feature branch can produce dramatically different diffs. This is crucial for stacked PRs.
 
 ---
+
+# Part X — Stacked pull requests
 
 ## 18. PR #40 as a case study
 
@@ -218,7 +226,7 @@ Squashing, rebasing, or rewriting a stacked PR's base can leave downstream branc
 
 ---
 
-# Part VII — Merge, squash, and ancestry
+# Part XI — Merge commits
 
 ## 22. Traditional merge commits
 
@@ -231,6 +239,8 @@ A merge may create commit M with two parents. This records the point at which tw
 The original commits remain ancestors of the merge. This retains detailed historical provenance and is useful for audits.
 
 ---
+
+# Part XII — Squash merges
 
 ## 24. What a squash merge does
 
@@ -264,7 +274,7 @@ A downstream branch based on the original twenty commits does not automatically 
 
 ---
 
-# Part XIII — Why squash is attractive
+# Part XIII — Why squashing is attractive
 
 ## 26. A readable mainline
 
@@ -278,7 +288,7 @@ Squashing represents the complete reviewed pull request as one change. That simp
 
 ---
 
-# Part VIII — The 2.35.2 case study
+# Part XIV — The hidden cost of squashing
 
 ## 28. A downstream branch after squash
 
@@ -291,6 +301,8 @@ A 2.35.2 branch based on original 2.35.1 commits cannot recognize the squashed c
 Ahead/behind counts and merge conflicts may be dominated by ancestry mismatch, not genuine file differences. Inspect the intended tree rather than assuming each reported commit matters.
 
 ---
+
+# Part XV — The 2.35.2 case
 
 ## 30. Before candidate realignment
 
@@ -310,7 +322,7 @@ The branch looked unexpectedly far ahead and behind even though much of that dis
 
 ---
 
-# Part IX — Understanding conflicts
+# Part XVI — A natural attempt: merge main into the branch
 
 ## 33. The standard strategy
 
@@ -331,19 +343,21 @@ Git attempted to merge two representations of the same 2.35.1 work, generating c
 
 ---
 
+# Part XVII — Do not force a merge you do not understand
+
 ## 35. The principle behind conflict resolution
 
 A conflict does not mean choosing ours or theirs indiscriminately. Identify each historical contribution and the exact desired resulting tree.
 
 ---
 
+# Part XVIII — Content-first reconciliation
+
 ## 36. Ask the correct question
 
 What exact files should this release candidate contain, and which published commit should be its parent? The target tree is more important than silencing Git warnings.
 
 ---
-
-# Part X — Content-first reconciliation
 
 ## 37. Reconstructing the intended tree
 
@@ -357,6 +371,8 @@ The rebuilt snapshot produced the same tree SHA, 992149b6, as the old candidate.
 
 ---
 
+# Part XIX — Conceptual reparenting
+
 ## 39. Creating the new commit
 
 Commit 4d32a8c2 was created with the candidate tree and correct release parent, yielding a new commit hash but unchanged release candidate content.
@@ -369,7 +385,7 @@ Commit 4d32a8c2 was created with the candidate tree and correct release parent, 
 
 ---
 
-# Part XI — Reparenting and rewriting
+# Part XX — Why not simply call this a rebase?
 
 ## 41. Conceptually like a rebase
 
@@ -389,6 +405,8 @@ Only when the desired snapshot is unambiguous and verifiable. Here equal tree SH
 
 ---
 
+# Part XXI — Force-updating a branch
+
 ## 44. Moving the ref
 
 The release-candidate branch pointer was moved from the old commit to the reconstructed one, rewriting the branch's visible history.
@@ -407,7 +425,7 @@ A compare-and-swap or force-with-lease-style check prevents overwriting another 
 
 ---
 
-# Part XII — Rebase and merging
+# Part XXII — Rebase
 
 ## 47. Rebase graph
 
@@ -445,13 +463,15 @@ Changing already-shared commit IDs requires coordination with collaborators and 
 
 ---
 
+# Part XXIII — Rebasing is not more correct than merging
+
 ## 51. Merge and rebase are different models
 
 Merge preserves divergence and records integration. Rebase creates a new linear ancestry. Neither is universally right.
 
 ---
 
-# Part XIII — Cherry-pick and revert
+# Part XXIV — Squash versus rebase
 
 ## 52. What squash changes
 
@@ -471,6 +491,8 @@ This combination leaves downstream work referring to original commits while main
 
 ---
 
+# Part XXV — Cherry-pick
+
 ## 55. Cherry-pick model
 
 git cherry-pick copies the change introduced by one commit onto the current branch as a new commit.
@@ -489,13 +511,15 @@ Bring a specific fix to a release branch, backport a patch, or select one verifi
 
 ---
 
+# Part XXVI — Revert
+
 ## 58. Revert does not erase history
 
 git revert creates a new commit undoing an earlier change's effect. The original commit remains in the graph.
 
 ---
 
-# Part XIV — The 2.34.0 release history
+# Part XXVII — The 2.34.0 case
 
 ## 59. The complicated 2.34.0 story
 
@@ -508,6 +532,8 @@ Premature integration into main was corrected through an explicit revert in PR #
 A public mainline may already have triggered CI, builds, reviews, or downstream work. Reverting preserves an auditable sequence.
 
 ---
+
+# Part XXVIII — History auditability
 
 ## 61. An imperfect but truthful history
 
@@ -547,7 +573,7 @@ The integration branch also required revert and follow-up correction. Revert is 
 
 ---
 
-# Part XV — Integration branches
+# Part XXX — Integration branches
 
 ## 63. Why integration exists
 
@@ -573,7 +599,7 @@ Long-lived integration diverges from main and accumulates merge debt, conflicts,
 
 ---
 
-# Part XVI — Branching models
+# Part XXXI — Trunk-based versus integration-heavy development
 
 ## 67. Trunk-based versus integration-heavy
 
@@ -587,7 +613,7 @@ Large releases can use integration while smaller fixes take shorter paths. The g
 
 ---
 
-# Part XVII — The meaning of main
+# Part XXXII — Main as a promise
 
 ## 69. What main promises
 
@@ -601,7 +627,7 @@ Candidates are usually tested, merged into main, then tagged and packaged. The i
 
 ---
 
-# Part XVIII — Release candidates and Draft PRs
+# Part XXXIII — Release candidates
 
 ## 71. A feature branch becomes a candidate
 
@@ -615,6 +641,8 @@ Branch names are helpful human metadata, not guarantees about current responsibi
 
 ---
 
+# Part XXXIV — Draft pull requests
+
 ## 73. Why PR #41 stays Draft
 
 Draft signals that development and review can continue without declaring the candidate merge-ready.
@@ -627,7 +655,7 @@ GitHub adds statuses such as draft, ready, review, and merged. Git tracks file o
 
 ---
 
-# Part XIX — Merge strategy
+# Part XXXV — Small commits versus release commits
 
 ## 75. Small commits during development
 
@@ -640,6 +668,8 @@ Fine-grained commits make local troubleshooting and experimentation manageable.
 The repository can favor a coherent PR-sized commit when integrating into main.
 
 ---
+
+# Part XXXVI — Choosing a merge strategy
 
 ## 77. Merge commits
 
@@ -665,6 +695,8 @@ Readability, auditing, downstream dependencies, conflict handling, and coordinat
 
 ---
 
+# Part XXXVII — Bisectability
+
 ## 81. Squash and bisect
 
 A squash may isolate a problem to one large PR rather than its twenty internal steps. This is a real cost when diagnosing a regression with git bisect.
@@ -677,7 +709,7 @@ Preserving messy “try fix, undo fix” commits on main may make bisect less me
 
 ---
 
-# Part XX — Tags and GitHub Releases
+# Part XXXVIII — Tags
 
 ## 83. What is a tag?
 
@@ -691,6 +723,8 @@ Main advances with new commits; a published tag is intended as a fixed reference
 
 ---
 
+# Part XXXIX — GitHub Releases
+
 ## 85. Tag versus GitHub Release
 
 A tag is a Git concept. GitHub Releases add titles, notes, and downloadable assets around that tag.
@@ -703,7 +737,7 @@ The v2.35.1 release identifies the exact Git commit used to represent that produ
 
 ---
 
-# Part XXI — Version metadata consistency
+# Part XL — Version strings versus tags
 
 ## 87. Metadata should agree
 
@@ -717,6 +751,8 @@ Manifest version, tag, GitHub Release, and browser artifacts should describe the
 
 ---
 
+# Part XLI — Version drift
+
 ## 89. A classic mismatch
 
 A package can run correctly yet bear the wrong manifest version or be associated with the wrong tag. That is still a release defect.
@@ -729,7 +765,7 @@ Automated validators check version fields, localized data, expected packages, an
 
 ---
 
-# Part XXII — Versioning policy
+# Part XLII — Semantic Versioning
 
 ## 91. Version-number structure
 
@@ -749,13 +785,15 @@ Semantic Versioning is useful vocabulary, but deciding whether a consumer extens
 
 ---
 
+# Part XLIII — Release versions as user-facing identity
+
 ## 94. Versions diagnose installations
 
 The manifest version helps identify precisely which code an end user has installed, which is vital when investigating browser/store discrepancies.
 
 ---
 
-# Part XXIII — Store preparations
+# Part XLIV — Preparing store drafts before merging
 
 ## 95. Prepare store drafts early
 
@@ -769,7 +807,7 @@ A store draft must not become a second source of truth. If runtime features or p
 
 ---
 
-# Part XXIV — Three independent release clocks
+# Part XLV — Three release clocks
 
 ## 97. The Git clock
 
@@ -795,6 +833,8 @@ Main may contain v2.35.2 while a store still serves v2.35.1, and the three store
 
 ---
 
+# Part XLVI — Release state machine
+
 ## 101. Distributed release state
 
 For every store, distinguish source ready, artifact built, submitted, under review, accepted, published, and installed.
@@ -807,11 +847,15 @@ Chrome may publish the newest package while Firefox is still reviewing it. This 
 
 ---
 
+# Part XLVII — Why release is ambiguous
+
 ## 103. “Released” is ambiguous
 
 It might mean merged, tagged, uploaded, accepted, visible in a store, or actually installed. Avoid that ambiguity when decisions depend on precise state.
 
 ---
+
+# Part XLVIII — Precise naming
 
 ## 104. Use concrete status wording
 
@@ -819,7 +863,7 @@ Say “Chrome 2.35.2 accepted and published” or “Firefox 2.35.2 under review
 
 ---
 
-# Part XXV — Release provenance
+# Part XLIX — Build artifacts
 
 ## 105. A user installs the package
 
@@ -836,6 +880,8 @@ Git commit → release builder → browser ZIP → store review → user install
 ```
 
 ---
+
+# Part L — Artifact identity
 
 ## 107. Commit SHA
 
@@ -855,13 +901,15 @@ Identifies the human-facing product version and the update ordering expected by 
 
 ---
 
+# Part LI — Provenance chain
+
 ## 110. The provenance question
 
 We should be able to answer which commit and build produced a given published ZIP, and what SHA-256 identifies its bytes.
 
 ---
 
-# Part XXVI — Deterministic builds
+# Part LII — Deterministic builds
 
 ## 111. Deterministic builds, revisited
 
@@ -875,7 +923,7 @@ A released tag should be enough to reproduce its corresponding packages using a 
 
 ---
 
-# Part XXVII — Clean working trees
+# Part LIII — Release builds require clean trees
 
 ## 113. Dirty working trees are risky
 
@@ -895,7 +943,7 @@ git status
 
 ---
 
-# Part XXVIII — Release building workflows
+# Part LIV — Tag after build or build after tag?
 
 ## 115. Two valid workflows
 
@@ -909,6 +957,8 @@ The published ZIP must correspond to the intended reviewed, versioned source. Wh
 
 ---
 
+# Part LV — Candidate artifacts
+
 ## 117. Why build before merge?
 
 Pre-merge packages support browser smoke testing, reviewer preparation, and validating that packaging is ready.
@@ -920,6 +970,8 @@ Pre-merge packages support browser smoke testing, reviewer preparation, and vali
 A squash or merge may create a new commit. Confirm that packages submitted to stores were produced from the final intended tree, not an obsolete or modified candidate.
 
 ---
+
+# Part LVI — Checksums
 
 ## 119. SHA256SUMS.txt
 
@@ -933,7 +985,7 @@ Unexpected changes to a file's digest reveal that output changed, even when the 
 
 ---
 
-# Part XXIX — Changelog and reviewers
+# Part LVII — Release notes as a product interface
 
 ## 121. Technical changelog
 
@@ -953,11 +1005,15 @@ Reviewer-facing instructions must provide access, steps, expected results, and r
 
 ---
 
+# Part LVIII — One change, three descriptions
+
 ## 124. First-incomplete as a communication example
 
 A changelog might describe master-guided API discovery; store copy says finding unfinished lessons is more efficient; review instructions tell a tester how to verify the feature.
 
 ---
+
+# Part LIX — Release docs are not redundant duplication
 
 ## 125. Different projections of the same work
 
@@ -965,7 +1021,7 @@ One source change has multiple legitimate descriptions for developers, users, an
 
 ---
 
-# Part XXX — Store review schedules
+# Part LX — Store review as an asynchronous dependency
 
 ## 126. Once the package is submitted
 
@@ -979,7 +1035,7 @@ If Firefox skips an intermediate version or remains behind Chrome, its next rele
 
 ---
 
-# Part XXXI — Release cadence
+# Part LXI — Branching and release cadence
 
 ## 128. Smaller frequent releases
 
@@ -999,7 +1055,7 @@ Separate releases into coherent feature or improvement groups rather than publis
 
 ---
 
-# Part XXXII — Hotfix and maintenance branches
+# Part LXII — Hotfixes
 
 ## 131. When main is already ahead
 
@@ -1025,6 +1081,8 @@ Move the stable fix into the future mainline via merge, cherry-pick, or another 
 
 ---
 
+# Part LXIII — Main-first versus release-first fixes
+
 ## 134. Main-first strategy
 
 Fix on main and backport to a stable release branch when main already has the correct isolated solution.
@@ -1037,7 +1095,7 @@ Fix the deployed maintenance branch, publish safely, and forward-port to main wh
 
 ---
 
-# Part XXXIII — Roll-forward after publication
+# Part LXIV — Store rollback is not git reset
 
 ## 136. A problematic published release
 
@@ -1055,11 +1113,15 @@ Stores generally require increasing versions. Publish a new version that restore
 
 ---
 
+# Part LXV — Version monotonicity
+
 ## 138. Store update ordering
 
 Update systems compare versions and publication state. A previous lower version cannot simply be reissued as if newer installations had never happened.
 
 ---
+
+# Part LXVI — Revert code, increment version
 
 ## 139. The roll-forward pattern
 
@@ -1067,7 +1129,7 @@ Release v2.35.2 → discover regression → publish v2.35.3 restoring behavior. 
 
 ---
 
-# Part XXXIV — Commit quality and hygiene
+# Part LXVII — Commit messages
 
 ## 140. Commit messages as future documentation
 
@@ -1087,11 +1149,15 @@ A good message explains the meaningful change and helps future maintainers inspe
 
 ---
 
+# Part LXVIII — Release commit messages
+
 ## 143. The a8007425 release commit
 
 A squash/release commit can legitimately summarize the entire reviewed 2.35.1 unit rather than one tiny internal edit.
 
 ---
+
+# Part LXIX — Pull request titles
 
 ## 144. Titles must survive time
 
@@ -1099,13 +1165,15 @@ Write commit subjects that will still communicate useful intent six months later
 
 ---
 
+# Part LXX — Branch names
+
 ## 145. Branch names are metadata
 
 Names such as feat/ui-ux-2.35.2 tell humans the intended topic but do not enforce behavior or readiness.
 
 ---
 
-# Part XXXV — Branch and PR cleanup
+# Part LXXI — Deleting branches after merging
 
 ## 146. Why prune old branches?
 
@@ -1119,6 +1187,8 @@ Commits already reachable from main, tags, or other refs remain accessible after
 
 ---
 
+# Part LXXII — Long-lived open pull requests
+
 ## 148. Historical PRs may remain open
 
 A feature can reach main by another PR or cherry-pick while its original PR was never closed.
@@ -1131,13 +1201,15 @@ The dashboard can show apparently unmerged work that users already have. Close o
 
 ---
 
+# Part LXXIII — PR state is not feature state
+
 ## 150. A feature can ship without its original PR merging
 
 Squash, cherry-pick, integration, or other merges may introduce equivalent content through a different ancestry path. PR state alone does not determine installed features.
 
 ---
 
-# Part XXXVI — Merge conflict taxonomy
+# Part LXXIV — Merge conflicts
 
 ## 151. What a merge conflict means
 
@@ -1151,13 +1223,15 @@ Two branches may change different lines but together violate one assumption, suc
 
 ---
 
+# Part LXXV — Textual versus semantic merges
+
 ## 153. Git resolves source structure, tests resolve meaning
 
 A clean textual merge does not prove correct behavior. The combined result still requires tests.
 
 ---
 
-# Part XXXVII — Test the merged result
+# Part LXXVI — Smoke testing after merges
 
 ## 154. Test after important convergence
 
@@ -1165,19 +1239,23 @@ When major branches join, rerun affected tests and exercise the combined feature
 
 ---
 
+# Part LXXVII — Rerun tests on the merged result
+
 ## 155. Green feature tests are not enough
 
 Two branches can each pass independently while the merged tree fails. The actual integrated candidate is what must be tested.
 
 ---
 
-# Part XXXVIII — Virtual merge candidates
+# Part LXXVIII — Synthetic merge results
 
 ## 156. GitHub's virtual merge candidate
 
 GitHub may synthesize a merge result for status checks; its SHA need not equal the PR head SHA.
 
 ---
+
+# Part LXXIX — Head SHA versus merge SHA
 
 ## 157. Head SHA
 
@@ -1191,6 +1269,8 @@ Identifies a synthetic or computed integration result that checks might evaluate
 
 ---
 
+# Part LXXX — Tree equality as a diagnostic tool
+
 ## 159. The 2.35.2 equivalence proof
 
 Matching tree hashes established that the candidate's files did not change during the history reconstruction.
@@ -1202,6 +1282,8 @@ Matching tree hashes established that the candidate's files did not change durin
 A shared tree SHA is strong evidence of identical snapshots. A simple zero diff can be helpful, but the object identity directly identifies the full tree.
 
 ---
+
+# Part LXXXI — Tree SHA as content identity
 
 ## 161. When tree equality is useful
 
@@ -1215,7 +1297,7 @@ Tree equality does not preserve parentage, author metadata, messages, or review 
 
 ---
 
-# Part XXXIX — Git as a directed acyclic graph
+# Part LXXXII — Git graph as a data structure
 
 ## 163. The commit graph is a DAG
 
@@ -1229,7 +1311,7 @@ A merge commit has multiple parents, joining separate historical paths into one 
 
 ---
 
-# Part XL — Immutable records and mutable references
+# Part LXXXIII — Backend analogy
 
 ## 165. Commit as immutable record
 
@@ -1249,7 +1331,7 @@ A published tag should name one chosen commit and stay stable so consumers can r
 
 ---
 
-# Part XLI — Event sourcing analogies and rewriting
+# Part LXXXIV — Event sourcing analogy
 
 ## 168. Is Git event sourcing?
 
@@ -1257,11 +1339,15 @@ The analogy is useful but imperfect. Git stores related snapshots, not a chronol
 
 ---
 
+# Part LXXXV — Squash as history compaction
+
 ## 169. Squash as history compaction
 
 Squashing resembles compressing many detailed changes into one conceptual unit, sacrificing mainline development detail for readability.
 
 ---
+
+# Part LXXXVI — Rebase as history rewriting
 
 ## 170. Rebase as reconstructing a history
 
@@ -1269,11 +1355,15 @@ Rebase builds new commits with changed ancestors rather than mutating existing i
 
 ---
 
+# Part LXXXVII — Git immutability
+
 ## 171. “Rewrite a commit” is shorthand
 
 Objects are immutable. A rewrite means constructing replacement commits and moving references so users see the new graph.
 
 ---
+
+# Part LXXXVIII — Force push
 
 ## 172. What history rewriting actually does
 
@@ -1287,13 +1377,15 @@ Collaborators with clones based on the old history must consciously reconcile th
 
 ---
 
+# Part LXXXIX — Protected main
+
 ## 174. A healthy rule
 
 Avoid rewriting important shared branches; when necessary, coordinate and protect ref updates with an expected old SHA or force-with-lease.
 
 ---
 
-# Part XLII — Code review as knowledge transfer
+# Part XC — Code review
 
 ## 175. Review transfers knowledge
 
@@ -1307,6 +1399,8 @@ Explain scope, expected behavior, tests, relevant screenshots, risks, and depend
 
 ---
 
+# Part XCI — Oversized pull requests
+
 ## 177. Cognitive load
 
 A PR changing many unrelated files and policies is harder to verify accurately. Keep reviews cohesive and appropriately sized.
@@ -1319,7 +1413,7 @@ Five tightly coupled PRs can be worse than one coherent PR. Split along meaningf
 
 ---
 
-# Part XLIII — Managing stacked PRs
+# Part XCII — Commit dependencies versus feature dependencies
 
 ## 179. Explicitly stacked PRs
 
@@ -1333,13 +1427,15 @@ Merging A first simplifies B's ancestry but delays work that could otherwise pro
 
 ---
 
-# Part XLIV — Candidate stabilization and freeze
+# Part XCIII — Release checklist
 
 ## 181. The release-candidate pipeline
 
 A normal sequence is scope selection, implementation, tests, PR review, candidate stabilization, package generation, store preparation, final merge, tag, and submission.
 
 ---
+
+# Part XCIV — Freeze
 
 ## 182. Why freeze the scope?
 
@@ -1353,6 +1449,8 @@ Prefer fixes for confirmed blockers and regressions; defer unrelated new capabil
 
 ---
 
+# Part XCV — A nearly immutable release candidate
+
 ## 184. Every change invalidates some evidence
 
 A screenshot, test result, checksum, or QA session applies to a particular tree. If files change afterward, decide which evidence must be regenerated.
@@ -1365,7 +1463,7 @@ Not every typo requires full testing, but changing autoplay logic or package man
 
 ---
 
-# Part XLV — What can be prepared in parallel
+# Part XCVI — Store draft workflow
 
 ## 186. Work that can begin early
 
@@ -1379,7 +1477,7 @@ Checksums, final reproducibility assertions, exact ZIP uploads, and tag/artifact
 
 ---
 
-# Part XLVI — Release narrative and documentation
+# Part XCVII — Tag titles and release notes
 
 ## 188. Release titles should age well
 
@@ -1387,17 +1485,23 @@ A title such as “2.35.2 — UI/UX consistency and navigation” helps future r
 
 ---
 
+# Part XCVIII — Release notes are not full changelogs
+
 ## 189. User-facing release notes select relevant changes
 
 Users need improved workflows and visible fixes, not every internal code cleanup.
 
 ---
 
+# Part XCIX — Cumulative changelog
+
 ## 190. Technical changelogs preserve the detailed why
 
 Changelogs explain architecture and regressions; this book relies on that history to reconstruct decisions.
 
 ---
+
+# Part C — GitHub Releases as narrative checkpoints
 
 ## 191. Tag as code checkpoint
 
@@ -1411,7 +1515,7 @@ The Release title, notes, and assets tell users why the version exists. Together
 
 ---
 
-# Part XLVII — Recording store deployment
+# Part CI — Release branch cleanup
 
 ## 193. Record publication status
 
@@ -1419,11 +1523,15 @@ After submission, note which browser stores have accepted or published each vers
 
 ---
 
+# Part CII — Tracking per-store publication
+
 ## 194. A release-status table
 
 Track browser, version, artifact checksum, submission date, review state, and publication state. A Git tag alone cannot tell what every user can install.
 
 ---
+
+# Part CIII — Deployment metadata
 
 ## 195. When a deployment ledger is worth it
 
@@ -1431,7 +1539,7 @@ Larger projects may automate a releases.json ledger or GitHub deployments. A sma
 
 ---
 
-# Part XLVIII — Automation versus judgment
+# Part CIV — Release automation
 
 ## 196. What to automate
 
@@ -1445,13 +1553,15 @@ The release builder and validator create and check target-specific browser packa
 
 ---
 
+# Part CV — What remains human
+
 ## 198. What remains a human decision
 
 Release timing, accepting UX trade-offs, changing product scope, and classifying uncertain warnings still require judgment.
 
 ---
 
-# Part XLIX — Release workflow dependencies
+# Part CVI — Release as a pipeline
 
 ## 199. A release decision graph
 
@@ -1478,6 +1588,8 @@ flowchart TD
 
 ---
 
+# Part CVII — The real pipeline can be parallel
+
 ## 200. Parallel store preparation
 
 Screenshots, review access, and listing drafts can be prepared while PR testing and release alignment continue.
@@ -1503,7 +1615,7 @@ flowchart LR
 
 ---
 
-# Part L — Typical release failures
+# Part CVIII — Release failure modes
 
 ## 202. Wrong base branch
 
@@ -1553,7 +1665,7 @@ A stale build or a package for another browser is submitted to a store.
 
 ---
 
-# Part LI — Guardrails for common mistakes
+# Part CIX — Safeguards
 
 ## 210. Guard against wrong PR base
 
@@ -1579,7 +1691,7 @@ Verify package filenames, manifest target, checksums, and source SHA before uplo
 
 ---
 
-# Part LII — Build output isolation
+# Part CX — Empty output directories
 
 ## 214. Why refuse stale ZIPs?
 
@@ -1593,6 +1705,8 @@ Each build should start from known inputs and a clean output area rather than mi
 
 ---
 
+# Part CXI — Build idempotency
+
 ## 216. The deterministic-build ideal
 
 Same source commit, toolchain, and controlled parameters should yield the same archive bytes and checksums.
@@ -1605,7 +1719,7 @@ When an expected artifact hash changes, a developer can compare build inputs and
 
 ---
 
-# Part LIII — Merge, rebase and tree equivalence
+# Part CXII — Synchronizing branches before release
 
 ## 218. Merge or rebase?
 
@@ -1619,6 +1733,8 @@ Merge preserves public ancestry; rebase can clean private work; exceptional cont
 
 ---
 
+# Part CXIII — The tree as arbiter of content
+
 ## 220. Use the target tree as an anchor
 
 When history is confusing, identify which tracked files the result must contain and compare tree objects directly.
@@ -1631,7 +1747,7 @@ Preserve correct source content while creating a maintainable historical relatio
 
 ---
 
-# Part LIV — Git cannot assess semantic intent
+# Part CXIV — Git enables collaboration; it cannot judge semantics
 
 ## 222. What Git knows
 
@@ -1645,13 +1761,13 @@ Git does not understand whether two logically equivalent patches implement the s
 
 ---
 
+# Part CXV — Merge strategies as a team protocol
+
 ## 224. A consistent repository policy
 
 If main commonly uses squash merges, plan how dependent branches will be rebased or realigned after the base is squashed.
 
 ---
-
-# Part LV — Safe handling of stacked branches
 
 ## 225. Before squashing a dependency
 
@@ -1659,13 +1775,13 @@ Identify downstream branches, notify collaborators, and decide how their base an
 
 ---
 
+# Part CXVI — Stacked-branch discipline
+
 ## 226. A safe dependent-branch workflow
 
 Confirm the base reached main, update dependent work against the real release commit, verify resulting tree/diff, and run tests.
 
 ---
-
-# Part LVI — Force-with-lease
 
 ## 227. force-with-lease
 
@@ -1679,7 +1795,7 @@ git push --force-with-lease
 
 ---
 
-# Part LVII — Understanding merge base
+# Part CXVII — merge-base
 
 ## 228. Merge base
 
@@ -1687,7 +1803,7 @@ Git locates the common ancestor to decide which changes diverged. Squash changes
 
 ---
 
-# Part LVIII — Graph and comparison tools
+# Part CXVIII — git log --graph
 
 ## 229. Visualize graph ancestry
 
@@ -1704,6 +1820,8 @@ git log --graph --oneline --decorate --all
 ```
 
 ---
+
+# Part CXIX — git diff
 
 ## 230. Which files changed?
 
@@ -1723,17 +1841,23 @@ The same final tree can have many different ancestors, as demonstrated in the 2.
 
 ---
 
+# Part CXX — git status
+
 ## 233. Inspect the working tree
 
 git status shows the uncommitted edits and staging state that may affect a build.
 
 ---
 
+# Part CXXI — git show
+
 ## 234. Inspect the branch graph
 
 git branch -vv and related graph tools reveal tracking references and ahead/behind counts.
 
 ---
+
+# Part CXXII — git cat-file
 
 ## 235. Read Git objects directly
 
@@ -1753,7 +1877,7 @@ Viewing the actual commit object proves that parent and tree are independent fie
 
 ---
 
-# Part LIX — Ahead and behind
+# Part CXXIII — GitHub compare
 
 ## 237. Ahead/behind measures graph reachability
 
@@ -1767,11 +1891,15 @@ A branch many commits “ahead” may still have the same source tree as main af
 
 ---
 
+# Part CXXIV — Why we inspect the graph first
+
 ## 239. If counts look wrong
 
 Inspect merge base, graph, and tree hashes before interpreting a surprising GitHub compare result as new product work.
 
 ---
+
+# Part CXXV — Published tags should be immutable
 
 ## 240. Do not move published tags casually
 
@@ -1779,13 +1907,13 @@ Consumers and CI may already have cached a published tag. Retargeting it undermi
 
 ---
 
-# Part LX — Immutable tags and artifact provenance
-
 ## 241. If the tagged release commit was wrong
 
 Prefer a corrective new release or a clearly documented replacement policy over silently moving a tag that consumers may already use.
 
 ---
+
+# Part CXXVI — Immutable artifacts
 
 ## 242. Publish checksums
 
@@ -1799,6 +1927,8 @@ Changing even one byte changes SHA-256 with overwhelming probability, so a modif
 
 ---
 
+# Part CXXVII — Git tags and store artifacts
+
 ## 244. A tag is not a browser package
 
 The tag identifies source history; each target ZIP is a derived artifact built from that source.
@@ -1811,11 +1941,15 @@ A commit and builder recipe can be connected to an exact produced archive digest
 
 ---
 
+# Part CXXVIII — Release reproducibility tests
+
 ## 246. Strong reproducibility evidence
 
 Rebuild from the claimed tag and compare the package hash with the published checksum. Agreement supports the asserted provenance.
 
 ---
+
+# Part CXXIX — Review-note hashes
 
 ## 247. AMO reviewer evidence
 
@@ -1823,7 +1957,7 @@ Provide the source archive, rebuild instructions, and expected artifact digest t
 
 ---
 
-# Part LXI — GitHub branch protection
+# Part CXXX — GitHub branch protection
 
 ## 248. Branch protection in larger projects
 
@@ -1837,7 +1971,7 @@ More protection can reduce accidents but also increase administrative friction a
 
 ---
 
-# Part LXII — Human-error guardrails
+# Part CXXXI — Human error as part of the threat model
 
 ## 250. The accidental integration merge
 
@@ -1851,11 +1985,15 @@ Review confirmations, protected main, branch naming, required checks, and a veri
 
 ---
 
+# Part CXXXII — Quick reverts instead of panic
+
 ## 252. When a wrong merge happens
 
 First identify what merged, what has already shipped, and whether downstream work depends on it. Then choose revert, forward correction, or another safe method.
 
 ---
+
+# Part CXXXIII — Git incident response
 
 ## 253. A wrong-merge checklist
 
@@ -1863,7 +2001,7 @@ Inspect source graph, affected artifacts, published refs, store submissions, and
 
 ---
 
-# Part LXIII — Candidates as long transactions
+# Part CXXXIV — A release branch as a transaction
 
 ## 254. A release candidate as a long transaction
 
@@ -1877,7 +2015,7 @@ Other developers, store drafts, and mainline changes can evolve concurrently. Th
 
 ---
 
-# Part LXIV — Coherent commits
+# Part CXXXV — Commit atomicity
 
 ## 256. A coherent commit
 
@@ -1891,7 +2029,7 @@ A checkout at an intermediate commit should make sense. This improves bisectabil
 
 ---
 
-# Part LXV — Separate source from binaries
+# Part CXXXVI — Do not commit generated store ZIPs
 
 ## 258. Where release ZIPs belong
 
@@ -1905,13 +2043,15 @@ The Git repository holds source, tests, build recipe, and reproducibility metada
 
 ---
 
+# Part CXXXVII — Versioned build scripts
+
 ## 260. The build recipe belongs in source
 
 Version build-release.mjs with the code so a tag preserves how its runtime archives were constructed.
 
 ---
 
-# Part LXVI — Release documentation
+# Part CXXXVIII — Should store metadata be versioned?
 
 ## 261. Release documents in the repo
 
@@ -1925,11 +2065,15 @@ Some listings and submission fields live on external dashboards. Preserve enough
 
 ---
 
+# Part CXXXIX — Release engineering as reproducible decision-making
+
 ## 263. Rebuild the explanation, not only the bytes
 
 Good release records establish what was published, how it was produced, who it was for, and why the change was made.
 
 ---
+
+# Part CXL — Changelog as causal context
 
 ## 264. Changelogs record why
 
@@ -1937,7 +2081,7 @@ Diffs answer what changed. Changelogs and release notes explain motivation, inte
 
 ---
 
-# Part LXVII — Traceability
+# Part CXLI — Issue → branch → pull request
 
 ## 265. A traceable feature flow
 
@@ -1951,6 +2095,8 @@ PlumePilot fixes sometimes start in direct feedback rather than a formal ticket.
 
 ---
 
+# Part CXLII — Traceability
+
 ## 267. Traceability across artifacts
 
 A reported defect should be traceable to a correction, regression test, release tag, and packaged browser version.
@@ -1963,7 +2109,7 @@ When a user reports a problem months later, this chain helps identify whether th
 
 ---
 
-# Part LXVIII — Merge queues
+# Part CXLIII — Merge queues?
 
 ## 269. Merge queues for large teams
 
@@ -1977,7 +2123,7 @@ For a small repository a full merge queue could be excessive, but testing the ac
 
 ---
 
-# Part LXIX — Packaging prerequisites
+# Part CXLIV — Release freeze and branch synchronization
 
 ## 271. Before packaging
 
@@ -1991,7 +2137,7 @@ If main already contains future unreleased features, start from the appropriate 
 
 ---
 
-# Part LXX — The real 2.35.2 release candidate
+# Part CXLV — Current PlumePilot state
 
 ## 273. The 2.35.2 candidate snapshot
 
@@ -2005,7 +2151,7 @@ Its scope extends beyond visual redesign into manifest/version preparation, docu
 
 ---
 
-# Part LXXI — Candidate to main
+# Part CXLVI — When to merge
 
 ## 275. What follows final validation
 
@@ -2019,7 +2165,7 @@ Store review is asynchronous and external. Code may be tagged and merged before 
 
 ---
 
-# Part LXXII — A release sequence
+# Part CXLVII — Suggested tagging sequence
 
 ## 277. A clean 2.35.2 path
 
@@ -2033,13 +2179,15 @@ Prepare store drafts or even upload verified candidate archives, then ensure pos
 
 ---
 
+# Part CXLVIII — Tree equality can also help here
+
 ## 279. Squash can change the final commit
 
 Compare candidate and resulting main tree hashes. Equal trees support identical tracked content despite different commit hashes.
 
 ---
 
-# Part LXXIII — Squash strategy and dependent branches
+# Part CXLIX — Should PR #41 be squashed?
 
 ## 280. Squashing the candidate
 
@@ -2053,11 +2201,15 @@ Branches built on candidate commits can suffer the same ancestry mismatch that a
 
 ---
 
+# Part CL — A future operational rule
+
 ## 282. Before squashing a base
 
 Ask whether other active branches depend on it. Plan their ancestry realignment before creating a confusing downstream PR graph.
 
 ---
+
+# Part CLI — Release branches for the next version
 
 ## 283. A simple future workflow
 
@@ -2065,7 +2217,7 @@ After 2.35.2 is integrated, branch 2.35.3 work from the actual mainline release 
 
 ---
 
-# Part LXXIV — Designing useful Git history
+# Part CLII — Git history as a design artifact
 
 ## 284. What good history should convey
 
@@ -2079,6 +2231,8 @@ Removing every merge may hide actual dependencies; preserving every experimental
 
 ---
 
+# Part CLIII — Commit graphs and cognitive load
+
 ## 286. A simple mainline
 
 A small number of logical PR-sized commits makes major product changes easier to locate.
@@ -2091,13 +2245,15 @@ Original feature branches and PR discussions can preserve granular development h
 
 ---
 
+# Part CLIV — Pull requests as archival context
+
 ## 288. Human history survives merges
 
 PR discussions, review comments, attached test outcomes, and linked issues remain useful documentation after the code enters main.
 
 ---
 
-# Part LXXV — Three independent histories
+# Part CLV — Release provenance graph
 
 ## 289. Three timelines in one picture
 
@@ -2141,6 +2297,8 @@ user-installed versions
 
 ---
 
+# Part CLVI — Three histories
+
 ## 290. Git history
 
 Records source commits, parent relationships, merges, and branch refs.
@@ -2165,7 +2323,7 @@ A version can exist in Git without being published; a store may lag behind the t
 
 ---
 
-# Part LXXVI — Diagnosing users' actual versions
+# Part CLVII — Diagnosis from a support ticket
 
 ## 294. Identify the user's deployed version
 
@@ -2173,11 +2331,15 @@ Ask which browser, extension version, and store installation the person uses. A 
 
 ---
 
+# Part CLVIII — Source commit from a version
+
 ## 295. Use the release tag
 
 A correct tag narrows the code snapshot relevant to that released version.
 
 ---
+
+# Part CLIX — Runtime release metadata
 
 ## 296. Read the installed manifest version
 
@@ -2191,7 +2353,7 @@ Do not call the privileged manifest API from an ordinary page-world context with
 
 ---
 
-# Part LXXVII — Scope reduces diagnostic uncertainty
+# Part CLX — Release engineering and mental rollback
 
 ## 298. Smaller releases aid diagnosis
 
@@ -2205,7 +2367,7 @@ A disciplined release boundary acts as an imperfect but valuable debugging bound
 
 ---
 
-# Part LXXVIII — Defining reliable main
+# Part CLXI — Trunk stability
 
 ## 300. Main cannot be infallible
 
@@ -2219,6 +2381,8 @@ Useful tests, review, and branch protection reduce the chance that a mistake sur
 
 ---
 
+# Part CLXII — Release validation as a gate
+
 ## 302. A merge gate
 
 Require appropriate checks or review before a candidate is integrated or tagged.
@@ -2231,7 +2395,7 @@ A UI can pass source tests and still be confusing, inaccessible, or poorly laid 
 
 ---
 
-# Part LXXIX — Definition of Done
+# Part CLXIII — Definition of Done
 
 ## 304. Definition of Done for a feature
 
@@ -2245,7 +2409,7 @@ All target artifacts, version metadata, smoke tests, store documentation, checks
 
 ---
 
-# Part LXXX — Automating release gates
+# Part CLXIV — Automation candidates
 
 ## 306. A future GitHub Actions pipeline
 
@@ -2259,7 +2423,7 @@ Automation can help, but credentials, changing store policies, review control, a
 
 ---
 
-# Part LXXXI — CI and CD
+# Part CLXV — CI/CD terminology
 
 ## 308. Continuous Integration
 
@@ -2279,7 +2443,7 @@ External store reviewers can delay publication even when the project automates i
 
 ---
 
-# Part LXXXII — The human side of delivery
+# Part CLXVI — Release engineering as a socio-technical system
 
 ## 311. Release engineering is not only tooling
 
@@ -2293,7 +2457,7 @@ Accurate reviewer credentials and concise test steps can be as important to appr
 
 ---
 
-# Part LXXXIII — Backend analogies
+# Part CLXVII — Backend analogy: deployment pipelines
 
 ## 313. Backend analogy
 
@@ -2313,7 +2477,7 @@ A container digest and an extension ZIP SHA-256 both identify exact immutable ar
 
 ---
 
-# Part LXXXIV — Persistence and upgrades
+# Part CLXVIII — Backend analogy: database migrations
 
 ## 316. Deployment includes persistent state
 
@@ -2327,11 +2491,15 @@ Backward-compatible reads and platform-specific key migrations are part of relea
 
 ---
 
+# Part CLXIX — Forward compatibility
+
 ## 318. Downgrade risk
 
 A prior version may not understand newly persisted data. Formal downgrade support is optional, but the risk should be recognized.
 
 ---
+
+# Part CLXX — Release notes as schema migration communication
 
 ## 319. Explain visible changes
 
@@ -2339,13 +2507,15 @@ If the update changes how buttons or menus work, release notes should help users
 
 ---
 
+# Part CLXXI — Permission changes
+
 ## 320. Permissions are release-sensitive
 
 A new privileged permission can trigger new review, user prompts, or trust concerns. It deserves more scrutiny than a minor CSS tweak.
 
 ---
 
-# Part LXXXV — Risk-based release testing
+# Part CLXXII — Release risk classification
 
 ## 321. Low-risk change
 
@@ -2371,13 +2541,15 @@ A two-line typo fix and a manifest-permission change should not require identica
 
 ---
 
-# Part LXXXVI — Review the final tree
+# Part CLXXIII — PR descriptions as risk maps
 
 ## 325. What a good PR description contains
 
 Describe objective, scope, behavior changes, relevant risks, test evidence, screenshots when useful, and any required follow-up.
 
 ---
+
+# Part CLXXIV — Reviewing the release-branch diff
 
 ## 326. Inspect the aggregate tree before merge
 
@@ -2391,11 +2563,15 @@ Several reasonable commits can combine into an unintended final state or include
 
 ---
 
+# Part CLXXV — Reviewing the file list
+
 ## 328. Look for unexpected files
 
 A UI-only release candidate that changes unrelated backend or vendor files should trigger investigation.
 
 ---
+
+# Part CLXXVI — Scope invariants
 
 ## 329. An allowlist can help
 
@@ -2403,13 +2579,15 @@ For a narrow hotfix, verifying a predetermined set of changed files can prevent 
 
 ---
 
+# Part CLXXVII — The accidental file problem
+
 ## 330. An example of an accidental inclusion
 
 A temporary test credential, generated source file, or unrelated fixture should not enter the runtime ZIP. Artifact validation and exclusion policies can catch mistakes.
 
 ---
 
-# Part LXXXVII — Packaging boundaries
+# Part CLXXVIII — .gitignore is not enough
 
 ## 331. .gitignore
 
@@ -2423,17 +2601,23 @@ Prevent tracked source, tests, documentation, and non-runtime assets from enteri
 
 ---
 
+# Part CLXXIX — Release directory
+
 ## 333. Generated ZIP is output
 
 An old archive should never silently become input to the next build. Validate or clean the output area first.
 
 ---
 
+# Part CLXXX — Source archive
+
 ## 334. Source archive versus runtime archive
 
 Installable ZIPs exclude development materials; the Firefox AMO source-review archive intentionally includes inputs and scripts needed to reproduce the build.
 
 ---
+
+# Part CLXXXI — Sparse Git concerns
 
 ## 335. Repository state
 
@@ -2453,7 +2637,7 @@ The review archive is a different selected subset designed for reconstruction an
 
 ---
 
-# Part LXXXVIII — Version bump timing
+# Part CLXXXII — Timing the version bump
 
 ## 338. Version bump too early
 
@@ -2473,7 +2657,7 @@ Bump the version during final candidate preparation, before final package valida
 
 ---
 
-# Part LXXXIX — One authoritative version
+# Part CLXXXIII — Version as configuration
 
 ## 341. One version source of truth
 
@@ -2487,7 +2671,7 @@ When versions appear in release notes, screenshots, or store metadata, verify co
 
 ---
 
-# Part XC — Final candidate commit strategy
+# Part CLXXXIV — Release commits versus version-bump commits
 
 ## 343. Squash or keep separate commits?
 
@@ -2501,6 +2685,8 @@ The UI tree 4d32a8c2 was followed by release preparation f6fcb4c2. This reveals 
 
 ---
 
+# Part CLXXXV — Squash the final two?
+
 ## 345. Choose according to mainline policy
 
 Squash is coherent when the repository wants one PR-sized logical unit on main.
@@ -2513,7 +2699,7 @@ Merge or rebase-and-merge may retain multiple steps. Decide before other branche
 
 ---
 
-# Part XCI — Release plans and provenance records
+# Part CLXXXVI — Release decision records
 
 ## 347. A future release-record improvement
 
@@ -2521,13 +2707,17 @@ Store a concise release plan with candidate SHA, build commands, checks, package
 
 ---
 
-# Part XCII — Direct inspection of Git objects
+# Part CLXXXVII — Why this helps
+
+# Part CLXXXVIII — GitHub API as an inspection tool
 
 ## 348. Why inspect Git objects directly?
 
 This book used tree objects, commit parents, and exact SHA values to understand situations the simplified GitHub UI did not fully explain.
 
 ---
+
+# Part CLXXXIX — Low-level inspection
 
 ## 349. When low-level inspection is warranted
 
@@ -2541,7 +2731,7 @@ git log, git status, git diff, git merge-base, and git cat-file explain most his
 
 ---
 
-# Part XCIII — Choosing a Git recovery tool
+# Part CXC — A mental decision tree
 
 ## 351. “I need to update my feature branch”
 
@@ -2575,7 +2765,7 @@ Check whether other people or automation have seen it. On public history, prefer
 
 ---
 
-# Parts CXCII–CXCIX — Exercises
+# Part CXCII — Exercise 1
 
 ## Exercise 1 — Squash ancestry and dependent branches
 
@@ -2608,6 +2798,8 @@ Explain how you would verify that the resulting tree preserves the wanted file c
 
 ---
 
+# Part CXCIII — Exercise 2
+
 ## Exercise 2 — Identical tree, different parent
 
 Two commits have:
@@ -2622,6 +2814,8 @@ Which properties are guaranteed to be the same? Which properties may differ?
 Distinguish tracked-file content, commit identity, ancestry, history comparisons, and metadata.
 
 ---
+
+# Part CXCIV — Exercise 3
 
 ## Exercise 3 — Should this PR be squashed?
 
@@ -2644,6 +2838,8 @@ and when would preserving separate commits be more useful for review, bisectabil
 
 ---
 
+# Part CXCV — Exercise 4
+
 ## Exercise 4 — A regression in a published version
 
 You have already published:
@@ -2659,6 +2855,8 @@ Why would moving the Git tag to a corrected commit **not** repair installations 
 Explain why a newer corrective version may be needed.
 
 ---
+
+# Part CXCVI — Exercise 5
 
 ## Exercise 5 — Three independent publication clocks
 
@@ -2690,6 +2888,8 @@ Explain why the question is incomplete without information about the installed e
 
 ---
 
+# Part CXCVII — Exercise 6
+
 ## Exercise 6 — A non-reproducible Firefox ZIP
 
 The same release source commit now produces a Firefox ZIP whose checksum differs from yesterday's output.
@@ -2710,6 +2910,8 @@ How would you isolate the source of the difference?
 
 ---
 
+# Part CXCVIII — Exercise 7
+
 ## Exercise 7 — Rewriting a shared feature branch
 
 Three people have based ongoing work on the same feature branch. You want to realign it with `main`.
@@ -2727,6 +2929,8 @@ Describe what can happen to collaborators' commit references and why a guarded r
 
 ---
 
+# Part CXCIX — Exercise 8
+
 ## Exercise 8 — A clean merge with a semantic conflict
 
 A PR is marked mergeable and its files apply without textual conflicts.
@@ -2737,7 +2941,7 @@ Consider manifest versions, shared state ownership, async callback ordering, inc
 
 ---
 
-# Part XCIV — Chapter glossary
+# Part CC — Concepts to carry forward
 
 ## 354. Blob
 
@@ -2865,7 +3069,7 @@ A guarded forced ref update that rejects unexpected remote changes.
 
 ---
 
-# Part XCV — Further reading
+# Part CCI — Further reading
 
 ## 375. Git object model
 
@@ -2919,7 +3123,7 @@ SemVer defines a widely used three-part versioning convention; its application t
 
 ---
 
-# Part XCVI — Recap
+# Part CCII — Recap
 
 The decisive PlumePilot example is simple: **the same tree is not the same commit**. Git connects source snapshots to parent history and mutable references. GitHub adds pull requests, review, Draft state, and release pages. The release system adds browser builds, checksums, submissions, approvals, and publications.
 
