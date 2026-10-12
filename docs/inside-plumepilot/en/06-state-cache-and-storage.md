@@ -699,3 +699,855 @@ specific to this tab/page session
 Document `sessionStorage` directly matches that scope. Extension `storage.session` would introduce different access and lifecycle considerations.
 
 ---
+
+
+# Part X — `lessonApiCache` as a real data-structure design
+
+## 25. `lessonApiCache`
+
+One central cache is:
+
+```js
+const lessonApiCache = new Map();
+```
+
+The key is built from the course code and lesson number:
+
+```js
+function lessonApiCacheKey(courseCode, lessonNumber) {
+  return ${courseCode}:${Number(lessonNumber)};
+}
+```
+
+Conceptually, each entry is timestamped:
+
+```js
+fetchedAt: Date.now()
+```
+
+The base freshness window is five minutes. But the actual design is far more interesting than "Map plus TTL."
+
+---
+
+## 25.1 The abstract model: key → value
+
+A cache is first a partial mapping:
+
+```text
+key → cached value
+```
+
+For lessons:
+
+```text
+"COURSE_CODE:1" → normalized lesson 1 data
+"COURSE_CODE:2" → normalized lesson 2 data
+"COURSE_CODE:3" → normalized lesson 3 data
+```
+
+The concrete JavaScript data structure is:
+
+```js
+const lessonApiCache = new Map();
+```
+
+We build the key from a composite identity. Conceptually, the type would resemble:
+
+```ts
+Map<string, LessonCacheEntry>
+```
+
+The existing project is JavaScript rather than TypeScript, but imagining the type makes the intended contract easier to understand: keys identify lessons; values contain PlumePilot's normalized read model.
+
+---
+
+## 25.2 Why a `Map` is a good fit
+
+JavaScript `Map` is a collection of key–value pairs with explicit operations:
+
+```js
+lessonApiCache.get(key);
+lessonApiCache.set(key, value);
+lessonApiCache.delete(key);
+lessonApiCache.has(key);
+lessonApiCache.size;
+```
+
+The dominant workflow is:
+
+```text
+construct key
+      ↓
+look up entry
+      ↓
+found?
+  ┌───┴───┐
+ yes      no
+  │        │
+check     request API
+freshness    │
+  │          ↓
+reuse /    cache.set(...)
+refresh
+```
+
+A `Map` expresses a lookup by identity without requiring a linear scan of all lessons.
+
+One precision matters: ECMAScript requires appropriate lookup performance but does not mandate a particular engine implementation. We should not simplistically claim:
+
+```text
+Map === hash table with guaranteed O(1) operations
+```
+
+as though every JavaScript runtime used the same internals.
+
+---
+
+## 25.3 Why not an `Array`?
+
+A naive version:
+
+```js
+const lessonCache = [];
+
+lessonCache.push({
+  courseCode,
+  lessonNumber,
+  data,
+});
+```
+
+To retrieve one lesson:
+
+```js
+lessonCache.find(
+  (entry) =>
+    entry.courseCode === courseCode &&
+    entry.lessonNumber === lessonNumber,
+);
+```
+
+We are using a sequential collection to solve an identity-lookup problem.
+
+For `n` entries, `Array.find()` may need to examine many of them. `Map.get()` directly expresses lookup by key.
+
+Could we use `lessonNumber` as an array index? Not safely across multiple courses:
+
+```text
+Course ABC / lesson 1
+Course XYZ / lesson 1
+```
+
+Both would want index 1. We would need nested structures or composite keys anyway.
+
+---
+
+## 25.4 Why not a plain `Object`?
+
+We could implement:
+
+```js
+const lessonApiCache = {};
+lessonApiCache[key] = value;
+```
+
+That can work. Plain objects with string keys can be used as dictionaries.
+
+Why prefer `Map`?
+
+### Clearer semantics
+
+```js
+const cache = new Map();
+```
+
+immediately communicates "dynamic key–value collection." A plain object can mean either a fixed-shape record or a dynamic dictionary.
+
+### Purpose-built API
+
+`Map` provides `get`, `set`, `has`, `delete`, `clear`, `size`, and iteration without mixing cache entries with object-prototype concerns.
+
+### Keys and iteration
+
+`Map` supports different key types and predictable iteration behavior. Even though this particular cache uses string keys, its interface communicates the intended data structure more directly.
+
+Using `Object` would not be inherently incorrect; `Map` is simply a better conceptual fit.
+
+---
+
+## 25.5 Why not `WeakMap`?
+
+A `WeakMap` can allow garbage collection of entries when their object keys are no longer reachable.
+
+But the actual key here is a string:
+
+```text
+"courseCode:lessonNumber"
+```
+
+`WeakMap` keys must be eligible object or non-registered symbol keys; arbitrary strings cannot be used.
+
+Could we create an object instead?
+
+```js
+const key = { courseCode, lessonNumber };
+weakMap.set(key, value);
+```
+
+Then:
+
+```js
+weakMap.get({ courseCode, lessonNumber });
+```
+
+would **not** retrieve the same entry, because the newly created object has a different identity.
+
+Also, `WeakMap` is not enumerable, which would make inspection and cleanup less convenient.
+
+We need a **reconstructible composite value key**, not an ephemeral object-identity key.
+
+---
+
+## 25.6 The composite key is part of the data structure
+
+The cache does not use only:
+
+```text
+lessonNumber
+```
+
+It uses:
+
+```text
+courseCode + ":" + Number(lessonNumber)
+```
+
+Consider:
+
+```text
+Course ABC → lesson 1
+Course XYZ → lesson 1
+```
+
+A key consisting only of `1` would collide. With:
+
+```text
+ABC:1
+XYZ:1
+```
+
+the entries remain distinct.
+
+The numeric conversion also normalizes input representations such as `"1"` and `1` to a consistent key component.
+
+The key is not an implementation afterthought. It is part of the cache's correctness contract.
+
+---
+
+## 25.7 The primary cache key is not always enough: `routeKey`
+
+A lesson is indexed primarily by course code plus lesson number, but the cache also stores a `routeKey` assembled from identifiers such as `lpId` and `paragraphId`.
+
+Why hold a second identity?
+
+```text
+cache key
+    ↓
+How do I find the entry quickly?
+
+routeKey
+    ↓
+Does this new payload belong to the same logical route?
+```
+
+A useful lookup key need not be sufficient to prove that two responses describe exactly the same underlying resource.
+
+This distinction matters when the host changes routing or numbering.
+
+---
+
+## 25.8 Value anatomy: cache a read model, not raw JSON
+
+`lessonApiCache` does not simply perform:
+
+```js
+cache.set(key, responseBody);
+```
+
+It retains a normalized representation, approximately:
+
+```js
+{
+  dataAvailable: true,
+  objective,
+  videos,
+  playbackDataComplete,
+  test,
+  progressItems,
+  progressDataComplete,
+  routeKey,
+  material,
+  fetchedAt,
+}
+```
+
+This is a small internal **read model**.
+
+Advantages:
+
+```text
+less coupling to external schema
++
+simpler lookups
++
+centralized update policy
++
+already-normalized values
+```
+
+The page API might contain many fields that PlumePilot does not need. The cache holds the data useful to its own domain.
+
+---
+
+## 25.9 A complete cache lookup
+
+`requestLessonWithRetry()` first attempts:
+
+```js
+const cachedResponse = forceFresh
+  ? null
+  : cachedLessonResponse(
+      courseCode,
+      lessonNumber,
+      requiredData,
+      allowStaleMutableCache,
+    );
+
+if (cachedResponse) return cachedResponse;
+```
+
+In pseudocode:
+
+```text
+key = makeKey(course, lesson)
+entry = cache.get(key)
+
+if no entry:
+    MISS
+
+if an entry exists:
+    check requiredData
+    check TTL and reuse policy
+
+    if usable:
+        HIT
+    otherwise:
+        SEMANTIC / STALE MISS
+```
+
+The third outcome is crucial. An entry may exist but lack the **specific data required by the current call**.
+
+```text
+HIT
+MISS
+STALE / SEMANTIC MISS
+```
+
+For example, an entry may contain a material link but not complete playback information. Presence is not enough.
+
+---
+
+## 25.10 A cache hit does not mean "skip every check"
+
+A shallow cache might do:
+
+```js
+const cached = cache.get(key);
+if (cached) return cached;
+```
+
+PlumePilot instead asks:
+
+```text
+Does the entry exist?
+       ↓
+Does it contain the requested data?
+       ↓
+Is it fresh enough?
+       ↓
+Does monotonic state make stale reuse safe?
+       ↓
+Does route identity still match?
+```
+
+A **physical hit** means the key exists. A **semantic hit** means the stored entry can safely answer the question being asked.
+
+PlumePilot needs the latter.
+
+---
+
+## 25.11 Writing by merge instead of blind replacement
+
+When a new response arrives, PlumePilot does not always do:
+
+```js
+cache.set(key, newestResponse);
+```
+
+It reads the previous normalized entry:
+
+```js
+const storedPrevious = lessonApiCache.get(key) || {};
+```
+
+Then builds the next state using both versions. For example:
+
+```js
+percentage: Math.max(
+  Number(item.percentage) || 0,
+  Number(previousItem?.percentage) || 0,
+)
+```
+
+The update operation is closer to:
+
+```text
+next = merge(previous, newResponse, domainRules)
+```
+
+than:
+
+```text
+next = newResponse
+```
+
+Abstractly, the cache is both a lookup structure and a state reconciliation mechanism.
+
+---
+
+## 25.12 Monotonic state: why `Math.max()` is a domain decision
+
+Suppose:
+
+```text
+previous cached progress → 100%
+new API response         →  80%
+```
+
+Blind replacement would produce:
+
+```text
+100% → 80%
+```
+
+But PlumePilot can preserve:
+
+```js
+Math.max(100, 80) // 100
+```
+
+**Only when the data refers to the same activity**, and when the domain assumption that completion progress is monotonic is valid.
+
+This is not a universal caching rule. A price, balance, stock quantity, or revocable status may legitimately decrease.
+
+> **Merge policy must understand the meaning of the data.**
+
+---
+
+## 25.13 Temporal freshness versus semantic freshness
+
+Entries store:
+
+```js
+fetchedAt: Date.now()
+```
+
+A basic freshness calculation:
+
+```js
+const fresh =
+  Date.now() - Number(entry.fetchedAt || 0) <=
+  API_LESSON_CACHE_FRESH_MS;
+```
+
+That is **temporal freshness**.
+
+But PlumePilot also evaluates **semantic freshness**.
+
+An incomplete test cached some time ago may now have been completed, so the old "incomplete" fact is risky. A confirmed `completed` result may be much more stable under the project's domain assumptions.
+
+Thus an older entry may be reusable for one kind of information but not another. **TTL alone does not decide every cache hit.**
+
+---
+
+## 25.14 Why not persist `lessonApiCache`?
+
+If caching saves API calls, why discard it on every reload?
+
+Because persistence would fundamentally change the problem.
+
+Currently its lifetime is:
+
+```text
+current page
+```
+
+After reload, we obtain:
+
+```text
+empty cache
+```
+
+which is a straightforward full invalidation.
+
+Persisting it in `chrome.storage.local` would require thinking about:
+
+```text
+schema versions
+persisted TTL
+periodic cleanup
+platform/course scope
+migration
+storage size
+extension updates
+old data from previous releases
+```
+
+For this modest, reconstructible working set, page-scoped memory is a reasonable trade-off.
+
+---
+
+## 25.15 Is this cache bounded?
+
+The implementation is:
+
+```js
+const lessonApiCache = new Map();
+```
+
+without an explicit rule like:
+
+```js
+if (cache.size > 100) evictOldest();
+```
+
+Formally, it is **not an explicitly bounded cache**.
+
+Why can this still be reasonable? Its natural working set is limited by lessons visited or requested in the current page, and the entire cache disappears when the page ends.
+
+This gives practical boundedness through workload and lifetime, not a guaranteed numeric cap.
+
+We should distinguish those properties precisely.
+
+---
+
+## 25.16 When would an LRU cache make sense?
+
+LRU means:
+
+```text
+Least Recently Used
+```
+
+It enforces a maximum capacity and removes the entry used least recently when space is needed.
+
+```text
+capacity = 3
+
+A, B, C
+use A
+recent-use order: B, C, A
+insert D
+evict B
+cache: C, A, D
+```
+
+JavaScript `Map` iteration order can support a small educational LRU:
+
+```js
+function touch(cache, key, value) {
+  cache.delete(key);
+  cache.set(key, value);
+}
+
+function setWithLru(cache, key, value, maxSize) {
+  if (cache.has(key)) cache.delete(key);
+  cache.set(key, value);
+
+  if (cache.size > maxSize) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+}
+```
+
+**This is an illustrative example, not current PlumePilot code.**
+
+An LRU could be useful with a very large working set, high memory pressure, or a long-lived cache shared across many courses. Today the page-scoped cache is simpler.
+
+---
+
+## 25.17 TTL and LRU solve different problems
+
+### TTL
+
+```text
+How long may I trust this value?
+```
+
+### LRU
+
+```text
+Which values should I keep when I cannot keep them all?
+```
+
+```text
+TTL → validity
+LRU → capacity
+```
+
+A cache can use both. PlumePilot's current `lessonApiCache` has time-based freshness rules but no explicit LRU eviction.
+
+These are independent design decisions.
+
+---
+
+## 25.18 What about IndexedDB?
+
+IndexedDB is a browser-side database for larger amounts of structured data, with indexes, transactions, and durable storage.
+
+It could support a much larger persistent cache. But for `lessonApiCache`, the actual requirements are:
+
+```text
+small working set
+key-based lookup
+page lifetime
+no required persistence
+```
+
+IndexedDB would introduce transactions, schema versioning, asynchronous database operations, cleanup, and more testing complexity without proportional value.
+
+Choosing the least complex suitable data structure is a legitimate engineering skill.
+
+---
+
+## 25.19 Comparing alternatives
+
+| Structure | Identity lookup | Durable | Suitable composite key | Enumerable | Fit here |
+|---|---|---|---|---|---|
+| `Map` | Native key lookup | No | Yes | Yes | **Excellent** |
+| `Object` | Property lookup | No | Yes | Yes | Good |
+| `Array` | Scan or index | No | Awkward | Yes | Weak |
+| `WeakMap` | Object identity | No | Not with string keys | No | Unsuitable |
+| `chrome.storage.local` | Async storage access | Yes | Yes | Yes | Unnecessary |
+| IndexedDB | Indexed async storage | Yes | Yes | Yes | Overkill |
+
+The best fit is:
+
+```text
+volatile cache
++
+reconstructible composite key
++
+frequent lookups
++
+moderate number of entries
++
+no serialization requirement
+```
+
+---
+
+## 25.20 Other caches do not all follow the same model
+
+### `lessonApiCache`
+
+```text
+key: courseCode:lessonNumber
+value: normalized lesson read model
+invalidation: TTL + semantic validity + route identity
+```
+
+### `materialLinkCache`
+
+```text
+key: courseCode:lessonNumber
+value: URL + status + attempts + source + error
+invalidation: actual download failure
+```
+
+### `materialOutlineCache`
+
+```text
+key: courseCode
+value: sectionSignature + outline
+invalidation: structural fingerprint mismatch
+```
+
+### `testSourceCache`
+
+A cache for discovered test-source information, with identity and suitability rules specific to that workflow.
+
+### `playbackCourseIndex`
+
+Not a general-purpose `Map` but a single in-memory snapshot tied to the current course context—conceptually, a **capacity-one cache**.
+
+These are all called caches, yet their keys, values, expiration conditions, and uses are different.
+
+---
+
+## 25.21 From a data structure to a complete algorithm
+
+We can now describe `lessonApiCache` as an algorithm.
+
+### Read path
+
+```text
+1. Normalize courseCode and lessonNumber.
+2. Construct composite key.
+3. Map.get(key).
+4. Check dataAvailable.
+5. Check requiredData.
+6. Check TTL.
+7. Apply semantic freshness.
+8. Return reconstructed response if usable.
+```
+
+### Write path
+
+```text
+1. Validate API response.
+2. Construct key.
+3. Read previous entry.
+4. Compare route identity.
+5. Normalize objective, test, video, progress.
+6. Merge with previous state.
+7. Preserve monotonic progress where valid.
+8. Update fetchedAt.
+9. Map.set(key, nextEntry).
+10. Refresh course-level aggregation as appropriate.
+```
+
+### Invalidation path
+
+There is not one central `delete()` operation for every invalidation. Correctness is governed by:
+
+```text
+page lifetime
++
+TTL
++
+route identity
++
+semantic refresh requirements
+```
+
+The absence of a generic `cache.clear()` does not mean there is no invalidation strategy.
+
+---
+
+## 25.22 A useful abstraction: index + record + policy
+
+We can reduce the cache to three conceptual components.
+
+### 1. Index
+
+```text
+Map
+```
+
+Answers: **Where is the entry?**
+
+### 2. Record
+
+```text
+LessonCacheEntry
+```
+
+Answers: **What is stored?**
+
+### 3. Policy
+
+```text
+TTL + requiredData + monotonicity + route identity
+```
+
+Answers: **When can the entry be trusted and how should it be updated?**
+
+When someone says "we should add a cache," ask immediately: What is the identity? What is the record schema? What are the lookup, merge, invalidation, lifetime, and eviction policies?
+
+If any are unknown, the design is incomplete.
+
+---
+
+## 25.23 Exercise: design a different cache
+
+Imagine retaining at most 50 lesson entries.
+
+We must decide:
+
+```text
+A. Which entry is evicted?
+B. Does TTL remain five minutes?
+C. Can stale confirmed completions remain useful?
+D. Does a cache hit update recency?
+E. Is eviction per course or global?
+F. Do we clear on course changes or retain a working set?
+```
+
+A casual request such as "let's add LRU" immediately introduces real domain choices.
+
+This is why the existing simple page-scoped cache remains reasonable while the data volume is modest.
+
+---
+
+## 25.24 Lessons from this data-structure case study
+
+A well-designed cache is not merely:
+
+```text
+Map + TTL
+```
+
+It is:
+
+```text
+identity
++
+data structure
++
+value schema
++
+lookup policy
++
+merge policy
++
+invalidation policy
++
+lifetime
++
+optional eviction policy
+```
+
+For `lessonApiCache`:
+
+```text
+identity        → courseCode + lessonNumber (+ routeKey check)
+data structure  → Map
+value schema    → normalized lesson read model
+lookup          → requiredData + freshness
+merge           → conservative / monotonic
+invalidation    → TTL + route mismatch + page lifetime
+lifetime        → current page
+eviction        → no explicit LRU
+```
+
+Now a line like:
+
+```js
+lessonApiCache.get(key);
+```
+
+is no longer "just a Map call." It is the visible tip of a small data-structure and cache-coherence design.
+
+---
