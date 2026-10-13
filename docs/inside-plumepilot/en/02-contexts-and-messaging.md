@@ -267,7 +267,16 @@ This model appears throughout distributed systems, reactive interfaces, and even
 
 ## 6. Crossing the ISOLATED → MAIN boundary
 
-After the bridge posts a request, `content.js` receives it:
+The bridge first crosses from the extension's isolated context into the page's JavaScript world:
+
+```js
+window.postMessage(
+  { type: "PEGASO_COURSE_PROGRESS_STATUS_REQUEST" },
+  "*",
+);
+```
+
+After that request, `content.js` in the `MAIN` world receives it:
 
 ```js
 if (event.data.type === "PEGASO_COURSE_PROGRESS_STATUS_REQUEST") {
@@ -298,7 +307,7 @@ window.postMessage({
 
 Source: [`content.js` L4478–L4500](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/content.js#L4478-L4500).
 
-Now the message travels in the opposite direction:
+Now the message travels in the opposite direction, returning from the page runtime to the extension bridge:
 
 ```text
 content.js (MAIN)
@@ -306,6 +315,8 @@ content.js (MAIN)
     ▼
 bridge.js (ISOLATED)
 ```
+
+The crucial point is that the messaging boundary separates two JavaScript worlds even though both can observe the same tab's document.
 
 ---
 
@@ -350,6 +361,8 @@ validation and normalization
 extension-runtime payload
 ```
 
+The adapter applies explicit defenses such as `Number.isFinite(percent)`, `Math.max(...)`, `Math.min(...)`, and `safeText(...)` before data reaches another context. In other words, it decides the shape and range of acceptable values, not merely where to forward them.
+
 ### General principle
 
 A boundary is a natural place to validate, normalize, reduce, reject, or translate data. The same principle motivates DTOs, serializers, and adapters in backend architectures.
@@ -375,7 +388,7 @@ Source: [`popup.js` L1402–L1409](https://github.com/PlumePilot/plumepilot/blob
 
 The sender check matters. Without it, progress events from tab B might update the UI for course A.
 
-A message system needs to ask not only **what type of message is this?**, but also **who sent it?**
+The explicit `sender?.tab?.id === activeCourseTabId` check prevents an unrelated course tab from overwriting the displayed progress. A message system needs to ask not only **what type of message is this?**, but also **who sent it?**
 
 ---
 
