@@ -39,6 +39,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.search-results.open .search-result').length > 0);
   await page.locator('.search-results .search-result').first().click();
   await page.waitForFunction(() => location.hash.startsWith('#'));
+  await page.locator('#bookSearch').fill('');
   const activeFromSearch = await page.locator('.chapter:not([hidden])').count();
   assert.equal(activeFromSearch, 1, 'search target must reveal exactly one chapter');
 
@@ -49,7 +50,7 @@ try {
 
   await page.locator('#themeSelect').selectOption('dark');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
-  await page.waitForFunction(() => localStorage.getItem('inside-plumepilot-state-en') !== null);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('inside-plumepilot-state-en') || '{}').chapter === '14');
   const enState = await page.evaluate(() => localStorage.getItem('inside-plumepilot-state-en'));
   assert(JSON.parse(enState).chapter === '14', 'English reading position must persist');
 
