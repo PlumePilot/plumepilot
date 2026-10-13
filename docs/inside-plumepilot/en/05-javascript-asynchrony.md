@@ -489,7 +489,7 @@ is a logical critical section. `serialized()` ensures that mutations affecting t
 
 ## 20. Why not put everything in one queue?
 
-PlumePilot does not use a global queue for every activity. It separates responsibilities:
+PlumePilot deliberately does not introduce a single `oneGlobalQueue` for all work. It separates responsibilities:
 
 ```text
 operationQueue
@@ -498,7 +498,7 @@ achievementQueue
 soundQueue
 ```
 
-If two operations do not share an invariant, serializing them together needlessly reduces concurrency.
+For example, updating an achievement need not block playback of a sound. If two operations do not share an invariant, serializing them together needlessly reduces concurrency without improving correctness.
 
 The right question is not "How do I eliminate all concurrency?" but:
 
@@ -766,7 +766,14 @@ Scheduling is conditional on the current application state.
 
 `setTimeout(fn, 1000)` does not promise execution **exactly** 1,000 ms later. It establishes a minimum delay before the callback becomes eligible, subject to task scheduling and browser throttling.
 
-This is why PlumePilot uses actual timestamps where elapsed time matters, instead of assuming every callback executes at its requested deadline.
+A busy main thread, other queued tasks or a throttled background tab can delay execution:
+
+```text
+requested timer delay = 1000 ms
+actual callback execution = potentially later
+```
+
+This is why PlumePilot uses real timestamps such as `Date.now()` where elapsed time matters, instead of assuming every callback executes at its requested deadline.
 
 ---
 
@@ -827,7 +834,17 @@ The timeout does not instruct the caller to wait a fixed period before continuin
 
 The `MAIN` world might not respond because a page changes, its listener disappears, navigation interrupts the workflow, an unexpected error occurs, or a message is lost.
 
-Without a deadline, the pending request map might retain `requestId → resolve` indefinitely and leave callers suspended forever.
+Without a deadline, `pendingTurboApiRequests` might retain a pending resolver indefinitely:
+
+```text
+requestId → resolve
+```
+
+The caller would remain suspended at:
+
+```js
+await turboApiRequest(...)
+```
 
 With a deadline, the failure becomes explicit:
 
@@ -857,7 +874,15 @@ A
 C
 ```
 
-We cannot correlate a response by arrival order alone. The `pendingTurboApiRequests` map tracks the identity of each outstanding call.
+We cannot assume that the next response belongs to the most recently issued request. Instead, `pendingTurboApiRequests` is a correlation registry:
+
+```text
+requestId-A → resolver-A
+requestId-B → resolver-B
+requestId-C → resolver-C
+```
+
+When a reply arrives, its `requestId` selects exactly the Promise to resolve, even if responses arrive out of order. This is the same reason distributed request/reply protocols use correlation identifiers.
 
 ---
 
