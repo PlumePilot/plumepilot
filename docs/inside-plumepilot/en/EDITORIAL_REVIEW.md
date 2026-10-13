@@ -56,6 +56,23 @@ Targeted side-by-side comparisons with the canonical Italian edition:
 
 ---
 
+## Eighth pass — bilingual offline reader and Chrome QA (13 October 2026)
+
+- [x] Introduced explicit `--lang it|en` selection in `scripts/build-inside-plumepilot.mjs` while preserving the original no-argument Italian default.
+- [x] Localized reader chrome, search, sidebar, chapter navigation, theme labels, appendix names, document metadata and Mermaid fallback captions.
+- [x] Namespaced the English reading position as `inside-plumepilot-state-en`; the Italian edition retains `inside-plumepilot-state`.
+- [x] Generated `Inside-PlumePilot-en.html` as a single self-contained HTML file; the candidate build successfully renders 18 chapters and two appendices.
+- [x] Added `scripts/check-inside-plumepilot.mjs`: validates section identity/count, internal fragments, appendix links, basic controls, language and absence of externally loaded assets.
+- [x] Added `scripts/smoke-inside-plumepilot.mjs` and passed a **real Chrome headless smoke test** covering search navigation, the full chapter-14 table of contents, previous/next keyboard controls, theme choice, isolated reading positions, mobile drawer and no runtime JavaScript errors or external requests.
+- [x] The GitHub Actions candidate workflow completed the bilingual build, static checks and Chrome smoke tests successfully.
+- [x] Linked the generated English offline edition from `en/index.md`; updated the language/build policy.
+- [ ] Verify the final synchronized generated-file diff after the last documentation commits.
+- [ ] Complete editorial fidelity checks; test Firefox/Edge and perform manual exploratory reading if aiming for broad browser sign-off. The Chrome smoke test is not a full substitute.
+
+**Publication gate:** PR #44 stays **Draft**. The offline-reader implementation and Chrome automated checks now pass, but this does **not** certify the remaining source-vs-translation fidelity work.
+
+---
+
 ## Verified during first review pass
 
 - [x] English drafts for chapters **00–17** exist, and each has the same sequence of numbered `##` sections as its Italian counterpart.
@@ -144,7 +161,7 @@ This pass compared **numbered sections and the untyped diagram/text material ins
 - [x] All Markdown links to neighboring English chapter files, index, and other book files in chapters 11–17 resolve to known filenames.
 - [x] Complete release/test matrices in chapters 13–14 were restored rather than being paraphrased only in prose.
 - [x] Reconstruct the **Part-level editorial hierarchy** of chapters 14–16 (fifth pass): all Roman-numeral Parts align with the Italian source, with identical following numbered-section boundaries.
-- [ ] Complete remaining prose/diagram fidelity checks, anchor validation, English offline reader generation and browser smoke testing.
+- [ ] Complete remaining prose/diagram fidelity checks and final editorial continuity review; generated-reader anchors and Chrome smoke tests passed in the eighth pass.
 
 ---
 
@@ -165,12 +182,12 @@ The code-example counts are **diagnostic indicators**. They do not by themselves
 
 ## Offline edition
 
-- [ ] Extend `scripts/build-inside-plumepilot.mjs` to build from the English files with an explicit locale and localized reader controls.
-- [ ] Generate `docs/inside-plumepilot/Inside-PlumePilot-en.html` from reviewed English Markdown with Pandoc.
-- [ ] Verify search, TOC, chapter navigation, glossary/sources, theme, local reading position and no remote dependencies.
-- [ ] Ensure English and Italian reading positions do not collide in localStorage.
-- [ ] Ensure the existing Italian build still generates the same functionality.
-- [ ] Link the generated English HTML from the English index and language landing.
+- [x] Extend `scripts/build-inside-plumepilot.mjs` to build from the English files with an explicit locale and localized reader controls.
+- [x] Generate `docs/inside-plumepilot/Inside-PlumePilot-en.html` from the current English Markdown using Pandoc (editorial review still in progress).
+- [x] Verify search, TOC, chapter navigation, glossary/sources, theme, local reading position and no remote dependencies in automated structural and Chrome smoke tests.
+- [x] Ensure English and Italian reading positions do not collide in localStorage.
+- [x] Ensure the existing Italian build still generates the same functionality (automated structure and Chrome smoke; browser-specific regression coverage remains separate).
+- [x] Link the generated English HTML from the English index; the Italian/English landing language switch remains in place.
 
 ## Merge gates
 
