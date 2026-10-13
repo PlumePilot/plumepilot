@@ -10,7 +10,7 @@
 
 The English edition mirrors the Italian canonical edition and preserves the same technical snapshots and chapter structure.
 
-[Start with the introduction →](00-introduction.md) · [Glossary](glossary.md) · [Sources](SOURCES.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
+[Start with the introduction →](00-introduction.md) · [Complete offline HTML edition](../Inside-PlumePilot-en.html) · [Glossary](glossary.md) · [Sources](SOURCES.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
 
 ---
 
@@ -47,7 +47,7 @@ The book intentionally follows the real evolution of the project instead of rewr
 | 16 | [Architectural lessons — Patterns that emerged from the real project](16-architectural-lessons.md) |
 | 17 | [What would we do differently today? — A retrospective without hindsight bias](17-what-we-would-do-differently-today.md) |
 
-**All 18 chapter drafts are available.** Editorial review is in progress, including preservation of original examples and diagrams, cross-links, and preparation of the offline English HTML. The English landing remains on a Draft PR until these checks pass.
+**All 18 chapter drafts and the self-contained offline English HTML are available on the documentation branch.** The offline reader has passed automated structural checks and a Chrome browser smoke test; editorial comparison with the canonical Italian edition is still in progress. The edition remains on a Draft PR until the remaining checks pass.
 
 ---
 
@@ -66,6 +66,26 @@ The book intentionally follows the real evolution of the project instead of rewr
 `14 → 15 → 16 → 17`
 
 The [glossary](glossary.md) and [sources and references](SOURCES.md) supplement all chapters.
+
+---
+
+## Offline English edition
+
+The [single-file HTML reader](../Inside-PlumePilot-en.html) contains all 18 chapters, glossary, and references. It works without remote scripts or stylesheets and includes full-text search, chapter navigation, light/dark/system themes, and local reading-position recovery.
+
+To rebuild it from the English Markdown using Node.js and [Pandoc](https://pandoc.org/):
+
+```bash
+node scripts/build-inside-plumepilot.mjs --lang en
+```
+
+The Italian reader is generated independently:
+
+```bash
+node scripts/build-inside-plumepilot.mjs --lang it
+```
+
+Run `node scripts/check-inside-plumepilot.mjs` after building both readers. They use separate local reading-position keys so switching editions does not overwrite progress.
 
 ---
 
