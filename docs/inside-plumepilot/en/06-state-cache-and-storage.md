@@ -968,7 +968,13 @@ Course ABC / lesson 1
 Course XYZ / lesson 1
 ```
 
-Both would want index 1. We would need nested structures or composite keys anyway.
+Both would want the same array position:
+
+```js
+lessonCache[1]
+```
+
+We would need nested structures or composite keys anyway. Moreover, lesson numbers are domain identifiers, not necessarily dense, zero-based sequence positions. An array solves an ordered-sequence problem; here we principally want the value belonging to a *specific identity*.
 
 ---
 
@@ -995,7 +1001,17 @@ immediately communicates "dynamic key–value collection." A plain object can me
 
 ### Purpose-built API
 
-`Map` provides `get`, `set`, `has`, `delete`, `clear`, `size`, and iteration without mixing cache entries with object-prototype concerns.
+`Map` offers explicit dictionary operations:
+
+```js
+cache.get(key)
+cache.set(key, value)
+cache.delete(key)
+cache.has(key)
+cache.size
+```
+
+It avoids mixing cache lookup with an ordinary object's own or inherited properties. A normal object has a prototype chain, so callers must consider property inheritance when using it as a dynamic dictionary.
 
 A null-prototype object could avoid inherited-property collisions:
 
@@ -1009,7 +1025,14 @@ It remains a possible dictionary implementation, but `Map` directly communicates
 
 `Map` supports different key types and predictable iteration behavior. Even though this particular cache uses string keys, its interface communicates the intended data structure more directly.
 
-Using `Object` would not be inherently incorrect; `Map` is simply a better conceptual fit.
+Using `Object` would not be inherently incorrect; `Map` is simply a better conceptual fit:
+
+```text
+Object → record with a known shape
+Map    → dynamic collection indexed by keys
+```
+
+`Map` also iterates naturally over `[key, value]` pairs, which would make diagnostic counters or future eviction easier to implement. For persisted structured records, PlumePilot still frequently uses ordinary objects with `chrome.storage`; this is a design choice, not an absolute rule.
 
 ---
 
@@ -1082,13 +1105,22 @@ XYZ:1
 
 the entries remain distinct.
 
-The numeric conversion:
+The key's implementation can be expressed directly:
 
 ```js
-Number(lessonNumber)
+`${courseCode}:${Number(lessonNumber)}`
 ```
 
-also normalizes input representations such as `"1"` and `1` to a consistent key component.
+Numeric conversion also normalizes input representations:
+
+```text
+"03" → 3
+3    → 3
+
+Both → COURSE:3
+```
+
+In PlumePilot's present domain, `courseCode` is validated as alphanumeric characters, underscores or hyphens; the colon separator is excluded from that format. That makes this simple composite-key serialization unambiguous for validated course identifiers.
 
 The key is not an implementation afterthought. It is part of the cache's correctness contract.
 
