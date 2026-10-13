@@ -131,6 +131,8 @@ function normalizeLinks(html, currentPrefix) {
     html = html.replace(new RegExp(`href="${escaped}"`, 'g'), `href="#chapter-${id}"`);
     html = html.replace(new RegExp(`href="${escaped}#([^"]+)"`, 'g'), (_, anchor) => `href="#${id}-${anchor}"`);
   }
+  // The standalone reader has no separate Markdown index file.
+  html = html.replace(/href="index\\.md"/g, 'href="#chapter-00"');
   html = html.replace(/href="https?:\/\/[^\"]+"/g, (m) => `${m} target="_blank" rel="noopener noreferrer"`);
   return html;
 }
@@ -237,7 +239,7 @@ const js = String.raw`
   function chapterEl(id){ return document.getElementById('chapter-' + id); }
   function buildToc(ch){
     toc.textContent='';
-    const heads = $$('h2[id],h3[id]', ch).slice(0,140);
+    const heads = $$('h1[id],h2[id],h3[id]', ch);
     if(!heads.length){ toc.parentElement.hidden=true; return; }
     toc.parentElement.hidden=false;
     for(const h of heads){
@@ -349,31 +351,31 @@ const js = String.raw`
 `;
 
 const html = `<!doctype html>
-<html lang="it">
+<html lang="${locale}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Inside PlumePilot — Anatomia di una browser extension reale</title>
-<meta name="description" content="JavaScript, WebExtensions, DOM, API, asincronia e software engineering attraverso PlumePilot.">
+<title>Inside PlumePilot — ${escapeHtml(ui.title)}</title>
+<meta name="description" content="${escapeHtml(ui.description)}">
 <style>${css}</style>
 </head>
 <body>
 <div class="progress" id="progress"></div>
 <div class="overlay" id="overlay"></div>
-<header class="mobile-bar"><button class="icon-btn" id="menuBtn" aria-label="Apri indice">☰</button><strong id="mobileTitle">Inside PlumePilot</strong><button class="icon-btn" id="prevBtn" aria-label="Capitolo precedente">←</button><button class="icon-btn" id="nextBtn" aria-label="Capitolo successivo">→</button></header>
-<aside class="sidebar" aria-label="Indice del libro">
-  <button class="icon-btn" id="closeSidebar" style="float:right" aria-label="Chiudi indice">×</button>
+<header class="mobile-bar"><button class="icon-btn" id="menuBtn" aria-label="${escapeHtml(ui.open)}">☰</button><strong id="mobileTitle">Inside PlumePilot</strong><button class="icon-btn" id="prevBtn" aria-label="${escapeHtml(ui.previous)}">←</button><button class="icon-btn" id="nextBtn" aria-label="${escapeHtml(ui.next)}">→</button></header>
+<aside class="sidebar" aria-label="${escapeHtml(ui.contents)}">
+  <button class="icon-btn" id="closeSidebar" style="float:right" aria-label="${escapeHtml(ui.close)}">×</button>
   <a class="brand" href="#chapter-00">Inside PlumePilot</a>
-  <div class="brand-sub">Anatomia di una browser extension reale</div>
-  <div class="search-wrap"><input id="bookSearch" type="search" placeholder="Cerca nel libro…" aria-label="Cerca nel libro"><div class="search-results" id="searchResults"></div></div>
-  <div class="sidebar-section">Capitoli</div>
+  <div class="brand-sub">${escapeHtml(ui.title)}</div>
+  <div class="search-wrap"><input id="bookSearch" type="search" placeholder="${escapeHtml(ui.search)}" aria-label="${escapeHtml(ui.search)}"><div class="search-results" id="searchResults"></div></div>
+  <div class="sidebar-section">${escapeHtml(ui.chapters)}</div>
   ${sidebar}
-  <div class="sidebar-section">Appendici</div>
-  <div class="appendix-links"><a class="chapter-link" data-chapter-link="glossario" href="#chapter-glossario"><span>•</span>Glossario</a><a class="chapter-link" data-chapter-link="fonti" href="#chapter-fonti"><span>•</span>Fonti</a></div>
-  <div id="sectionWrap"><div class="sidebar-section">In questo capitolo</div><nav class="section-toc" id="sectionToc"></nav></div>
-  <div class="sidebar-tools"><select id="themeSelect" aria-label="Tema"><option value="system">Tema: sistema</option><option value="light">Tema: chiaro</option><option value="dark">Tema: scuro</option></select><button class="icon-btn" onclick="window.print()" title="Stampa / salva PDF">⎙</button></div>
-  <div class="brand-sub">Offline · nessun tracking · nessuna dipendenza remota<br><br>Scorciatoie: <strong>/</strong> cerca · <strong>Alt+←/→</strong> capitoli</div>
+  <div class="sidebar-section">${escapeHtml(ui.appendices)}</div>
+  <div class="appendix-links"><a class="chapter-link" data-chapter-link="${glossaryId}" href="#chapter-${glossaryId}"><span>•</span>${escapeHtml(ui.glossary)}</a><a class="chapter-link" data-chapter-link="${sourcesId}" href="#chapter-${sourcesId}"><span>•</span>${escapeHtml(ui.sources)}</a></div>
+  <div id="sectionWrap"><div class="sidebar-section">${escapeHtml(ui.thisChapter)}</div><nav class="section-toc" id="sectionToc"></nav></div>
+  <div class="sidebar-tools"><select id="themeSelect" aria-label="${escapeHtml(ui.theme)}"><option value="system">${escapeHtml(ui.theme)}: ${escapeHtml(ui.system)}</option><option value="light">${escapeHtml(ui.theme)}: ${escapeHtml(ui.light)}</option><option value="dark">${escapeHtml(ui.theme)}: ${escapeHtml(ui.dark)}</option></select><button class="icon-btn" onclick="window.print()" title="${escapeHtml(ui.print)}">⎙</button></div>
+  <div class="brand-sub">${escapeHtml(ui.offline)}<br><br>${escapeHtml(ui.shortcuts)}<strong>/</strong> ${escapeHtml(ui.find)} · <strong>Alt+←/→</strong> ${escapeHtml(ui.keyChapters)}</div>
 </aside>
 <main><div class="reader">${articleSections}</div></main>
 <script>${js}</script>
@@ -381,5 +383,5 @@ const html = `<!doctype html>
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, html, 'utf8');
-console.log(`Creato ${outputPath}`);
+console.log(`Created ${outputPath} (${locale})`);
 console.log(`${Math.round(Buffer.byteLength(html)/1024)} KiB · ${rendered.length} sezioni`);
