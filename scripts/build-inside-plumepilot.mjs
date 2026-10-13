@@ -173,7 +173,7 @@ const articleSections = rendered.map((item, index) => {
   const footer = isExtra ? `<nav class="chapter-footer"><a href="#chapter-00" data-book-nav="00">← ${escapeHtml(ui.introduction)}</a></nav>` : `
     <nav class="chapter-footer">
       ${prev ? `<a href="#chapter-${prev[1]}" data-book-nav="${prev[1]}">← ${prev[1]} · ${prev[2]}</a>` : '<span></span>'}
-      ${next ? `<a href="#chapter-${next[1]}" data-book-nav="${next[1]}">${next[1]} · ${next[2]} →</a>` : '<a href="#chapter-${glossaryId}" data-book-nav="${glossaryId}">${escapeHtml(ui.glossary)} →</a>'}
+      ${next ? `<a href="#chapter-${next[1]}" data-book-nav="${next[1]}">${next[1]} · ${next[2]} →</a>` : `<a href="#chapter-${glossaryId}" data-book-nav="${glossaryId}">${escapeHtml(ui.glossary)} →</a>`}
     </nav>`;
   return `<section class="chapter" id="chapter-${item.id}" data-chapter="${item.id}" data-title="${escapeHtml(item.title)}" ${index ? 'hidden' : ''}>
     <div class="chapter-kicker">${isExtra ? ui.appendix : `${ui.chapter} ${item.id}`}</div>
