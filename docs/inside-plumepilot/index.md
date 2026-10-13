@@ -2,6 +2,8 @@
 
 ## Anatomia di una browser extension reale
 
+**🇮🇹 Italiano** · [🇬🇧 English](en/)
+
 **JavaScript, WebExtensions, DOM, API, asincronia e software engineering attraverso un progetto reale.**
 
 > Questo libro usa PlumePilot come caso di studio. L'obiettivo non è soltanto capire *cosa fa il codice*, ma imparare a riconoscere problemi, concetti e decisioni architetturali riutilizzabili in altri progetti.

@@ -263,4 +263,4 @@ Il Capitolo 1 nasce dalla risposta.
 
 ---
 
-[← Indice](index.md) · [Indice](index.md) · [01 — Anatomia di PlumePilot →](01-anatomia-estensione.md)
+[← Indice](index.md) · [01 — Anatomia di PlumePilot →](01-anatomia-estensione.md)

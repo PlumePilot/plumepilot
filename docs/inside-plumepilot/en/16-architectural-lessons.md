@@ -1,0 +1,2567 @@
+# 16 — Architectural lessons
+
+## Patterns that emerged from the real project
+
+> **Reference snapshot for this chapter**  
+> PlumePilot **2.35.2 release candidate**, `feat/ui-ux-2.35.2`, commit `f6fcb4c29c83ba9150df0be31da04fc91dffb634`. Earlier feature commits and the architecture chapters provide supporting examples.
+
+The previous chapters looked at concrete subsystems: messaging, APIs, dynamic DOM, autoplay, state, EPUB and quiz export, editing, UI, browser distribution, tests, and Git. This chapter asks a different question: **which recurring architectural ideas explain why those systems work, fail, recover, and evolve?**
+
+These principles were not all designed up front. Many became visible through real bugs and refactors. The goal is to name those patterns without claiming that PlumePilot needs a large framework or a wholesale rewrite.
+
+---
+
+# Part I — Architecture is not a file list
+
+## 1. Physical structure versus logical structure
+
+If we ask, "What is PlumePilot's architecture?", a superficial answer might be a list of source files:
+
+```text
+popup.js
+background.js
+content.js
+bridge.js
+floating-menu.js
+...
+```
+
+That describes the repository's **physical organization**, not its logical architecture. The relationships between responsibilities look more like this:
+
+```text
+                    host platform
+                  DOM + API + session
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+          MAIN world             ISOLATED world
+             │                       │
+             └──────── messaging ────┘
+                         │
+                    background
+                  coordination layer
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+      popup         floating menu      builders
+        │                │                │
+        └────── shared persisted state ───┘
+```
+
+Files are an implementation detail. **Relationships among responsibilities constitute architecture.**
+
+---
+
+# Part II — First principle: make every boundary explicit
+
+## 2. What is a boundary?
+
+A boundary is a point at which fundamental properties change:
+
+```text
+ownership
+trust
+lifetime
+available APIs
+data format
+source of truth
+failure model
+```
+
+PlumePilot crosses many such boundaries:
+
+```text
+page world ↔ extension world
+popup ↔ background
+background ↔ storage
+DOM ↔ API
+raw platform response ↔ normalized model
+source tree ↔ browser artifact
+```
+
+A boundary is therefore more than a file or a module interface; it is where assumptions must be made explicit.
+
+---
+
+## 3. Why boundaries matter
+
+Many defects originate not inside one function, but where an incorrect assumption crosses a boundary:
+
+```text
+"This DOM object will still be valid after await."
+"The master percentage is definitive truth."
+"This API exists in every browser."
+"This event will certainly reach the popup."
+"This ZIP is exactly the contents of the repository."
+```
+
+These are different technical failures, but they share the same architectural problem: a property was assumed to survive a change of runtime, evidence, identity, time or build target.
+
+---
+
+## 4. Translation at the boundary
+
+Rather than propagating provider-specific terms everywhere, transform them into stable internal meaning. Normalize lesson API data, map varying DOM selectors into one course structure, and compile a shared manifest into browser-specific packages. A good boundary translates, validates and explains.
+
+---
+
+# Part III — Anti-corruption layers
+
+## 5. The recurring anti-corruption layer
+
+Domain-Driven Design calls an adapter that protects an internal model from an external model an **anti-corruption layer**. PlumePilot has modest versions of this pattern; it is not necessary to install a DDD framework to benefit from the principle.
+
+---
+
+## 6. API normalization
+
+The LMS exposes provider-oriented fields, inconsistent nullability and platform-specific IDs. Internal logic wants well-defined course identity, lesson status, and completion evidence. The API adapter translates raw responses into this domain vocabulary and rejects or marks ambiguous fields.
+
+---
+
+## 7. DOM adapter
+
+Pegaso, Mercatorum and San Raffaele can render related course features in different DOM arrangements. Helpers such as sections() produce a common representation instead of scattering institution-specific querySelector paths across unrelated features.
+
+**Historical code or diagram:**
+
+```js
+if (pegaso) ...
+if (mercatorum) ...
+```
+
+---
+
+## 8. Browser packaging adapter
+
+Chrome and Edge use service-worker-oriented manifests while Firefox receives background scripts and different review-safe resources. Build specialization is another anti-corruption layer: shared behavior stays stable, target-specific constraints remain at the boundary.
+
+---
+
+# Part IV — Second principle: identity before the DOM
+
+## 9. The DOM is not identity
+
+A DOM node can be removed, recreated or reused for another lesson. Autoplay defects exposed why a node reference is not the durable identity of a course activity.
+
+---
+
+## 10. Node identity versus domain identity
+
+HTMLElement references describe one instance of a rendering. Course code, chapter/folder context, lesson ID and media identity describe the activity being processed. Before acting on a DOM node, reconnect it to the intended domain identity.
+
+---
+
+## 11. Composite identity
+
+display_order can restart in each folder or be duplicated across categories. Use composite keys such as platform + course + folder + lesson, or the strongest stable provider IDs available, instead of pretending a local ordinal is globally unique.
+
+---
+
+## 12. The general identity rule
+
+**Choose identity that remains stable for the lifetime of the operation**, not merely what is convenient to read from the current view. A stable ID may require multiple fields.
+
+---
+
+# Part V — Identity domain
+
+## 13. Identity belongs to a domain
+
+An exam ID is not necessarily unique across different universities or courses. Scope the identity to the domain in which uniqueness is actually guaranteed.
+
+---
+
+## 14. Scoped storage keys
+
+Persisted data keyed only by course ID risks cross-platform collisions. A composite university/course prefix preserves separation without requiring unrelated stores for each university.
+
+---
+
+## 15. Collisions expose missing model structure
+
+When two entities collide, the deeper question is not only how to avoid overwriting their objects but which domain context was omitted from the identity model.
+
+---
+
+# Part VI — Third principle: explicit source of truth
+
+## 16. Sources have different authority
+
+Master progress, lesson detail APIs, visible DOM, and cached snapshots can disagree. Their values are not interchangeable; model an evidence hierarchy and consider freshness, granularity, and context.
+
+---
+
+## 17. Master call
+
+The master index is valuable for:
+
+```text
+routing
+candidate ordering
+coarse progress
+```
+
+But it does not always prove that:
+
+```text
+every activity inside a chapter is actually complete
+```
+
+It is therefore a useful **index for where to verify**, not necessarily the final source of truth.
+
+---
+
+## 18. Lesson-detail API
+
+Detail responses can provide better activity-level evidence but may be missing, partial, stale, or temporarily unavailable. Increased granularity does not guarantee perfect reliability.
+
+---
+
+## 19. Visible DOM
+
+The DOM is vulnerable to rerendering and loading delays, yet can provide visual verification when APIs cannot resolve an activity. A fallback source should not silently override stronger fresh evidence.
+
+---
+
+## 20. Layered truth
+
+In practice the pipeline is **summary → detailed API → visual verification**, with state-specific exceptions. This is not a rigid global rank for every field; it is an explicit decision model.
+
+```text
+master summary → activity-level API → guarded visual verification
+```
+
+---
+
+# Part VII — Evidence precedence
+
+## 21. Choose which evidence wins
+
+If a fresh detail response proves unfinished work, do not let an old DOM snapshot replace that fact. If the detail response is absent, a guarded visual check may become necessary.
+
+---
+
+## 22. Precedence needs rules
+
+Define priority in terms of evidence freshness, level of detail, identity confidence and known provider quirks. A fallback is justified by a specific uncertainty, not a random preference for one source.
+
+---
+
+# Part VIII — Fourth principle: unknown is a real state
+
+## 23. Booleans are often too weak
+
+A completed flag modeled as only true or false loses the distinction between known incomplete and not yet observed. These two cases must not cause the same automated action.
+
+---
+
+## 24. A missing percentage
+
+The absence of a rendered percentage does **not** mean zero progress or full progress. It means the value is currently **unknown**.
+
+---
+
+## 25. Three-valued knowledge
+
+Use complete, incomplete and unknown where appropriate. Similar ternary states appear in exam verdicts, activity readiness, APIs, cache status and asynchronous operations.
+
+---
+
+## 26. Why explicit unknown is useful
+
+Unknown allows the program to request more evidence or decline an unsafe action rather than fabricating certainty through a default Boolean.
+
+---
+
+# Part IX — Fifth principle: fail closed on risky side effects
+
+## 27. Uncertainty and side effects
+
+When the destination chapter is ambiguous, do not navigate destructively. When a pending test cannot be identified confidently, do not auto-submit or silently skip it.
+
+---
+
+## 28. Fail closed under uncertainty
+
+A good pattern is: obtain evidence → check identity and confidence → perform the side effect only if the required conditions hold; otherwise verify or stop safely.
+
+---
+
+## 29. Real fail-closed cases
+
+An ambiguous course route yields no forced match; an unexpected Firefox vendor patch fails the build; an uncertain bookmark test triggers targeted verification rather than an arbitrary completion judgment.
+
+---
+
+## 30. Correctness over aggressive automation
+
+A system is not smarter merely because it always makes a decision. Sometimes the correct output is “there is insufficient evidence to proceed safely.”
+
+---
+
+# Part X — Sixth principle: progressive refinement
+
+## 31. Do not start with the most expensive source
+
+First-incomplete discovery should consult the cheap course index before issuing detailed requests or repeatedly opening LMS accordions. Escalate cost only when the cheap evidence is inconclusive.
+
+---
+
+## 32. The same pattern in EPUB
+
+Try text extraction and structural analysis before allocating a full visual canvas; use regional or full rasterization when fidelity requires it.
+
+---
+
+## 33. The same pattern in caches
+
+Return a valid cached value when its identity, status and freshness policy allow reuse; pay for a new network request only when necessary.
+
+---
+
+## 34. Fast path and slow path
+
+**Cheap evidence → fast path if justified → stronger fallback when needed** combines performance with completeness and safety. The slow path is not a failure; it is part of the correctness guarantee.
+
+---
+
+# Part XI — Cost-sensitive architecture
+
+## 35. Not every read has equal cost
+
+Reading a Map entry, making an HTTP detail request and rendering a full chapter in the host DOM have dramatically different resource and latency costs.
+
+---
+
+## 36. Make the decision engine cost-aware
+
+The engine need not assign precise numerical prices to each action. It should order checks deliberately: in-memory index first, targeted detail calls next, expensive visual interaction last.
+
+---
+
+## 37. Query-planner analogy
+
+Like a database query planner, the first-incomplete engine arranges candidate checks so likely useful answers require fewer expensive operations. It optimizes the *search plan* without redefining the correct result.
+
+---
+
+# Part XII — Seventh principle: match lifetime to data
+
+## 38. Each state has a natural lifetime
+
+PlumePilot uses short-lived in-memory state, tab/session-scoped state, persistent extension storage, and authoritative LMS server data. Each fits a different lifetime and recovery contract.
+
+---
+
+## 39. In-memory state
+
+Useful for controllers, current DOM targets, temporary request coalescing and runtime caches whose loss on reload is acceptable or recoverable.
+
+---
+
+## 40. sessionStorage
+
+Useful for state intended to survive certain same-tab navigations without becoming permanent user configuration. It belongs to that browsing session, not the entire extension lifetime.
+
+---
+
+## 41. chrome.storage.local
+
+Appropriate for user preferences, relevant long-lived operation snapshots and notes metadata that must survive popup or background restarts.
+
+---
+
+## 42. The server
+
+Authoritative for course content, enrollment and exam outcomes provided by the LMS. Extension storage is not an independent database of official academic state.
+
+---
+
+## 43. The lifetime rule
+
+**Persist state long enough for its purpose, but not longer than necessary.** Excess persistence causes staleness, privacy exposure and confusing migrations.
+
+---
+
+# Part XIII — Ownership
+
+## 44. Who owns state?
+
+A key architectural question is which component is responsible for changing a value and which components merely observe it. Ownership should match the operation's domain and lifecycle.
+
+---
+
+## 45. Operation state ownership
+
+The background coordinates cross-context operations and is a natural owner of active job state, leases, cancellation and global progress metadata.
+
+---
+
+## 46. UI state projection
+
+The popup and floating menu may display the same operation while being created and destroyed independently. They should not manufacture two separate truths about that operation.
+
+---
+
+## 47. Ownership reduces races
+
+If independent components can read and write shared state without a protocol, lost updates and split-brain presentation become likely.
+
+---
+
+# Part XIV — Single writer, multiple readers
+
+## 48. Single-writer where possible
+
+A useful pattern is many readers, one authoritative writer, plus a defined command boundary for changes. Not every preference needs such strict centralization, but high-risk operations often do.
+
+---
+
+## 49. Commission-storage writes
+
+Serializing writes through background ownership protects exam/commission snapshots from concurrent read-modify-write losses.
+
+---
+
+## 50. Where one writer is impractical
+
+Users can change ordinary settings from popup and floating menu. Shared storage, change notifications and consistent normalization are more suitable than inventing an exclusive UI owner for every checkbox.
+
+---
+
+# Part XV — Eighth principle: messaging as a protocol
+
+## 51. Messages are not ordinary remote function calls
+
+chrome.runtime.sendMessage crosses an execution-context and lifecycle boundary. The receiver can be absent, restarted, busy or operating on newer state than the sender expects.
+
+**Historical code or diagram:**
+
+```js
+chrome.runtime.sendMessage(...)
+```
+
+---
+
+## 52. Messages need contracts
+
+An operation command should have an explicit type, accepted fields, identifier, response meaning, error behavior and—when relevant—correlation with later status events.
+
+---
+
+## 53. Accepted is not completed
+
+A response acknowledging START means the request was received or accepted; a long-running export may still be working. This resembles HTTP 202 rather than a completed synchronous function return.
+
+---
+
+# Part XVI — Message protocol versioning
+
+## 54. Current protocols
+
+PlumePilot uses string message types and conventional structured objects. They work because the scope is manageable and the contracts are understood.
+
+---
+
+## 55. Possible later growth
+
+As message varieties increase, shared schemas and discriminated message shapes could validate types and make protocol evolution clearer.
+
+---
+
+## 56. Do not abstract prematurely
+
+A complex internal RPC framework can exceed the problem it is meant to solve. Prefer explicit simple contracts now and strengthen only demonstrated weak boundaries.
+
+---
+
+# Part XVII — Ninth principle: asynchrony means temporal validity
+
+## 57. await changes the world
+
+Before an await, code observes one state. While suspended, the user can navigate, storage can change and the host DOM can rerender. Resuming does not restore the old world.
+
+**Historical code or diagram:**
+
+```js
+await something();
+```
+
+---
+
+## 58. Revalidate after suspension
+
+Acquire identity → await external work → check cancellation/generation/identity again → apply the result if still relevant. This protects against stale continuations.
+
+```text
+capture identity → await → recheck identity → guarded side effect
+```
+
+---
+
+## 59. Compare before side effect
+
+Before clicking a lesson or advancing playback, compare the current rendered target and active operation with the identity captured before the wait.
+
+---
+
+# Part XVIII — Optimistic concurrency thinking
+
+## 60. Backend analogy: optimistic concurrency
+
+A database update may require version X still to be current before committing. In browser automation, a generation token or selected lesson identity serves a similar precondition.
+
+---
+
+## 61. Browser version tokens
+
+“Version” can mean an operation generation, DOM render generation, selected lesson identity or current request ID rather than a formal database version number.
+
+---
+
+# Part XIX — Generation tokens
+
+## 62. Discovery generations
+
+A first-incomplete search increments a generation marker so results from an older search can be identified as stale and ignored.
+
+---
+
+## 63. The generation-token pattern
+
+Store generation on start; await asynchronously; compare at resume; do not perform side effects if the generation changed.
+
+---
+
+## 64. Lightweight cancellation
+
+A generation token does not physically abort every pending Promise. It prevents obsolete results from taking action once they complete.
+
+---
+
+# Part XX — Tenth principle: separate effects from decisions
+
+## 65. Functional core and imperative shell
+
+Separate pure decisions—candidate priority, identity matching, effective policy, presentation summaries—from imperative browser effects such as DOM clicks, storage writes and network requests.
+
+---
+
+## 66. An existing pure presentation function
+
+autoplayPresentation() derives a view model from input settings without reading DOM or storage. This is an already practical example of a testable functional core.
+
+---
+
+## 67. Route mapping as logic
+
+resolve-target or route-mapping decisions can often be tested as transformations of explicit objects, even if their inputs originated in the LMS DOM.
+
+---
+
+## 68. The imperative shell
+
+Navigating chapters, focusing controls, sending messages and updating persistent state remain browser side effects that should be triggered by validated decisions.
+
+---
+
+## 69. Why this separation helps
+
+Pure rules support fast deterministic tests and clearer invariants. Effects remain concentrated in adapters where lifecycle and error handling can be managed.
+
+---
+
+# Part XXI — Eleventh principle: state machines before cascades of ifs
+
+## 70. Behavior with history requires state
+
+Autoplay cannot always be represented as one independent function call. What happens next depends on what is playing, waiting, completed, cancelled or superseded.
+
+---
+
+## 71. Symptoms of an implicit state machine
+
+Several flags tracking autoplay, recovery, tests and pending operation often mean a state machine already exists, even if nobody named it.
+
+---
+
+## 72. Reason explicitly about transitions
+
+Ask which event is legal in each state, which guard it requires, which action follows and what must happen on cancel or timeout.
+
+---
+
+# Part XXII — State vectors
+
+## 73. Distributed state vectors
+
+The actual state may be a tuple of operation record, playback phase, current lesson, test policy and cancellation state rather than one enum value.
+
+---
+
+## 74. State explosion
+
+Independent Booleans create many combinations, some impossible or contradictory. Derive redundant values where possible and constrain transitions.
+
+---
+
+## 75. Future state-machine improvement
+
+Where a workflow keeps growing, a reducer, explicit transition table or statechart may reduce illegal combinations. Introducing one everywhere today would be unnecessary complexity.
+
+---
+
+# Part XXIII — Twelfth principle: idempotence and deduplication
+
+## 76. Duplicate events are ordinary
+
+Retries, listeners, reconnections and cross-context notifications can deliver the same logical event more than once. Handle that possibility deliberately.
+
+---
+
+## 77. Deduplication versus idempotence
+
+Deduplication suppresses repeat processing of one event. **Idempotence** guarantees repeating the same operation leaves the same final result. They are related but distinct guarantees.
+
+---
+
+## 78. Operation identifiers
+
+An operationId allows handlers to determine whether an acknowledgement, progress event or completion belongs to the currently relevant job.
+
+---
+
+## 79. Remembering sound events
+
+Notification sounds and achievement events have bounded recent-event memory to reduce duplicate effects across replays.
+
+---
+
+# Part XXIV — At-least-once thinking
+
+## 80. Design for repeated messages
+
+Even if the transport is simple, ask what happens on duplicated, late or out-of-order events. Event identity and idempotent handling often provide inexpensive resilience.
+
+---
+
+## 81. Snapshots and events together
+
+A UI should subscribe to change notifications but also read the current operation snapshot when it starts. Events tell an already-open interface what changed; snapshots let a newly opened interface reconstruct the latest state.
+
+---
+
+# Part XXV — Thirteenth principle: snapshot plus event
+
+## 82. Why event-only is fragile
+
+A popup opened after an export-completed notification cannot recover the state from an event that it never observed. The component lifecycle is shorter than the workflow lifecycle.
+
+---
+
+## 83. Why snapshot-only is expensive
+
+Polling extension storage repeatedly wastes work and introduces latency. With events available, the UI can react promptly instead of constantly requesting the whole state.
+
+---
+
+## 84. The combined approach
+
+Read a snapshot on initialization; subscribe to updates; reconcile events against current identity. This is robust under popup reopening and independent floating-menu lifecycles.
+
+```text
+read state snapshot → subscribe to events → reconcile by operation ID
+```
+
+---
+
+# Part XXVI — Eventual consistency in the UI
+
+## 85. Two views converge asynchronously
+
+Popup and floating menu may show slightly different values for a brief period. The goal is not perfectly simultaneous updates but convergence on one authoritative persisted value.
+
+---
+
+## 86. chrome.storage.onChanged as reactive channel
+
+Changes to extension storage notify interested contexts. This becomes a lightweight reactive propagation mechanism without introducing a shared UI process or full state-management framework.
+
+---
+
+# Part XXVII — Fourteenth principle: cache as accelerator, not truth
+
+## 87. What a cache promises
+
+A cache says “I have evidence previously obtained for this identity with a particular freshness contract,” not “I hold eternal truth.”
+
+---
+
+## 88. A complete cache entry
+
+Store content with the relevant identity, timestamp, source, partial/completion status and any schema or confidence metadata needed for reuse. The raw value alone is often insufficient.
+
+---
+
+## 89. Semantic freshness
+
+A previously established completed activity may remain useful longer than a “video currently playing” observation. TTL alone cannot describe the different staleness semantics of all fields.
+
+---
+
+# Part XXVIII — Monotonic knowledge
+
+## 90. Monotonic information
+
+Within a stable activity identity, completion normally progresses from unfinished to finished, not backward. Such monotonicity may allow a stronger fact to survive a weaker older response.
+
+---
+
+## 91. Merging cache observations
+
+When identity is unchanged, combine compatible evidence without downgrading a known completed result merely because a partial response omitted it.
+
+---
+
+## 92. Identity before monotonicity
+
+Never merge “complete” from one route with “incomplete” from another route only because both happen to have the same display order. Monotonicity rules are valid **after** entity identity is established.
+
+---
+
+# Part XXIX — Fifteenth principle: bounded growth
+
+## 93. An unbounded cache is a logical leak
+
+A perfectly functioning garbage collector cannot reclaim objects deliberately held forever by a Map. Capacity and lifetime rules are required for long-lived caches.
+
+---
+
+## 94. pageLessonSnapshots has a limit
+
+The MAIN-world interception cache caps retained lesson snapshots at 50 entries. Bounded insertion-order eviction is simple, predictable and often sufficient.
+
+---
+
+## 95. Notification event memory is bounded
+
+Short-lived event deduplication uses a limited history or time window rather than indefinitely remembering every sound or achievement.
+
+---
+
+## 96. Every cache needs four answers
+
+Who owns it? Which identity does a key represent? When does an entry expire or become invalid? What maximum amount of state may remain resident?
+
+---
+
+# Part XXX — Sixteenth principle: end-to-end cancellation
+
+## 97. A Cancel button is not cancellation
+
+Hiding an interface or acknowledging a click does not stop requests, rendering, and packaging. Cancellation must be respected by the actual workflow stages.
+
+---
+
+## 98. Cooperative cancellation
+
+JavaScript does not terminate arbitrary work on command. Long-running code checks an AbortSignal, propagates it into abortable APIs and yields between expensive stages.
+
+---
+
+## 99. Cancellation latency
+
+A signal checked only once every thirty seconds offers poor practical cancellation. Processing units and checks should keep the time between user request and work stopping acceptably small.
+
+---
+
+# Part XXXI — Cleanup ownership
+
+## 100. Allocation implies cleanup ownership
+
+For canvases, PDF.js page objects, event listeners, Object URLs and large buffers, define which stage acquires the resource and which stage is responsible for releasing or invalidating it.
+
+---
+
+## 101. A resource lifecycle
+
+The general lifecycle is acquire → use → transfer ownership or release, with cleanup on success, failure and cancellation. finally blocks are part of algorithm correctness.
+
+---
+
+# Part XXXII — Seventeenth principle: working set before file size
+
+## 102. Document generation peaks
+
+A 30 MB final EPUB may require much more RAM during conversion because PDF buffers, parsed pages, canvases, images and ZIP data coexist.
+
+---
+
+## 103. Working-set reasoning
+
+Peak memory reflects concurrently live representations. Reducing overlapping lifetimes can be more effective than reducing final archive bytes.
+
+---
+
+## 104. Memory-aware architecture
+
+Sequential conversion, bounded canvas dimensions, banded image processing, asset deduplication and prompt buffer release are architectural choices, not isolated micro-optimizations.
+
+---
+
+# Part XXXIII — Eighteenth principle: backpressure
+
+## 105. More concurrency is not always better
+
+Promise.all over a large PDF collection might reduce wall-clock time yet multiply active documents, canvas buffers, requests and peak memory.
+
+---
+
+## 106. Pacing is backpressure
+
+Delays between API calls limit bursts and protect the external LMS and local browser from uncontrolled request fan-out.
+
+---
+
+## 107. Possible future concurrency limiter
+
+For some workloads a bounded worker pool may regulate simultaneous requests more precisely than fixed delays. Add one only when measurements justify its complexity.
+
+---
+
+# Part XXXIV — Nineteenth principle: graceful degradation
+
+## 108. Robust features may use different paths
+
+The same user-facing capability may need different adapters or fallbacks. Consistent behavior is more important than identical internal function calls everywhere.
+
+---
+
+## 109. EPUB quality fallback
+
+Text-first conversion, hybrid regions and full visual rendering form a controlled escalation in rendering cost and fidelity.
+
+---
+
+## 110. Materials export fallback
+
+If a high-quality transformation cannot preserve essential information, a safer visual representation can protect document usefulness instead of silently dropping content.
+
+---
+
+## 111. Graceful degradation is not silent corruption
+
+A fallback should produce a valid, understandable result—or report why it cannot. Hiding lost formulas or pretending an export succeeded violates the user contract.
+
+---
+
+# Part XXXV — Twentieth principle: preserve semantics, vary mechanism
+
+## 112. Cross-browser semantic parity
+
+Chrome and Edge may use Offscreen API audio; Firefox can use tab messaging. Different mechanisms preserve the same notification goal.
+
+---
+
+## 113. UI semantic parity
+
+Popup and floating menu use different DOM roots and lifecycles, yet should agree on settings, operation availability and effective autoplay policy.
+
+---
+
+## 114. What semantic parity means
+
+Do not force identical HTML trees and lifecycle management. Require both surfaces to satisfy the same meaningful product invariants.
+
+---
+
+# Part XXXVI — Twenty-first principle: shared rules, separate controllers
+
+## 115. The 2.35.2 redesign choice
+
+The project did not replace popup and floating menu with one massive shared component. It extracted common presentation rules and retained separate controllers.
+
+---
+
+## 116. Why separate controllers?
+
+The popup is an extension page; the floating panel is embedded in the LMS in Shadow DOM. Scroll geometry, initialization, and focus behavior differ.
+
+---
+
+## 117. What is actually shared?
+
+Autoplay policy summaries, layout normalization, groups, accessibility helpers, typography tokens and other stable rules of meaning.
+
+---
+
+## 118. The rule
+
+**Share stable semantics without forcibly merging surfaces whose lifecycles differ.** Duplicated small DOM wiring can be less harmful than one tangled universal renderer.
+
+---
+
+# Part XXXVII — Twenty-second principle: presentation models
+
+## 119. Do not render raw state blindly
+
+Saved preferences and effective runtime behavior can diverge under policy overrides. The UI needs a deliberate interpretation of state, not a direct text label copied from a storage key.
+
+---
+
+## 120. A presentation function
+
+autoplayPresentation() computes summary, testOverride and stopHint from policy inputs. This is an inexpensive shared view model.
+
+---
+
+## 121. Why it matters
+
+Separate popup and floating-menu controllers consume the same interpretation, avoiding two manually maintained rule sets.
+
+---
+
+# Part XXXVIII — Derived state
+
+## 122. Not everything needs persistence
+
+A derived summary can be computed from saved preferences instead of stored as a second independent value.
+
+---
+
+## 123. Duplicate state creates drift
+
+If both enabled and a separately stored “enabledLabel” change independently, one may become stale. Keep one authoritative representation and derive the rest.
+
+---
+
+# Part XXXIX — Twenty-third principle: invariant-oriented design
+
+## 124. An invariant is a strong sentence
+
+Examples: no ambiguous chapter is clicked; an active export retains a reachable cancellation control; a cancelled EPUB export does not continue expensive work; no unknown vendor transform silently succeeds.
+
+---
+
+## 125. An invariant is better than one patch
+
+A patch says “add a condition after this bug.” An invariant says which behavior must remain true even if the implementation changes.
+
+---
+
+## 126. Tests are executable invariants
+
+Chapter 14 showed how reproductions become assertions. This is an important step from reactive bug fixing to explicit architectural guarantees.
+
+---
+
+# Part XL — Twenty-fourth principle: artifact thinking
+
+## 127. Repository source is not the installed product
+
+An extension runs from a target-specific ZIP, with its own manifest, included files and adapted vendor bundles.
+
+---
+
+## 128. The build belongs to the architecture
+
+Browser specialization, locale inclusion, packaging, pinned vendor transforms, validation and checksums change what users install. They are part of program correctness.
+
+---
+
+## 129. Testing only the source tree is insufficient
+
+A missing stylesheet or invalid Firefox manifest can leave all pure function tests green. The final artifact must be inspected and exercised.
+
+---
+
+# Part XLI — Twenty-fifth principle: release pipeline as a compiler
+
+## 130. Build front end
+
+The release pipeline reads shared source, vendor dependencies, manifest definitions and release inputs as its initial representation.
+
+---
+
+## 131. Target lowering
+
+Each browser target receives manifest adjustments, permissions, resource selection and documented compatibility transforms.
+
+---
+
+## 132. Code generation
+
+The builder emits runtime ZIP archives and the Firefox source-review archive.
+
+---
+
+## 133. Verification
+
+The validator inspects the generated artifact for required files, manifest contracts, restricted patterns and checksums. The build resembles a small compiler with validation.
+
+---
+
+# Part XLII — Twenty-sixth principle: fail early at deterministic boundaries
+
+## 134. Runtime workflow fallback
+
+When an external platform is unavailable or content is uncertain, recovery or graceful fallback may be a valid runtime response.
+
+---
+
+## 135. Build failure should be explicit
+
+A deterministic precondition violation—such as a vendor patch matching zero or two times—should fail the release build rather than fall back to unknown output.
+
+---
+
+## 136. Why these failure policies differ
+
+At runtime, users may benefit from an alternate valid route. During packaging, silently emitting an unexpected binary undermines reproducibility and trust.
+
+---
+
+# Part XLIII — Twenty-seventh principle: observability near decisions
+
+## 137. Log only useful evidence
+
+A good diagnostic record answers which operation, identity, phase, expected state and observed failure were involved. Dumping all objects indiscriminately rarely helps.
+
+---
+
+## 138. Better diagnostics
+
+“Candidate rejected because lesson ID differs after await” conveys more than “navigation failed.” Logs should explain a decision boundary and its reason.
+
+---
+
+## 139. Structured EPUB diagnostics
+
+Capture elapsedMs, pagesText, pagesVisual, outputBytes and related metrics as structured values. Tests and benchmarks can inspect them without parsing console prose.
+
+---
+
+# Part XLIV — Twenty-eighth principle: privacy-aware observability
+
+## 140. Authenticated extensions see sensitive data
+
+Debug output can expose course content, notes, session context or credentials. Treat logs as a privacy-sensitive output, not harmless toy text.
+
+---
+
+## 141. Minimize diagnostic payloads
+
+Log IDs, categories, timings and redacted safe metadata where possible—not passwords, cookies, raw authorization tokens or unnecessary personal content.
+
+---
+
+# Part XLV — Twenty-ninth principle: external systems are contracts, not dependencies we control
+
+## 142. Multiversity is an external source of volatility
+
+The LMS can alter API payloads, DOM structure, identifiers and page behavior without a simultaneous extension release.
+
+---
+
+## 143. Browsers evolve independently
+
+Supported browsers differ in lifecycle, rendering, APIs and version cadence. Compatibility contracts must be checked and adapted at their own boundary.
+
+---
+
+## 144. Stores evolve independently
+
+Review rules, metadata schemas, submission processes and automated validators can change even when runtime code does not.
+
+---
+
+## 145. Design for change at integration boundaries
+
+Every external integration should have a documented contract, explicit failure behavior and tests for likely changes.
+
+---
+
+# Part XLVI — Contract drift as a normal condition
+
+## 146. Ask how, not whether, an external system changes
+
+It is safer to ask which assumptions are likely to vary and where those assumptions are isolated.
+
+---
+
+## 147. A useful response
+
+Put volatile provider parsing in adapters, runtime capability differences in wrappers or build rules, and store-specific constraints in reproducible packaging.
+
+---
+
+# Part XLVII — Thirtieth principle: localize complexity
+
+## 148. Complexity cannot always be removed
+
+PlumePilot must accommodate multiple universities, evolving LMS code, three browsers and document formats. These are essential product constraints.
+
+---
+
+## 149. But complexity can be contained
+
+An adapter keeps API quirks local, a normalized identity model localizes route collisions, and one release compiler localizes manifest differences.
+
+---
+
+## 150. The alternative spreads exceptions
+
+If every browser or LMS exception appears across ten modules, changing one external rule requires risky edits in many unrelated areas.
+
+---
+
+# Part XLVIII — Architecture as compression
+
+## 151. Patterns compress exception handling
+
+Instead of scattered “if Firefox,” “if Mercatorum,” and “if this chapter was just rerendered,” use stable interfaces, lifecycle rules and identity checks at well-defined boundaries.
+
+---
+
+## 152. A principle replaces many patches
+
+“Revalidate identity after await” explains and prevents an entire family of DOM-race failures more effectively than dozens of isolated extra null checks.
+
+---
+
+## 153. That is architecture
+
+A small vocabulary of boundaries, ownership, identity, evidence and lifetime allows us to reason about many otherwise unrelated defects.
+
+---
+
+# Part XLIX — PlumePilot's recurring patterns
+
+## 154. The 25 recurring architectural patterns
+
+The lessons we have discovered across PlumePilot can be summarized without reducing them to a handful of generic labels:
+
+```text
+ 1. Explicit boundaries
+ 2. Stable logical identity
+ 3. Source / evidence hierarchy
+ 4. Unknown as a real state
+ 5. Fail closed before risky side effects
+ 6. Progressive refinement
+ 7. State lifetime matched to its purpose
+ 8. Clear ownership
+ 9. Messaging treated as a protocol
+10. Revalidation after await
+11. State machines
+12. Deduplication and idempotence
+13. Snapshot plus event updates
+14. Caches are not authoritative sources
+15. Bounded growth
+16. Cooperative cancellation
+17. Working-set awareness
+18. Backpressure
+19. Graceful degradation
+20. Semantic parity across platforms
+21. Shared semantics with separate adapters
+22. Derived presentation state
+23. Executable invariants
+24. Artifact-oriented thinking
+25. Preparing for contract drift
+```
+
+These patterns are not independent; together they explain the safeguards explored throughout the book.
+
+---
+
+# Part L — These patterns reinforce one another
+
+## 155. First-incomplete example
+
+The first-incomplete search brings together several patterns:
+
+```text
+master index
+→ evidence hierarchy
+
+course/chapter identity
+→ stable identity
+
+API detail
+→ progressive refinement
+
+unknown progress
+→ three-valued knowledge
+
+ambiguous route
+→ fail closed
+
+generation token
+→ async revalidation / cancellation
+```
+
+A single feature puts many of the chapter's architectural ideas to work.
+
+---
+
+## 156. EPUB export example
+
+The EPUB export pipeline combines:
+
+```text
+PDF.js input
+→ external boundary
+
+page-mode choice
+→ progressive refinement
+
+asset hash map
+→ identity / deduplication
+
+canvas cleanup
+→ ownership / lifetime
+
+yieldToBrowser
+→ cooperative scheduling
+
+AbortSignal
+→ cancellation
+
+ZIP
+→ artifact thinking
+```
+
+The technical details differ from playback, but the same ownership, boundary and lifecycle principles apply.
+
+---
+
+# Part LI — UI 2.35.2 example
+
+## 157. Popup and floating menu example
+
+The popup and floating menu show how two independent interfaces can preserve one behavioral contract:
+
+```text
+shared presentation rules
+→ semantic parity
+
+separate controllers
+→ lifecycle-aware adapters
+
+storage onChanged
+→ snapshot + event
+
+autoplayPresentation
+→ derived state / functional core
+
+active-operation invariant
+→ safety property
+```
+
+Sharing meaning does not require sharing the entire DOM or controller lifecycle.
+
+---
+
+# Part LII — Cross-browser example
+
+## 158. Chrome and Firefox example
+
+The browser-specific builds use different mechanisms to deliver the same intended behavior:
+
+```text
+domain: play sound
+→ shared semantics
+
+offscreen document / tab
+→ compatibility adapter
+
+manifest specialization
+→ release compiler
+
+replaceExactly
+→ fail closed
+
+checksums
+→ artifact identity
+```
+
+The release and browser boundaries are therefore architectural concerns, not packaging details to ignore.
+
+---
+
+# Part LIII — One possible future conceptual architecture
+
+## 159. A concept-oriented module map
+
+If we reorganized folders around those responsibilities, we might imagine:
+
+```text
+src/
+├── domain/
+│   ├── playback/
+│   ├── discovery/
+│   ├── operations/
+│   └── achievements/
+├── platform/
+│   ├── multiversity-api/
+│   ├── multiversity-dom/
+│   └── browser-extension/
+├── ui/
+│   ├── shared/
+│   ├── popup/
+│   └── floating/
+├── export/
+│   ├── pdf/
+│   ├── epub/
+│   └── quiz/
+└── infrastructure/
+    ├── storage/
+    ├── messaging/
+    └── diagnostics/
+```
+
+This is **not** an immediate restructuring proposal. It is a conceptual map that makes the relationships visible, without implying that each folder or module is already present in the current repository.
+
+---
+
+# Part LIV — Why not refactor everything immediately?
+
+## 160. Beware architecture astronautics
+
+Introducing layers, protocols and frameworks solely to make diagrams tidy can add accidental complexity. The architecture must be justified by concrete maintenance or correctness benefits.
+
+---
+
+## 161. Architecture has a cost
+
+Every new abstraction adds files, contracts, integration work, tests and a concept to learn. The benefit must justify those continuing costs.
+
+---
+
+## 162. Abstract stable recurring relationships
+
+**Abstract when a relationship is demonstrated, stable and repeated—not merely when we can imagine that one day it might be.**
+
+---
+
+# Part LV — Accidental versus essential complexity
+
+## 163. Essential complexity
+
+PlumePilot genuinely integrates three universities, changing LMS behavior, multiple browsers, long-running workflows, PDF/EPUB conversion and user-facing settings. These product demands cannot simply be erased.
+
+---
+
+## 164. Accidental complexity
+
+Unnecessary duplicate policies, scattered browser branches, implicit state, oversized globals, confusing ownership and brittle release steps are complexity introduced by our implementation choices.
+
+---
+
+## 165. Good architecture reduces the avoidable
+
+The objective is to reduce accidental complexity while honestly modeling the complexity the product necessarily contains.
+
+---
+
+# Part LVI — Coupling
+
+## 166. What coupling means here
+
+Two components are coupled when changing one requires knowledge of internal details in the other. Coupling is not inherently bad, but avoid needless reliance on volatile internals.
+
+---
+
+## 167. Tight coupling to host DOM
+
+A function depending on a brittle nth-child selector or a specific accordion nesting is tightly coupled to the LMS's current HTML structure.
+
+---
+
+## 168. A DOM adapter reduces coupling
+
+Callers should request a conceptual operation such as “resolve current course sections,” leaving changing selectors and special layouts behind a limited adapter.
+
+---
+
+# Part LVII — Cohesion
+
+## 169. Cohesion means a reason to change
+
+A cohesive module groups logic that changes for one domain reason—for example, normalized sound preferences and their validation, rather than unrelated video, storage and typography concerns.
+
+---
+
+## 170. The large content.js module
+
+content.js has grown to serve many features. File length alone does not prove bad architecture, but many independent reasons to change one module suggest future seam extraction.
+
+---
+
+# Part LVIII — File size as an architectural signal
+
+## 171. Length alone is not a useful verdict
+
+A long file can still be readable when its internal model is coherent and its responsibilities explicit.
+
+---
+
+## 172. Too many reasons to change
+
+If a file handles course DOM, video recovery, export orchestration, messaging and unrelated parsing, tests may need source slicing and many mocks. Those are clues that conceptual responsibilities already exist.
+
+---
+
+# Part LIX — Testability as an architectural pressure
+
+## 173. Tests reveal seams
+
+When testing one helper requires injecting dozens of globals, consider whether some pure decision or adapter boundary could be made explicit.
+
+---
+
+## 174. Pure functions are straightforward to test
+
+A transformation of explicit inputs into outputs needs neither a virtual DOM nor a running browser. The resulting test is fast and deterministic.
+
+---
+
+## 175. Do not refactor only for the test harness
+
+Treat test difficulty as evidence of coupling, not as a command to rearrange every functioning subsystem to fit one testing tool.
+
+---
+
+# Part LX — Stability boundaries
+
+## 176. What changes frequently?
+
+LMS response fields, DOM selectors, store policies, browser quirks, menu layout and rendering details can change independently and unpredictably.
+
+---
+
+## 177. What changes less often?
+
+Concepts such as identity, operation ownership, cancellation, course progress meaning and requirements for export fidelity generally evolve more slowly.
+
+---
+
+## 178. Design around volatility
+
+Place frequently changing details behind clear boundaries so the stable domain decisions do not depend directly on them.
+
+---
+
+# Part LXI — Stable dependencies principle, on a small scale
+
+## 179. Do not let the domain inherit irrelevant volatility
+
+A course-completion decision should consume a normalized status rather than parsing a CSS class whose name can change with the provider's redesign.
+
+---
+
+# Part LXII — Error handling as part of architecture
+
+## 180. Errors are normal operating states
+
+Network failure, missing DOM, cancelled operations, incomplete API responses, throttled tabs and unsupported browser capabilities are normal integration conditions, not impossible anomalies.
+
+---
+
+## 181. Define an error taxonomy
+
+Distinguish transient network, invalid identity, incomplete evidence, stale generation, unsupported capability, cancelled work, invalid package and unexpected internal error.
+
+---
+
+## 182. Choose recovery from the category
+
+Temporary network may retry; absent DOM may wait; stale API may refresh; ambiguous identity should stop; cancellation should clean up; invalid release artifacts should fail the build.
+
+**Historical code or diagram:**
+
+```js
+catch { return null; }
+```
+
+---
+
+# Part LXIII — Null semantics
+
+## 183. null is overloaded
+
+Returning null can mean “not found,” “not loaded,” “invalid input,” “cancelled,” or “ambiguous.” Callers may accidentally treat these states as identical.
+
+---
+
+## 184. Use explicit results when ambiguity grows
+
+A structured result with status and reason helps the caller choose appropriate recovery without guessing what null meant.
+
+**Historical code or diagram:**
+
+```js
+{ status: "target", ... }
+{ status: "end" }
+{ status: "cancelled" }
+{ status: "fallback" }
+```
+
+---
+
+## 185. Informal result types in JavaScript
+
+Even without TypeScript unions, a small status field can distinguish ok, unavailable, ambiguous, cancelled and error safely.
+
+---
+
+# Part LXIV — Structured result > magic Boolean
+
+## 186. Booleans are too weak for operation lifecycle
+
+An operation can be accepted, pending, running, cancelling, completed, failed or aborted. One busy flag cannot communicate every transition.
+
+---
+
+## 187. Result objects convey semantics
+
+A shape such as { status: "ambiguous", reason: "duplicate display order", candidates: 2 } is more useful than false when the caller must decide whether to act.
+
+**Historical code or diagram:**
+
+```js
+{
+  accepted: false,
+  reason: "duplicate"
+}
+```
+
+---
+
+# Part LXV — Temporal coupling
+
+## 188. Order-sensitive functions
+
+Some helpers only work after initialization, a listener setup, or resource creation. Such ordering dependencies are real program contracts.
+
+---
+
+## 189. Formalize required ordering
+
+Express order through an explicit initialization function, returned controller, state machine transition or tested module-loading dependency rather than undocumented caller memory.
+
+---
+
+# Part LXVI — Hidden dependencies
+
+## 190. Globals create implicit coupling
+
+Global variables are convenient but can hide which functions depend on settings, DOM state, current operation and cancellation generation.
+
+---
+
+## 191. Group state by subsystem
+
+A future direction might create explicit state objects for playback, chapter discovery, UI preferences and exports with known owners and lifecycle policies.
+
+**Historical code or diagram:**
+
+```js
+playbackState
+exportState
+commissionState
+```
+
+---
+
+# Part LXVII — Module boundaries by reason to change
+
+## 192. Use co-change as evidence
+
+Functions that always change together may belong behind one interface. Parts of the same large file that change for unrelated reasons may deserve separation.
+
+---
+
+# Part LXVIII — Architecture from Git history
+
+## 193. Git history reveals coupling
+
+If every autoplay fix also requires changes to unrelated UI and export internals, the repository's change history is signaling high coupling.
+
+---
+
+## 194. Independent PRs suggest cohesive boundaries
+
+When targeted PRs consistently touch only relevant files, that is qualitative evidence that responsibilities have been separated usefully.
+
+---
+
+# Part LXIX — Architecture from bugs
+
+## 195. Bugs expose hidden assumptions
+
+A regression often reveals an invariant the design did not model: a DOM node was assumed stable, a percentage authoritative, or a service worker permanent.
+
+---
+
+## 196. The regression pattern
+
+**Every important regression points to an architectural dimension we had not yet modeled explicitly.** Add the missing model, not only a local patch.
+
+---
+
+# Part LXX — Architecture from performance issues
+
+## 197. Performance exposes ownership
+
+Excess EPUB memory consumption reveals that canvas lifetimes, buffer ownership, processing order and archive retention are architectural decisions.
+
+---
+
+# Part LXXI — Architecture from store review
+
+## 198. Review constraints produced better boundaries
+
+Firefox AMO requirements encouraged pinned readable vendor inputs, deterministic transformations, exact-match guards and artifact checks.
+
+---
+
+# Part LXXII — Constraints can improve design
+
+## 199. Constraints can improve architecture
+
+Manifest V3, cross-browser differences and review policies forced the project to clarify runtime assumptions, least privilege and distribution provenance.
+
+---
+
+# Part LXXIII — Architecture is about trade-offs
+
+## 200. Every choice trades resources
+
+A cache spends memory to save requests; a squash reduces mainline noise but loses commit-level ancestry; shared UI rules reduce drift but introduce a dependency. No design is free.
+
+---
+
+## 201. State what is being optimized
+
+A good decision names the protected property—correctness, memory peak, maintainability, reviewer reproducibility, or latency—and acknowledges its trade-off.
+
+---
+
+# Part LXXIV — Reversible versus irreversible decisions
+
+## 202. Some choices are easy to reverse
+
+Renaming a local CSS class or rearranging an internal helper may be inexpensive if its interface is private and well tested.
+
+---
+
+## 203. Other choices are expensive to reverse
+
+Extension identity, persisted schema, manifest permissions, public APIs, release tags, and cross-world protocols can become commitments to installed users and reviewers.
+
+---
+
+## 204. Spend design effort in proportion to reversibility
+
+Put more thought and tests around expensive, externally visible commitments than around easy local refactors.
+
+---
+
+# Part LXXV — Local versus system optimization
+
+## 205. Concurrency as an example
+
+Promise.all may improve wall time for small independent tasks but worsen peak RAM and server load when applied to hundreds of PDFs. A local optimization can damage system-level outcomes.
+
+---
+
+## 206. Architecture sees the whole system
+
+Evaluate performance, correctness and user control across all contexts, not just one function's microbenchmark.
+
+---
+
+# Part LXXVI — User intent as a higher-level invariant
+
+## 207. Manual choice overrides autoplay continuation
+
+If a user selects a different lesson while autoplay awaits, the newer explicit action should invalidate the pending automatic continuation.
+
+---
+
+## 208. Bookmark versus automatic tests
+
+“Find first incomplete activity” is a navigation request, not permission to launch an unrelated auto-test workflow merely because auto-test is enabled elsewhere.
+
+---
+
+## 209. Human intent takes precedence
+
+**The user's most recent explicit intent should outrank previously scheduled automation.** This rule informs generation tokens, cancellation and interaction handoff.
+
+---
+
+# Part LXXVII — Human-in-the-loop architecture
+
+## 210. PlumePilot is an assistant layer
+
+It supports the user's work on an existing LMS rather than taking unbounded autonomous control of the platform.
+
+---
+
+## 211. User control implications
+
+Provide clear start/stop controls, predictable manual overrides, visible active-operation state and safe cancellation where possible.
+
+---
+
+# Part LXXVIII — Safety boundaries for automation
+
+## 212. More consequential effects require more evidence
+
+Reading a progress summary may tolerate uncertainty; navigating to another chapter requires stronger identity; submitting test responses requires even more deliberate authorization and correctness.
+
+---
+
+## 213. Risk-aware confidence thresholds
+
+The architecture should demand stronger evidence as the potential impact of a wrong side effect grows.
+
+```text
+consequence severity ↑  ⇒  required evidence confidence ↑
+```
+
+---
+
+# Part LXXIX — Progressive trust
+
+## 214. A useful rule
+
+**Risk of action ↑ → required identity/evidence confidence ↑.** This is more helpful than one global confidence threshold for all automated steps.
+
+---
+
+# Part LXXX — Model-first debugging
+
+## 215. Start architectural debugging with a boundary
+
+After many chapters, the productive first question is often “Which boundary, identity, authority or lifetime assumption failed?” rather than “Which line is wrong?”
+
+---
+
+## 216. A post-await bug hypothesis
+
+If an issue occurs after await, inspect whether a user action, DOM rerender or operation switch made the earlier captured reference stale.
+
+---
+
+# Part LXXXI — Design vocabulary reduces reasoning time
+
+## 217. Say what failed
+
+“The current lesson identity was not revalidated after a suspended API request” is a much more useful diagnosis than “autoplay sometimes clicks wrong.”
+
+---
+
+## 218. Shared vocabulary shortens discussions
+
+Terms such as generation token, source of truth, fail closed, bounded cache, and adapter let contributors reason precisely about problems seen in different features.
+
+---
+
+# Part LXXXII — Architecture decision records
+
+## 219. Architecture Decision Records as a future option
+
+Small ADR files could capture decisions whose reasons would otherwise live in long chat histories or be reconstructed from commits.
+
+---
+
+## 220. What an ADR contains
+
+Document context, chosen decision, alternatives, consequences, supporting evidence and a date or status. Keep it concise and linked to relevant code.
+
+---
+
+## 221. Why ADRs help
+
+This architecture book already teaches past decisions; short ADRs near the repository could make operational trade-offs easier to retrieve during a future refactor.
+
+---
+
+# Part LXXXIII — Architecture documentation should explain constraints
+
+## 222. Diagrams without “why” are fragile
+
+A diagram showing background → popup does not explain why background owns operation state or how lifecycle recovery works.
+
+---
+
+## 223. Useful architecture documentation
+
+Couple diagrams with identity, authority, ownership, and failure rationale. These explanatory contracts remain useful after file locations change.
+
+---
+
+# Part LXXXIV — Current architecture map
+
+## 224. A synthetic map
+
+Across PlumePilot we can distinguish data flow (where state and evidence move) from control flow (which component schedules and authorizes actions).
+
+**Historical code or diagram:**
+
+```mermaid
+flowchart TB
+    USER[Utente]
+    LMS[Multiversity UI]
+    API[Multiversity API]
+
+    MAIN[MAIN-world integration]
+    ISO[Isolated content / bridge]
+    BG[Background coordinator]
+    STORE[(chrome.storage.local)]
+    POP[Popup]
+    FLOAT[Floating menu]
+    BUILDERS[PDF / EPUB / Quiz builders]
+    RELEASE[Release compiler]
+
+    USER --> POP
+    USER --> FLOAT
+    USER --> LMS
+
+    LMS <--> MAIN
+    API <--> MAIN
+    MAIN <--> ISO
+    ISO <--> BG
+
+    BG <--> STORE
+    POP <--> STORE
+    FLOAT <--> STORE
+
+    BG --> BUILDERS
+    BUILDERS --> USER
+
+    RELEASE --> CHROME[Chrome artifact]
+    RELEASE --> EDGE[Edge artifact]
+    RELEASE --> FIREFOX[Firefox artifact]
+```
+
+---
+
+# Part LXXXV — Data-flow map
+
+## 225. Progress and discovery flow
+
+LMS master/detail/DOM → normalization → candidate ordering → verification → chosen target or safe unresolved result.
+
+---
+
+## 226. Operation flow
+
+UI command → background coordination → runtime workers/builders → progress and cancellation → persisted operation snapshot → subscribed views.
+
+---
+
+## 227. Release flow
+
+Repository commit → target build rules → validated ZIP artifacts → GitHub release metadata → browser stores → installed users.
+
+---
+
+# Part LXXXVI — Control flow versus data flow
+
+## 228. Data versus control flow
+
+Data flow describes how values travel or are transformed; control flow describes which actor decides that another action should happen.
+
+---
+
+## 229. The control actors
+
+Background orchestrates many global operations; MAIN/content coordinate playback and host-page effects; shared storage distributes state, not a command interpreter for every feature.
+
+---
+
+# Part LXXXVII — Control plane versus data plane
+
+## 230. Control-plane analogy
+
+The background operation coordinator resembles a lightweight control plane that schedules, supervises and reports jobs.
+
+---
+
+## 231. The data plane
+
+The content/MAIN and builder contexts perform concrete work against the LMS or document content. This is analogous to a data plane, although the separation is not absolute.
+
+---
+
+## 232. Do not overextend the analogy
+
+The boundaries overlap in places. The control/data-plane vocabulary helps explain ownership, not replace actual function-level documentation.
+
+---
+
+# Part LXXXVIII — Architectural pressure points
+
+## 233. Current pressure points
+
+Large content.js responsibilities, source-sliced tests, cross-context state assumptions and richer UI synchronization show where further complexity may hurt maintainability.
+
+---
+
+## 234. No need for a big rewrite
+
+Pressure indicates where to pay attention during future changes, not a mandate to refactor all working features immediately.
+
+---
+
+# Part LXXXIX — Evolutionary architecture
+
+## 235. Small safe evolutionary steps
+
+Extract pure logic, tighten identity contracts, isolate selectors, improve tests and enforce packaging invariants incrementally.
+
+---
+
+## 236. Preserve behavior at each step
+
+Write or strengthen regression coverage before moving a high-risk boundary. Refactoring is successful when behavior remains trustworthy.
+
+---
+
+# Part XC — Fitness functions
+
+## 237. Architecture fitness functions
+
+An automated check that fails when an architectural invariant is violated—for example, a Firefox ZIP declares the wrong background model.
+
+---
+
+## 238. Existing examples
+
+Vendor checksum assertions, package validators, bounded cache tests and source loading-order tests already protect architecture in executable form.
+
+---
+
+## 239. Future fitness checks
+
+Possible checks include preventing dynamic code execution, enforcing operation visibility, ensuring proper source normalization or limiting unsafe dependencies. Add them only where their value exceeds upkeep.
+
+---
+
+# Part XCI — Architecture by tests
+
+## 240. Some architecture already lives in tests
+
+A test that a 100% master summary cannot permanently hide a pending activity is an executable statement about evidence hierarchy, not merely one algorithm example.
+
+---
+
+# Part XCII — Architecture by builds
+
+## 241. The release builder encodes architecture
+
+build-release.mjs contains supported targets, background models, permissions, vendor transformations and packaging rules. This executable knowledge matters as much as the design diagram.
+
+---
+
+# Part XCIII — Architecture by storage schema
+
+## 242. Persistent keys reveal the domain
+
+Namespaced course keys, operation records, exam snapshots and preference fields show the entities and lifetimes the project truly relies on.
+
+---
+
+# Part XCIV — Architecture by naming
+
+## 243. Names communicate models
+
+Terms such as operation, lease, target, identity and snapshot are not cosmetic. They signal specific ownership, time and recovery assumptions.
+
+---
+
+# Part XCV — Leases
+
+## 244. Commission checks use a lease
+
+A lease means a worker may temporarily own the right to inspect or update a commission result, subject to an expiration or validity condition.
+
+---
+
+## 245. Why not a Boolean lock?
+
+If a tab or background context dies after setting locked = true, a permanent Boolean can strand the workflow. A timed lease can expire and permit recovery.
+
+---
+
+## 246. A small distributed-systems pattern
+
+Multiple tabs and independently restarted extension contexts already create enough concurrency for leases, operation IDs and serialized writes to be valuable.
+
+---
+
+# Part XCVI — Recovery-oriented design
+
+## 247. Assume interruptions will happen
+
+A service worker may stop, a tab may close, a PDF conversion may be aborted and a callback may arrive after its owner disappeared. Design recovery around these normal interruptions.
+
+---
+
+## 248. Retain meaningful recovery state
+
+Store enough durable state to identify an operation, report its current stage, resume if supported or terminate cleanly after restart.
+
+---
+
+# Part XCVII — Recovery versus persistence
+
+## 249. Not everything needs exact resumption
+
+Reconstructing a full distributed transaction log for every UI interaction would be disproportionate. For some tasks it is safer to stop, clean up and let the user explicitly restart.
+
+---
+
+# Part XCVIII — Simplicity budget
+
+## 250. Recovery mechanisms have costs
+
+Durable logs, leases, handoff records, retries and resumable checkpoints create additional complexity and persistent data. Apply them only where the reliability benefit is meaningful.
+
+---
+
+## 251. Match resilience to value
+
+A long material export may justify explicit progress and cancellation state; a small menu animation generally does not warrant crash recovery.
+
+---
+
+# Part XCIX — Architecture and product constraints
+
+## 252. PlumePilot is local-first
+
+The extension performs its work locally and against the authenticated LMS session, without a developer-operated backend for these features.
+
+---
+
+## 253. Architectural consequences
+
+Local processing shapes storage, resource budgets, authentication handling, privacy exposure, offline exports and recovery choices. The browser itself is an important runtime and data boundary.
+
+---
+
+## 254. What if a backend were introduced?
+
+Moving workflows to a hosted service would change trust, token transmission, latency, privacy, billing, maintenance, outage handling and user control. It would be a product-architecture decision, not merely a performance optimization.
+
+---
+
+# Part C — Local-first as architecture
+
+## 255. Potential benefits of a backend
+
+Centralized job coordination, cross-device state, shared scheduling or heavy server-side conversion might be useful for some future goals.
+
+---
+
+## 256. Backend costs
+
+Server credentials, operations, billing, privacy guarantees, availability and new data-transfer boundaries would become ongoing obligations.
+
+---
+
+# Part CI — Architecture and privacy
+
+## 257. Local processing is substantive
+
+Keeping documents and sensitive content on the user's computer influences both technical behavior and the privacy model, not only promotional messaging.
+
+---
+
+# Part CII — Security boundaries
+
+## 258. Host authenticated session
+
+PlumePilot operates within the user's existing LMS authentication context. Session data and authorization material deserve the same care as other sensitive credentials.
+
+---
+
+## 259. Memory-only token retention
+
+Intercepted bearer tokens can remain only in memory rather than persistent extension storage. This is a deliberate combination of security boundary and shorter lifetime.
+
+---
+
+# Part CIII — Least-privilege security architecture
+
+## 260. Least-privilege permissions
+
+Request only APIs and site access needed for the actual feature. Excess permissions expand the failure and trust surface as well as review burden.
+
+---
+
+## 261. Per-browser permissions
+
+Firefox's runtime artifact does not claim Chromium's offscreen permission when that API is not used. Least privilege can be enforced at build-target granularity.
+
+---
+
+# Part CIV — Architecture and maintainability
+
+## 262. Maintainability does not mean minimum file count
+
+A maintainable program makes state ownership, reasons to change, contracts and tests understandable. A tiny file count can conceal substantial coupling.
+
+---
+
+## 263. A large file can be understandable—up to a point
+
+File size alone does not dictate refactoring, but a large module containing many unrelated change reasons eventually increases modification and test cost.
+
+---
+
+# Part CV — PlumePilot's architectural maturity model
+
+## 264. Stage one: feature-first
+
+Early PlumePilot development focused on delivering working capabilities, discovering the LMS's data model and proving that browser integration could work.
+
+---
+
+## 265. Stage two: regression-driven resilience
+
+Real course, autoplay, export and browser bugs led to retries, identity checks, targeted fallback paths, cache rules and regression fixtures.
+
+---
+
+## 266. Stage three: pattern recognition
+
+Similar lessons appeared across features: explicit boundaries, stable identity, source hierarchies, leases, cancellable workflows and declarative release checks.
+
+---
+
+## 267. Stage four: explicit architecture
+
+Shared modules, clear protocols, documented decisions and tests progressively turn implicit lessons into intentional design. Different PlumePilot subsystems are at different points in this progression.
+
+---
+
+# Part CVI — Not every area matures at the same speed
+
+## 268. Release tooling is explicit
+
+The builder, manifest specialization and validator already encode well-defined targets and invariants.
+
+---
+
+## 269. Playback still has concentrated responsibilities
+
+Autoplay contains robust algorithms and careful edge-case handling, but significant code still lives in a large content module.
+
+---
+
+## 270. Shared UI presentation emerged in 2.35.2
+
+Menu-UX helpers and common CSS extract meaningful cross-surface behavior without replacing each UI controller.
+
+---
+
+# Part CVII — Architecture scorecard
+
+## 271. Assess every subsystem with the same questions
+
+Ask who owns it, which identity it uses, which source is authoritative, what failures it expects, whether cancellation exists, and which tests protect it.
+
+---
+
+# Part CVIII — Applying the method: autoplay
+
+## 272. Autoplay owner
+
+The content/MAIN playback layer coordinates the active lesson and player interaction, with background support where appropriate.
+
+---
+
+## 273. Autoplay identity
+
+Course, chapter/folder and lesson/media context—not merely one DOM node.
+
+---
+
+## 274. Autoplay evidence sources
+
+Player and DOM observations, detail APIs, master progress and relevant cached snapshots have different reliability and freshness.
+
+---
+
+## 275. Autoplay failure model
+
+Rerendered or hidden lesson rows, tab throttling, stale targets, test boundaries and manual navigation interruptions.
+
+---
+
+## 276. Autoplay cancellation
+
+Stopping playback, clearing active work and invalidating older generations must prevent late automatic transitions.
+
+---
+
+## 277. Autoplay regression suite
+
+Tests cover closed accordions, chapter ordering, master-index shortcuts, video identity and hidden-tab recovery.
+
+---
+
+# Part CIX — Applying the method: export
+
+## 278. Export owner
+
+Background operation coordination and the document-builder page together own the long-running export lifecycle.
+
+---
+
+## 279. Export identity
+
+operationId and jobId link user commands, progress and resulting artifacts.
+
+---
+
+## 280. Export source inputs
+
+Course metadata, material APIs, downloaded documents and optionally host DOM context feed the builder.
+
+---
+
+## 281. Export failure conditions
+
+Absent assets, PDF parse errors, aborts, memory pressure, unexpected page complexity and packaging failures.
+
+---
+
+## 282. Export persistence
+
+A stored handoff record allows the builder or background context to coordinate work through their distinct lifecycles.
+
+---
+
+## 283. Export cleanup
+
+Delete handoff jobs, destroy PDF.js resources, release canvas backing stores and revoke no-longer-needed Blob URLs.
+
+---
+
+# Part CX — Applying the method: commission monitor
+
+## 284. Exam monitor owner
+
+Background/store coordination protects relevant operation state and serialized persistence.
+
+---
+
+## 285. Exam identity
+
+Platform and exam ID must be scoped together to avoid cross-university collisions.
+
+---
+
+## 286. Exam concurrency
+
+Leases and queued writes protect against duplicate checks or lost updates across tabs.
+
+---
+
+## 287. Exam persistence
+
+Durable local snapshots store relevant known result state while respecting identity boundaries.
+
+---
+
+## 288. Exam failures
+
+Stale snapshots, duplicate checks, tab disappearance and inconclusive commission status require explicit recovery logic.
+
+---
+
+# Part CXI — Applying the method: UI
+
+## 289. Shared UI ownership
+
+Persistent settings live in extension storage; each menu has its own ephemeral controller for rendering and local focus state.
+
+---
+
+## 290. Shared UI derived state
+
+autoplayPresentation() turns effective policy settings into shared summaries and warnings.
+
+---
+
+## 291. Shared UI synchronization
+
+Storage events and runtime operation-status queries keep the popup and floating menu convergent.
+
+---
+
+## 292. Shared UI invariants
+
+Active operations must remain visible and controllable; focus restoration, navigation semantics and settings meaning must remain consistent.
+
+---
+
+# Part CXII — Applying the method: releases
+
+## 293. Release ownership
+
+Build tooling owns browser-specific artifact construction and validation, not ordinary UI controllers.
+
+---
+
+## 294. Release identity
+
+Commit SHA, target ZIP SHA-256 and semantic version are three related but different identities.
+
+---
+
+## 295. Release boundary
+
+Source repository → browser-specific manifest and executable archive → distribution store.
+
+---
+
+## 296. Release failures
+
+Manifest drift, missing assets, vendor checksum mismatch, review-sensitive code and unverified packages should be caught before submission.
+
+---
+
+## 297. Release policy
+
+Fail the build on deterministic packaging violations; prefer explicit errors over silent “best effort” output.
+
+---
+
+# Part CXIII — Architecture review checklist
+
+## 298. A checklist for new features
+
+Before implementing, answer twelve questions: What identifies each entity? What is authoritative versus only a hint? How long does state live? Who owns it? What crosses an external boundary? Which side effects are risky? How is unknown represented? What fallback applies? How does cancellation work? How is memory growth bounded? Which test protects the invariant?
+
+**Historical code or diagram:**
+
+```js
+const row = currentLesson();
+await fetchSomething();
+click(row);
+```
+
+```js
+false
+```
+
+# Part CXIV — Exercise 1
+
+### Exercise 1 — Resume yesterday's last activity
+
+Design “Automatically resume the last activity opened yesterday.” Specify identity, storage lifetime, authoritative source, staleness, and manual override. What risks arise when lesson identity is based only on its display text?
+
+# Part CXV — Exercise 2
+
+### Exercise 2 — Persistent lesson API cache
+
+Design a persistent lesson API cache. Explain its TTL, monotonic fields, platform scoping, course-version changes, invalidation, privacy, and maximum size. When would `chrome.storage.local` become less appropriate than the current in-memory `Map`?
+
+# Part CXVI — Exercise 3
+
+### Exercise 3 — A Chrome-only browser API
+
+A new browser API improves a feature only on Chrome. Specify domain capability, Chrome adapter, Firefox fallback, manifest specialization, and artifact test. Avoid spreading `if (chrome)` across ten files.
+
+# Part CXVII — Exercise 4
+
+### Exercise 4 — A new university's DOM
+
+The LMS adds another university with a different DOM. Which components should change: DOM adapter, platform configuration, perhaps API normalizer? Which should stay independent: discovery semantics, operation model, and export pipeline?
+
+
+
+---
+
+# Part CXVIII — Exercise 5
+
+### Exercise 5 — Irreversible action
+
+A feature performs an irreversible side effect. Design a policy specifying the required evidence, ambiguity that blocks execution, necessary user confirmation, and result to persist.
+
+# Part CXIX — Exercise 6
+
+### Exercise 6 — A global Map
+
+When someone adds a global `Map`, ask whether it is a cache or registry, what its key represents, who deletes entries, what bound exists, how long it lives, and what happens if the extension service worker dies.
+
+# Part CXX — Exercise 7
+
+### Exercise 7 — Stale reference after an await
+
+Identify the architectural problem in:
+
+```js
+const row = currentLesson();
+await fetchSomething();
+click(row);
+```
+
+Re-express the correction as a general identity revalidation pattern, not a one-off patch.
+
+# Part CXXI — Exercise 8
+
+### Exercise 8 — Ambiguous Boolean results
+
+A function returns:
+
+```js
+false
+```
+
+for cancellation, not found, ambiguous identity, and network failure. Design a result type that lets callers distinguish the outcomes and react safely.
+
+---
+
+# Part CXXII — Concepts to carry forward
+
+## 299. A boundary
+
+A transition where trust, ownership, execution context, API availability, data model or resource lifetime changes.
+
+---
+
+## 300. Anti-corruption layer
+
+An adapter that translates an external model into the project's internal vocabulary so provider-specific quirks do not permeate domain logic.
+
+---
+
+## 301. Stable identity
+
+An identifier that remains valid during the intended workflow despite DOM reconstruction, changing display order or other representation changes.
+
+---
+
+## 302. Evidence hierarchy
+
+Explicit precedence and fallback rules among sources describing the same underlying fact.
+
+---
+
+## 303. Three-valued knowledge
+
+A representation in which a fact is true, false or currently unknown rather than forcing missing evidence into a Boolean.
+
+---
+
+## 304. Progressive refinement
+
+Start with inexpensive evidence and increase work or granularity only when needed for correctness or fidelity.
+
+---
+
+## 305. Ownership
+
+Responsibility for creating, modifying, controlling and releasing a state value, operation or resource.
+
+---
+
+## 306. Temporal validity
+
+Whether an observation remains correct after time, asynchronous suspension, navigation or other state transitions.
+
+---
+
+## 307. Revalidation
+
+Checking identity and state again after await and before performing a consequential side effect.
+
+---
+
+## 308. Generation token
+
+An incrementing identifier used to invalidate results belonging to older asynchronous operations.
+
+---
+
+## 309. Semantic parity
+
+Equivalent user-visible guarantees produced through different internal implementations, such as distinct browser audio adapters.
+
+---
+
+## 310. Derived state
+
+A value computed from authoritative inputs, usually unnecessary to persist independently.
+
+---
+
+## 311. Bounded growth
+
+A property where retained collections have explicit size, age or eviction limits.
+
+---
+
+## 312. Cooperative cancellation
+
+A workflow periodically checks cancellation and exits through safe cleanup rather than expecting arbitrary JavaScript to be forcibly stopped.
+
+---
+
+## 313. Cost model
+
+A qualitative or quantitative estimate of alternative operations that guides fast paths, expensive fallbacks, batching and concurrency.
+
+---
+
+## 314. Architecture fitness function
+
+A test or validator enforcing an architectural rule over time, such as the Firefox manifest's permitted background form.
+
+---
+
+## 315. Volatility boundary
+
+An interface that separates frequently changing dependencies or provider details from more stable internal meaning.
+
+---
+
+## 316. Human-in-the-loop automation
+
+Automation that supports the user while preserving explicit manual intent, override, visibility and control as first-class constraints.
+
+---
+
+# Part CXXIII — Recap
+
+After fifteen chapters, we can describe PlumePilot without naming any single feature. It integrates an unstable external LMS, crosses multiple execution contexts, maintains state with different lifetimes, coordinates asynchronous jobs, evaluates evidence from sources with unequal authority, protects effects through identity and revalidation, builds complex local artifacts, and adapts to several browser and store environments.
+
+```text
+boundary · identity · source of truth · unknown
+progressive refinement · fail closed · ownership
+lifetime · state machines · idempotence
+snapshot + event · bounded caches · cancellation
+backpressure · semantic parity · artifacts · tests
+```
+
+> **Architecture emerges from the assumptions we decide to make explicit.**
+
+As long as “the DOM will stay the same,” “100% means every activity is finished,” “the background will always remain alive,” or “all browsers behave identically” are hidden assumptions, they eventually become bugs. When transformed into identities, protocols, states, invariants, adapters and tests, they become part of the architecture.
+
+This is the shift from code that happens to work today to software we can confidently evolve tomorrow.
+
+# Next chapter — 17: What would we do differently today?
+
+The final chapter takes a critical but fair look at PlumePilot. Knowing what we now know, where would we modularize content.js, clarify messaging, extract DOM adapters, formalize caches, reconsider workers, improve test seams and automate release steps? Equally important, **which imperfect but proportionate choices would we keep?**
+
+---
+
+[← 15 — Git, branches, PRs, and release engineering](15-git-branches-prs-and-release-engineering.md) · [Contents](index.md) · [17 — What we would do differently today →](17-what-we-would-do-differently-today.md)
