@@ -8,10 +8,40 @@ const arg = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 
-const sourceDir = path.resolve(arg('--source', path.join(process.cwd(), 'docs', 'inside-plumepilot')));
-const outputPath = path.resolve(arg('--output', path.join(sourceDir, 'Inside-PlumePilot.html')));
+const locale = arg('--lang', 'it');
+if (!['it', 'en'].includes(locale)) throw new Error('Unsupported locale: ' + locale);
+const isEnglish = locale === 'en';
+const bookDir = path.join(process.cwd(), 'docs', 'inside-plumepilot');
+const sourceDir = path.resolve(arg('--source', path.join(bookDir, isEnglish ? 'en' : '')));
+const outputPath = path.resolve(arg('--output', path.join(bookDir, isEnglish ? 'Inside-PlumePilot-en.html' : 'Inside-PlumePilot.html')));
+const stateStorageKey = isEnglish ? 'inside-plumepilot-state-en' : 'inside-plumepilot-state';
+const ui = isEnglish ? {
+  title: 'Anatomy of a real browser extension',
+  description: 'JavaScript, WebExtensions, DOM, APIs, asynchrony and software engineering through PlumePilot.',
+  contents: 'Contents', chapters: 'Chapters', appendices: 'Appendices',
+  thisChapter: 'In this chapter', search: 'Search the book…',
+  theme: 'Theme', system: 'System', light: 'Light', dark: 'Dark',
+  previous: 'Previous chapter', next: 'Next chapter', open: 'Open contents', close: 'Close contents',
+  introduction: 'Back to the introduction', chapter: 'Chapter', appendix: 'Appendix',
+  glossary: 'Glossary', sources: 'Sources', mermaid: 'Mermaid diagram (source)',
+  noResults: 'No results', print: 'Print / save PDF',
+  offline: 'Offline · no tracking · no remote dependencies',
+  shortcuts: 'Shortcuts: ', find: 'search', keyChapters: 'chapters',
+} : {
+  title: 'Anatomia di una browser extension reale',
+  description: 'JavaScript, WebExtensions, DOM, API, asincronia e software engineering attraverso PlumePilot.',
+  contents: 'Indice del libro', chapters: 'Capitoli', appendices: 'Appendici',
+  thisChapter: 'In questo capitolo', search: 'Cerca nel libro…',
+  theme: 'Tema', system: 'sistema', light: 'chiaro', dark: 'scuro',
+  previous: 'Capitolo precedente', next: 'Capitolo successivo', open: 'Apri indice', close: 'Chiudi indice',
+  introduction: "Torna all'introduzione", chapter: 'Capitolo', appendix: 'Appendice',
+  glossary: 'Glossario', sources: 'Fonti', mermaid: 'Diagramma Mermaid',
+  noResults: 'Nessun risultato', print: 'Stampa / salva PDF',
+  offline: 'Offline · nessun tracking · nessuna dipendenza remota',
+  shortcuts: 'Scorciatoie: ', find: 'cerca', keyChapters: 'capitoli',
+};
 
-const chapters = [
+const italianChapters = [
   ['00-introduzione.md', '00', 'Introduzione', 'Dal problema al prodotto'],
   ['01-anatomia-estensione.md', '01', 'Anatomia di PlumePilot', 'Cosa succede quando l’estensione prende vita'],
   ['02-contesti-messaging.md', '02', 'Contesti e messaging', 'Far parlare mondi separati'],
@@ -32,10 +62,37 @@ const chapters = [
   ['17-cosa-rifaremmo-oggi.md', '17', 'Cosa rifaremmo diversamente oggi?', 'Una retrospettiva senza senno di poi'],
 ];
 
-const extras = [
-  ['glossario.md', 'glossario', 'Glossario', 'Termini e concetti del libro'],
+const englishChapters = [
+  ['00-introduction.md', '00', 'Introduction', 'From problem to product'],
+  ['01-anatomy-of-an-extension.md', '01', 'Anatomy of PlumePilot', 'How the extension starts'],
+  ['02-contexts-and-messaging.md', '02', 'Contexts and messaging', 'Communication between separate worlds'],
+  ['03-dom-and-dynamic-pages.md', '03', 'DOM and dynamic pages', 'A user interface we do not control'],
+  ['04-apis-and-reverse-engineering.md', '04', 'APIs and reverse engineering', 'Understanding the platform'],
+  ['05-javascript-asynchrony.md', '05', 'JavaScript asynchrony', 'Events, Promises, timeouts and races'],
+  ['06-state-cache-and-storage.md', '06', 'State, cache and storage', 'Where truth lives'],
+  ['07-autoplay-as-a-state-machine.md', '07', 'Autoplay as a state machine', 'States and transitions'],
+  ['08-finding-first-incomplete-activity.md', '08', 'First incomplete activity', 'Heuristics and fallbacks'],
+  ['09-generating-pdf-html-and-epub.md', '09', 'PDF, HTML and EPUB', 'Document pipelines'],
+  ['10-small-rich-text-editor.md', '10', 'A small rich-text editor', 'Selection, Range and callouts'],
+  ['11-ui-without-a-framework.md', '11', 'UI without a framework', 'Popup and floating menu'],
+  ['12-performance-and-memory.md', '12', 'Performance and memory', 'The browser as runtime'],
+  ['13-chrome-edge-and-firefox.md', '13', 'Chrome, Edge and Firefox', 'Different browser runtimes'],
+  ['14-debugging-tests-and-regressions.md', '14', 'Debugging, tests and regressions', 'Knowledge from bugs'],
+  ['15-git-branches-prs-and-release-engineering.md', '15', 'Git, PRs and release engineering', 'Software beyond code'],
+  ['16-architectural-lessons.md', '16', 'Architectural lessons', 'Patterns from a real project'],
+  ['17-what-we-would-do-differently-today.md', '17', 'What we would do differently', 'Retrospective'],
+];
+
+const chapters = isEnglish ? englishChapters : italianChapters;
+const extras = isEnglish ? [
+  ['glossary.md', 'glossary', ui.glossary, 'Terms and concepts'],
+  ['SOURCES.md', 'sources', ui.sources, 'References and further reading'],
+] : [
+  ['glossario.md', 'glossario', ui.glossary, 'Termini e concetti del libro'],
   ['FONTI.md', 'fonti', 'Fonti e riferimenti', 'Documentazione primaria e approfondimenti'],
 ];
+const glossaryId = isEnglish ? 'glossary' : 'glossario';
+const sourcesId = isEnglish ? 'sources' : 'fonti';
 
 function ensureFile(file) {
   if (!fs.existsSync(file)) throw new Error(`File mancante: ${file}`);
@@ -80,7 +137,7 @@ function normalizeLinks(html, currentPrefix) {
 
 function transformMermaid(html) {
   return html.replace(/<pre class="mermaid"><code>([\s\S]*?)<\/code><\/pre>/g, (_, body) =>
-    `<figure class="mermaid-fallback"><figcaption>Diagramma Mermaid</figcaption><pre><code>${body}</code></pre></figure>`
+    `<figure class="mermaid-fallback"><figcaption>${escapeHtml(ui.mermaid)}</figcaption><pre><code>${body}</code></pre></figure>`
   );
 }
 
@@ -107,17 +164,17 @@ const rendered = [...chapters, ...extras].map(([filename, id, title, subtitle]) 
 const sidebar = chapters.map(([, id, title]) => `<a class="chapter-link" data-chapter-link="${id}" href="#chapter-${id}"><span>${id}</span>${title}</a>`).join('\n');
 
 const articleSections = rendered.map((item, index) => {
-  const isExtra = item.id === 'glossario' || item.id === 'fonti';
+  const isExtra = item.id === glossaryId || item.id === sourcesId;
   const chapterIndex = chapters.findIndex(([, id]) => id === item.id);
   const prev = !isExtra && chapterIndex > 0 ? chapters[chapterIndex - 1] : null;
   const next = !isExtra && chapterIndex >= 0 && chapterIndex < chapters.length - 1 ? chapters[chapterIndex + 1] : null;
-  const footer = isExtra ? `<nav class="chapter-footer"><a href="#chapter-00" data-book-nav="00">← Torna all'introduzione</a></nav>` : `
+  const footer = isExtra ? `<nav class="chapter-footer"><a href="#chapter-00" data-book-nav="00">← ${escapeHtml(ui.introduction)}</a></nav>` : `
     <nav class="chapter-footer">
       ${prev ? `<a href="#chapter-${prev[1]}" data-book-nav="${prev[1]}">← ${prev[1]} · ${prev[2]}</a>` : '<span></span>'}
-      ${next ? `<a href="#chapter-${next[1]}" data-book-nav="${next[1]}">${next[1]} · ${next[2]} →</a>` : '<a href="#chapter-glossario" data-book-nav="glossario">Glossario →</a>'}
+      ${next ? `<a href="#chapter-${next[1]}" data-book-nav="${next[1]}">${next[1]} · ${next[2]} →</a>` : '<a href="#chapter-${glossaryId}" data-book-nav="${glossaryId}">${escapeHtml(ui.glossary)} →</a>'}
     </nav>`;
   return `<section class="chapter" id="chapter-${item.id}" data-chapter="${item.id}" data-title="${escapeHtml(item.title)}" ${index ? 'hidden' : ''}>
-    <div class="chapter-kicker">${isExtra ? 'Appendice' : `Capitolo ${item.id}`}</div>
+    <div class="chapter-kicker">${isExtra ? ui.appendix : `${ui.chapter} ${item.id}`}</div>
     ${item.html}
     ${footer}
   </section>`;
@@ -209,18 +266,18 @@ const js = String.raw`
     const raw=location.hash.slice(1);
     if(!raw) return null;
     if(raw.startsWith('chapter-')) return {id:raw.slice(8),anchor:null};
-    const match=raw.match(/^([0-9]{2}|glossario|fonti)-/);
+    const match=raw.match(/^([0-9]{2}|${glossaryId}|${sourcesId})-/);
     if(match) return {id:match[1],anchor:raw};
     return null;
   }
   function save(){
-    storage.set('inside-plumepilot-state', JSON.stringify({chapter:active,anchor:currentHeading?.id || null,scrollY:window.scrollY}));
+    storage.set('${stateStorageKey}', JSON.stringify({chapter:active,anchor:currentHeading?.id || null,scrollY:window.scrollY}));
   }
   function restore(){
     const hash=parseHash();
     if(hash){showChapter(hash.id,{anchor:hash.anchor,top:!hash.anchor,historyMode:'none'}); return;}
     try{
-      const state=JSON.parse(storage.get('inside-plumepilot-state')||'null');
+      const state=JSON.parse(storage.get('${stateStorageKey}')||'null');
       if(state?.chapter && chapterEl(state.chapter)){
         showChapter(state.chapter,{anchor:state.anchor,top:false,historyMode:'replace'});
         if(!state.anchor && Number.isFinite(state.scrollY)) requestAnimationFrame(()=>window.scrollTo({top:state.scrollY}));
@@ -272,7 +329,7 @@ const js = String.raw`
     if(q.length<2){searchResults.classList.remove('open');return}
     const found=searchBlocks.filter(x=>x.text.toLowerCase().includes(q)).slice(0,28);
     for(const x of found){const a=document.createElement('a');a.href='#'+x.id;a.className='search-result';const sn=snippet(x.text,q);a.innerHTML='<strong>'+escapeHtml(x.title)+'</strong><small>'+escapeHtml(sn)+'</small>';searchResults.append(a)}
-    if(!found.length){const d=document.createElement('div');d.className='search-result';d.textContent='Nessun risultato';searchResults.append(d)}
+    if(!found.length){const d=document.createElement('div');d.className='search-result';d.textContent='${ui.noResults}';searchResults.append(d)}
     searchResults.classList.add('open');
   }
   search.addEventListener('input',runSearch);
