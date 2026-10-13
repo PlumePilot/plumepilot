@@ -28,9 +28,23 @@ Do not merge an English landing that advertises chapters which are not yet avail
 
 ## Offline editions
 
-The intended outputs are:
+The generated single-file readers are:
 
-- `Inside-PlumePilot.html` — Italian
+- `Inside-PlumePilot.html` — Italian (existing filename and default CLI behavior preserved)
 - `Inside-PlumePilot-en.html` — English
 
-Both are generated artifacts. Markdown remains the source of truth.
+Both live in `docs/inside-plumepilot/`, have localized navigation and search controls, and remain self-contained. They store their reading position under different `localStorage` keys. The Markdown chapters remain the source of truth.
+
+Regenerate with Node.js and Pandoc from the repository root:
+
+```bash
+node scripts/build-inside-plumepilot.mjs --lang it
+node scripts/build-inside-plumepilot.mjs --lang en
+node scripts/check-inside-plumepilot.mjs
+```
+
+The English reader is linked from `en/index.md`. The original Italian landing and public URL remain unchanged.
+
+## Publication quality gate
+
+Build and structural checks are only part of the release decision. Verify chapter-level fidelity with the Italian source, internal links and browser behavior before marking the documentation pull request ready for review. Chrome smoke tests are automated for the candidate; Firefox and Edge require separate verification if full browser coverage is desired.
