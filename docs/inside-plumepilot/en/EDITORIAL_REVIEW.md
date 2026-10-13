@@ -40,6 +40,22 @@ The structural audit found source examples compressed into short English summari
 
 ---
 
+## Seventh pass — cross-context and data-structure fidelity (13 October 2026)
+
+Targeted side-by-side comparisons with the canonical Italian edition:
+
+- [x] **Chapter 02, sections 6–8:** restored the outbound `window.postMessage` example and the explicit ISOLATED → MAIN → ISOLATED flow; reinforced normalization and sender-tab identity checks. Source-reference links retained.
+- [x] **Chapter 05, sections 20, 22, 33, 36, 37, 47, 50:** clarified independent serial queues, the `busy` reentrancy guard, non-exact timer scheduling, pending Promise deadlines, `requestId` correlation, EPUB abort propagation, and async `try/catch`.
+- [x] **Chapter 06, sections 25.3–25.4 and 25.6:** restored array-index collision examples, explicit Map operations, Object-vs-Map tradeoffs, and literal composite-key serialization/normalization.
+- [x] **Chapter 03, sections 4, 12, 20, 31, 36 and 49:** spot-checked source and English explanations of static NodeList snapshots, initially empty DOM, mutation meaning, command/verification, accordion preconditions and event delegation. The English versions already preserve the substantive mechanics; no duplicative changes made.
+- [x] **Chapter 04, sections 3, 32 and 47:** spot-checked MAIN-world Fetch observation, HTTP/application error handling and monotonic progress merging. Existing English examples already preserve the substantive mechanisms.
+- [x] **Standard Markdown local anchor scan:** none of the 21 English book files has a Markdown link of the form `other-file.md#heading` or `#heading`; therefore no such source-level cross-file anchors require repair at present. This does **not** validate generated HTML heading anchors, dynamic search, or external URLs.
+- [x] Updated files retain their original numbered sections and balanced fenced code blocks.
+
+**Still required before merge:** complete the remaining fidelity sampling, finish and validate the localized offline English reader, test actual HTML navigation/search/theme and check generated reader anchors. Source-vs-translation code-fence count differences remain a *triage signal*, not automatic proof of lost behavior. **PR #44 remains Draft.**
+
+---
+
 ## Verified during first review pass
 
 - [x] English drafts for chapters **00–17** exist, and each has the same sequence of numbered `##` sections as its Italian counterpart.
