@@ -132,7 +132,7 @@ function normalizeLinks(html, currentPrefix) {
     html = html.replace(new RegExp(`href="${escaped}#([^"]+)"`, 'g'), (_, anchor) => `href="#${id}-${anchor}"`);
   }
   // The standalone reader has no separate Markdown index file.
-  html = html.replace(/href="index\\.md"/g, 'href="#chapter-00"');
+  html = html.replace(/href="index\.md"/g, 'href="#chapter-00"');
   html = html.replace(/href="https?:\/\/[^\"]+"/g, (m) => `${m} target="_blank" rel="noopener noreferrer"`);
   return html;
 }
