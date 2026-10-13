@@ -545,7 +545,19 @@ completing a test
 locating the next video
 ```
 
-The `busy` flag establishes the local invariant that one logical advance is in progress at a time.
+The explicit guard:
+
+```js
+busy = true
+```
+
+establishes a local invariant:
+
+```text
+at most one active logical advance workflow at a time
+```
+
+This prevents competing callbacks from starting overlapping transitions.
 
 ---
 
@@ -1122,7 +1134,13 @@ buildCourseEpub(..., {
 });
 ```
 
-The cancellation control then aborts the controller as needed.
+The cancellation control calls:
+
+```js
+buildController.abort();
+```
+
+The signal is a cancellation protocol between the builder UI and the EPUB engine, not merely a mechanism for aborting a single `fetch()`.
 
 Sources: [`materials-builder.js` L134–L175](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/materials-builder.js#L134-L175), [L179–L185](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/materials-builder.js#L179-L185).
 
@@ -1191,7 +1209,15 @@ Thus:
 await functionThatFails();
 ```
 
-will propagate the rejection as an exception at the `await` point, where it can be handled using `try`/`catch`.
+will propagate the rejection as an exception at the `await` point, where it can be handled with:
+
+```js
+try {
+  await functionThatFails();
+} catch (error) {
+  // handle the failure
+}
+```
 
 This keeps asynchronous workflow code structurally close to familiar synchronous error handling.
 
