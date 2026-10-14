@@ -691,7 +691,7 @@ function offlineQuizRuntime(DATA) {
     clone.querySelector("#notes-data").textContent = encodeNotes(
       Object.fromEntries(notes),
     );
-    const html = "<!doctype html>\\n" + clone.outerHTML;
+    const html = "<!doctype html>\n" + clone.outerHTML;
     const url = URL.createObjectURL(
       new Blob([html], { type: "text/html;charset=utf-8" }),
     );
