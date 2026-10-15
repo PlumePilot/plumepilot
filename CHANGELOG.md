@@ -1,5 +1,11 @@
 # PlumePilot — Changelog
 
+## 2.35.3 — offline quiz notes save fix
+
+- Fixes literal `\n` text appearing and accumulating after saving and reopening offline HTML quizzes with notes.
+- Newly generated quizzes include the corrected save routine. Previously downloaded HTML files are not updated automatically.
+- No other functional changes or new permissions.
+
 ## 2.35.2 — clearer menus and shared controls
 
 - Aligns popup and floating-menu destinations and groups Corso tools by task, with expandable course-completion actions.
