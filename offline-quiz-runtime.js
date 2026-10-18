@@ -261,6 +261,77 @@ function offlineQuizRuntime(DATA) {
       editor.dispatchEvent(new Event("input", { bubbles: true }));
       rememberSelection();
     }
+    function removeFormatting(editor) {
+      rememberSelection();
+      editor.focus();
+      if (selectedRange && editor.contains(selectedRange.commonAncestorContainer)) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+      }
+      const selection = window.getSelection();
+      if (!selection.rangeCount || selection.isCollapsed) {
+        runCommand(editor, "removeFormat");
+        return;
+      }
+      const range = selection.getRangeAt(0);
+      if (!editor.contains(range.commonAncestorContainer)) return;
+      // Isolate only the selected content, including selections inside a highlight.
+      const marker = document.createElement("span");
+      marker.appendChild(range.extractContents());
+      for (const highlight of marker.querySelectorAll(".highlight")) {
+        highlight.replaceWith(...highlight.childNodes);
+      }
+      range.insertNode(marker);
+      let highlight = marker.parentElement.closest(".highlight");
+      while (highlight && editor.contains(highlight)) {
+        const beforeRange = document.createRange();
+        beforeRange.selectNodeContents(highlight);
+        beforeRange.setEndBefore(marker);
+        const before = highlight.cloneNode(false);
+        before.appendChild(beforeRange.extractContents());
+        const afterRange = document.createRange();
+        afterRange.selectNodeContents(highlight);
+        afterRange.setStartAfter(marker);
+        const after = highlight.cloneNode(false);
+        after.appendChild(afterRange.extractContents());
+        highlight.replaceWith(before, marker, after);
+        highlight = marker.parentElement.closest(".highlight");
+      }
+      const cleanRange = document.createRange();
+      cleanRange.selectNodeContents(marker);
+      selection.removeAllRanges();
+      selection.addRange(cleanRange);
+      document.execCommand("removeFormat", false, null);
+      if (marker.isConnected) marker.replaceWith(...marker.childNodes);
+      selectedRange = null;
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+      rememberSelection();
+    }
+    function autoList(editor, event) {
+      if (event.key !== " " || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return false;
+      const selection = window.getSelection();
+      if (!selection.rangeCount || !selection.isCollapsed || !editor.contains(selection.anchorNode)) return false;
+      const node = currentNode(editor);
+      if (node.closest("li,ul,ol")) return false;
+      const block = node.closest("div,p");
+      if (!block || !editor.contains(block)) return false;
+      const prefix = selection.getRangeAt(0).cloneRange();
+      prefix.setStart(block, 0);
+      const marker = prefix.toString();
+      if (marker !== "-" && marker !== "1.") return false;
+      const remainder = selection.getRangeAt(0).cloneRange();
+      remainder.setEnd(block, block.childNodes.length);
+      if (remainder.toString().length) return false;
+      event.preventDefault();
+      // Native editing commands retain the browser's list and undo behavior.
+      selection.removeAllRanges();
+      selection.addRange(prefix);
+      document.execCommand("delete", false, null);
+      selectedRange = null;
+      runCommand(editor, marker === "-" ? "insertUnorderedList" : "insertOrderedList");
+      return true;
+    }
     function currentNode(editor) {
       const selection = window.getSelection();
       if (!selection.rangeCount || !editor.contains(selection.anchorNode)) return null;
@@ -402,7 +473,7 @@ function offlineQuizRuntime(DATA) {
         "Evidenzia pink": "Rosa",
       };
       item.textContent = short[title] || title;
-      item.title = title;
+      item.title = title === "Rimuovi formattazione" ? title + " (Ctrl/⌘ + \\)" : title;
       item.setAttribute("aria-label", title);
       item.addEventListener("mousedown", (event) => event.preventDefault());
       item.onclick = () => { if (activeField) action(activeField); };
@@ -421,6 +492,7 @@ function offlineQuizRuntime(DATA) {
       ["Elenco numerato", "insertOrderedList"], ["Apice", "superscript"], ["Pedice", "subscript"],
       ["Annulla", "undo"], ["Ripristina", "redo"], ["Rimuovi formattazione", "removeFormat"],
     ]) button(tools, name, (target) => {
+      if (command === "removeFormat") { removeFormatting(target); return; }
       if (command === "insertUnorderedList" && currentNode(target)?.closest("ul.checklist")) {
         splitChecklist(target);
         return;
@@ -464,7 +536,7 @@ function offlineQuizRuntime(DATA) {
     shortcutSummary.textContent = "Scorciatoie da tastiera";
     shortcutHelp.appendChild(shortcutSummary);
     const shortcutList = document.createElement("p");
-    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Esc interrompe formati e colore. Un altro clic sullo stesso callout lo rimuove; Invio alla fine del callout apre un paragrafo normale. Elenchi e altri strumenti sono disponibili nella barra.";
+    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Ctrl (⌘ su Mac) + \\ rimuove la formattazione dal testo selezionato. Esc interrompe formati e colore. Scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato, in un paragrafo vuoto. Un altro clic sullo stesso callout lo rimuove; Invio alla fine del callout apre un paragrafo normale. Elenchi e altri strumenti sono disponibili nella barra.";
     shortcutHelp.appendChild(shortcutList);
     details.appendChild(shortcutHelp);
     for (const [field, labelText] of [
@@ -495,6 +567,7 @@ function offlineQuizRuntime(DATA) {
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
       editor.addEventListener("keydown", (event) => {
+        if (autoList(editor, event)) return;
         if (event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
           const block = currentNode(editor)?.closest(".callout");
           if (block && editor.contains(block)) {
@@ -544,6 +617,13 @@ function offlineQuizRuntime(DATA) {
           return;
         }
         if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+        if (event.code === "Backslash" || event.key === "\\") {
+          event.preventDefault();
+          activeField = editor;
+          rememberSelection();
+          removeFormatting(editor);
+          return;
+        }
         const key = event.key.toLowerCase();
         if (event.shiftKey) return;
         const command = { b: "bold", i: "italic", u: "underline", g: "strikeThrough", e: "superscript", d: "subscript" }[key];
@@ -691,7 +771,7 @@ function offlineQuizRuntime(DATA) {
     clone.querySelector("#notes-data").textContent = encodeNotes(
       Object.fromEntries(notes),
     );
-    const html = "<!doctype html>\\n" + clone.outerHTML;
+    const html = "<!doctype html>\n" + clone.outerHTML;
     const url = URL.createObjectURL(
       new Blob([html], { type: "text/html;charset=utf-8" }),
     );
