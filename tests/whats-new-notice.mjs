@@ -8,14 +8,14 @@ vm.runInContext(definitionSource, context);
 const api = context.PlumePilotWhatsNew;
 
 assert.equal(api.RELEASE.version, "2.35.3");
-assert.equal(api.RELEASE.items.length, 1);
-assert.match(api.RELEASE.summary, /appunti/);
+assert.equal(api.RELEASE.items.length, 3);
+assert.match(api.RELEASE.summary, /Appunti/);
 const firefoxContext = vm.createContext({});
 vm.runInContext(readFileSync(new URL("../scripts/whats-new-firefox.js", import.meta.url), "utf8"), firefoxContext);
 const firefoxApi = firefoxContext.PlumePilotWhatsNew;
 assert.equal(firefoxApi.RELEASE.version, api.RELEASE.version);
-assert.equal(firefoxApi.RELEASE.items.length, 1);
-assert.match(api.RELEASE.items[0].text, /non aggiunge più/);
+assert.equal(firefoxApi.RELEASE.items.length, 3);
+assert.match(api.RELEASE.items[2].text, /non aggiunge più/);
 assert.deepEqual(JSON.parse(JSON.stringify(firefoxApi.RELEASE.items)), JSON.parse(JSON.stringify(api.RELEASE.items)));
 assert.equal(firefoxApi.PENDING_KEY, api.PENDING_KEY);
 assert.equal(firefoxApi.LAST_SEEN_KEY, api.LAST_SEEN_KEY);

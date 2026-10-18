@@ -39,3 +39,8 @@ if(!html.includes('Generato con PlumePilot - Assistente per Multiversity, dispon
 const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
 new Function(scripts.at(-1));
 console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');
+
+// Optional standalone fixture for browser regression checks.
+if (process.env.PLUMEPILOT_QUIZ_FIXTURE) {
+  await (await import("node:fs/promises")).writeFile(process.env.PLUMEPILOT_QUIZ_FIXTURE, html);
+}

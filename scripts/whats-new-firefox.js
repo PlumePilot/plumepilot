@@ -3,12 +3,20 @@
 
   const definition = {
   "version": "2.35.3",
-  "title": "Salvataggio degli appunti nei quiz HTML",
-  "summary": "Corretto un problema nel salvataggio dei quiz HTML con appunti.",
+  "title": "Quiz HTML: appunti più comodi",
+  "summary": "Appunti: elenchi automatici, scorciatoia per rimuovere la formattazione e salvataggio corretto.",
   "items": [
     {
-      "title": "Salvataggi senza caratteri indesiderati",
-      "text": "Nei nuovi quiz HTML, “Scarica HTML con appunti” non aggiunge più il testo \\n in alto nella pagina a ogni salvataggio. I file HTML già scaricati non vengono aggiornati automaticamente."
+      "title": "Elenchi mentre scrivi",
+      "text": "In un paragrafo vuoto, scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato. Un doppio Invio permette di uscire dall’elenco."
+    },
+    {
+      "title": "Rimuovi formattazione da tastiera",
+      "text": "Seleziona il testo e premi Ctrl + \\ (⌘ + \\ su Mac) per rimuovere la formattazione, inclusi i colori di evidenziazione, come con Tx. Esc continua a interrompere i formati durante la scrittura."
+    },
+    {
+      "title": "Salvataggio degli appunti corretto",
+      "text": "“Scarica HTML con appunti” non aggiunge più il testo \\n in alto nella pagina. Queste modifiche valgono per i nuovi quiz HTML; i file già scaricati non vengono aggiornati automaticamente."
     }
   ]
 };

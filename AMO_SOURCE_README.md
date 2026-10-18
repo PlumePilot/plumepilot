@@ -52,7 +52,7 @@ The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, an
 
 ## Browser-specific Novità
 
-Chrome, Edge and Firefox ship one 2.35.3 Novità card about the offline quiz notes save fix. The Firefox build packages `scripts/whats-new-firefox.js` at the runtime path `whats-new.js`; the two definitions match. Runtime storage keys remain unchanged. Both readable definitions are included in this source archive, and the validator checks the packaged definitions.
+Chrome, Edge and Firefox ship three 2.35.3 Novità cards about automatic lists, formatting removal and the offline quiz notes save fix. The Firefox build packages `scripts/whats-new-firefox.js` at the runtime path `whats-new.js`; the two definitions match. Runtime storage keys remain unchanged. Both readable definitions are included in this source archive, and the validator checks the packaged definitions.
 
 ## Firefox-only review-safety transformations
 
