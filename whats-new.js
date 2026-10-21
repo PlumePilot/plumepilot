@@ -2,7 +2,7 @@
   "use strict";
 
   const definition = {
-  "version": "2.35.3",
+  "version": "2.35.4",
   "title": "Quiz HTML: appunti più comodi",
   "summary": "Appunti: elenchi automatici, scorciatoia per rimuovere la formattazione e salvataggio corretto.",
   "items": [
