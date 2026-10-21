@@ -179,7 +179,7 @@ async function collectFiles(directory = root, relativeDirectory = "") {
 function manifestFor(baseManifest, browser) {
   const manifest = structuredClone(baseManifest);
   if (browser === "firefox") {
-    manifest.background = { scripts: ["achievements.js", "sound-settings.js", "whats-new.js", "background.js"] };
+    manifest.background = { scripts: ["achievements.js", "commission-state.js", "sound-settings.js", "whats-new.js", "background.js"] };
     manifest.permissions = (manifest.permissions || []).filter((permission) => permission !== "offscreen");
     manifest.browser_specific_settings = {
       gecko_android: {
@@ -238,6 +238,10 @@ function validateManifest(manifest, browser) {
   }
   if (browser === "firefox") {
     if (manifest.background?.service_worker) throw new Error("Firefox: service_worker inatteso.");
+    const expectedBackgroundScripts = ["achievements.js", "commission-state.js", "sound-settings.js", "whats-new.js", "background.js"];
+    if (JSON.stringify(manifest.background?.scripts) !== JSON.stringify(expectedBackgroundScripts)) {
+      throw new Error("Firefox: dipendenze background incomplete o fuori ordine (commission-state.js richiesto).");
+    }
     if (manifest.browser_specific_settings?.gecko?.id !== "plumepilot@fabiofloris") {
       throw new Error("Firefox: ID definitivo assente.");
     }
