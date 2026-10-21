@@ -30,7 +30,8 @@ async function validateWhatsNew(zip, browser) {
   if (actual.RELEASE.version !== expectedVersion || JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${browser}: Novità/versione non corrispondono alla definizione sorgente.`);
   }
-  const expectedCards = expectedVersion === "2.35.3" ? 3
+  const expectedCards = expectedVersion === "2.35.4" ? (browser === "firefox" ? 4 : 3)
+    : expectedVersion === "2.35.3" ? 3
     : expectedVersion === "2.35.2" ? 6
     : expectedVersion === "2.35.1" ? (browser === "firefox" ? 9 : 6) : null;
   if (expectedCards !== null && actual.RELEASE.items.length !== expectedCards) {
@@ -131,6 +132,10 @@ function validateBrowserManifest(manifest, browser) {
     const expected = ["authenticationInfo", "websiteContent", "websiteActivity"];
     if (JSON.stringify(permissions) !== JSON.stringify(expected)) throw new Error("Firefox: dichiarazione dati errata.");
     if (!manifest.background?.scripts || manifest.background?.service_worker) throw new Error("Firefox: background errato.");
+    const expectedBackgroundScripts = ["achievements.js", "commission-state.js", "sound-settings.js", "whats-new.js", "background.js"];
+    if (JSON.stringify(manifest.background.scripts) !== JSON.stringify(expectedBackgroundScripts)) {
+      throw new Error("Firefox: commission-state.js deve precedere background.js (dipendenze background incomplete o fuori ordine).");
+    }
   } else {
     if (!manifest.permissions?.includes("offscreen")) throw new Error(`${browser}: permesso offscreen mancante.`);
     if (!manifest.background?.service_worker || manifest.background?.scripts) throw new Error(`${browser}: background errato.`);
