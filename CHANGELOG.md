@@ -1,5 +1,13 @@
 # PlumePilot — Changelog
 
+## 2.35.4 — Firefox commission monitor compatibility
+
+- Fixes Firefox background startup by loading `commission-state.js` before `background.js`, allowing exam-commission API responses to be processed and saved.
+- Validates the exact Firefox background dependency order during release build and ZIP verification, preventing recurrence.
+- Preserves the 2.35.3 offline HTML quiz editing improvements. No new permissions or changes to the commission token storage policy.
+- Chrome and Edge runtime logic is unchanged.
+
+
 ## 2.35.3 — offline quiz notes improvements
 
 - Fixes literal `\n` text appearing and accumulating after saving and reopening offline HTML quizzes with notes.

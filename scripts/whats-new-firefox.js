@@ -2,10 +2,14 @@
   "use strict";
 
   const definition = {
-  "version": "2.35.3",
+  "version": "2.35.4",
   "title": "Quiz HTML: appunti più comodi",
   "summary": "Appunti: elenchi automatici, scorciatoia per rimuovere la formattazione e salvataggio corretto.",
   "items": [
+    {
+      "title": "Controllo commissione su Firefox",
+      "text": "Corretta la dipendenza necessaria al salvataggio degli aggiornamenti della commissione su Firefox, senza nuovi permessi."
+    },
     {
       "title": "Elenchi mentre scrivi",
       "text": "In un paragrafo vuoto, scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato. Un doppio Invio permette di uscire dall’elenco."
