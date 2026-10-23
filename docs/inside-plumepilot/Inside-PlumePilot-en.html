@@ -20764,6 +20764,9 @@ artifact containing the unexpected service-worker declaration. The
 difference is not merely a string in a manifest: the actual
 <strong>background execution environment</strong> is different, even
 though much of the business logic remains shared.</p>
+<p><strong>Historical 2.35.2 snapshot:</strong> the example below
+reproduces the original Firefox script list. It was incomplete; the
+2.35.4 postmortem following the example explains the correction.</p>
 <p><strong>Examples from the historical code:</strong></p>
 <div class="sourceCode" id="13-cb9"><pre class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb9-1"><a href="#13-cb9-1" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">background</span> <span class="op">=</span> {</span>
 <span id="13-cb9-2"><a href="#13-cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">scripts</span><span class="op">:</span> [</span>
@@ -20776,6 +20779,95 @@ though much of the business logic remains shared.</p>
 <div class="sourceCode" id="13-cb10"><pre
 class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb10-1"><a href="#13-cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (manifest<span class="op">.</span><span class="at">background</span><span class="op">?.</span><span class="at">service_worker</span>)</span>
 <span id="13-cb10-2"><a href="#13-cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">Error</span>(<span class="st">&quot;Firefox: service_worker inatteso.&quot;</span>)<span class="op">;</span></span></code></pre></div>
+<h3 id="13-later-case-study--firefox-commission-monitor-v2354">Later case
+study — Firefox commission monitor (v2.35.4)</h3>
+<blockquote>
+<p><strong>Update to the 2.35.2 reference snapshot.</strong> <a
+href="https://github.com/PlumePilot/plumepilot/pull/46" target="_blank" rel="noopener noreferrer">PR #46</a> fixed
+a real packaging regression in <strong>2.35.4</strong>. The earlier
+script list remains above as historical evidence, not as a recommended
+configuration.</p>
+</blockquote>
+<p><strong>Symptom.</strong> After clearing browser data, the exam
+commission monitor stopped refreshing in Firefox and displayed a generic
+message about waiting for authentication. Chrome still worked. Clearing
+the cache exposed the failure, but <strong>did not cause</strong> the
+missing background dependency.</p>
+<p><strong>The data path.</strong>
+<code>commission-interceptor.js</code>, running in the LMS page's
+<strong>MAIN world</strong>, observes already-authenticated Fetch/XHR
+requests and retains the Bearer token <strong>in page memory
+only</strong>. For a commission check, the interceptor requests the
+platform API and posts the response to <code>bridge.js</code>. The
+bridge forwards it to the <strong>extension background</strong>, which
+uses <code>StudyWingCommissionState</code> to detect state changes and
+store the exam data in <code>chrome.storage.local</code>. The token
+itself is <strong>not persisted</strong> there.</p>
+<p><strong>Root cause.</strong> The repository's source manifest
+included <code>commission-state.js</code>, but the Firefox-specific
+builder overwrote <code>background.scripts</code> with a list that
+<strong>omitted it</strong>. That module defines
+<code>globalThis.StudyWingCommissionState</code>. Chrome/Edge instead
+use a service worker whose <code>background.js</code> can load the
+module through <code>importScripts("commission-state.js")</code>. With
+Firefox's background scripts, the dependency was never loaded in the
+required context; saving a response could return
+<code>commission-state-unavailable</code>. The UI could misleadingly
+suggest an authorization problem even if the actual failure occurred
+<strong>after</strong> the API response.</p>
+<p><strong>Fixed Firefox background configuration (2.35.4):</strong></p>
+<div class="sourceCode" id="13-cb11"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb11-1"><a href="#13-cb11-1" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">background</span> <span class="op">=</span> {</span>
+<span id="13-cb11-2"><a href="#13-cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">scripts</span><span class="op">:</span> [</span>
+<span id="13-cb11-3"><a href="#13-cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;achievements.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb11-4"><a href="#13-cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;commission-state.js&quot;</span><span class="op">,</span> <span class="co">// load before background.js</span></span>
+<span id="13-cb11-5"><a href="#13-cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;sound-settings.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb11-6"><a href="#13-cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;whats-new.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb11-7"><a href="#13-cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;background.js&quot;</span></span>
+<span id="13-cb11-8"><a href="#13-cb11-8" aria-hidden="true" tabindex="-1"></a>  ]</span>
+<span id="13-cb11-9"><a href="#13-cb11-9" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
+<p>No new permission or persistent token storage is required. Both the
+release builder and <code>scripts/validate-release.mjs</code> now
+enforce the <strong>exact Firefox background script list and
+order</strong>, rather than only checking that
+<code>service_worker</code> is absent.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Chrome / Edge</th>
+<th>Firefox</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Background runtime</td>
+<td><code>service_worker: "background.js"</code></td>
+<td>Ordered <code>background.scripts</code></td>
+</tr>
+<tr class="even">
+<td>Loading <code>StudyWingCommissionState</code></td>
+<td>Worker <code>importScripts()</code> if needed</td>
+<td><code>commission-state.js</code> before its consumer</td>
+</tr>
+<tr class="odd">
+<td>Where is the Bearer observed?</td>
+<td>LMS page MAIN world</td>
+<td>LMS page MAIN world</td>
+</tr>
+<tr class="even">
+<td>Regression guard</td>
+<td>Chromium artifact validation</td>
+<td>Exact Firefox background script/order validation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Generalizable lesson:</strong> a file can exist in the ZIP,
+and its implementation can be correct, while the necessary execution
+context <strong>never loads it</strong>. Artifact tests must verify
+manifest wiring, not just file presence. A generic UI status is not
+root-cause evidence: distinguish <em>token capture</em>, <em>API
+call</em>, and <em>background persistence</em>.</p>
 <hr />
 <h2 id="13-9-why-build-different-manifests">9. Why build different
 manifests?</h2>
@@ -20789,11 +20881,11 @@ straightforward to validate. A universal manifest is not intrinsically
 wrong, but it does not simplify all distribution requirements for this
 project.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb11"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb11-1"><a href="#13-cb11-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
-<span id="13-cb11-2"><a href="#13-cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;background.js&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
-<span id="13-cb11-3"><a href="#13-cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;service_worker&quot;</span><span class="fu">:</span> <span class="st">&quot;background.js&quot;</span></span>
-<span id="13-cb11-4"><a href="#13-cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb12-1"><a href="#13-cb12-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
+<span id="13-cb12-2"><a href="#13-cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;background.js&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="13-cb12-3"><a href="#13-cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;service_worker&quot;</span><span class="fu">:</span> <span class="st">&quot;background.js&quot;</span></span>
+<span id="13-cb12-4"><a href="#13-cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h2 id="13-10-detect-capabilities-not-browser-brands">10. Detect
 capabilities, not browser brands</h2>
@@ -20805,14 +20897,14 @@ capability detection cannot rescue an invalid manifest after an
 extension fails to load. <strong>Runtime feature detection and
 build-time specialization complement one another.</strong></p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb12"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb12-1"><a href="#13-cb12-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>) {</span>
-<span id="13-cb12-2"><a href="#13-cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
-<span id="13-cb12-3"><a href="#13-cb12-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <div class="sourceCode" id="13-cb13"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb13-1"><a href="#13-cb13-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (browserName <span class="op">===</span> <span class="st">&quot;chrome&quot;</span>) {</span>
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb13-1"><a href="#13-cb13-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>) {</span>
 <span id="13-cb13-2"><a href="#13-cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
 <span id="13-cb13-3"><a href="#13-cb13-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb14"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb14-1"><a href="#13-cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (browserName <span class="op">===</span> <span class="st">&quot;chrome&quot;</span>) {</span>
+<span id="13-cb14-2"><a href="#13-cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="13-cb14-3"><a href="#13-cb14-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h1 id="13-part-iv--the-offscreen-audio-case">Part IV — The offscreen audio
 case</h1>
@@ -20827,26 +20919,26 @@ also retains an <code>offscreenCreation</code> Promise to prevent
 simultaneous creation attempts. This is the same in-flight deduplication
 concept discussed for downloads.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb14"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb14-1"><a href="#13-cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">ensureOffscreenAudioDocument</span>() {</span>
-<span id="13-cb14-2"><a href="#13-cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="op">!</span>chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>) <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
-<span id="13-cb14-3"><a href="#13-cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb14-4"><a href="#13-cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="cf">await</span> chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">.</span><span class="fu">hasDocument</span>()) <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
-<span id="13-cb14-5"><a href="#13-cb14-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb14-6"><a href="#13-cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="op">!</span>offscreenCreation) {</span>
-<span id="13-cb14-7"><a href="#13-cb14-7" aria-hidden="true" tabindex="-1"></a>    offscreenCreation <span class="op">=</span> chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">.</span><span class="fu">createDocument</span>({</span>
-<span id="13-cb14-8"><a href="#13-cb14-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">url</span><span class="op">:</span> <span class="st">&quot;offscreen-audio.html&quot;</span><span class="op">,</span></span>
-<span id="13-cb14-9"><a href="#13-cb14-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">reasons</span><span class="op">:</span> [<span class="st">&quot;AUDIO_PLAYBACK&quot;</span>]<span class="op">,</span></span>
-<span id="13-cb14-10"><a href="#13-cb14-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">justification</span><span class="op">:</span></span>
-<span id="13-cb14-11"><a href="#13-cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Riproduce gli avvisi sonori locali richiesti dall’utente.&quot;</span><span class="op">,</span></span>
-<span id="13-cb14-12"><a href="#13-cb14-12" aria-hidden="true" tabindex="-1"></a>    })<span class="op">.</span><span class="fu">finally</span>(() <span class="kw">=&gt;</span> {</span>
-<span id="13-cb14-13"><a href="#13-cb14-13" aria-hidden="true" tabindex="-1"></a>      offscreenCreation <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
-<span id="13-cb14-14"><a href="#13-cb14-14" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
-<span id="13-cb14-15"><a href="#13-cb14-15" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="13-cb14-16"><a href="#13-cb14-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb14-17"><a href="#13-cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">await</span> offscreenCreation<span class="op">;</span></span>
-<span id="13-cb14-18"><a href="#13-cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
-<span id="13-cb14-19"><a href="#13-cb14-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb15"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb15-1"><a href="#13-cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">ensureOffscreenAudioDocument</span>() {</span>
+<span id="13-cb15-2"><a href="#13-cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="op">!</span>chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>) <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="13-cb15-3"><a href="#13-cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb15-4"><a href="#13-cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="cf">await</span> chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">.</span><span class="fu">hasDocument</span>()) <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="13-cb15-5"><a href="#13-cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb15-6"><a href="#13-cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="op">!</span>offscreenCreation) {</span>
+<span id="13-cb15-7"><a href="#13-cb15-7" aria-hidden="true" tabindex="-1"></a>    offscreenCreation <span class="op">=</span> chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">.</span><span class="fu">createDocument</span>({</span>
+<span id="13-cb15-8"><a href="#13-cb15-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">url</span><span class="op">:</span> <span class="st">&quot;offscreen-audio.html&quot;</span><span class="op">,</span></span>
+<span id="13-cb15-9"><a href="#13-cb15-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">reasons</span><span class="op">:</span> [<span class="st">&quot;AUDIO_PLAYBACK&quot;</span>]<span class="op">,</span></span>
+<span id="13-cb15-10"><a href="#13-cb15-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">justification</span><span class="op">:</span></span>
+<span id="13-cb15-11"><a href="#13-cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Riproduce gli avvisi sonori locali richiesti dall’utente.&quot;</span><span class="op">,</span></span>
+<span id="13-cb15-12"><a href="#13-cb15-12" aria-hidden="true" tabindex="-1"></a>    })<span class="op">.</span><span class="fu">finally</span>(() <span class="kw">=&gt;</span> {</span>
+<span id="13-cb15-13"><a href="#13-cb15-13" aria-hidden="true" tabindex="-1"></a>      offscreenCreation <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="13-cb15-14"><a href="#13-cb15-14" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
+<span id="13-cb15-15"><a href="#13-cb15-15" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="13-cb15-16"><a href="#13-cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb15-17"><a href="#13-cb15-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">await</span> offscreenCreation<span class="op">;</span></span>
+<span id="13-cb15-18"><a href="#13-cb15-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="13-cb15-19"><a href="#13-cb15-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="13-12-a-fallback-instead-of-a-second-feature">12. A fallback
 instead of a second feature</h2>
@@ -20857,14 +20949,14 @@ different. This is <strong>graceful degradation</strong> of a
 platform-specific API, not a second independently designed sound
 feature.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb15"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb15-1"><a href="#13-cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="cf">await</span> <span class="fu">ensureOffscreenAudioDocument</span>()) {</span>
-<span id="13-cb15-2"><a href="#13-cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="fu">sendRuntimeMessage</span>(<span class="op">...</span>)<span class="op">;</span></span>
-<span id="13-cb15-3"><a href="#13-cb15-3" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="13-cb15-4"><a href="#13-cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb15-5"><a href="#13-cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> tabs <span class="op">=</span> <span class="cf">await</span> chrome<span class="op">.</span><span class="at">tabs</span><span class="op">.</span><span class="fu">query</span>(<span class="op">...</span>)<span class="op">;</span></span>
-<span id="13-cb15-6"><a href="#13-cb15-6" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
-<span id="13-cb15-7"><a href="#13-cb15-7" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="fu">sendTabMessage</span>(target<span class="op">.</span><span class="at">id</span><span class="op">,</span> <span class="op">...</span>)<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb16"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb16-1"><a href="#13-cb16-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="cf">await</span> <span class="fu">ensureOffscreenAudioDocument</span>()) {</span>
+<span id="13-cb16-2"><a href="#13-cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="fu">sendRuntimeMessage</span>(<span class="op">...</span>)<span class="op">;</span></span>
+<span id="13-cb16-3"><a href="#13-cb16-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="13-cb16-4"><a href="#13-cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb16-5"><a href="#13-cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> tabs <span class="op">=</span> <span class="cf">await</span> chrome<span class="op">.</span><span class="at">tabs</span><span class="op">.</span><span class="fu">query</span>(<span class="op">...</span>)<span class="op">;</span></span>
+<span id="13-cb16-6"><a href="#13-cb16-6" aria-hidden="true" tabindex="-1"></a><span class="op">...</span></span>
+<span id="13-cb16-7"><a href="#13-cb16-7" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="fu">sendTabMessage</span>(target<span class="op">.</span><span class="at">id</span><span class="op">,</span> <span class="op">...</span>)<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-13-why-the-firefox-build-removes-exactly-that-path">13. Why the
 Firefox build removes exactly that path</h2>
@@ -20875,14 +20967,14 @@ sound workflow needs to fork. This minimizes divergence: the same
 higher-level feature always chooses the supported mechanism rather than
 maintaining two separate notification systems.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb16"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb16-1"><a href="#13-cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">ensureOffscreenAudioDocument</span>() {</span>
-<span id="13-cb16-2"><a href="#13-cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
-<span id="13-cb16-3"><a href="#13-cb16-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <div class="sourceCode" id="13-cb17"><pre
 class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb17-1"><a href="#13-cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">ensureOffscreenAudioDocument</span>() {</span>
-<span id="13-cb17-2"><a href="#13-cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="13-cb17-2"><a href="#13-cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
 <span id="13-cb17-3"><a href="#13-cb17-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb18"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb18-1"><a href="#13-cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">ensureOffscreenAudioDocument</span>() {</span>
+<span id="13-cb18-2"><a href="#13-cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="13-cb18-3"><a href="#13-cb18-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h1 id="13-part-v--manifest-permissions-and-data-declarations">Part V —
 Manifest, permissions, and data declarations</h1>
@@ -20896,15 +20988,15 @@ intent of least privilege. The artifact validator checks the
 unneeded capabilities, instead of merely checking that some required
 permission happens to be present.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb18"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb18-1"><a href="#13-cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">,</span> <span class="st">&quot;offscreen&quot;</span><span class="ot">]</span></span></code></pre></div>
 <div class="sourceCode" id="13-cb19"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb19-1"><a href="#13-cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">]</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb19-1"><a href="#13-cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">,</span> <span class="st">&quot;offscreen&quot;</span><span class="ot">]</span></span></code></pre></div>
 <div class="sourceCode" id="13-cb20"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb20-1"><a href="#13-cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> expectedPermissions <span class="op">=</span></span>
-<span id="13-cb20-2"><a href="#13-cb20-2" aria-hidden="true" tabindex="-1"></a>  browser <span class="op">===</span> <span class="st">&quot;firefox&quot;</span></span>
-<span id="13-cb20-3"><a href="#13-cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">?</span> [<span class="st">&quot;storage&quot;</span>]</span>
-<span id="13-cb20-4"><a href="#13-cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span> [<span class="st">&quot;storage&quot;</span><span class="op">,</span> <span class="st">&quot;offscreen&quot;</span>]<span class="op">;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb20-1"><a href="#13-cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">]</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb21"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb21-1"><a href="#13-cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> expectedPermissions <span class="op">=</span></span>
+<span id="13-cb21-2"><a href="#13-cb21-2" aria-hidden="true" tabindex="-1"></a>  browser <span class="op">===</span> <span class="st">&quot;firefox&quot;</span></span>
+<span id="13-cb21-3"><a href="#13-cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">?</span> [<span class="st">&quot;storage&quot;</span>]</span>
+<span id="13-cb21-4"><a href="#13-cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span> [<span class="st">&quot;storage&quot;</span><span class="op">,</span> <span class="st">&quot;offscreen&quot;</span>]<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-15-the-firefox-id">15. The Firefox ID</h2>
 <p>The Firefox manifest includes
@@ -20914,12 +21006,12 @@ can make what was intended as an update appear to be a different
 extension. The project's release history treats this identity as a
 stable compatibility requirement.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb21"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb21-1"><a href="#13-cb21-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;browser_specific_settings&quot;:</span> <span class="fu">{</span></span>
-<span id="13-cb21-2"><a href="#13-cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gecko&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="13-cb21-3"><a href="#13-cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;plumepilot@fabiofloris&quot;</span></span>
-<span id="13-cb21-4"><a href="#13-cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="13-cb21-5"><a href="#13-cb21-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb22"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb22-1"><a href="#13-cb22-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;browser_specific_settings&quot;:</span> <span class="fu">{</span></span>
+<span id="13-cb22-2"><a href="#13-cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gecko&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="13-cb22-3"><a href="#13-cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;plumepilot@fabiofloris&quot;</span></span>
+<span id="13-cb22-4"><a href="#13-cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="13-cb22-5"><a href="#13-cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h2 id="13-16-data-collection-declarations">16. Data collection
 declarations</h2>
@@ -20933,14 +21025,14 @@ information to its own servers. The engineering lesson is that
 schemas</strong>. The same runtime logic may require different manifest
 metadata for different stores.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb22"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb22-1"><a href="#13-cb22-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;data_collection_permissions&quot;:</span> <span class="fu">{</span></span>
-<span id="13-cb22-2"><a href="#13-cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="13-cb22-3"><a href="#13-cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;authenticationInfo&quot;</span><span class="ot">,</span></span>
-<span id="13-cb22-4"><a href="#13-cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;websiteContent&quot;</span><span class="ot">,</span></span>
-<span id="13-cb22-5"><a href="#13-cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;websiteActivity&quot;</span></span>
-<span id="13-cb22-6"><a href="#13-cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
-<span id="13-cb22-7"><a href="#13-cb22-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb23"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb23-1"><a href="#13-cb23-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;data_collection_permissions&quot;:</span> <span class="fu">{</span></span>
+<span id="13-cb23-2"><a href="#13-cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="13-cb23-3"><a href="#13-cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;authenticationInfo&quot;</span><span class="ot">,</span></span>
+<span id="13-cb23-4"><a href="#13-cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;websiteContent&quot;</span><span class="ot">,</span></span>
+<span id="13-cb23-5"><a href="#13-cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;websiteActivity&quot;</span></span>
+<span id="13-cb23-6"><a href="#13-cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="13-cb23-7"><a href="#13-cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <hr />
 <h2 id="13-17-minimum-versions">17. Minimum versions</h2>
 <p>The snapshot sets a Firefox desktop minimum version of
@@ -20950,10 +21042,10 @@ willing to support. Explicitly raising the compatibility floor can
 sometimes be healthier than accumulating complex fallback branches for
 very old runtimes that are no longer part of the intended target.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb23"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb23-1"><a href="#13-cb23-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;140.0&quot;</span></span></code></pre></div>
 <div class="sourceCode" id="13-cb24"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb24-1"><a href="#13-cb24-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;142.0&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb24-1"><a href="#13-cb24-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;140.0&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb25-1"><a href="#13-cb25-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;142.0&quot;</span></span></code></pre></div>
 <hr />
 <h1
 id="13-part-vi--chrome-and-edge-same-engine-different-distribution">Part VI
@@ -20967,11 +21059,11 @@ release processing, and metadata requirements are not determined solely
 by the JavaScript engine. Browser-engine compatibility and distribution
 compatibility must remain separate concepts.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb25"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb25-1"><a href="#13-cb25-1" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">name</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionName__&quot;</span><span class="op">;</span></span>
-<span id="13-cb25-2"><a href="#13-cb25-2" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">description</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionDescription__&quot;</span><span class="op">;</span></span>
-<span id="13-cb25-3"><a href="#13-cb25-3" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">default_locale</span> <span class="op">=</span> <span class="st">&quot;it&quot;</span><span class="op">;</span></span>
-<span id="13-cb25-4"><a href="#13-cb25-4" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">action</span><span class="op">.</span><span class="at">default_title</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionName__&quot;</span><span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb26"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb26-1"><a href="#13-cb26-1" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">name</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionName__&quot;</span><span class="op">;</span></span>
+<span id="13-cb26-2"><a href="#13-cb26-2" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">description</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionDescription__&quot;</span><span class="op">;</span></span>
+<span id="13-cb26-3"><a href="#13-cb26-3" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">default_locale</span> <span class="op">=</span> <span class="st">&quot;it&quot;</span><span class="op">;</span></span>
+<span id="13-cb26-4"><a href="#13-cb26-4" aria-hidden="true" tabindex="-1"></a>manifest<span class="op">.</span><span class="at">action</span><span class="op">.</span><span class="at">default_title</span> <span class="op">=</span> <span class="st">&quot;__MSG_extensionName__&quot;</span><span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-19-runtime-compatibility-versus-distribution-compatibility">19.
 Runtime compatibility versus distribution compatibility</h2>
@@ -21024,17 +21116,17 @@ explicit set of files: <code>background.js</code>,
 is not an open-ended rewrite of every file matching a suspicious
 pattern; it is a controlled, auditable set of platform adaptations.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb26"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb26-1"><a href="#13-cb26-1" aria-hidden="true" tabindex="-1"></a>[</span>
-<span id="13-cb26-2"><a href="#13-cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;background.js&quot;</span><span class="op">,</span></span>
-<span id="13-cb26-3"><a href="#13-cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/jszip.js&quot;</span><span class="op">,</span></span>
-<span id="13-cb26-4"><a href="#13-cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/fontkit.umd.js&quot;</span><span class="op">,</span></span>
-<span id="13-cb26-5"><a href="#13-cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf-lib.js&quot;</span><span class="op">,</span></span>
-<span id="13-cb26-6"><a href="#13-cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf.mjs&quot;</span><span class="op">,</span></span>
-<span id="13-cb26-7"><a href="#13-cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf.worker.mjs&quot;</span></span>
-<span id="13-cb26-8"><a href="#13-cb26-8" aria-hidden="true" tabindex="-1"></a>]</span></code></pre></div>
 <div class="sourceCode" id="13-cb27"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb27-1"><a href="#13-cb27-1" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> bytes<span class="op">;</span></span></code></pre></div>
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb27-1"><a href="#13-cb27-1" aria-hidden="true" tabindex="-1"></a>[</span>
+<span id="13-cb27-2"><a href="#13-cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;background.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb27-3"><a href="#13-cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/jszip.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb27-4"><a href="#13-cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/fontkit.umd.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb27-5"><a href="#13-cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf-lib.js&quot;</span><span class="op">,</span></span>
+<span id="13-cb27-6"><a href="#13-cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf.mjs&quot;</span><span class="op">,</span></span>
+<span id="13-cb27-7"><a href="#13-cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;vendor/pdf.worker.mjs&quot;</span></span>
+<span id="13-cb27-8"><a href="#13-cb27-8" aria-hidden="true" tabindex="-1"></a>]</span></code></pre></div>
+<div class="sourceCode" id="13-cb28"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb28-1"><a href="#13-cb28-1" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> bytes<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-24-replaceexactly">24. <code>replaceExactly()</code></h2>
 <p>The build helper searches for one expected substring, verifies that
@@ -21043,25 +21135,25 @@ replacement. If it does not appear—or appears multiple times—the build
 fails with a labeled error. This turns fragile assumptions about
 dependency contents into explicit executable preconditions.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb28"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb28-1"><a href="#13-cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">replaceExactly</span>(source<span class="op">,</span> search<span class="op">,</span> replacement<span class="op">,</span> label) {</span>
-<span id="13-cb28-2"><a href="#13-cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> first <span class="op">=</span> source<span class="op">.</span><span class="fu">indexOf</span>(search)<span class="op">;</span></span>
-<span id="13-cb28-3"><a href="#13-cb28-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb28-4"><a href="#13-cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (</span>
-<span id="13-cb28-5"><a href="#13-cb28-5" aria-hidden="true" tabindex="-1"></a>    first <span class="op">&lt;</span> <span class="dv">0</span> <span class="op">||</span></span>
-<span id="13-cb28-6"><a href="#13-cb28-6" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">indexOf</span>(search<span class="op">,</span> first <span class="op">+</span> search<span class="op">.</span><span class="at">length</span>) <span class="op">&gt;=</span> <span class="dv">0</span></span>
-<span id="13-cb28-7"><a href="#13-cb28-7" aria-hidden="true" tabindex="-1"></a>  ) {</span>
-<span id="13-cb28-8"><a href="#13-cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">Error</span>(</span>
-<span id="13-cb28-9"><a href="#13-cb28-9" aria-hidden="true" tabindex="-1"></a>      <span class="vs">`Firefox review-safe: pattern inatteso (</span><span class="sc">${</span>label<span class="sc">}</span><span class="vs">).`</span></span>
-<span id="13-cb28-10"><a href="#13-cb28-10" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
-<span id="13-cb28-11"><a href="#13-cb28-11" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="13-cb28-12"><a href="#13-cb28-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="13-cb28-13"><a href="#13-cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> (</span>
-<span id="13-cb28-14"><a href="#13-cb28-14" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">slice</span>(<span class="dv">0</span><span class="op">,</span> first) <span class="op">+</span></span>
-<span id="13-cb28-15"><a href="#13-cb28-15" aria-hidden="true" tabindex="-1"></a>    replacement <span class="op">+</span></span>
-<span id="13-cb28-16"><a href="#13-cb28-16" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">slice</span>(first <span class="op">+</span> search<span class="op">.</span><span class="at">length</span>)</span>
-<span id="13-cb28-17"><a href="#13-cb28-17" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
-<span id="13-cb28-18"><a href="#13-cb28-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb29"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb29-1"><a href="#13-cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">replaceExactly</span>(source<span class="op">,</span> search<span class="op">,</span> replacement<span class="op">,</span> label) {</span>
+<span id="13-cb29-2"><a href="#13-cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> first <span class="op">=</span> source<span class="op">.</span><span class="fu">indexOf</span>(search)<span class="op">;</span></span>
+<span id="13-cb29-3"><a href="#13-cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb29-4"><a href="#13-cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (</span>
+<span id="13-cb29-5"><a href="#13-cb29-5" aria-hidden="true" tabindex="-1"></a>    first <span class="op">&lt;</span> <span class="dv">0</span> <span class="op">||</span></span>
+<span id="13-cb29-6"><a href="#13-cb29-6" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">indexOf</span>(search<span class="op">,</span> first <span class="op">+</span> search<span class="op">.</span><span class="at">length</span>) <span class="op">&gt;=</span> <span class="dv">0</span></span>
+<span id="13-cb29-7"><a href="#13-cb29-7" aria-hidden="true" tabindex="-1"></a>  ) {</span>
+<span id="13-cb29-8"><a href="#13-cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">Error</span>(</span>
+<span id="13-cb29-9"><a href="#13-cb29-9" aria-hidden="true" tabindex="-1"></a>      <span class="vs">`Firefox review-safe: pattern inatteso (</span><span class="sc">${</span>label<span class="sc">}</span><span class="vs">).`</span></span>
+<span id="13-cb29-10"><a href="#13-cb29-10" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="13-cb29-11"><a href="#13-cb29-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="13-cb29-12"><a href="#13-cb29-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="13-cb29-13"><a href="#13-cb29-13" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> (</span>
+<span id="13-cb29-14"><a href="#13-cb29-14" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">slice</span>(<span class="dv">0</span><span class="op">,</span> first) <span class="op">+</span></span>
+<span id="13-cb29-15"><a href="#13-cb29-15" aria-hidden="true" tabindex="-1"></a>    replacement <span class="op">+</span></span>
+<span id="13-cb29-16"><a href="#13-cb29-16" aria-hidden="true" tabindex="-1"></a>    source<span class="op">.</span><span class="fu">slice</span>(first <span class="op">+</span> search<span class="op">.</span><span class="at">length</span>)</span>
+<span id="13-cb29-17"><a href="#13-cb29-17" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="13-cb29-18"><a href="#13-cb29-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="13-25-fail-closed-transformation">25. Fail-closed
 transformation</h2>
@@ -21072,8 +21164,8 @@ developer to inspect why the known pattern changed. A release process
 should not silently produce partly modified executable code that nobody
 has reviewed.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb29"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb29-1"><a href="#13-cb29-1" aria-hidden="true" tabindex="-1"></a>source<span class="op">.</span><span class="fu">replace</span>(regex<span class="op">,</span> replacement)<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb30"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb30-1"><a href="#13-cb30-1" aria-hidden="true" tabindex="-1"></a>source<span class="op">.</span><span class="fu">replace</span>(regex<span class="op">,</span> replacement)<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-26-why-exact-matching-matters">26. Why exact matching
 matters</h2>
@@ -21084,8 +21176,8 @@ package whose fallback behavior differs from what the author intended.
 upstream representation visible and testable, much like a schema
 assertion in a data migration.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb30"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb30-1"><a href="#13-cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Function</span>(<span class="op">...</span>)</span></code></pre></div>
+<div class="sourceCode" id="13-cb31"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb31-1"><a href="#13-cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Function</span>(<span class="op">...</span>)</span></code></pre></div>
 <hr />
 <h1 id="13-part-ix--the-jszip-case">Part IX — The JSZip case</h1>
 <h2 id="13-27-unused-code-can-still-matter">27. Unused code can still
@@ -21098,8 +21190,8 @@ even if the branch is unreachable for the project's usage. Runtime
 reachability and static-review acceptability are different
 dimensions.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb31"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb31-1"><a href="#13-cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Function</span>(<span class="op">...</span>)</span></code></pre></div>
+<div class="sourceCode" id="13-cb32"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb32-1"><a href="#13-cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Function</span>(<span class="op">...</span>)</span></code></pre></div>
 <hr />
 <h2 id="13-28-remove-an-unused-capability-do-not-conceal-it">28. Remove an
 unused capability, do not conceal it</h2>
@@ -21110,12 +21202,12 @@ inspection. It <strong>removes a capability that PlumePilot does not
 use</strong>. This distinction is central to auditable platform
 specialization.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb32"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb32-1"><a href="#13-cb32-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="kw">typeof</span> callback <span class="op">!==</span> <span class="st">&quot;function&quot;</span>) {</span>
-<span id="13-cb32-2"><a href="#13-cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">TypeError</span>(</span>
-<span id="13-cb32-3"><a href="#13-cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;setImmediate callback must be a function&quot;</span></span>
-<span id="13-cb32-4"><a href="#13-cb32-4" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
-<span id="13-cb32-5"><a href="#13-cb32-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb33"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb33-1"><a href="#13-cb33-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="kw">typeof</span> callback <span class="op">!==</span> <span class="st">&quot;function&quot;</span>) {</span>
+<span id="13-cb33-2"><a href="#13-cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">TypeError</span>(</span>
+<span id="13-cb33-3"><a href="#13-cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;setImmediate callback must be a function&quot;</span></span>
+<span id="13-cb33-4"><a href="#13-cb33-4" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="13-cb33-5"><a href="#13-cb33-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h1 id="13-part-x--the-fontkit-case">Part X — The fontkit case</h1>
 <h2 id="13-29-fontkit-and-legacy-fallbacks">29. fontkit and legacy
@@ -21139,19 +21231,19 @@ running JavaScript; the constraint comes from the <strong>deployment
 target and review requirements</strong>, not a lack of JavaScript
 language support.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb33"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb33-1"><a href="#13-cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">isEvalSupported</span>() {</span>
-<span id="13-cb33-2"><a href="#13-cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> {</span>
-<span id="13-cb33-3"><a href="#13-cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="bu">Function</span>(<span class="st">&quot;&quot;</span>)<span class="op">;</span></span>
-<span id="13-cb33-4"><a href="#13-cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
-<span id="13-cb33-5"><a href="#13-cb33-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">catch</span> {</span>
-<span id="13-cb33-6"><a href="#13-cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
-<span id="13-cb33-7"><a href="#13-cb33-7" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="13-cb33-8"><a href="#13-cb33-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <div class="sourceCode" id="13-cb34"><pre
 class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb34-1"><a href="#13-cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">isEvalSupported</span>() {</span>
-<span id="13-cb34-2"><a href="#13-cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
-<span id="13-cb34-3"><a href="#13-cb34-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<span id="13-cb34-2"><a href="#13-cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">try</span> {</span>
+<span id="13-cb34-3"><a href="#13-cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">new</span> <span class="bu">Function</span>(<span class="st">&quot;&quot;</span>)<span class="op">;</span></span>
+<span id="13-cb34-4"><a href="#13-cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="13-cb34-5"><a href="#13-cb34-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">catch</span> {</span>
+<span id="13-cb34-6"><a href="#13-cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="13-cb34-7"><a href="#13-cb34-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="13-cb34-8"><a href="#13-cb34-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb35"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb35-1"><a href="#13-cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">isEvalSupported</span>() {</span>
+<span id="13-cb35-2"><a href="#13-cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="13-cb35-3"><a href="#13-cb35-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="13-31-interpreter-versus-compiler">31. Interpreter versus
 compiler</h2>
@@ -21278,10 +21370,10 @@ suspicious code shape such as very long lines and unusually
 dense/minified formatting. The correct use is to catch known risks, not
 to assume passing that heuristic guarantees store acceptance.</p>
 <p><strong>Examples from the historical code:</strong></p>
-<div class="sourceCode" id="13-cb35"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb35-1"><a href="#13-cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">couldBeMinifiedCode</span>(source) {</span>
-<span id="13-cb35-2"><a href="#13-cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
-<span id="13-cb35-3"><a href="#13-cb35-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb36"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb36-1"><a href="#13-cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">couldBeMinifiedCode</span>(source) {</span>
+<span id="13-cb36-2"><a href="#13-cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="13-cb36-3"><a href="#13-cb36-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="13-45-turn-postmortems-into-tests">45. Turn postmortems into
 tests</h2>
@@ -21299,8 +21391,8 @@ Reproducible source submission</h1>
 rebuild the archives. A reviewer should not have to guess how the
 shipped output was generated.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb36"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="13-cb36-1"><a href="#13-cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> scripts/build-release.mjs</span></code></pre></div>
+<div class="sourceCode" id="13-cb37"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="13-cb37-1"><a href="#13-cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> scripts/build-release.mjs</span></code></pre></div>
 <hr />
 <h2 id="13-47-offline-builds">47. Offline builds</h2>
 <p>Building the release without a network dependency is valuable because
@@ -21327,16 +21419,16 @@ claimed output from declared sources.</p>
 <p>Fixed ZIP entry timestamps prevent today's date from changing binary
 hashes when the code is otherwise unchanged.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb39"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb39-1"><a href="#13-cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> fixedZipDate <span class="op">=</span></span>
-<span id="13-cb39-2"><a href="#13-cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">new</span> <span class="bu">Date</span>(<span class="st">&quot;2026-01-01T00:00:00.000Z&quot;</span>)<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb40"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb40-1"><a href="#13-cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> fixedZipDate <span class="op">=</span></span>
+<span id="13-cb40-2"><a href="#13-cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">new</span> <span class="bu">Date</span>(<span class="st">&quot;2026-01-01T00:00:00.000Z&quot;</span>)<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-50-stable-ordering">50. Stable ordering</h2>
 <p>Sorting the collected file list stabilizes ZIP entry ordering and
 reduces meaningless differences between builds.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb40"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb40-1"><a href="#13-cb40-1" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> files<span class="op">.</span><span class="fu">sort</span>()<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb41"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb41-1"><a href="#13-cb41-1" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> files<span class="op">.</span><span class="fu">sort</span>()<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-51-sha256sums">51. SHA256SUMS</h2>
 <p>The builder generates <code>SHA256SUMS.txt</code> with checksums for
@@ -21410,12 +21502,12 @@ safer DOM construction or controlled escaping. Not all innerHTML is
 inherently unsafe, but an unexamined HTML injection boundary increases
 review and security risk.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb47"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb47-1"><a href="#13-cb47-1" aria-hidden="true" tabindex="-1"></a>element<span class="op">.</span><span class="at">innerHTML</span> <span class="op">=</span> <span class="vs">`</span></span>
-<span id="13-cb47-2"><a href="#13-cb47-2" aria-hidden="true" tabindex="-1"></a><span class="vs">  ...</span></span>
-<span id="13-cb47-3"><a href="#13-cb47-3" aria-hidden="true" tabindex="-1"></a><span class="vs">  </span><span class="sc">${</span>dynamicValue<span class="sc">}</span></span>
-<span id="13-cb47-4"><a href="#13-cb47-4" aria-hidden="true" tabindex="-1"></a><span class="vs">  ...</span></span>
-<span id="13-cb47-5"><a href="#13-cb47-5" aria-hidden="true" tabindex="-1"></a><span class="vs">`</span><span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb48"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb48-1"><a href="#13-cb48-1" aria-hidden="true" tabindex="-1"></a>element<span class="op">.</span><span class="at">innerHTML</span> <span class="op">=</span> <span class="vs">`</span></span>
+<span id="13-cb48-2"><a href="#13-cb48-2" aria-hidden="true" tabindex="-1"></a><span class="vs">  ...</span></span>
+<span id="13-cb48-3"><a href="#13-cb48-3" aria-hidden="true" tabindex="-1"></a><span class="vs">  </span><span class="sc">${</span>dynamicValue<span class="sc">}</span></span>
+<span id="13-cb48-4"><a href="#13-cb48-4" aria-hidden="true" tabindex="-1"></a><span class="vs">  ...</span></span>
+<span id="13-cb48-5"><a href="#13-cb48-5" aria-hidden="true" tabindex="-1"></a><span class="vs">`</span><span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-57-where-security-and-review-align">57. Where security and
 review align</h2>
@@ -21430,8 +21522,8 @@ code and data boundaries</h1>
 assets. PlumePilot fetches PDFs and LMS data but should not fetch remote
 JavaScript to evaluate as new program logic.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb48"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="13-cb48-1"><a href="#13-cb48-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb49"><pre
+class="sourceCode html"><code class="sourceCode html"><span id="13-cb49-1"><a href="#13-cb49-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <hr />
 <h2 id="13-59-code-vs-data-boundary">59. Code vs data boundary</h2>
 <p>A downloaded PDF is data; a downloaded script executed with eval
@@ -21479,8 +21571,8 @@ detection cannot fix timing assumptions</h2>
 scenarios, guarded waits, and narrowly documented target workarounds
 when necessary.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb52"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb52-1"><a href="#13-cb52-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="st">&quot;domTimingBug&quot;</span> <span class="kw">in</span> <span class="bu">window</span>)</span></code></pre></div>
+<div class="sourceCode" id="13-cb53"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb53-1"><a href="#13-cb53-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="st">&quot;domTimingBug&quot;</span> <span class="kw">in</span> <span class="bu">window</span>)</span></code></pre></div>
 <hr />
 <h1 id="13-part-xxiv--chrome-versus-browser-namespaces">Part XXIV — chrome
 versus browser namespaces</h1>
@@ -21490,20 +21582,20 @@ misconception</h2>
 browser.*. The actual behavior of an API matters more than the
 namespace's spelling.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb53"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb53-1"><a href="#13-cb53-1" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">storage</span></span>
-<span id="13-cb53-2"><a href="#13-cb53-2" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">runtime</span></span>
-<span id="13-cb53-3"><a href="#13-cb53-3" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">tabs</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb54"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb54-1"><a href="#13-cb54-1" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">storage</span></span>
+<span id="13-cb54-2"><a href="#13-cb54-2" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">runtime</span></span>
+<span id="13-cb54-3"><a href="#13-cb54-3" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">tabs</span></span></code></pre></div>
 <hr />
 <h2 id="13-65-callback-vs-promise">65. Callback vs Promise</h2>
 <p>Project-owned Promise wrappers over callback-style messaging provide
 stable asynchronous semantics where browser API contracts have
 historically differed.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb54"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb54-1"><a href="#13-cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Promise</span>((resolve) <span class="kw">=&gt;</span> {</span>
-<span id="13-cb54-2"><a href="#13-cb54-2" aria-hidden="true" tabindex="-1"></a>  chrome<span class="op">.</span><span class="at">runtime</span><span class="op">.</span><span class="fu">sendMessage</span>(message<span class="op">,</span> resolve)<span class="op">;</span></span>
-<span id="13-cb54-3"><a href="#13-cb54-3" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb55"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb55-1"><a href="#13-cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">new</span> <span class="bu">Promise</span>((resolve) <span class="kw">=&gt;</span> {</span>
+<span id="13-cb55-2"><a href="#13-cb55-2" aria-hidden="true" tabindex="-1"></a>  chrome<span class="op">.</span><span class="at">runtime</span><span class="op">.</span><span class="fu">sendMessage</span>(message<span class="op">,</span> resolve)<span class="op">;</span></span>
+<span id="13-cb55-3"><a href="#13-cb55-3" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
 <hr />
 <h1 id="13-part-xxv--detection-and-adapters">Part XXV — Detection and
 adapters</h1>
@@ -21511,8 +21603,8 @@ adapters</h1>
 <p>User-agent string detection is brittle compared with capability
 detection, target-specific manifests, and observed runtime behavior.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb55"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb55-1"><a href="#13-cb55-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="bu">navigator</span><span class="op">.</span><span class="at">userAgent</span><span class="op">.</span><span class="fu">includes</span>(<span class="st">&quot;Firefox&quot;</span>)) <span class="op">...</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb56"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb56-1"><a href="#13-cb56-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="bu">navigator</span><span class="op">.</span><span class="at">userAgent</span><span class="op">.</span><span class="fu">includes</span>(<span class="st">&quot;Firefox&quot;</span>)) <span class="op">...</span></span></code></pre></div>
 <hr />
 <h2 id="13-67-when-a-browser-specific-branch-is-justified">67. When a
 browser-specific branch is justified</h2>
@@ -21621,8 +21713,8 @@ insufficient</h2>
 <p>Source tests cannot catch an omitted stylesheet in a ZIP or a Firefox
 manifest accidentally containing Chromium-only permissions.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb58"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb58-1"><a href="#13-cb58-1" aria-hidden="true" tabindex="-1"></a>menu<span class="op">-</span>ux<span class="op">.</span><span class="at">js</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb59"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb59-1"><a href="#13-cb59-1" aria-hidden="true" tabindex="-1"></a>menu<span class="op">-</span>ux<span class="op">.</span><span class="at">js</span></span></code></pre></div>
 <hr />
 <h2 id="13-72-three-testing-layers">72. Three testing layers</h2>
 <p>A mature cross-browser pipeline distinguishes three levels:</p>
@@ -21684,10 +21776,10 @@ Every browser-specific condition adds maintenance cost</h2>
 feature complexity and tests. Concentrate platform branching at known
 boundaries.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb63"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb63-1"><a href="#13-cb63-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (firefox) <span class="fu">pathA</span>()<span class="op">;</span></span>
-<span id="13-cb63-2"><a href="#13-cb63-2" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> (edge) <span class="fu">pathB</span>()<span class="op">;</span></span>
-<span id="13-cb63-3"><a href="#13-cb63-3" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="fu">pathC</span>()<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb64"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb64-1"><a href="#13-cb64-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (firefox) <span class="fu">pathA</span>()<span class="op">;</span></span>
+<span id="13-cb64-2"><a href="#13-cb64-2" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> (edge) <span class="fu">pathB</span>()<span class="op">;</span></span>
+<span id="13-cb64-3"><a href="#13-cb64-3" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="fu">pathC</span>()<span class="op">;</span></span></code></pre></div>
 <hr />
 <h2 id="13-78-divergence-budget">78. Divergence budget</h2>
 <p>Every browser-specific difference creates a future maintenance cost:
@@ -21750,16 +21842,16 @@ version-reading bug</h2>
 version was instead read by a privileged bridge and passed through the
 existing protocol.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb66"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb66-1"><a href="#13-cb66-1" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">runtime</span><span class="op">.</span><span class="fu">getManifest</span>()</span></code></pre></div>
+<div class="sourceCode" id="13-cb67"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb67-1"><a href="#13-cb67-1" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">runtime</span><span class="op">.</span><span class="fu">getManifest</span>()</span></code></pre></div>
 <hr />
 <h2 id="13-87-do-not-duplicate-the-version">87. Do not duplicate the
 version</h2>
 <p>Manifest version should be the source of truth. Copying a VERSION
 constant into many scripts creates inevitable drift.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb67"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb67-1"><a href="#13-cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> VERSION <span class="op">=</span> <span class="st">&quot;2.35.2&quot;</span><span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb68"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb68-1"><a href="#13-cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> VERSION <span class="op">=</span> <span class="st">&quot;2.35.2&quot;</span><span class="op">;</span></span></code></pre></div>
 <hr />
 <h1 id="13-part-xxxvi--firefox-android-declarations">Part XXXVI — Firefox
 Android declarations</h1>
@@ -21809,10 +21901,10 @@ Question 5: What must the artifact validator check?</h2>
 <p>Every platform-specific rule should have a matching artifact
 invariant. Firefox excluding offscreen becomes a build assertion.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb68"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb68-1"><a href="#13-cb68-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (manifest<span class="op">.</span><span class="at">permissions</span><span class="op">?.</span><span class="fu">includes</span>(<span class="st">&quot;offscreen&quot;</span>)) {</span>
-<span id="13-cb68-2"><a href="#13-cb68-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="op">...</span></span>
-<span id="13-cb68-3"><a href="#13-cb68-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb69"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb69-1"><a href="#13-cb69-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (manifest<span class="op">.</span><span class="at">permissions</span><span class="op">?.</span><span class="fu">includes</span>(<span class="st">&quot;offscreen&quot;</span>)) {</span>
+<span id="13-cb69-2"><a href="#13-cb69-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="op">...</span></span>
+<span id="13-cb69-3"><a href="#13-cb69-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h1 id="13-part-xxxix--never-patch-generated-zips">Part XXXIX — Never patch
 generated ZIPs</h1>
@@ -21967,12 +22059,12 @@ is not universal feature detection</h2>
 universal compatibility strategy, especially for asynchronous errors.
 Prefer capability checks and documented API contracts.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb74"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb74-1"><a href="#13-cb74-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> {</span>
-<span id="13-cb74-2"><a href="#13-cb74-2" aria-hidden="true" tabindex="-1"></a>  chrome<span class="op">.</span><span class="at">someApi</span><span class="op">.</span><span class="fu">doThing</span>()<span class="op">;</span></span>
-<span id="13-cb74-3"><a href="#13-cb74-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">catch</span> {</span>
-<span id="13-cb74-4"><a href="#13-cb74-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
-<span id="13-cb74-5"><a href="#13-cb74-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb75"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb75-1"><a href="#13-cb75-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> {</span>
+<span id="13-cb75-2"><a href="#13-cb75-2" aria-hidden="true" tabindex="-1"></a>  chrome<span class="op">.</span><span class="at">someApi</span><span class="op">.</span><span class="fu">doThing</span>()<span class="op">;</span></span>
+<span id="13-cb75-3"><a href="#13-cb75-3" aria-hidden="true" tabindex="-1"></a>} <span class="cf">catch</span> {</span>
+<span id="13-cb75-4"><a href="#13-cb75-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="13-cb75-5"><a href="#13-cb75-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h2 id="13-112-chromium-does-not-mean-chrome-web-store">112. Chromium does
 not mean Chrome Web Store</h2>
@@ -22063,13 +22155,13 @@ it relies on someone remembering an informal instruction.</p>
 instruction into executable knowledge. Automated failure scales better
 than memory alone.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb76"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb76-1"><a href="#13-cb76-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (</span>
-<span id="13-cb76-2"><a href="#13-cb76-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(packagedLocales) <span class="op">!==</span></span>
-<span id="13-cb76-3"><a href="#13-cb76-3" aria-hidden="true" tabindex="-1"></a>  <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>([<span class="st">&quot;en&quot;</span><span class="op">,</span> <span class="st">&quot;it&quot;</span>])</span>
-<span id="13-cb76-4"><a href="#13-cb76-4" aria-hidden="true" tabindex="-1"></a>) {</span>
-<span id="13-cb76-5"><a href="#13-cb76-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="op">...</span></span>
-<span id="13-cb76-6"><a href="#13-cb76-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<div class="sourceCode" id="13-cb77"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb77-1"><a href="#13-cb77-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (</span>
+<span id="13-cb77-2"><a href="#13-cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(packagedLocales) <span class="op">!==</span></span>
+<span id="13-cb77-3"><a href="#13-cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>([<span class="st">&quot;en&quot;</span><span class="op">,</span> <span class="st">&quot;it&quot;</span>])</span>
+<span id="13-cb77-4"><a href="#13-cb77-4" aria-hidden="true" tabindex="-1"></a>) {</span>
+<span id="13-cb77-5"><a href="#13-cb77-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">throw</span> <span class="op">...</span></span>
+<span id="13-cb77-6"><a href="#13-cb77-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <hr />
 <h1 id="13-part-liv--graceful-degradation">Part LIV — Graceful
 degradation</h1>
@@ -22139,12 +22231,12 @@ variations localized.</p>
 capability descriptor may help—but only when it reduces real
 conditionals and duplication.</p>
 <p><strong>Historical code or diagram:</strong></p>
-<div class="sourceCode" id="13-cb77"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb77-1"><a href="#13-cb77-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> capabilities <span class="op">=</span> {</span>
-<span id="13-cb77-2"><a href="#13-cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">offscreenAudio</span><span class="op">:</span> <span class="op">...,</span></span>
-<span id="13-cb77-3"><a href="#13-cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">backgroundWorker</span><span class="op">:</span> <span class="op">...,</span></span>
-<span id="13-cb77-4"><a href="#13-cb77-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
-<span id="13-cb77-5"><a href="#13-cb77-5" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb78"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb78-1"><a href="#13-cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> capabilities <span class="op">=</span> {</span>
+<span id="13-cb78-2"><a href="#13-cb78-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">offscreenAudio</span><span class="op">:</span> <span class="op">...,</span></span>
+<span id="13-cb78-3"><a href="#13-cb78-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">backgroundWorker</span><span class="op">:</span> <span class="op">...,</span></span>
+<span id="13-cb78-4"><a href="#13-cb78-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">...</span></span>
+<span id="13-cb78-5"><a href="#13-cb78-5" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
 <hr />
 <h1 id="13-part-lvii--cross-browser-debugging">Part LVII — Cross-browser
 debugging</h1>
@@ -22318,8 +22410,8 @@ domain modules would spread compatibility knowledge. Prefer constrained
 adapters unless conditional compilation materially simplifies a clearly
 localized need.</p>
 <p><strong>Original technical examples:</strong></p>
-<div class="sourceCode" id="13-cb78"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb78-1"><a href="#13-cb78-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (__FIREFOX__) <span class="op">...</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb79"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb79-1"><a href="#13-cb79-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (__FIREFOX__) <span class="op">...</span></span></code></pre></div>
 <hr />
 <h1 id="13-part-lxv--the-cost-of-target-artifacts">Part LXV — The cost of
 target artifacts</h1>
@@ -22544,8 +22636,8 @@ Chrome popup</h2>
 <p>Chrome and Firefox render the same popup, but Chrome clips the right
 edge.</p>
 <p>Why is it a mistake to begin with:</p>
-<div class="sourceCode" id="13-cb89"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb89-1"><a href="#13-cb89-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (isChrome) width <span class="op">-=</span> <span class="dv">8</span><span class="op">;</span></span></code></pre></div>
+<div class="sourceCode" id="13-cb90"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb90-1"><a href="#13-cb90-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (isChrome) width <span class="op">-=</span> <span class="dv">8</span><span class="op">;</span></span></code></pre></div>
 <p>without measuring:</p>
 <pre class="text"><code>scrollbar
 viewport
@@ -22558,11 +22650,11 @@ which indicate a general layout problem?</p>
 id="13-exercise-6--feature-detection-versus-manifest-specialization">Exercise
 6 — Feature detection versus manifest specialization</h2>
 <p>Why is:</p>
-<div class="sourceCode" id="13-cb91"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb91-1"><a href="#13-cb91-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>)</span></code></pre></div>
-<p>usually a better runtime capability test than:</p>
 <div class="sourceCode" id="13-cb92"><pre
-class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb92-1"><a href="#13-cb92-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="op">!</span>isFirefox)</span></code></pre></div>
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb92-1"><a href="#13-cb92-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (chrome<span class="op">.</span><span class="at">offscreen</span><span class="op">?.</span><span class="at">createDocument</span>)</span></code></pre></div>
+<p>usually a better runtime capability test than:</p>
+<div class="sourceCode" id="13-cb93"><pre
+class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb93-1"><a href="#13-cb93-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="op">!</span>isFirefox)</span></code></pre></div>
 <p>yet insufficient to replace browser-specific manifest generation?</p>
 <p>Distinguish <strong>runtime API availability</strong> from
 <strong>static package declarations, permissions, and store
