@@ -349,7 +349,7 @@ Qui ne vediamo la ragione cross-browser.
 
 ## 8. Firefox: background scripts
 
-Il pacchetto Firefox viene invece costruito con:
+**Snapshot storico 2.35.2:** il builder Firefox usava questa lista di script (vedremo tra poco perché era incompleta):
 
 ```js
 manifest.background = {
@@ -384,6 +384,41 @@ Firefox è un Chromium con qualche API mancante
 Stiamo accettando che il **background execution environment** sia diverso.
 
 MDN documenta esplicitamente questa differenza: per Manifest V3 Chrome usa `background.service_worker`, mentre Firefox supporta `background.scripts` per questo scenario.
+
+### Caso reale successivo — Firefox e il monitor commissione (v2.35.4)
+
+> **Aggiornamento rispetto allo snapshot 2.35.2.** Questo caso è stato corretto nella [PR #46](https://github.com/PlumePilot/plumepilot/pull/46), confluita nella versione **2.35.4**. Manteniamo sopra il frammento originale per documentare un errore architetturale realmente distribuito, non per suggerirne il riutilizzo.
+
+**Sintomo.** Dopo la pulizia dei dati del browser, il monitor commissione non aggiornava gli esami su Firefox e l'interfaccia mostrava un messaggio generico sull'attesa dell'autenticazione. In Chrome la stessa funzionalità continuava a funzionare. La pulizia della cache rendeva più evidente il problema, ma non era la causa della dipendenza mancante.
+
+**Come passa il dato.** `commission-interceptor.js`, nel **MAIN world** della pagina LMS, osserva le chiamate Fetch/XHR già autenticate e conserva il token Bearer **solo nella memoria della pagina**. Quando il monitor chiede i dati, l'interceptor chiama l'API della piattaforma e invia la risposta a `bridge.js`; quest'ultimo la consegna al **background**, che usa `StudyWingCommissionState` per elaborare le modifiche e salvare lo stato in `chrome.storage.local`. Il token **non** viene salvato nello storage.
+
+**La vera causa.** Il manifest sorgente dichiarava `commission-state.js`, ma il builder sostituiva l'elenco `background.scripts` di Firefox con una lista che lo **ometteva**. Il modulo definisce `globalThis.StudyWingCommissionState`. In Chrome/Edge, invece, `background.js` è eseguito come service worker e può recuperare il modulo con `importScripts("commission-state.js")`. Nel background Firefox basato su script, quel recupero non avveniva: al momento del salvataggio si poteva ottenere `commission-state-unavailable`. L'assenza di risultati nell'interfaccia poteva essere scambiata per un problema di autorizzazione, anche se la mancata elaborazione avveniva **dopo** il recupero della risposta.
+
+**Correzione nel pacchetto Firefox 2.35.4:**
+
+```js
+manifest.background = {
+  scripts: [
+    "achievements.js",
+    "commission-state.js", // prima di background.js
+    "sound-settings.js",
+    "whats-new.js",
+    "background.js"
+  ]
+};
+```
+
+Non servono nuovi permessi né un salvataggio persistente del token. Il builder e `scripts/validate-release.mjs` ora controllano **l'elenco completo e l'ordine** degli script del background Firefox, non soltanto l'assenza di `service_worker`. Se la dipendenza manca o viene caricata troppo tardi, la release deve fallire prima di essere pubblicata.
+
+| Domanda | Chrome / Edge | Firefox |
+|---|---|---|
+| Come parte il background? | `service_worker: "background.js"` | `background.scripts` in ordine |
+| Come arriva `StudyWingCommissionState`? | `importScripts()` nel worker, se necessario | `commission-state.js` dichiarato prima del consumer |
+| Dove viene letto il Bearer? | MAIN world della pagina LMS | MAIN world della pagina LMS |
+| Cosa protegge la regressione? | Verifica dell'artefatto Chromium | Verifica esplicita della lista/ordine degli script Firefox |
+
+**Lezione riutilizzabile:** uno script può essere presente nello ZIP e la sua funzione può essere corretta, ma **non essere caricato nel contesto che ne ha bisogno**. I test devono verificare anche il wiring del manifest e l'artefatto finale. Un messaggio UI generico non è una prova della causa tecnica: separiamo sempre *acquisizione del token*, *richiesta API* e *salvataggio nel background*.
 
 ---
 
