@@ -1,0 +1,62 @@
+name: Regenerate Italian Inside PlumePilot reader (candidate)
+
+on:
+  push:
+    branches: [docs/commission-cross-browser-case-study]
+    paths:
+      - '.github/workflows/inside-plumepilot-it-case-update.yml'
+      - 'docs/inside-plumepilot/13-cross-browser.md'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pandoc
+        run: sudo apt-get update -qq && sudo apt-get install -y pandoc
+      - name: Update complete Markdown edition from chapter 13
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          chapter = Path('docs/inside-plumepilot/13-cross-browser.md').read_text(encoding='utf-8')
+          full = Path('INSIDE_PLUMEPILOT.md')
+          book = full.read_text(encoding='utf-8')
+          start = '## 8. Firefox: background scripts\n'
+          end = '## 9. Una scelta interessante: produrre manifest diversi\n'
+          assert chapter.count(start) == 1 and chapter.count(end) == 1
+          assert book.count(start) == 1 and book.count(end) == 1
+          new_section = chapter.split(start, 1)[1].split(end, 1)[0]
+          old_section = book.split(start, 1)[1].split(end, 1)[0]
+          book = book.replace(start + old_section + end, start + new_section + end)
+          assert 'commission-state-unavailable' in book
+          full.write_text(book, encoding='utf-8')
+          PY
+      - name: Rebuild Italian offline reader
+        run: node scripts/build-inside-plumepilot.mjs
+      - name: Verify generated editions and anchors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path('docs/inside-plumepilot/Inside-PlumePilot.html').read_text(encoding='utf-8')
+          chapter = Path('docs/inside-plumepilot/13-cross-browser.md').read_text(encoding='utf-8')
+          book = Path('INSIDE_PLUMEPILOT.md').read_text(encoding='utf-8')
+          for token in ('Caso reale successivo', 'commission-state-unavailable', 'commission-state.js', 'PR #46'):
+              assert token in chapter, token
+              assert token in book, token
+          for token in ('Caso reale successivo', 'commission-state-unavailable', 'commission-state.js', 'chapter-13', 'id="bookSearch"'):
+              assert token in html, token
+          assert html.count('class="chapter"') >= 18
+          print('IT offline reader + complete Markdown: synchronized')
+          PY
+      - name: Commit regenerated outputs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/inside-plumepilot/Inside-PlumePilot.html INSIDE_PLUMEPILOT.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs(book): regenerate Italian offline HTML and complete Markdown'
+            git push origin HEAD:docs/commission-cross-browser-case-study
+          fi
