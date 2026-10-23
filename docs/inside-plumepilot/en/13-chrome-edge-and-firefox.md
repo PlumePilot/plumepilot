@@ -130,6 +130,8 @@ manifest.background = {
 
 For the Firefox target, the build emits a `background.scripts` array instead of `background.service_worker` and excludes Chromium's `offscreen` permission. The validator rejects a Firefox artifact containing the unexpected service-worker declaration. The difference is not merely a string in a manifest: the actual **background execution environment** is different, even though much of the business logic remains shared.
 
+**Historical 2.35.2 snapshot:** the example below reproduces the original Firefox script list. It was incomplete; the 2.35.4 postmortem following the example explains the correction.
+
 **Examples from the historical code:**
 
 ```js
@@ -147,6 +149,41 @@ manifest.background = {
 if (manifest.background?.service_worker)
   throw new Error("Firefox: service_worker inatteso.");
 ```
+
+### Later case study — Firefox commission monitor (v2.35.4)
+
+> **Update to the 2.35.2 reference snapshot.** [PR #46](https://github.com/PlumePilot/plumepilot/pull/46) fixed a real packaging regression in **2.35.4**. The earlier script list remains above as historical evidence, not as a recommended configuration.
+
+**Symptom.** After clearing browser data, the exam commission monitor stopped refreshing in Firefox and displayed a generic message about waiting for authentication. Chrome still worked. Clearing the cache exposed the failure, but **did not cause** the missing background dependency.
+
+**The data path.** `commission-interceptor.js`, running in the LMS page's **MAIN world**, observes already-authenticated Fetch/XHR requests and retains the Bearer token **in page memory only**. For a commission check, the interceptor requests the platform API and posts the response to `bridge.js`. The bridge forwards it to the **extension background**, which uses `StudyWingCommissionState` to detect state changes and store the exam data in `chrome.storage.local`. The token itself is **not persisted** there.
+
+**Root cause.** The repository's source manifest included `commission-state.js`, but the Firefox-specific builder overwrote `background.scripts` with a list that **omitted it**. That module defines `globalThis.StudyWingCommissionState`. Chrome/Edge instead use a service worker whose `background.js` can load the module through `importScripts("commission-state.js")`. With Firefox's background scripts, the dependency was never loaded in the required context; saving a response could return `commission-state-unavailable`. The UI could misleadingly suggest an authorization problem even if the actual failure occurred **after** the API response.
+
+**Fixed Firefox background configuration (2.35.4):**
+
+```js
+manifest.background = {
+  scripts: [
+    "achievements.js",
+    "commission-state.js", // load before background.js
+    "sound-settings.js",
+    "whats-new.js",
+    "background.js"
+  ]
+};
+```
+
+No new permission or persistent token storage is required. Both the release builder and `scripts/validate-release.mjs` now enforce the **exact Firefox background script list and order**, rather than only checking that `service_worker` is absent.
+
+| Question | Chrome / Edge | Firefox |
+|---|---|---|
+| Background runtime | `service_worker: "background.js"` | Ordered `background.scripts` |
+| Loading `StudyWingCommissionState` | Worker `importScripts()` if needed | `commission-state.js` before its consumer |
+| Where is the Bearer observed? | LMS page MAIN world | LMS page MAIN world |
+| Regression guard | Chromium artifact validation | Exact Firefox background script/order validation |
+
+**Generalizable lesson:** a file can exist in the ZIP, and its implementation can be correct, while the necessary execution context **never loads it**. Artifact tests must verify manifest wiring, not just file presence. A generic UI status is not root-cause evidence: distinguish *token capture*, *API call*, and *background persistence*.
 
 ---
 
