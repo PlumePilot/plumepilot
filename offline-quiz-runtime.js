@@ -14,9 +14,8 @@ function offlineQuizRuntime(DATA) {
         String.fromCharCode(byte),
       ).join(""),
     );
-  const notes = new Map(
-    Object.entries(decodeNotes(byId("notes-data").textContent || "e30=")),
-  );
+  let savedNotesData = byId("notes-data").textContent || "e30=";
+  const notes = new Map(Object.entries(decodeNotes(savedNotesData)));
   const statuses = { verified: "🟢 Verificata", review: "🟡 Da rivedere", verify: "🔴 Da verificare" };
   let filter = "all";
   const hasText = (value) => Boolean(value && value.replace(/<[^>]*>/g, "").trim());
@@ -766,12 +765,15 @@ function offlineQuizRuntime(DATA) {
       score();
     }
   }
-  function downloadAnnotated() {
+  function annotatedHtml(notesData) {
     const clone = document.documentElement.cloneNode(true);
-    clone.querySelector("#notes-data").textContent = encodeNotes(
-      Object.fromEntries(notes),
-    );
-    const html = "<!doctype html>\n" + clone.outerHTML;
+    clone.querySelector("#save-in-place-controls")?.remove();
+    clone.querySelector("#save-in-place-status")?.remove();
+    clone.querySelector("#notes-data").textContent = notesData;
+    return "<!doctype html>\n" + clone.outerHTML;
+  }
+  function downloadAnnotated() {
+    const html = annotatedHtml(encodeNotes(Object.fromEntries(notes)));
     const url = URL.createObjectURL(
       new Blob([html], { type: "text/html;charset=utf-8" }),
     );
@@ -782,6 +784,70 @@ function offlineQuizRuntime(DATA) {
     anchor.click();
     anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  function mountSaveInPlace() {
+    if (location.protocol !== "file:" || typeof window.showOpenFilePicker !== "function") return;
+
+    const filename = decodeURIComponent(location.pathname.split("/").pop());
+    const quizScript = document.currentScript.textContent;
+    const controls = document.createElement("span");
+    controls.id = "save-in-place-controls";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.textContent = "Salva appunti nel file";
+    const status = document.createElement("span");
+    status.setAttribute("role", "status");
+    controls.append(save);
+    byId("downloadNotes").before(controls);
+    byId("downloadNotes").parentElement.append(status);
+    status.id = "save-in-place-status";
+    let fileHandle;
+
+    save.onclick = async () => {
+      save.disabled = true;
+      status.textContent = fileHandle ? "Salvataggio in corso…" : "Seleziona il file HTML del quiz aperto.";
+      try {
+        const [selected] = fileHandle ? [fileHandle] : await window.showOpenFilePicker({
+          types: [{ description: "Quiz HTML", accept: { "text/html": [".html", ".htm"] } }],
+        });
+        const file = await selected.getFile();
+        const originalSource = await file.text();
+        const source = originalSource.replace(/\r\n?/g, "\n");
+        const storedNotes = source.match(/<script id="notes-data" type="application\/octet-stream">([A-Za-z0-9+/=]*)<\/script>/)?.[1];
+        if (file.name !== filename || !source.includes("<script>" + quizScript + "</" + "script>")) {
+          throw new Error("Seleziona lo stesso file HTML che hai aperto.");
+        }
+        if (storedNotes !== savedNotesData) {
+          throw new Error("Il file contiene appunti diversi. Scarica una copia per conservare le modifiche di questa scheda.");
+        }
+
+        const notesData = encodeNotes(Object.fromEntries(notes));
+        const html = annotatedHtml(notesData);
+        const writable = await selected.createWritable({ mode: "exclusive" });
+        try {
+          if (await (await selected.getFile()).text() !== originalSource) {
+            throw new Error("Il file è cambiato durante il salvataggio. Scarica una copia per conservare gli appunti.");
+          }
+          await writable.write(html);
+          await writable.close();
+        } catch (error) {
+          await writable.abort().catch(() => {});
+          throw error;
+        }
+        fileHandle = selected;
+        savedNotesData = notesData;
+        status.textContent = "Appunti salvati nel file.";
+      } catch (error) {
+        fileHandle = undefined;
+        status.textContent = error.name === "AbortError"
+          ? "Salvataggio annullato."
+          : error.name === "NotAllowedError"
+            ? "Scrittura non autorizzata. Puoi scaricare una copia con gli appunti."
+            : error.message || "Salvataggio non riuscito.";
+      } finally {
+        save.disabled = false;
+      }
+    };
   }
   byId("check").onclick = () => reveal(true);
   byId("reset").onclick = () => {
@@ -795,6 +861,7 @@ function offlineQuizRuntime(DATA) {
   byId("shuffleAnswers").onchange = render;
   byId("reviewFilter").onchange = (event) => { filter = event.target.value; render(); };
   mountThemeControl();
+  mountSaveInPlace();
   render();
 }
 
