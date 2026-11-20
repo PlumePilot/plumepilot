@@ -1273,14 +1273,18 @@
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
+    const isExportCollection = operation?.kind === "tests" || operation?.kind === "materials";
+    const bannerMessage = busy ? operationLabel(operation) : "";
     ui.activeOperationBanner.hidden = !busy;
-    ui.activeOperationBanner.textContent = busy ? operationLabel(operation) : "";
+    ui.activeOperationBanner.textContent = bannerMessage;
+    ui.activeOperationBanner.title = isExportCollection ? bannerMessage : "";
+    ui.activeOperationBanner.dataset.compact = String(isExportCollection);
     applyFloatingMenuLayout();
 
-    if (operation) {
+    if (busy && !isExportCollection) {
       clearTimeout(feedbackTimer);
       ui.status.dataset.error = "false";
-      ui.status.textContent = operationLabel(operation);
+      ui.status.textContent = bannerMessage;
     } else if (ui.status.dataset.error !== "true") {
       ui.status.textContent = "";
     }
@@ -3393,6 +3397,11 @@
         :host([data-visual-style="gaming"]) .test-collection-sprite.is-playing,
         :host([data-visual-style="gaming"]) .materials-sprite.is-playing {
           animation: action-six-frames 1200ms steps(5, end) 1 both;
+        }
+        .ux-operation-banner[data-compact="true"] {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .status {
           margin: 8px 0 0;
