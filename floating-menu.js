@@ -86,6 +86,7 @@
   let ui = null;
   let visibilityTimer = null;
   let feedbackTimer = null;
+  let achievementFeedbackTimer = null;
   let notificationTimer = null;
   let mascotIdleTimer = null;
   let dragState = null;
@@ -898,7 +899,7 @@
           result?.accepted &&
           normalizeVisualStyle(settings.visualStyle) === "gaming"
         )
-          setFeedback(
+          showFloatingAchievementFeedback(
             `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP`,
           );
       },
@@ -1036,6 +1037,23 @@
       operation.message ||
       `Creazione del ${operation.kind.toUpperCase()} in corso…`
     );
+  }
+
+  function showFloatingAchievementFeedback(message) {
+    if (!ui || ui.panel.hidden) return;
+    clearTimeout(achievementFeedbackTimer);
+    ui.achievementFeedback.hidden = false;
+    ui.achievementFeedback.textContent = message;
+    placeAchievementFeedback();
+    achievementFeedbackTimer = setTimeout(hideAchievementFeedback, 5000);
+  }
+
+  function hideAchievementFeedback() {
+    clearTimeout(achievementFeedbackTimer);
+    achievementFeedbackTimer = null;
+    if (!ui) return;
+    ui.achievementFeedback.hidden = true;
+    ui.achievementFeedback.textContent = "";
   }
 
   function setFeedback(message, isError = false) {
@@ -1548,6 +1566,7 @@
   function closePanel() {
     if (!ui || ui.panel.hidden) return;
     ui.panel.hidden = true;
+    hideAchievementFeedback();
     ui.launcher.setAttribute("aria-expanded", "false");
     ui.launcher.title = "Clicca per aprire PlumePilot · Trascina per spostare";
     ui.launcher.setAttribute(
@@ -1630,6 +1649,28 @@
     return normalizedPosition({ edge, offset });
   }
 
+  function placeAchievementFeedback() {
+    if (ui.achievementFeedback.hidden) return;
+    const gap = 10;
+    const inset = 12;
+    const panel = ui.panel.getBoundingClientRect();
+    const feedback = ui.achievementFeedback;
+    const { width, height } = feedback.getBoundingClientRect();
+    const left = panel.left - gap - width;
+    const right = panel.right + gap;
+    const top = clamp(panel.top, inset, Math.max(inset, window.innerHeight - height - inset));
+
+    if (right + width <= window.innerWidth - inset || left >= inset) {
+      feedback.style.left = `${right + width <= window.innerWidth - inset ? right : left}px`;
+      feedback.style.top = `${top}px`;
+      return;
+    }
+
+    const tabs = ui.tabList.getBoundingClientRect();
+    feedback.style.left = `${clamp(panel.left + gap, inset, window.innerWidth - width - inset)}px`;
+    feedback.style.top = `${tabs.bottom + gap}px`;
+  }
+
   function placePanel() {
     if (!host || !ui || ui.panel.hidden) return;
     const launcherRect = host.getBoundingClientRect();
@@ -1647,6 +1688,7 @@
     const viewportPadding = 12;
     ui.panel.style.left = `${clamp(left, viewportPadding, Math.max(viewportPadding, window.innerWidth - panelRect.width - viewportPadding))}px`;
     ui.panel.style.top = `${clamp(top, viewportPadding, Math.max(viewportPadding, window.innerHeight - panelRect.height - viewportPadding))}px`;
+    placeAchievementFeedback();
   }
 
   function applyLauncherPosition() {
@@ -2329,6 +2371,21 @@
         :host([data-visual-style="gaming"]) .action,
         :host([data-visual-style="gaming"]) .bookmark-action {
           font-family: "Pixelify Sans", system-ui, sans-serif;
+        }
+        .floating-achievement-feedback {
+          position: fixed;
+          z-index: 6;
+          box-sizing: border-box;
+          width: min(240px, calc(100vw - 24px));
+          padding: 8px 10px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          background: var(--sw-elevated);
+          color: var(--sw-heading);
+          box-shadow: 0 4px 14px var(--sw-panel-shadow);
+          font: 650 12px/1.4 system-ui, sans-serif;
+          overflow-wrap: anywhere;
+          pointer-events: none;
         }
         .panel {
           position: fixed;
@@ -3664,6 +3721,7 @@
         <span class="notification-alert-sprite"></span>
         <span class="notification-badge-text" data-role="notification-badge-text">!</span>
       </span>
+      <div class="floating-achievement-feedback" data-role="floating-achievement-feedback" role="status" hidden></div>
       <section id="studywing-panel" class="panel" aria-label="Menu PlumePilot" hidden>
         <div class="header">
           <span class="header-logo" aria-hidden="true">
@@ -3926,6 +3984,7 @@
       body: shadow.querySelector(".body"),
       launcher: shadow.querySelector(".launcher"),
       panel: shadow.querySelector(".panel"),
+      achievementFeedback: shadow.querySelector('[data-role="floating-achievement-feedback"]'),
       notificationBadge: shadow.querySelector(".notification-badge"),
       notificationBadgeText: shadow.querySelector(
         '[data-role="notification-badge-text"]',
@@ -4488,6 +4547,7 @@
   }
 
   function removeMenu() {
+    hideAchievementFeedback();
     clearTimeout(feedbackTimer);
     clearTimeout(notificationTimer);
     clearTimeout(mascotIdleTimer);
@@ -4604,6 +4664,7 @@
     if (changes.floatingMenuEnabled || changes.commissionCheckEnabled)
       scheduleVisibilityCheck();
     if (changes.visualStyle) {
+      hideAchievementFeedback();
       applyVisualStyle();
       claimEnabledGamingAchievements();
     }
