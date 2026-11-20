@@ -364,8 +364,18 @@
     .shortcut-help{margin-top:9px;color:var(--muted);font-size:12px}.shortcut-help summary{display:list-item;width:max-content;max-width:100%;font-weight:600}.shortcut-help p{margin:5px 0 0;line-height:1.6}
     .app.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
     #quizSidebar[hidden]{display:none}
-    .sidebar-toggle{margin-bottom:10px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;cursor:pointer}
-    </style></head><body><div class="app"><aside id="quizSidebar"><div class="brand">PLUMEPILOT · QUIZ OFFLINE</div><h1 id="title"></h1><p class="score" id="score"></p><nav id="nav"></nav><p class="generated-signature">${GENERATED_SIGNATURE}</p></aside><main class="content"><section class="toolbar"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-controls="quizSidebar" aria-expanded="true">Nascondi capitoli</button><h2 id="chapterTitle" tabindex="-1"></h2><div class="options"><label><input id="shuffleQuestions" type="checkbox"> Mescola domande</label><label><input id="shuffleAnswers" type="checkbox"> Mescola risposte</label><label><input id="showSolutions" type="checkbox"> Mostra soluzioni</label></div><p id="reviewCounts" class="review-counts" aria-live="polite"></p><label class="review-filter">Filtra domande <select id="reviewFilter"><option value="all">Tutte</option><option value="verified">🟢 Verificate</option><option value="review">🟡 Da rivedere</option><option value="verify">🔴 Da verificare</option><option value="observations">Con osservazioni</option></select></label></section><div id="questions"></div><div class="actions"><button class="check" id="check">Verifica capitolo</button><button id="reset">Ricomincia capitolo</button><button id="downloadNotes">Scarica HTML con appunti</button><output class="chapter-score" id="chapterScore" aria-live="polite" hidden></output></div></main></div><script id="notes-data" type="application/octet-stream">e30=</script><script>
+    .app{position:relative}
+    .sidebar-toggle{position:absolute;z-index:2;top:14px;left:236px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:7px;background:transparent;color:#f4e8fc;cursor:pointer}
+    .sidebar-toggle:hover,.sidebar-toggle:focus-visible{background:#fff2}
+    .sidebar-toggle:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+    #quizSidebar .brand{padding-right:30px}
+    .sidebar-collapsed .sidebar-toggle{left:16px;color:var(--text)}
+    .sidebar-collapsed .sidebar-toggle:hover,.sidebar-collapsed .sidebar-toggle:focus-visible{background:var(--line)}
+    @media(max-width:760px){
+      .sidebar-toggle,.sidebar-collapsed .sidebar-toggle{left:auto;right:12px}
+      .sidebar-collapsed .content{margin-top:54px}
+    }
+    </style></head><body><div class="app"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-controls="quizSidebar" aria-expanded="true" aria-label="Nascondi capitoli" title="Nascondi capitoli"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 5v14"/></svg></button><aside id="quizSidebar"><div class="brand">PLUMEPILOT · QUIZ OFFLINE</div><h1 id="title"></h1><p class="score" id="score"></p><nav id="nav"></nav><p class="generated-signature">${GENERATED_SIGNATURE}</p></aside><main class="content"><section class="toolbar"><h2 id="chapterTitle" tabindex="-1"></h2><div class="options"><label><input id="shuffleQuestions" type="checkbox"> Mescola domande</label><label><input id="shuffleAnswers" type="checkbox"> Mescola risposte</label><label><input id="showSolutions" type="checkbox"> Mostra soluzioni</label></div><p id="reviewCounts" class="review-counts" aria-live="polite"></p><label class="review-filter">Filtra domande <select id="reviewFilter"><option value="all">Tutte</option><option value="verified">🟢 Verificate</option><option value="review">🟡 Da rivedere</option><option value="verify">🔴 Da verificare</option><option value="observations">Con osservazioni</option></select></label></section><div id="questions"></div><div class="actions"><button class="check" id="check">Verifica capitolo</button><button id="reset">Ricomincia capitolo</button><button id="downloadNotes">Scarica HTML con appunti</button><output class="chapter-score" id="chapterScore" aria-live="polite" hidden></output></div></main></div><script id="notes-data" type="application/octet-stream">e30=</script><script>
     const DATA=${payload};
     const sidebar = document.getElementById("quizSidebar");
     const sidebarToggle = document.getElementById("sidebarToggle");
@@ -373,7 +383,9 @@
       sidebar.hidden = !sidebar.hidden;
       sidebar.closest(".app").classList.toggle("sidebar-collapsed", sidebar.hidden);
       sidebarToggle.setAttribute("aria-expanded", String(!sidebar.hidden));
-      sidebarToggle.textContent = sidebar.hidden ? "Mostra capitoli" : "Nascondi capitoli";
+      const label = sidebar.hidden ? "Mostra capitoli" : "Nascondi capitoli";
+      sidebarToggle.setAttribute("aria-label", label);
+      sidebarToggle.title = label;
     });
 ${runtimeSource}
     </script></body></html>`;
