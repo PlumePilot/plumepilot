@@ -23,17 +23,21 @@ function offlineQuizRuntime(DATA) {
     hasText(note.explanationHtml || note.explanation) ||
     hasText(note.observationsHtml || note.observations)
   ));
-  function cleanHtml(source) {
-    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "SUP", "SUB", "BR", "DIV", "P", "SPAN"]);
+  function cleanHtml(source, pasted = false) {
+    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "SUP", "SUB", "BR", "DIV", "P", "SPAN", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "CODE", "DEL", "HR"]);
     const styles = new Set(["yellow", "green", "blue", "pink"]);
     const blocks = new Set(["important", "attention", "review"]);
-    const doc = new DOMParser().parseFromString("<body>" + source + "</body>", "text/html");
+    const discarded = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "TEMPLATE", "NOSCRIPT", "SVG", "MATH"]);
+    const template = document.createElement("template");
+    template.innerHTML = source;
     function clean(node) {
       if (node.nodeType === 3) return document.createTextNode(node.textContent);
       if (node.nodeType !== 1) return document.createDocumentFragment();
       const fragment = document.createDocumentFragment();
       if (!allowed.has(node.tagName)) {
-        // Unknown markup is discarded along with its content.
+        if (pasted && !discarded.has(node.tagName)) {
+          for (const child of node.childNodes) fragment.appendChild(clean(child));
+        }
         return fragment;
       }
       const element = document.createElement(node.tagName.toLowerCase());
@@ -54,9 +58,66 @@ function offlineQuizRuntime(DATA) {
       return element;
     }
     const result = document.createElement("div");
-    for (const child of doc.body.childNodes) result.appendChild(clean(child));
+    for (const child of template.content.childNodes) result.appendChild(clean(child));
     return result.innerHTML;
   }
+  function markdownPaste(source) {
+    const escape = (value) => value.replace(/[&<>]/g, (char) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]
+    ));
+    let formatted = false;
+    const inline = (value) => {
+      const tokens = /\\[\\*_~\x60]|(\x60|\*\*|__|~~|\*|_)(\S(?:.*?\S)?)\1(?!\w)/g;
+      let html = "";
+      let offset = 0;
+      for (const match of value.matchAll(tokens)) {
+        html += escape(value.slice(offset, match.index));
+        offset = match.index + match[0].length;
+        if (!match[1]) {
+          formatted = true;
+          html += escape(match[0].slice(1));
+          continue;
+        }
+        const tag = { "\x60": "code", "**": "strong", "__": "strong", "~~": "del", "*": "em", "_": "em" }[match[1]];
+        formatted = true;
+        html += "<" + tag + ">" + escape(match[2]) + "</" + tag + ">";
+      }
+      return html + escape(value.slice(offset));
+    };
+
+    let list = "";
+    let html = "";
+    const closeList = () => {
+      if (list) html += "</" + list + ">";
+      list = "";
+    };
+    for (const line of source.split(/\r\n?|\n/)) {
+      const item = line.match(/^ {0,3}([-*+]|\d+[.)])[ \t]+(.+)$/);
+      if (item) {
+        const tag = /^\d/.test(item[1]) ? "ol" : "ul";
+        if (tag !== list) {
+          closeList();
+          list = tag;
+          html += "<" + tag + ">";
+        }
+        formatted = true;
+        html += "<li>" + inline(item[2]) + "</li>";
+        continue;
+      }
+      closeList();
+      const heading = line.match(/^ {0,3}(#{1,6})[ \t]+(.+)$/);
+      if (heading) {
+        const tag = "h" + heading[1].length;
+        formatted = true;
+        html += "<" + tag + ">" + inline(heading[2]) + "</" + tag + ">";
+      } else {
+        html += "<div>" + (line ? inline(line) : "<br>") + "</div>";
+      }
+    }
+    closeList();
+    return formatted ? html : "";
+  }
+
   function updateReview() {
     const counts = { verified: 0, review: 0, verify: 0, plain: 0, observations: 0 };
     for (const test of DATA.tests) for (const question of test.questions) {
@@ -634,7 +695,14 @@ function offlineQuizRuntime(DATA) {
       });
       editor.addEventListener("paste", (event) => {
         event.preventDefault();
-        document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+        const clipboard = event.clipboardData;
+        if (!clipboard) return;
+        const plain = clipboard.getData("text/plain");
+        const rich = cleanHtml(clipboard.getData("text/html"), true);
+        const formatted = /<(?:b|strong|i|em|u|s|del|ul|ol|sup|sub|h[1-6]|blockquote|pre|code|hr)(?:\s|>)/i.test(rich);
+        const html = formatted ? rich : markdownPaste(plain) || rich;
+        if (html) document.execCommand("insertHTML", false, html);
+        else if (plain) document.execCommand("insertText", false, plain);
       });
       editor.addEventListener("click", (event) => {
         const mask = event.target.closest(".study-mask");
