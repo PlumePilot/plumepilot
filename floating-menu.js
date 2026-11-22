@@ -6,7 +6,7 @@
   const HOST_ID = "studywing-floating-menu-host";
   const PROGRESS_OVERLAY_HOST_ID = "studywing-course-progress-overlay-host";
   const FULLSCREEN_PLAYER_ATTRIBUTE = "data-plumepilot-fullscreen-player";
-  const PLAYER_SELECTOR = ".plyr, .video-js, .jwplayer, .vjs-player";
+  const PLAYER_FULLSCREEN_ICON = 'img[src^="/assets/expand-"][src$=".svg"]';
   const COURSE_SELECTOR = "div.flex-wrap.bg-platform-light-gray";
   const EXAM_ONLINE_PATH = "/exam-online";
   const HOME_PATHS = new Set([
@@ -53,6 +53,7 @@
     stopAtTests: false,
     autoCompleteTests: false,
     autoplaySkipCompletedVideos: false,
+    pegasoContinuousFullscreen: false,
     autoplayChapterLimitEnabled: false,
     autoplayChapterLimits: {},
     autoplayChapterLimitSessions: {},
@@ -857,11 +858,19 @@
     }) || null;
   }
 
+  function lessonPlayer(video, icon = null) {
+    if (!video) return null;
+    let container = video.parentElement;
+    for (let depth = 0; container && depth < 8; depth++, container = container.parentElement) {
+      if (container.matches(COURSE_SELECTOR) || container.querySelectorAll("video").length !== 1) break;
+      if (icon ? container.contains(icon) : container.querySelector(PLAYER_FULLSCREEN_ICON)) return container;
+    }
+    return null;
+  }
+
   function clearFullscreenPlayer() {
     if (!fullscreenPlayer) return;
-    const { element, video, addedControls } = fullscreenPlayer;
-    element.removeAttribute(FULLSCREEN_PLAYER_ATTRIBUTE);
-    if (addedControls) video.controls = false;
+    fullscreenPlayer.element.removeAttribute(FULLSCREEN_PLAYER_ATTRIBUTE);
     fullscreenPlayer = null;
   }
 
@@ -873,24 +882,19 @@
       return;
     }
 
-    const video = (ui || active) ? visibleLessonVideo() : null;
     if (ui) {
-      ui.continuousFullscreenGroup.hidden = !active && (!video || !document.fullscreenEnabled || Boolean(document.fullscreenElement));
-      ui.continuousFullscreen.disabled = fullscreenTransition;
-      const label = active ? "Esci dallo schermo intero" : "Schermo intero continuo";
-      if (ui.continuousFullscreen.textContent !== label) {
-        ui.continuousFullscreen.textContent = label;
-      }
+      host.toggleAttribute("data-continuous-fullscreen", active);
+      ui.continuousFullscreenGroup.hidden = !courseSurfaceAvailable() || !document.fullscreenEnabled;
+      ui.continuousFullscreen.checked = settings.pegasoContinuousFullscreen === true;
     }
 
-    if (active && video && fullscreenPlayer?.video === video) return;
+    const video = active ? visibleLessonVideo() : null;
+    if (video && fullscreenPlayer?.video === video && fullscreenPlayer.element.contains(video)) return;
     clearFullscreenPlayer();
-    if (!active || !video) return;
-    const element = video.closest(PLAYER_SELECTOR) || video;
-    const addedControls = element === video && !video.controls;
-    fullscreenPlayer = { element, video, addedControls };
+    const element = lessonPlayer(video);
+    if (!element) return;
+    fullscreenPlayer = { element, video };
     element.setAttribute(FULLSCREEN_PLAYER_ATTRIBUTE, "");
-    if (addedControls) video.controls = true;
   }
 
   function resetContinuousFullscreen() {
@@ -924,13 +928,13 @@
     }
   }
 
-  async function toggleContinuousFullscreen() {
+  async function toggleContinuousFullscreen(video, element) {
     if (fullscreenTransition) return;
     if (fullscreenCourse) {
       await stopContinuousFullscreen();
       return;
     }
-    if (!visibleLessonVideo() || document.fullscreenElement || !document.fullscreenEnabled) return;
+    if (!element || document.fullscreenElement || !document.fullscreenEnabled) return;
 
     const course = currentCourseCode();
     fullscreenTransition = true;
@@ -942,6 +946,8 @@
         return;
       }
       fullscreenCourse = course;
+      fullscreenPlayer = { element, video };
+      element.setAttribute(FULLSCREEN_PLAYER_ATTRIBUTE, "");
       fullscreenStyle = document.createElement("style");
       fullscreenStyle.textContent = `
         :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
@@ -2461,6 +2467,10 @@
         :host([data-visual-style="gaming"]) .bookmark-action {
           font-family: "Pixelify Sans", system-ui, sans-serif;
         }
+        :host([data-continuous-fullscreen]) .launcher,
+        :host([data-continuous-fullscreen]) .notification-badge {
+          display: none;
+        }
         .panel {
           position: fixed;
           display: flex;
@@ -3851,8 +3861,8 @@
             </section>
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
             <div data-role="continuous-fullscreen-group" hidden>
-              <button class="bookmark-action" data-action="continuous-fullscreen" type="button">Schermo intero continuo</button>
-              <p class="ux-copy">Con l’autoplay, il video successivo si apre a tutto schermo. Per uscire premi Esc oppure usa il comando del player.</p>
+              <label class="setting gaming-control-row"><span>Schermo intero continuo</span><input data-setting="continuous-fullscreen" type="checkbox"></label>
+              <p class="ux-copy">Attiva lo schermo intero dal player. Con l’autoplay resta attivo al cambio di video. Per uscire premi Esc o usa lo stesso comando del player.</p>
             </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
 <p class="ux-summary" data-role="autoplay-options-summary"></p>
@@ -4179,7 +4189,7 @@
       commissionControlSprite: shadow.querySelector(
         '[data-role="commission-control-sprite"]',
       ),
-      continuousFullscreen: shadow.querySelector('[data-action="continuous-fullscreen"]'),
+      continuousFullscreen: shadow.querySelector('[data-setting="continuous-fullscreen"]'),
       findFirstIncomplete: shadow.querySelector(
         '[data-action="find-first-incomplete"]',
       ),
@@ -4457,7 +4467,9 @@
       button.scrollIntoView({ block: "nearest" });
       button.focus();
     });
-    ui.continuousFullscreen.addEventListener("click", toggleContinuousFullscreen);
+    ui.continuousFullscreen.addEventListener("change", () => {
+      writeSetting("pegasoContinuousFullscreen", ui.continuousFullscreen.checked);
+    });
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
       ui.findFirstIncomplete.disabled = true;
@@ -4748,6 +4760,7 @@
       claimEnabledGamingAchievements();
     }
     if (changes.themePreference) applyTheme();
+    if (changes.pegasoContinuousFullscreen) renderContinuousFullscreen();
     if (changes.menuSize) applyMenuSize();
     if (
       changes.visualStyle ||
@@ -4813,6 +4826,18 @@
   });
 
   if (PLATFORM_ID === "pegaso") {
+    document.addEventListener("click", (event) => {
+      if (!event.isTrusted || event.defaultPrevented || !ui ||
+          (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
+      const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
+      if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;
+      const video = visibleLessonVideo();
+      const element = lessonPlayer(video, icon);
+      if (!element || !document.fullscreenEnabled) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void toggleContinuousFullscreen(video, element);
+    }, true);
     document.addEventListener("fullscreenchange", () => {
       if (fullscreenTransition) return;
       const root = document.documentElement;
