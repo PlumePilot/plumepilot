@@ -866,16 +866,17 @@
 
   function renderContinuousFullscreen() {
     if (PLATFORM_ID !== "pegaso") return;
-    const root = document.documentElement;
-    const active = Boolean(fullscreenCourse && document.fullscreenElement === root);
+    const active = Boolean(fullscreenCourse);
     if (active && fullscreenCourse !== currentCourseCode()) {
       stopContinuousFullscreen();
+      renderContinuousFullscreen();
       return;
     }
 
     const video = (ui || active) ? visibleLessonVideo() : null;
     if (ui) {
-      ui.continuousFullscreen.hidden = !active && (!video || !document.fullscreenEnabled);
+      ui.continuousFullscreenGroup.hidden = !active && (!video || Boolean(document.fullscreenElement));
+      ui.continuousFullscreenExit.hidden = !active;
       ui.continuousFullscreen.textContent = active
         ? "Esci dallo schermo intero"
         : "Schermo intero continuo";
@@ -891,20 +892,14 @@
     if (addedControls) video.controls = true;
   }
 
-  function resetContinuousFullscreen() {
+  function stopContinuousFullscreen() {
     fullscreenCourse = "";
     clearFullscreenPlayer();
     fullscreenStyle?.remove();
     fullscreenStyle = null;
   }
 
-  function stopContinuousFullscreen() {
-    const ownsFullscreen = fullscreenCourse && document.fullscreenElement === document.documentElement;
-    resetContinuousFullscreen();
-    if (ownsFullscreen) void document.exitFullscreen().catch(() => {});
-  }
-
-  async function toggleContinuousFullscreen() {
+  function toggleContinuousFullscreen() {
     if (fullscreenCourse) {
       stopContinuousFullscreen();
       renderContinuousFullscreen();
@@ -913,41 +908,27 @@
     if (!visibleLessonVideo() || document.fullscreenElement) return;
 
     fullscreenCourse = currentCourseCode();
-    try {
-      await document.documentElement.requestFullscreen();
-      if (!fullscreenCourse) {
-        if (document.fullscreenElement === document.documentElement) await document.exitFullscreen();
-        return;
+    fullscreenStyle = document.createElement("style");
+    fullscreenStyle.textContent = `
+      [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 10000 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        background: #000;
       }
-      if (document.fullscreenElement !== document.documentElement) {
-        resetContinuousFullscreen();
-        return;
+      video[${FULLSCREEN_PLAYER_ATTRIBUTE}],
+      [${FULLSCREEN_PLAYER_ATTRIBUTE}] video {
+        object-fit: contain !important;
       }
-      fullscreenStyle = document.createElement("style");
-      fullscreenStyle.textContent = `
-        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
-          position: fixed !important;
-          inset: 0 !important;
-          z-index: 10000 !important;
-          width: 100vw !important;
-          height: 100vh !important;
-          max-width: none !important;
-          max-height: none !important;
-          margin: 0 !important;
-          background: #000;
-        }
-        :root:fullscreen video[${FULLSCREEN_PLAYER_ATTRIBUTE}],
-        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] video {
-          object-fit: contain !important;
-        }
-      `;
-      document.head.append(fullscreenStyle);
-      closePanel();
-      renderContinuousFullscreen();
-    } catch {
-      stopContinuousFullscreen();
-      setFeedback("Impossibile attivare lo schermo intero continuo.", true);
-    }
+    `;
+    document.head.append(fullscreenStyle);
+    closePanel();
+    renderContinuousFullscreen();
   }
 
   function selectMenuTab(
@@ -2440,6 +2421,20 @@
         :host([data-visual-style="gaming"]) .bookmark-action {
           font-family: "Pixelify Sans", system-ui, sans-serif;
         }
+        .continuous-fullscreen-exit {
+          position: fixed;
+          top: 12px;
+          right: 12px;
+          z-index: 8;
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          color: white;
+          background: #222;
+          font-size: 20px;
+          cursor: pointer;
+        }
         .panel {
           position: fixed;
           display: flex;
@@ -3769,6 +3764,7 @@
         <span class="notification-alert-sprite"></span>
         <span class="notification-badge-text" data-role="notification-badge-text">!</span>
       </span>
+      <button class="continuous-fullscreen-exit" data-action="continuous-fullscreen-exit" type="button" aria-label="Esci dallo schermo intero continuo" title="Esci dallo schermo intero continuo (Esc)" hidden>⛶</button>
       <section id="studywing-panel" class="panel" aria-label="Menu PlumePilot" hidden>
         <div class="header">
           <span class="header-logo" aria-hidden="true">
@@ -3829,7 +3825,13 @@
 <p class="ux-copy" data-role="first-incomplete-hint"></p>
             </section>
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
-            <button class="bookmark-action" data-action="continuous-fullscreen" type="button" hidden>Schermo intero continuo</button>
+            <div data-role="continuous-fullscreen-group" hidden>
+              <button class="bookmark-action" data-action="continuous-fullscreen" type="button">Schermo intero continuo</button>
+              <details>
+                <summary>Come funziona lo schermo intero continuo?</summary>
+                <p class="ux-copy">Il video occupa la finestra del browser e resta ingrandito quando l’autoplay passa alla lezione successiva. Premi Esc o usa l’icona di PlumePilot per tornare alla visualizzazione normale.</p>
+              </details>
+            </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
 <p class="ux-summary" data-role="autoplay-options-summary"></p>
 <button class="ux-navigation" data-action="toggle-autoplay-options" data-ux-open type="button" aria-controls="studywing-autoplay-options" aria-expanded="false"><span>Impostazioni autoplay</span><span aria-hidden="true">›</span></button>
@@ -4032,6 +4034,8 @@
       body: shadow.querySelector(".body"),
       launcher: shadow.querySelector(".launcher"),
       panel: shadow.querySelector(".panel"),
+      continuousFullscreenGroup: shadow.querySelector('[data-role="continuous-fullscreen-group"]'),
+      continuousFullscreenExit: shadow.querySelector('[data-action="continuous-fullscreen-exit"]'),
       notificationBadge: shadow.querySelector(".notification-badge"),
       notificationBadgeText: shadow.querySelector(
         '[data-role="notification-badge-text"]',
@@ -4433,6 +4437,7 @@
       button.focus();
     });
     ui.continuousFullscreen.addEventListener("click", toggleContinuousFullscreen);
+    ui.continuousFullscreenExit.addEventListener("click", toggleContinuousFullscreen);
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
       ui.findFirstIncomplete.disabled = true;
@@ -4649,6 +4654,11 @@
   document.addEventListener(
     "keydown",
     (event) => {
+      if (event.key === "Escape" && fullscreenCourse) {
+        stopContinuousFullscreen();
+        renderContinuousFullscreen();
+        return;
+      }
       if (event.key === "Escape" && ui && !ui.panel.hidden) {
         if (ui.courseNavigation?.close()) { event.preventDefault(); event.stopPropagation(); return; }
         closePanel();
@@ -4785,9 +4795,7 @@
 
   if (PLATFORM_ID === "pegaso") {
     document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement !== document.documentElement && fullscreenStyle) {
-        resetContinuousFullscreen();
-      }
+      if (document.fullscreenElement && fullscreenCourse) stopContinuousFullscreen();
       renderContinuousFullscreen();
     });
     for (const event of ["play", "ended", "loadedmetadata"]) {
