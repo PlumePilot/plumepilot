@@ -875,6 +875,10 @@
     fullscreenPlayer = null;
   }
 
+  function continuousFullscreenAvailable() {
+    return PLATFORM_ID === "pegaso" && courseSurfaceAvailable() && document.fullscreenEnabled === true;
+  }
+
   function renderContinuousFullscreen() {
     if (PLATFORM_ID !== "pegaso") return;
     const active = Boolean(fullscreenCourse && document.fullscreenElement === document.documentElement);
@@ -885,7 +889,7 @@
 
     if (ui) {
       host.toggleAttribute("data-continuous-fullscreen", active);
-      ui.continuousFullscreenGroup.hidden = !courseSurfaceAvailable() || !document.fullscreenEnabled;
+      ui.continuousFullscreenGroup.hidden = !continuousFullscreenAvailable();
       ui.continuousFullscreen.checked = settings.pegasoContinuousFullscreen === true;
     }
 
@@ -941,7 +945,7 @@
     fullscreenTransition = true;
     try {
       await document.documentElement.requestFullscreen();
-      if (!ui || course !== currentCourseCode() ||
+      if (course !== currentCourseCode() ||
           document.fullscreenElement !== document.documentElement) {
         await exitContinuousFullscreen();
         return;
@@ -4702,7 +4706,6 @@
 
   function removeMenu() {
     hideAchievementFeedback();
-    if (fullscreenCourse) void stopContinuousFullscreen();
     clearTimeout(feedbackTimer);
     clearTimeout(notificationTimer);
     clearTimeout(mascotIdleTimer);
@@ -4896,8 +4899,13 @@
   });
 
   if (PLATFORM_ID === "pegaso") {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message?.type === "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY") {
+        sendResponse({ available: continuousFullscreenAvailable() });
+      }
+    });
     document.addEventListener("click", (event) => {
-      if (!event.isTrusted || event.defaultPrevented || !ui ||
+      if (!event.isTrusted || event.defaultPrevented ||
           (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
       const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
       if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;

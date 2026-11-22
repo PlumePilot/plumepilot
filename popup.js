@@ -1249,20 +1249,10 @@
       renderCommissionUpdates,
     );
   }
-  function isPegasoCourseTab(url) {
-    try {
-      const { hostname, pathname } = new URL(url);
-      const isPegaso = hostname === "pegaso.multiversity.click" || hostname.endsWith(".pegaso.multiversity.click");
-      return isPegaso && /\/videolezioni\/[^/]+/i.test(pathname);
-    } catch {
-      return false;
-    }
-  }
   function withActiveCourseTab(callback) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      callback(tab?.id ?? null, tab);
-    });
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
+      callback(tabs[0]?.id ?? null),
+    );
   }
   function runtimeMessage(message) {
     return new Promise((resolve) =>
@@ -1350,9 +1340,17 @@
   runtimeMessage({ type: "PEGASO_GET_OPERATION" }).then((response) => {
     if (response?.accepted) renderOperation(response.operation);
   });
-  withActiveCourseTab((tabId, tab) => {
-    continuousFullscreenSetting.hidden = !isPegasoCourseTab(tab?.url);
+  withActiveCourseTab((tabId) => {
     if (!tabId) return;
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY" },
+      { frameId: 0 },
+      (response) => {
+        if (chrome.runtime.lastError) return;
+        continuousFullscreenSetting.hidden = response?.available !== true;
+      },
+    );
     activeCourseTabId = tabId;
     updateAutoplayControls();
     chrome.tabs.sendMessage(
