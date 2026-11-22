@@ -876,9 +876,7 @@
     const video = (ui || active) ? visibleLessonVideo() : null;
     if (ui) {
       ui.continuousFullscreenGroup.hidden = !active && (!video || !document.fullscreenEnabled || Boolean(document.fullscreenElement));
-      ui.continuousFullscreenExit.hidden = !active;
       ui.continuousFullscreen.disabled = fullscreenTransition;
-      ui.continuousFullscreenExit.disabled = fullscreenTransition;
       const label = active ? "Esci dallo schermo intero" : "Schermo intero continuo";
       if (ui.continuousFullscreen.textContent !== label) {
         ui.continuousFullscreen.textContent = label;
@@ -2463,20 +2461,6 @@
         :host([data-visual-style="gaming"]) .bookmark-action {
           font-family: "Pixelify Sans", system-ui, sans-serif;
         }
-        .continuous-fullscreen-exit {
-          position: fixed;
-          top: 12px;
-          right: 12px;
-          z-index: 8;
-          width: 36px;
-          height: 36px;
-          border: 1px solid var(--sw-border);
-          border-radius: 8px;
-          color: white;
-          background: #222;
-          font-size: 20px;
-          cursor: pointer;
-        }
         .panel {
           position: fixed;
           display: flex;
@@ -3806,7 +3790,6 @@
         <span class="notification-alert-sprite"></span>
         <span class="notification-badge-text" data-role="notification-badge-text">!</span>
       </span>
-      <button class="continuous-fullscreen-exit" data-action="continuous-fullscreen-exit" type="button" aria-label="Esci dallo schermo intero continuo" title="Esci dallo schermo intero continuo (Esc)" hidden>⛶</button>
       <section id="studywing-panel" class="panel" aria-label="Menu PlumePilot" hidden>
         <div class="header">
           <span class="header-logo" aria-hidden="true">
@@ -3869,7 +3852,7 @@
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
             <div data-role="continuous-fullscreen-group" hidden>
               <button class="bookmark-action" data-action="continuous-fullscreen" type="button">Schermo intero continuo</button>
-              <p class="ux-copy">Con l’autoplay, il video successivo si apre a tutto schermo. Per uscire premi Esc o usa l’icona di PlumePilot.</p>
+              <p class="ux-copy">Con l’autoplay, il video successivo si apre a tutto schermo. Per uscire premi Esc oppure usa il comando del player.</p>
             </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
 <p class="ux-summary" data-role="autoplay-options-summary"></p>
@@ -4074,7 +4057,6 @@
       launcher: shadow.querySelector(".launcher"),
       panel: shadow.querySelector(".panel"),
       continuousFullscreenGroup: shadow.querySelector('[data-role="continuous-fullscreen-group"]'),
-      continuousFullscreenExit: shadow.querySelector('[data-action="continuous-fullscreen-exit"]'),
       notificationBadge: shadow.querySelector(".notification-badge"),
       notificationBadgeText: shadow.querySelector(
         '[data-role="notification-badge-text"]',
@@ -4476,7 +4458,6 @@
       button.focus();
     });
     ui.continuousFullscreen.addEventListener("click", toggleContinuousFullscreen);
-    ui.continuousFullscreenExit.addEventListener("click", toggleContinuousFullscreen);
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
       ui.findFirstIncomplete.disabled = true;
