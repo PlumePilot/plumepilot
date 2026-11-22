@@ -877,9 +877,10 @@
     if (ui) {
       ui.continuousFullscreenGroup.hidden = !active && (!video || Boolean(document.fullscreenElement));
       ui.continuousFullscreenExit.hidden = !active;
-      ui.continuousFullscreen.textContent = active
-        ? "Esci dallo schermo intero"
-        : "Schermo intero continuo";
+      const label = active ? "Esci dallo schermo intero" : "Schermo intero continuo";
+      if (ui.continuousFullscreen.textContent !== label) {
+        ui.continuousFullscreen.textContent = label;
+      }
     }
 
     if (active && video && fullscreenPlayer?.video === video) return;
