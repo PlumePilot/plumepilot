@@ -844,7 +844,7 @@
     );
   }
 
-  function visibleLessonVideo() {
+  function visibleLessonVideo(keepEndedPlayer = false) {
     if (!courseSurfaceAvailable()) return null;
     const selected = document.querySelector(
       "div.border-t > div.cursor-pointer > div:first-child > div.visible.bg-platform-primary",
@@ -852,11 +852,18 @@
     const lessonName = selected?.closest("div.border-t")?.querySelector(".text-base")?.textContent.trim();
     if (/^(obiettivi|test(?: di autovalutazione)?)$/i.test(lessonName || "")) return null;
 
-    return Array.from(document.querySelectorAll("video")).find((video) => {
+    const visible = (video) => {
       const rect = video.getBoundingClientRect();
-      return !video.ended && rect.width > 0 && rect.height > 0 &&
+      return rect.width > 0 && rect.height > 0 &&
         getComputedStyle(video).visibility === "visible";
-    }) || null;
+    };
+    const videos = Array.from(document.querySelectorAll("video"));
+    const current = videos.find((video) => !video.ended && visible(video));
+    if (current) return current;
+
+    // Keep the last frame at fullscreen size while autoplay selects the next lesson.
+    const previous = fullscreenPlayer?.video;
+    return keepEndedPlayer && videos.includes(previous) && visible(previous) ? previous : null;
   }
 
   function lessonPlayer(video, icon = null) {
@@ -893,7 +900,7 @@
       ui.continuousFullscreen.checked = settings.pegasoContinuousFullscreen === true;
     }
 
-    const video = active ? visibleLessonVideo() : null;
+    const video = active ? visibleLessonVideo(true) : null;
     if (video && fullscreenPlayer?.video === video && fullscreenPlayer.element.contains(video)) return;
     clearFullscreenPlayer();
     const element = lessonPlayer(video);
@@ -4909,7 +4916,9 @@
           (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
       const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
       if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;
-      const video = visibleLessonVideo();
+      const video = fullscreenPlayer?.element.contains(icon)
+        ? fullscreenPlayer.video
+        : visibleLessonVideo(Boolean(fullscreenCourse));
       const element = lessonPlayer(video, icon);
       if (!element || !document.fullscreenEnabled) return;
       event.preventDefault();
