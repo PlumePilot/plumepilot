@@ -41,6 +41,12 @@ function offlineQuizRuntime(DATA) {
         return fragment;
       }
       const element = document.createElement(node.tagName.toLowerCase());
+      if (node.tagName === "OL") {
+        const start = node.getAttribute("start")?.trim();
+        if (/^-?\d+$/.test(start || "") && Number.isSafeInteger(Number(start))) {
+          element.start = Number(start);
+        }
+      }
       if (node.tagName === "SPAN") {
         if (node.classList.contains("study-mask")) element.className = "study-mask";
         else if (node.classList.contains("highlight") && styles.has(node.dataset.color)) {
@@ -87,21 +93,44 @@ function offlineQuizRuntime(DATA) {
 
     let list = "";
     let html = "";
+    let fence = null;
+    let code = [];
     const closeList = () => {
       if (list) html += "</" + list + ">";
       list = "";
     };
+    const closeCode = () => {
+      html += "<pre><code>" + escape(code.join("\n")) + "</code></pre>";
+      fence = null;
+      code = [];
+    };
     for (const line of source.split(/\r\n?|\n/)) {
-      const item = line.match(/^ {0,3}([-*+]|\d+[.)])[ \t]+(.+)$/);
+      const marker = line.match(/^ {0,3}(\x60{3,}|~{3,})(.*)$/);
+      if (fence) {
+        if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) {
+          closeCode();
+        } else {
+          code.push(line);
+        }
+        continue;
+      }
+      if (marker && (marker[1][0] === "~" || !marker[2].includes("\x60"))) {
+        closeList();
+        fence = marker[1];
+        formatted = true;
+        continue;
+      }
+      const item = line.match(/^ {0,3}([-*+]|(\d{1,9})[.)])[ \t]+(.+)$/);
       if (item) {
-        const tag = /^\d/.test(item[1]) ? "ol" : "ul";
+        const tag = item[2] === undefined ? "ul" : "ol";
         if (tag !== list) {
           closeList();
           list = tag;
-          html += "<" + tag + ">";
+          const start = Number(item[2] ?? 1);
+          html += start === 1 ? "<" + tag + ">" : `<ol start="${start}">`;
         }
         formatted = true;
-        html += "<li>" + inline(item[2]) + "</li>";
+        html += "<li>" + inline(item[3]) + "</li>";
         continue;
       }
       closeList();
@@ -115,6 +144,7 @@ function offlineQuizRuntime(DATA) {
       }
     }
     closeList();
+    if (fence) closeCode();
     return formatted ? html : "";
   }
 
