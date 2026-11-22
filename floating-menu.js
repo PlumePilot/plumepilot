@@ -89,6 +89,7 @@
   let visibilityTimer = null;
   let feedbackTimer = null;
   let fullscreenCourse = "";
+  let fullscreenTransition = false;
   let fullscreenPlayer = null;
   let fullscreenStyle = null;
   let notificationTimer = null;
@@ -866,17 +867,18 @@
 
   function renderContinuousFullscreen() {
     if (PLATFORM_ID !== "pegaso") return;
-    const active = Boolean(fullscreenCourse);
-    if (active && fullscreenCourse !== currentCourseCode()) {
-      stopContinuousFullscreen();
-      renderContinuousFullscreen();
+    const active = Boolean(fullscreenCourse && document.fullscreenElement === document.documentElement);
+    if (fullscreenCourse && fullscreenCourse !== currentCourseCode()) {
+      void stopContinuousFullscreen();
       return;
     }
 
     const video = (ui || active) ? visibleLessonVideo() : null;
     if (ui) {
-      ui.continuousFullscreenGroup.hidden = !active && (!video || Boolean(document.fullscreenElement));
+      ui.continuousFullscreenGroup.hidden = !active && (!video || !document.fullscreenEnabled || Boolean(document.fullscreenElement));
       ui.continuousFullscreenExit.hidden = !active;
+      ui.continuousFullscreen.disabled = fullscreenTransition;
+      ui.continuousFullscreenExit.disabled = fullscreenTransition;
       const label = active ? "Esci dallo schermo intero" : "Schermo intero continuo";
       if (ui.continuousFullscreen.textContent !== label) {
         ui.continuousFullscreen.textContent = label;
@@ -893,43 +895,82 @@
     if (addedControls) video.controls = true;
   }
 
-  function stopContinuousFullscreen() {
+  function resetContinuousFullscreen() {
     fullscreenCourse = "";
     clearFullscreenPlayer();
     fullscreenStyle?.remove();
     fullscreenStyle = null;
   }
 
-  function toggleContinuousFullscreen() {
+  async function exitContinuousFullscreen() {
+    const root = document.documentElement;
+    // A player can enter fullscreen above the document. Unwind both levels.
+    while (document.fullscreenElement && root.matches(":fullscreen")) {
+      const before = document.fullscreenElement;
+      await document.exitFullscreen();
+      if (document.fullscreenElement === before) break;
+    }
+  }
+
+  async function stopContinuousFullscreen() {
+    if (fullscreenTransition || !fullscreenCourse) return;
+    fullscreenTransition = true;
+    try {
+      await exitContinuousFullscreen();
+    } catch {
+      setFeedback("Premi Esc per uscire dallo schermo intero.", true);
+    } finally {
+      if (!document.documentElement.matches(":fullscreen")) resetContinuousFullscreen();
+      fullscreenTransition = false;
+      if (!fullscreenCourse || fullscreenCourse === currentCourseCode()) renderContinuousFullscreen();
+    }
+  }
+
+  async function toggleContinuousFullscreen() {
+    if (fullscreenTransition) return;
     if (fullscreenCourse) {
-      stopContinuousFullscreen();
-      renderContinuousFullscreen();
+      await stopContinuousFullscreen();
       return;
     }
-    if (!visibleLessonVideo() || document.fullscreenElement) return;
+    if (!visibleLessonVideo() || document.fullscreenElement || !document.fullscreenEnabled) return;
 
-    fullscreenCourse = currentCourseCode();
-    fullscreenStyle = document.createElement("style");
-    fullscreenStyle.textContent = `
-      [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
-        position: fixed !important;
-        inset: 0 !important;
-        z-index: 10000 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        max-width: none !important;
-        max-height: none !important;
-        margin: 0 !important;
-        background: #000;
+    const course = currentCourseCode();
+    fullscreenTransition = true;
+    try {
+      await document.documentElement.requestFullscreen();
+      if (!ui || course !== currentCourseCode() ||
+          document.fullscreenElement !== document.documentElement) {
+        await exitContinuousFullscreen();
+        return;
       }
-      video[${FULLSCREEN_PLAYER_ATTRIBUTE}],
-      [${FULLSCREEN_PLAYER_ATTRIBUTE}] video {
-        object-fit: contain !important;
-      }
-    `;
-    document.head.append(fullscreenStyle);
-    closePanel();
-    renderContinuousFullscreen();
+      fullscreenCourse = course;
+      fullscreenStyle = document.createElement("style");
+      fullscreenStyle.textContent = `
+        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 10000 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: none !important;
+          max-height: none !important;
+          margin: 0 !important;
+          background: #000;
+        }
+        :root:fullscreen video[${FULLSCREEN_PLAYER_ATTRIBUTE}],
+        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] video {
+          object-fit: contain !important;
+        }
+      `;
+      document.head.append(fullscreenStyle);
+      closePanel();
+    } catch {
+      resetContinuousFullscreen();
+      setFeedback("Impossibile attivare lo schermo intero continuo.", true);
+    } finally {
+      fullscreenTransition = false;
+      renderContinuousFullscreen();
+    }
   }
 
   function selectMenuTab(
@@ -3828,12 +3869,7 @@
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
             <div data-role="continuous-fullscreen-group" hidden>
               <button class="bookmark-action" data-action="continuous-fullscreen" type="button">Schermo intero continuo</button>
-              <details class="course-progress-options-menu">
-                <summary><span>Come funziona?</span><span aria-hidden="true"></span><span class="course-progress-options-chevron" aria-hidden="true"></span></summary>
-                <div class="course-progress-settings">
-                  <p class="course-progress-hint">Il video occupa la finestra del browser e resta ingrandito quando l’autoplay passa alla lezione successiva. Premi Esc o usa l’icona di PlumePilot per tornare alla visualizzazione normale.</p>
-                </div>
-              </details>
+              <p class="ux-copy">Con l’autoplay, il video successivo si apre a tutto schermo. Per uscire premi Esc o usa l’icona di PlumePilot.</p>
             </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
 <p class="ux-summary" data-role="autoplay-options-summary"></p>
@@ -4604,7 +4640,7 @@
   }
 
   function removeMenu() {
-    if (fullscreenCourse) stopContinuousFullscreen();
+    if (fullscreenCourse) void stopContinuousFullscreen();
     clearTimeout(feedbackTimer);
     clearTimeout(notificationTimer);
     clearTimeout(mascotIdleTimer);
@@ -4658,8 +4694,7 @@
     "keydown",
     (event) => {
       if (event.key === "Escape" && fullscreenCourse) {
-        stopContinuousFullscreen();
-        renderContinuousFullscreen();
+        void stopContinuousFullscreen();
         return;
       }
       if (event.key === "Escape" && ui && !ui.panel.hidden) {
@@ -4798,7 +4833,15 @@
 
   if (PLATFORM_ID === "pegaso") {
     document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement && fullscreenCourse) stopContinuousFullscreen();
+      if (fullscreenTransition) return;
+      const root = document.documentElement;
+      if (fullscreenCourse && document.fullscreenElement !== root) {
+        if (root.matches(":fullscreen")) {
+          void stopContinuousFullscreen();
+          return;
+        }
+        resetContinuousFullscreen();
+      }
       renderContinuousFullscreen();
     });
     for (const event of ["play", "ended", "loadedmetadata"]) {
