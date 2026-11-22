@@ -7,6 +7,8 @@
       if (chrome.runtime.lastError) chrome.tabs.create({ url: chrome.runtime.getURL("pausa/index.html") });
     });
   });
+  const continuousFullscreenSetting = document.getElementById("continuousFullscreenSetting");
+  const continuousFullscreenCheckbox = document.getElementById("pegasoContinuousFullscreen");
   const autoplaySkipCompletedVideosCheckbox = document.getElementById(
     "autoplaySkipCompletedVideos",
   );
@@ -1247,10 +1249,20 @@
       renderCommissionUpdates,
     );
   }
+  function isPegasoCourseTab(url) {
+    try {
+      const { hostname, pathname } = new URL(url);
+      const isPegaso = hostname === "pegaso.multiversity.click" || hostname.endsWith(".pegaso.multiversity.click");
+      return isPegaso && /\/videolezioni\/[^/]+/i.test(pathname);
+    } catch {
+      return false;
+    }
+  }
   function withActiveCourseTab(callback) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
-      callback(tabs[0]?.id || null),
-    );
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0];
+      callback(tab?.id ?? null, tab);
+    });
   }
   function runtimeMessage(message) {
     return new Promise((resolve) =>
@@ -1270,6 +1282,7 @@
       stopAtTests: false,
       autoCompleteTests: false,
       autoplaySkipCompletedVideos: false,
+      pegasoContinuousFullscreen: false,
       autoplayChapterLimitEnabled: false,
       autoplayChapterLimits: {},
       autoplayChapterLimitSessions: {},
@@ -1296,6 +1309,8 @@
     },
     (result) => {
       checkbox.checked = result.enabled;
+      continuousFullscreenCheckbox.checked = result.pegasoContinuousFullscreen === true;
+      continuousFullscreenCheckbox.disabled = false;
       autoplaySkipCompletedVideosCheckbox.checked = result.autoplaySkipCompletedVideos === true;
       renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
       chapterLimitMaps = {
@@ -1335,7 +1350,8 @@
   runtimeMessage({ type: "PEGASO_GET_OPERATION" }).then((response) => {
     if (response?.accepted) renderOperation(response.operation);
   });
-  withActiveCourseTab((tabId) => {
+  withActiveCourseTab((tabId, tab) => {
+    continuousFullscreenSetting.hidden = !isPegasoCourseTab(tab?.url);
     if (!tabId) return;
     activeCourseTabId = tabId;
     updateAutoplayControls();
@@ -1375,6 +1391,9 @@
       checkbox.checked = changes.enabled.newValue !== false;
       updateStatus(checkbox.checked);
       updateAutoplayControls();
+    }
+    if (changes.pegasoContinuousFullscreen) {
+      continuousFullscreenCheckbox.checked = changes.pegasoContinuousFullscreen.newValue === true;
     }
     if (changes.autoplaySkipCompletedVideos) {
       autoplaySkipCompletedVideosCheckbox.checked = changes.autoplaySkipCompletedVideos.newValue === true;
@@ -1492,6 +1511,10 @@
     chrome.storage.local.set({ enabled: checkbox.checked });
     if (checkbox.checked) playActionAnimation(autoplayControlSprite);
     if (checkbox.checked) claimAchievement("discover-autoplay");
+  });
+
+  continuousFullscreenCheckbox.addEventListener("change", () => {
+    chrome.storage.local.set({ pegasoContinuousFullscreen: continuousFullscreenCheckbox.checked });
   });
 
   autoplaySkipCompletedVideosCheckbox.addEventListener("change", () => {
