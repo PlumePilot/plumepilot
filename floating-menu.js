@@ -3828,9 +3828,11 @@
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
             <div data-role="continuous-fullscreen-group" hidden>
               <button class="bookmark-action" data-action="continuous-fullscreen" type="button">Schermo intero continuo</button>
-              <details>
-                <summary>Come funziona lo schermo intero continuo?</summary>
-                <p class="ux-copy">Il video occupa la finestra del browser e resta ingrandito quando l’autoplay passa alla lezione successiva. Premi Esc o usa l’icona di PlumePilot per tornare alla visualizzazione normale.</p>
+              <details class="course-progress-options-menu">
+                <summary><span>Come funziona?</span><span aria-hidden="true"></span><span class="course-progress-options-chevron" aria-hidden="true"></span></summary>
+                <div class="course-progress-settings">
+                  <p class="course-progress-hint">Il video occupa la finestra del browser e resta ingrandito quando l’autoplay passa alla lezione successiva. Premi Esc o usa l’icona di PlumePilot per tornare alla visualizzazione normale.</p>
+                </div>
               </details>
             </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
