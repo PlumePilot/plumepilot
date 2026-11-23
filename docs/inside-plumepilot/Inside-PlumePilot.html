@@ -386,7 +386,7 @@ funzione.</p>
 dell'estensione</h2>
 <p>Il manifest dichiara:</p>
 <div class="sourceCode" id="01-cb3"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb3-1"><a href="#01-cb3-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;action&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb3-1"><a href="#01-cb3-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;action&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="01-cb3-2"><a href="#01-cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;default_title&quot;</span><span class="fu">:</span> <span class="st">&quot;PlumePilot – Assistente per Multiversity&quot;</span><span class="fu">,</span></span>
 <span id="01-cb3-3"><a href="#01-cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;default_popup&quot;</span><span class="fu">:</span> <span class="st">&quot;popup.html&quot;</span></span>
 <span id="01-cb3-4"><a href="#01-cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
@@ -435,7 +435,7 @@ dello stato dell'applicazione.</p>
 background: il coordinatore che non vede il DOM</h2>
 <p>Nel manifest troviamo:</p>
 <div class="sourceCode" id="01-cb5"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb5-1"><a href="#01-cb5-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb5-1"><a href="#01-cb5-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;background&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="01-cb5-2"><a href="#01-cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="01-cb5-3"><a href="#01-cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;achievements.js&quot;</span><span class="ot">,</span></span>
 <span id="01-cb5-4"><a href="#01-cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;commission-state.js&quot;</span><span class="ot">,</span></span>
@@ -675,10 +675,10 @@ ambienti di esecuzione differenti</strong>.</p>
 <p>I content script non sono caricati tutti nello stesso momento.</p>
 <p>PlumePilot usa sia:</p>
 <div class="sourceCode" id="01-cb21"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb21-1"><a href="#01-cb21-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;run_at&quot;:</span> <span class="er">&quot;document_start&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb21-1"><a href="#01-cb21-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;run_at&quot;</span><span class="er">:</span> <span class="st">&quot;document_start&quot;</span></span></code></pre></div>
 <p>sia:</p>
 <div class="sourceCode" id="01-cb22"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb22-1"><a href="#01-cb22-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;run_at&quot;:</span> <span class="er">&quot;document_idle&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb22-1"><a href="#01-cb22-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;run_at&quot;</span><span class="er">:</span> <span class="st">&quot;document_idle&quot;</span></span></code></pre></div>
 <p><code>document_start</code> è utile quando dobbiamo essere presenti
 molto presto nel ciclo di vita della pagina. <code>document_idle</code>
 è adatto quando possiamo aspettare che il documento sia sostanzialmente
@@ -701,7 +701,7 @@ nella vita del documento.</p>
 <code>all_frames</code>: una pagina non è sempre un solo documento</h2>
 <p>Alcuni gruppi di script usano:</p>
 <div class="sourceCode" id="01-cb23"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb23-1"><a href="#01-cb23-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;all_frames&quot;:</span> <span class="er">true</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb23-1"><a href="#01-cb23-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;all_frames&quot;</span><span class="er">:</span> <span class="kw">true</span></span></code></pre></div>
 <p>Questo ricorda che una tab può contenere iframe e quindi più
 documenti.</p>
 <p>È facile dire “lo script gira nella pagina”, ma tecnicamente la
@@ -740,7 +740,7 @@ privilege</strong>:</p>
 Permessi: ciò che PlumePilot può fare non è implicito</h2>
 <p>Nello snapshot corrente il manifest dichiara:</p>
 <div class="sourceCode" id="01-cb25"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="01-cb25-1"><a href="#01-cb25-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;permissions&quot;:</span> <span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">]</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="01-cb25-1"><a href="#01-cb25-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;permissions&quot;</span><span class="er">:</span> <span class="ot">[</span><span class="st">&quot;storage&quot;</span><span class="ot">]</span></span></code></pre></div>
 <p>oltre a <code>host_permissions</code> per host necessari alla
 gestione di materiali e risorse.</p>
 <p>Le extension API sono capability esplicite. Questo è diverso da una
@@ -2368,7 +2368,7 @@ conosci.</p>
 boundary principali</h2>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Da</th>
 <th>A</th>
 <th>Meccanismo tipico</th>
@@ -2376,43 +2376,43 @@ boundary principali</h2>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Popup</td>
 <td>Background</td>
 <td><code>runtime.sendMessage</code></td>
 <td>avvio export</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Builder</td>
 <td>Background</td>
 <td><code>runtime.sendMessage</code></td>
 <td>update/release operazione</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Background</td>
 <td>Content script</td>
 <td><code>tabs.sendMessage</code></td>
 <td>raccogli dispense</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Popup</td>
 <td>Content script</td>
 <td><code>tabs.sendMessage</code></td>
 <td>richiedi progresso</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>ISOLATED</td>
 <td>MAIN</td>
 <td><code>window.postMessage</code></td>
 <td>comando di raccolta</td>
 </tr>
-<tr class="even">
+<tr>
 <td>MAIN</td>
 <td>ISOLATED</td>
 <td><code>window.postMessage</code></td>
 <td>stato/completamento</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Bridge</td>
 <td>Popup/extension runtime</td>
 <td><code>runtime.sendMessage</code></td>
@@ -2509,53 +2509,53 @@ il backend</h1>
 server.</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Browser extension</th>
 <th>Analogia backend/distribuita</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><code>message.type</code></td>
 <td>route / event name / command name</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>runtime.onMessage</code></td>
 <td>dispatcher / controller</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>sendResponse()</code></td>
 <td>response handler</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>operationId</code></td>
 <td>job ID / correlation ID</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>accepted: true</code></td>
 <td>richiesta accettata / <code>202 Accepted</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>runtime.lastError</code></td>
 <td>transport/runtime failure</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>accepted: false</code></td>
 <td>domain/application failure</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>window.postMessage</code></td>
 <td>message bus locale / IPC-like boundary</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>tabs.sendMessage(tabId)</code></td>
 <td>invio verso una istanza indirizzata</td>
 </tr>
-<tr class="even">
+<tr>
 <td>snapshot + events</td>
 <td>query iniziale + subscription</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>deduplicazione</td>
 <td>duplicate suppression / idempotency key</td>
 </tr>
@@ -2843,8 +2843,8 @@ database</h1>
 di oggetti JavaScript.</p>
 <p>Per esempio:</p>
 <div class="sourceCode" id="03-cb1"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="03-cb1-1"><a href="#03-cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;course&quot;</span><span class="dt">&gt;</span></span>
-<span id="03-cb1-2"><a href="#03-cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;chapter&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="03-cb1-1"><a href="#03-cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;course&quot;</span><span class="dt">&gt;</span></span>
+<span id="03-cb1-2"><a href="#03-cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">div</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;chapter&quot;</span><span class="dt">&gt;</span></span>
 <span id="03-cb1-3"><a href="#03-cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&lt;</span><span class="kw">span</span><span class="dt">&gt;</span>1 - Introduzione<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span>
 <span id="03-cb1-4"><a href="#03-cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;/</span><span class="kw">div</span><span class="dt">&gt;</span></span>
 <span id="03-cb1-5"><a href="#03-cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">div</span><span class="dt">&gt;</span></span></code></pre></div>
@@ -3150,7 +3150,7 @@ tempo</h1>
 <p>Nel <code>manifest.json</code>, <code>content.js</code> viene
 caricato con:</p>
 <div class="sourceCode" id="03-cb35"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="03-cb35-1"><a href="#03-cb35-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;run_at&quot;:</span> <span class="er">&quot;document_idle&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="03-cb35-1"><a href="#03-cb35-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;run_at&quot;</span><span class="er">:</span> <span class="st">&quot;document_idle&quot;</span></span></code></pre></div>
 <p>Potremmo interpretarlo ingenuamente così:</p>
 <pre class="text"><code>content.js parte
         ↓
@@ -4987,7 +4987,7 @@ world</h1>
 <p>Nel Capitolo 01 abbiamo visto che
 <code>commission-interceptor.js</code> viene caricato con:</p>
 <div class="sourceCode" id="04-cb10"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="04-cb10-1"><a href="#04-cb10-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;world&quot;:</span> <span class="er">&quot;MAIN&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="04-cb10-1"><a href="#04-cb10-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;world&quot;</span><span class="er">:</span> <span class="st">&quot;MAIN&quot;</span></span></code></pre></div>
 <p>Questa scelta diventa molto più chiara adesso.</p>
 <p>Se vogliamo osservare:</p>
 <div class="sourceCode" id="04-cb11"><pre
@@ -9303,7 +9303,7 @@ id="06-parte-i--non-tutto-ciò-che-chiamiamo-stato-è-la-stessa-cosa">Parte I
 diverse.</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Categoria</th>
 <th>Esempio</th>
 <th style="text-align: right;">Lifetime tipico</th>
@@ -9311,37 +9311,37 @@ diverse.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Stato effimero</td>
 <td><code>busy</code>, <code>pendingTurboApiRequests</code></td>
 <td style="text-align: right;">vita dello script</td>
 <td style="text-align: right;">no</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Cache in memoria</td>
 <td><code>lessonApiCache</code></td>
 <td style="text-align: right;">vita della pagina</td>
 <td style="text-align: right;">no</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Recovery per tab</td>
 <td><code>sessionStorage</code></td>
 <td style="text-align: right;">sessione della tab</td>
 <td style="text-align: right;">sì</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Preferenze persistenti</td>
 <td><code>themePreference</code>, <code>enabled</code></td>
 <td style="text-align: right;">giorni/mesi</td>
 <td style="text-align: right;">sì</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Stato operativo persistente</td>
 <td><code>pegasoActiveOperation</code></td>
 <td style="text-align: right;">minuti/ore</td>
 <td style="text-align: right;">sì</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Stato esterno autorevole</td>
 <td>corso, esami, percentuali server</td>
 <td style="text-align: right;">deciso dalla piattaforma</td>
@@ -9455,7 +9455,7 @@ Perché un'estensione non usa semplicemente
 <code>localStorage</code></h2>
 <p>PlumePilot dichiara nel <code>manifest.json</code>:</p>
 <div class="sourceCode" id="06-cb12"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="06-cb12-1"><a href="#06-cb12-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;permissions&quot;:</span> <span class="ot">[</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="06-cb12-1"><a href="#06-cb12-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;permissions&quot;</span><span class="er">:</span> <span class="ot">[</span></span>
 <span id="06-cb12-2"><a href="#06-cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;storage&quot;</span></span>
 <span id="06-cb12-3"><a href="#06-cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
 <p>Questa permission permette di utilizzare l'API WebExtensions:</p>
@@ -9690,7 +9690,7 @@ Service worker effimero, stato durevole</h1>
 background Manifest V3</h2>
 <p>Nel <code>manifest.json</code> Chromium usa:</p>
 <div class="sourceCode" id="06-cb42"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="06-cb42-1"><a href="#06-cb42-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="06-cb42-1"><a href="#06-cb42-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;background&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="06-cb42-2"><a href="#06-cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;service_worker&quot;</span><span class="fu">:</span> <span class="st">&quot;background.js&quot;</span></span>
 <span id="06-cb42-3"><a href="#06-cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>Un extension service worker non deve essere trattato come un processo
@@ -10677,7 +10677,7 @@ dominio.</strong></p>
 alternative</h2>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Struttura</th>
 <th>Lookup per identità</th>
 <th style="text-align: right;">Persistente</th>
@@ -10688,7 +10688,7 @@ alternative</h2>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><code>Map</code></td>
 <td>nativo</td>
 <td style="text-align: right;">no</td>
@@ -10696,7 +10696,7 @@ alternative</h2>
 <td style="text-align: right;">sì</td>
 <td style="text-align: right;"><strong>ottimo</strong></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>Object</code></td>
 <td>proprietà</td>
 <td style="text-align: right;">no</td>
@@ -10704,7 +10704,7 @@ alternative</h2>
 <td style="text-align: right;">sì</td>
 <td style="text-align: right;">buono</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>Array</code></td>
 <td>scansione/indice</td>
 <td style="text-align: right;">no</td>
@@ -10712,7 +10712,7 @@ alternative</h2>
 <td style="text-align: right;">sì</td>
 <td style="text-align: right;">debole</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>WeakMap</code></td>
 <td>nativo</td>
 <td style="text-align: right;">no</td>
@@ -10720,7 +10720,7 @@ alternative</h2>
 <td style="text-align: right;">no</td>
 <td style="text-align: right;">inadatto</td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>chrome.storage.local</code></td>
 <td>key/value async</td>
 <td style="text-align: right;">sì</td>
@@ -10728,7 +10728,7 @@ alternative</h2>
 <td style="text-align: right;">sì</td>
 <td style="text-align: right;">troppo persistente</td>
 </tr>
-<tr class="even">
+<tr>
 <td>IndexedDB</td>
 <td>indicizzato</td>
 <td style="text-align: right;">sì</td>
@@ -12434,7 +12434,7 @@ esplicita</h2>
 <p>Possiamo rappresentare parte del comportamento in una tabella.</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Stato</th>
 <th>Evento</th>
 <th>Guardia</th>
@@ -12442,73 +12442,73 @@ esplicita</h2>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td><code>WATCHING</code></td>
 <td><code>VIDEO_ENDED</code></td>
 <td><code>enabled &amp;&amp; !smartResumeRunning</code></td>
 <td><code>ADVANCE_DELAY</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>ADVANCE_DELAY</code></td>
 <td><code>TIMER</code></td>
 <td><code>enabled</code></td>
 <td><code>VERIFYING_COMPLETION</code></td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>VERIFYING_COMPLETION</code></td>
 <td><code>COMPLETED</code></td>
 <td>next video exists</td>
 <td><code>OPENING_NEXT_VIDEO</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>VERIFYING_COMPLETION</code></td>
 <td><code>COMPLETED</code></td>
 <td>terminal test + stop</td>
 <td><code>STOPPED_AT_TEST</code></td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>VERIFYING_COMPLETION</code></td>
 <td><code>COMPLETED</code></td>
 <td>terminal test + auto-complete</td>
 <td><code>COMPLETING_TEST</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>COMPLETING_TEST</code></td>
 <td><code>SUCCESS</code></td>
 <td>—</td>
 <td><code>END_OF_CHAPTER</code></td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>COMPLETING_TEST</code></td>
 <td><code>FAILURE</code></td>
 <td>—</td>
 <td><code>SAFE_STOP</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>END_OF_CHAPTER</code></td>
 <td><code>CONTINUE</code></td>
 <td>threshold reached</td>
 <td><code>THRESHOLD_STOP</code></td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>END_OF_CHAPTER</code></td>
 <td><code>CONTINUE</code></td>
 <td>session limit reached</td>
 <td><code>SESSION_LIMIT_STOP</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>END_OF_CHAPTER</code></td>
 <td><code>CONTINUE</code></td>
 <td>otherwise</td>
 <td><code>CHANGING_CHAPTER</code></td>
 </tr>
-<tr class="odd">
+<tr>
 <td><code>STOPPED_AT_TEST</code></td>
 <td><code>SETTINGS_CHANGED</code></td>
 <td><code>!stopAtTests</code></td>
 <td><code>RESUMING</code></td>
 </tr>
-<tr class="even">
+<tr>
 <td>qualunque stato attivo</td>
 <td><code>DISABLE</code></td>
 <td>—</td>
@@ -14944,7 +14944,7 @@ l'algoritmo</h1>
 <p>Una suite utile dovrebbe coprire almeno:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Scenario</th>
 <th>Master</th>
 <th>Detail</th>
@@ -14953,70 +14953,70 @@ l'algoritmo</h1>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>primo modulo incompleto</td>
 <td><code>&lt;100</code></td>
 <td>valido</td>
 <td>—</td>
 <td>target modulo 1</td>
 </tr>
-<tr class="even">
+<tr>
 <td>primi 4 completi</td>
 <td><code>100,100,100,100,&lt;100</code></td>
 <td>valido</td>
 <td>—</td>
 <td>target modulo 5</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>master stale</td>
 <td>tutti <code>100</code></td>
 <td>modulo 3 incompleto</td>
 <td>—</td>
 <td>target modulo 3 nella seconda passata</td>
 </tr>
-<tr class="even">
+<tr>
 <td>mapping mancante</td>
 <td>entry senza route</td>
 <td>—</td>
 <td>valido</td>
 <td>verifica visuale mirata</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>detail incompleto</td>
 <td><code>&lt;100</code></td>
 <td>errore/retry esauriti</td>
 <td>valido</td>
 <td>verifica visuale target</td>
 </tr>
-<tr class="even">
+<tr>
 <td>candidato falso</td>
 <td><code>&lt;100</code></td>
 <td>completo</td>
 <td>completo</td>
 <td>continua senza rescansione</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>percentuale DOM assente</td>
 <td><code>&lt;100</code></td>
 <td>parziale</td>
 <td>unknown</td>
 <td>non inventare 0%</td>
 </tr>
-<tr class="even">
+<tr>
 <td>ricerca cancellata</td>
 <td>qualsiasi</td>
 <td>await in corso</td>
 <td>—</td>
 <td>nessuna navigazione</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>cambio corso</td>
 <td>qualsiasi</td>
 <td>await in corso</td>
 <td>—</td>
 <td>run precedente invalidata</td>
 </tr>
-<tr class="even">
+<tr>
 <td>test pending</td>
 <td><code>&lt;100</code></td>
 <td>test pending</td>
@@ -15694,7 +15694,7 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="09-cb47-1"><
 immagini</h2>
 <p>Se il file HTML contenesse:</p>
 <div class="sourceCode" id="09-cb48"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="09-cb48-1"><a href="#09-cb48-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">img</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://server.example/image.png&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="09-cb48-1"><a href="#09-cb48-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">img</span><span class="ot"> src</span><span class="op">=</span><span class="st">&quot;https://server.example/image.png&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>non sarebbe realmente offline.</p>
 <p>Il builder scarica quindi ogni immagine e la trasforma in un Data
 URL:</p>
@@ -15838,17 +15838,17 @@ navigation document</code></pre>
 <p>Nel codice vengono costruite entry simili a:</p>
 <div class="sourceCode" id="09-cb65"><pre
 class="sourceCode xml"><code class="sourceCode xml"><span id="09-cb65-1"><a href="#09-cb65-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">item</span></span>
-<span id="09-cb65-2"><a href="#09-cb65-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  id=</span><span class="st">&quot;chapter-1&quot;</span></span>
-<span id="09-cb65-3"><a href="#09-cb65-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  href=</span><span class="st">&quot;text/chapter-001.xhtml&quot;</span></span>
-<span id="09-cb65-4"><a href="#09-cb65-4" aria-hidden="true" tabindex="-1"></a><span class="ot">  media-type=</span><span class="st">&quot;application/xhtml+xml&quot;</span></span>
+<span id="09-cb65-2"><a href="#09-cb65-2" aria-hidden="true" tabindex="-1"></a>  <span class="ot">id=</span><span class="st">&quot;chapter-1&quot;</span></span>
+<span id="09-cb65-3"><a href="#09-cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">href=</span><span class="st">&quot;text/chapter-001.xhtml&quot;</span></span>
+<span id="09-cb65-4"><a href="#09-cb65-4" aria-hidden="true" tabindex="-1"></a>  <span class="ot">media-type=</span><span class="st">&quot;application/xhtml+xml&quot;</span></span>
 <span id="09-cb65-5"><a href="#09-cb65-5" aria-hidden="true" tabindex="-1"></a>/&gt;</span></code></pre></div>
 <h3 id="09-spine">Spine</h3>
 <p>Definisce invece l'ordine principale di lettura:</p>
 <div class="sourceCode" id="09-cb66"><pre
-class="sourceCode xml"><code class="sourceCode xml"><span id="09-cb66-1"><a href="#09-cb66-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span><span class="ot"> idref=</span><span class="st">&quot;title&quot;</span>/&gt;</span>
-<span id="09-cb66-2"><a href="#09-cb66-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span><span class="ot"> idref=</span><span class="st">&quot;nav&quot;</span>/&gt;</span>
-<span id="09-cb66-3"><a href="#09-cb66-3" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span><span class="ot"> idref=</span><span class="st">&quot;chapter-1&quot;</span>/&gt;</span>
-<span id="09-cb66-4"><a href="#09-cb66-4" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span><span class="ot"> idref=</span><span class="st">&quot;chapter-2&quot;</span>/&gt;</span></code></pre></div>
+class="sourceCode xml"><code class="sourceCode xml"><span id="09-cb66-1"><a href="#09-cb66-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span> <span class="ot">idref=</span><span class="st">&quot;title&quot;</span>/&gt;</span>
+<span id="09-cb66-2"><a href="#09-cb66-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span> <span class="ot">idref=</span><span class="st">&quot;nav&quot;</span>/&gt;</span>
+<span id="09-cb66-3"><a href="#09-cb66-3" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span> <span class="ot">idref=</span><span class="st">&quot;chapter-1&quot;</span>/&gt;</span>
+<span id="09-cb66-4"><a href="#09-cb66-4" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">itemref</span> <span class="ot">idref=</span><span class="st">&quot;chapter-2&quot;</span>/&gt;</span></code></pre></div>
 <p>Quindi:</p>
 <pre class="text"><code>manifest = cosa esiste
 spine    = in quale ordine si legge</code></pre>
@@ -15866,7 +15866,7 @@ indice</h2>
 compatibilità con reading system più vecchi.</p>
 <p>Ogni capitolo riceve anche:</p>
 <div class="sourceCode" id="09-cb70"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="09-cb70-1"><a href="#09-cb70-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span> <span class="er">href</span><span class="ot">=</span><span class="st">&quot;../nav.xhtml#toc&quot;</span><span class="dt">&gt;</span>Torna all&#39;indice<span class="dt">&lt;/</span><span class="kw">a</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="09-cb70-1"><a href="#09-cb70-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;../nav.xhtml#toc&quot;</span><span class="dt">&gt;</span>Torna all&#39;indice<span class="dt">&lt;/</span><span class="kw">a</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Quindi i link interni non sono un dettaglio decorativo: fanno parte
 della navigabilità del libro.</p>
 <hr />
@@ -16542,7 +16542,7 @@ confronto</h1>
 <h2 id="09-48-pdf-html-epub">48. PDF, HTML, EPUB</h2>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Caratteristica</th>
 <th>PDF dispense</th>
 <th>HTML quiz</th>
@@ -16550,55 +16550,55 @@ confronto</h1>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Input principale</td>
 <td>PDF originali</td>
 <td>JSON strutturato</td>
 <td>PDF originali</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Trasformazione</td>
 <td>copia pagine</td>
 <td>rendering web</td>
 <td>interpretazione PDF</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Fedeltà visuale</td>
 <td>molto alta</td>
 <td>nativa HTML</td>
 <td>adattiva</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Reflow</td>
 <td>no</td>
 <td>sì</td>
 <td>sì / ibrido</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Interattività</td>
 <td>limitata</td>
 <td>alta</td>
 <td>dipende dal reader</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Offline</td>
 <td>sì</td>
 <td>sì</td>
 <td>sì</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Complessità conversione</td>
 <td>relativamente bassa</td>
 <td>media</td>
 <td>alta</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Pressione memoria</td>
 <td>media</td>
 <td>bassa/media</td>
 <td>alta</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Asset binari</td>
 <td>PDF</td>
 <td>immagini inline</td>
@@ -17234,7 +17234,7 @@ model</strong>.</p>
 <code>contenteditable</code> non è un editor completo</h2>
 <p>Scrivere:</p>
 <div class="sourceCode" id="10-cb11"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb11-1"><a href="#10-cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span> <span class="er">contenteditable</span><span class="ot">=</span><span class="st">&quot;true&quot;</span><span class="dt">&gt;&lt;/</span><span class="kw">div</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb11-1"><a href="#10-cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span><span class="ot"> contenteditable</span><span class="op">=</span><span class="st">&quot;true&quot;</span><span class="dt">&gt;&lt;/</span><span class="kw">div</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>non significa aver costruito un editor.</p>
 <p>Significa soltanto aver delegato al browser alcune operazioni di
 editing:</p>
@@ -17508,7 +17508,7 @@ Evidenziare non significa soltanto cambiare CSS</h2>
 <p>Per gli highlight PlumePilot non usa <code>execCommand()</code>.</p>
 <p>Costruisce invece un wrapper semantico:</p>
 <div class="sourceCode" id="10-cb40"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb40-1"><a href="#10-cb40-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb40-1"><a href="#10-cb40-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb40-2"><a href="#10-cb40-2" aria-hidden="true" tabindex="-1"></a>  testo</span>
 <span id="10-cb40-3"><a href="#10-cb40-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>La funzione principale è:</p>
@@ -17583,7 +17583,7 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb47-1"><
 class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb50-1"><a href="#10-cb50-1" aria-hidden="true" tabindex="-1"></a>wrapper<span class="op">.</span><span class="fu">appendChild</span>(contents)<span class="op">;</span></span></code></pre></div>
 <p>produce:</p>
 <div class="sourceCode" id="10-cb51"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb51-1"><a href="#10-cb51-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb51-1"><a href="#10-cb51-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb51-2"><a href="#10-cb51-2" aria-hidden="true" tabindex="-1"></a>  def ghi</span>
 <span id="10-cb51-3"><a href="#10-cb51-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Infine:</p>
@@ -17594,7 +17594,7 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb52-1"><
 <div class="sourceCode" id="10-cb53"><pre
 class="sourceCode html"><code class="sourceCode html"><span id="10-cb53-1"><a href="#10-cb53-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">p</span><span class="dt">&gt;</span></span>
 <span id="10-cb53-2"><a href="#10-cb53-2" aria-hidden="true" tabindex="-1"></a>  abc</span>
-<span id="10-cb53-3"><a href="#10-cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span>def ghi<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span>
+<span id="10-cb53-3"><a href="#10-cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span>def ghi<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span>
 <span id="10-cb53-4"><a href="#10-cb53-4" aria-hidden="true" tabindex="-1"></a>  lmn</span>
 <span id="10-cb53-5"><a href="#10-cb53-5" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">p</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Questo è un esempio reale di manipolazione strutturale del DOM
@@ -17604,7 +17604,7 @@ tramite <code>Range</code>.</p>
 a un highlight esistente</h2>
 <p>Supponiamo di avere:</p>
 <div class="sourceCode" id="10-cb54"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb54-1"><a href="#10-cb54-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb54-1"><a href="#10-cb54-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb54-2"><a href="#10-cb54-2" aria-hidden="true" tabindex="-1"></a>  concetto importante</span>
 <span id="10-cb54-3"><a href="#10-cb54-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>e di selezionare esattamente tutto il testo per renderlo blu.</p>
@@ -17621,8 +17621,8 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb55-1"><
 <span id="10-cb55-9"><a href="#10-cb55-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Non crea quindi:</p>
 <div class="sourceCode" id="10-cb56"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb56-1"><a href="#10-cb56-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
-<span id="10-cb56-2"><a href="#10-cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;blue&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb56-1"><a href="#10-cb56-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
+<span id="10-cb56-2"><a href="#10-cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;blue&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb56-3"><a href="#10-cb56-3" aria-hidden="true" tabindex="-1"></a>    concetto importante</span>
 <span id="10-cb56-4"><a href="#10-cb56-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span>
 <span id="10-cb56-5"><a href="#10-cb56-5" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
@@ -17724,7 +17724,7 @@ highlight è più difficile</h2>
 <p>Per l'highlight non esiste un semplice comando equivalente.</p>
 <p>Il caret potrebbe trovarsi fisicamente dentro:</p>
 <div class="sourceCode" id="10-cb72"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb72-1"><a href="#10-cb72-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span>...<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb72-1"><a href="#10-cb72-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span>...<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Per continuare fuori dal colore bisogna cambiare la struttura del
 DOM.</p>
 <p>PlumePilot:</p>
@@ -17764,22 +17764,22 @@ checklist non è una lista completamente diversa</h2>
 <p>PlumePilot modella la checklist come una normale lista non
 ordinata:</p>
 <div class="sourceCode" id="10-cb77"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb77-1"><a href="#10-cb77-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">ul</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;checklist&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb77-1"><a href="#10-cb77-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">ul</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;checklist&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb77-2"><a href="#10-cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">li</span><span class="dt">&gt;</span>Ripassare definizione<span class="dt">&lt;/</span><span class="kw">li</span><span class="dt">&gt;</span></span>
-<span id="10-cb77-3"><a href="#10-cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">li</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;checked&quot;</span><span class="dt">&gt;</span>Rivedere esempio<span class="dt">&lt;/</span><span class="kw">li</span><span class="dt">&gt;</span></span>
+<span id="10-cb77-3"><a href="#10-cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">li</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;checked&quot;</span><span class="dt">&gt;</span>Rivedere esempio<span class="dt">&lt;/</span><span class="kw">li</span><span class="dt">&gt;</span></span>
 <span id="10-cb77-4"><a href="#10-cb77-4" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">ul</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Il CSS trasforma visivamente gli elementi:</p>
 <div class="sourceCode" id="10-cb78"><pre
 class="sourceCode css"><code class="sourceCode css"><span id="10-cb78-1"><a href="#10-cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.note-editor</span> <span class="fu">.checklist</span> {</span>
-<span id="10-cb78-2"><a href="#10-cb78-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">list-style</span>: <span class="dv">none</span><span class="op">;</span></span>
+<span id="10-cb78-2"><a href="#10-cb78-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">list-style</span><span class="ch">:</span> <span class="dv">none</span><span class="op">;</span></span>
 <span id="10-cb78-3"><a href="#10-cb78-3" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="10-cb78-4"><a href="#10-cb78-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="10-cb78-5"><a href="#10-cb78-5" aria-hidden="true" tabindex="-1"></a><span class="fu">.note-editor</span> <span class="fu">.checklist</span> <span class="op">&gt;</span> li<span class="in">::before</span> {</span>
-<span id="10-cb78-6"><a href="#10-cb78-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">content</span>: <span class="st">&quot;☐&quot;</span><span class="op">;</span></span>
+<span id="10-cb78-6"><a href="#10-cb78-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">content</span><span class="ch">:</span> <span class="st">&quot;☐&quot;</span><span class="op">;</span></span>
 <span id="10-cb78-7"><a href="#10-cb78-7" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="10-cb78-8"><a href="#10-cb78-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="10-cb78-9"><a href="#10-cb78-9" aria-hidden="true" tabindex="-1"></a><span class="fu">.note-editor</span> <span class="fu">.checklist</span> <span class="op">&gt;</span> li<span class="fu">.checked</span><span class="in">::before</span> {</span>
-<span id="10-cb78-10"><a href="#10-cb78-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">content</span>: <span class="st">&quot;☑&quot;</span><span class="op">;</span></span>
+<span id="10-cb78-10"><a href="#10-cb78-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">content</span><span class="ch">:</span> <span class="st">&quot;☑&quot;</span><span class="op">;</span></span>
 <span id="10-cb78-11"><a href="#10-cb78-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Questa scelta riusa la semantica strutturale di
 <code>&lt;ul&gt;/&lt;li&gt;</code> e aggiunge soltanto stato
@@ -17938,7 +17938,7 @@ come blocchi semantici</h1>
 colore</h2>
 <p>Un callout viene modellato come:</p>
 <div class="sourceCode" id="10-cb96"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb96-1"><a href="#10-cb96-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;callout&quot;</span> <span class="er">data-kind</span><span class="ot">=</span><span class="st">&quot;important&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb96-1"><a href="#10-cb96-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;callout&quot;</span><span class="ot"> data-kind</span><span class="op">=</span><span class="st">&quot;important&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb96-2"><a href="#10-cb96-2" aria-hidden="true" tabindex="-1"></a>  ...</span>
 <span id="10-cb96-3"><a href="#10-cb96-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">div</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>I tipi ammessi sono:</p>
@@ -18138,10 +18138,10 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb121-1">
 <p>Perché impedire l'HTML del clipboard?</p>
 <p>Se incollassimo direttamente rich HTML potremmo ricevere:</p>
 <div class="sourceCode" id="10-cb122"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb122-1"><a href="#10-cb122-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">style</span><span class="ot">=</span><span class="st">&quot;font-family: ...&quot;</span><span class="dt">&gt;</span></span>
-<span id="10-cb122-2"><a href="#10-cb122-2" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;qualcosa&quot;</span><span class="dt">&gt;</span></span>
-<span id="10-cb122-3"><a href="#10-cb122-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span> <span class="er">href</span><span class="ot">=</span><span class="st">&quot;...&quot;</span><span class="dt">&gt;</span></span>
-<span id="10-cb122-4"><a href="#10-cb122-4" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">img</span> <span class="er">...</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb122-1"><a href="#10-cb122-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> style</span><span class="op">=</span><span class="st">&quot;font-family: ...&quot;</span><span class="dt">&gt;</span></span>
+<span id="10-cb122-2"><a href="#10-cb122-2" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">div</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;qualcosa&quot;</span><span class="dt">&gt;</span></span>
+<span id="10-cb122-3"><a href="#10-cb122-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;...&quot;</span><span class="dt">&gt;</span></span>
+<span id="10-cb122-4"><a href="#10-cb122-4" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">img</span><span class="ot"> </span><span class="er">...</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>oppure markup molto più complesso prodotto da Word, Google Docs o
 un'altra pagina web.</p>
 <p>PlumePilot decide:</p>
@@ -18229,7 +18229,7 @@ attributi vengono ricostruiti</h2>
 <pre class="text"><code>.checked</code></pre>
 <p>Quindi un nodo del tipo:</p>
 <div class="sourceCode" id="10-cb134"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb134-1"><a href="#10-cb134-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">onclick</span><span class="ot">=</span><span class="st">&quot;...&quot;</span> <span class="er">style</span><span class="ot">=</span><span class="st">&quot;...&quot;</span> <span class="er">data-random</span><span class="ot">=</span><span class="st">&quot;...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb134-1"><a href="#10-cb134-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> onclick</span><span class="op">=</span><span class="st">&quot;...&quot;</span><span class="ot"> style</span><span class="op">=</span><span class="st">&quot;...&quot;</span><span class="ot"> data-random</span><span class="op">=</span><span class="st">&quot;...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>non viene copiato con quegli attributi.</p>
 <p>Il sanitizer ricostruisce un nuovo DOM conosciuto.</p>
 <hr />
@@ -18358,7 +18358,7 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb149-1">
 class="sourceCode js"><code class="sourceCode javascript"><span id="10-cb150-1"><a href="#10-cb150-1" aria-hidden="true" tabindex="-1"></a><span class="bu">Object</span><span class="op">.</span><span class="fu">fromEntries</span>(notes)</span></code></pre></div>
 <p>la codifica e la inserisce in:</p>
 <div class="sourceCode" id="10-cb151"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb151-1"><a href="#10-cb151-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span> <span class="er">id</span><span class="ot">=</span><span class="st">&quot;notes-data&quot;</span><span class="ot"> type=</span><span class="st">&quot;application/octet-stream&quot;</span><span class="dt">&gt;</span><span class="op">...</span><span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb151-1"><a href="#10-cb151-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span><span class="ot"> id</span><span class="op">=</span><span class="st">&quot;notes-data&quot;</span><span class="ot"> type=</span><span class="st">&quot;application/octet-stream&quot;</span><span class="dt">&gt;</span><span class="op">...</span><span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Infine salva l'intero HTML.</p>
 <p>Riferimento:</p>
 <pre class="text"><code>offline-quiz-runtime.js:689–705</code></pre>
@@ -18642,10 +18642,10 @@ soltanto il risultato visivo non basta</h2>
 prossimo input.</p>
 <p>Per esempio:</p>
 <div class="sourceCode" id="10-cb179"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb179-1"><a href="#10-cb179-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span><span class="dt">&gt;</span>abc|<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb179-1"><a href="#10-cb179-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="dt">&gt;</span>abc|<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>visivamente può sembrare uguale a:</p>
 <div class="sourceCode" id="10-cb180"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb180-1"><a href="#10-cb180-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span><span class="dt">&gt;</span>abc<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span>|</span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb180-1"><a href="#10-cb180-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="dt">&gt;</span>abc<span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span>|</span></code></pre></div>
 <p>ma il prossimo carattere:</p>
 <pre class="text"><code>x</code></pre>
 <p>nel primo caso può entrare nell'highlight.</p>
@@ -19019,7 +19019,7 @@ normale.</p>
 parziale</h2>
 <p>Parti da:</p>
 <div class="sourceCode" id="10-cb225"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb225-1"><a href="#10-cb225-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;highlight&quot;</span> <span class="er">data-color</span><span class="ot">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb225-1"><a href="#10-cb225-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">span</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;highlight&quot;</span><span class="ot"> data-color</span><span class="op">=</span><span class="st">&quot;yellow&quot;</span><span class="dt">&gt;</span></span>
 <span id="10-cb225-2"><a href="#10-cb225-2" aria-hidden="true" tabindex="-1"></a>  abc def ghi</span>
 <span id="10-cb225-3"><a href="#10-cb225-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">span</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Seleziona <code>def</code> e applica blu.</p>
@@ -19029,7 +19029,7 @@ class="sourceCode html"><code class="sourceCode html"><span id="10-cb225-1"><a h
 Invariante del sanitizer</h2>
 <p>Aggiungi mentalmente:</p>
 <div class="sourceCode" id="10-cb226"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="10-cb226-1"><a href="#10-cb226-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span> <span class="er">href</span><span class="ot">=</span><span class="st">&quot;https://example.com&quot;</span> <span class="er">onclick</span><span class="ot">=</span><span class="st">&quot;alert(1)&quot;</span><span class="dt">&gt;</span>test<span class="dt">&lt;/</span><span class="kw">a</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="10-cb226-1"><a href="#10-cb226-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">a</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;https://example.com&quot;</span><span class="ot"> onclick</span><span class="op">=</span><span class="st">&quot;alert(1)&quot;</span><span class="dt">&gt;</span>test<span class="dt">&lt;/</span><span class="kw">a</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>agli appunti.</p>
 <p>Che cosa dovrebbe produrre <code>cleanHtml()</code> attuale?</p>
 <p>È la politica che sceglieresti per un editor più generico?</p>
@@ -19691,9 +19691,9 @@ id="11-16-una-tablist-è-un-widget-non-un-gruppo-di-pulsanti-qualunque">16.
 Una tablist è un widget, non un gruppo di pulsanti qualunque</h2>
 <p>Nel popup troviamo:</p>
 <div class="sourceCode" id="11-cb64"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="11-cb64-1"><a href="#11-cb64-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">nav</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;popup-tabs&quot;</span> <span class="er">role</span><span class="ot">=</span><span class="st">&quot;tablist&quot;</span><span class="dt">&gt;</span></span>
-<span id="11-cb64-2"><a href="#11-cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span> <span class="er">role</span><span class="ot">=</span><span class="st">&quot;tab&quot;</span> <span class="er">aria-selected</span><span class="ot">=</span><span class="st">&quot;true&quot;</span> <span class="er">...</span><span class="dt">&gt;</span>Corso<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
-<span id="11-cb64-3"><a href="#11-cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span> <span class="er">role</span><span class="ot">=</span><span class="st">&quot;tab&quot;</span> <span class="er">aria-selected</span><span class="ot">=</span><span class="st">&quot;false&quot;</span> <span class="er">...</span><span class="dt">&gt;</span>Esami<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="11-cb64-1"><a href="#11-cb64-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">nav</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;popup-tabs&quot;</span><span class="ot"> role</span><span class="op">=</span><span class="st">&quot;tablist&quot;</span><span class="dt">&gt;</span></span>
+<span id="11-cb64-2"><a href="#11-cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span><span class="ot"> role</span><span class="op">=</span><span class="st">&quot;tab&quot;</span><span class="ot"> aria-selected</span><span class="op">=</span><span class="st">&quot;true&quot;</span><span class="ot"> </span><span class="er">...</span><span class="dt">&gt;</span>Corso<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
+<span id="11-cb64-3"><a href="#11-cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span><span class="ot"> role</span><span class="op">=</span><span class="st">&quot;tab&quot;</span><span class="ot"> aria-selected</span><span class="op">=</span><span class="st">&quot;false&quot;</span><span class="ot"> </span><span class="er">...</span><span class="dt">&gt;</span>Esami<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
 <span id="11-cb64-4"><a href="#11-cb64-4" aria-hidden="true" tabindex="-1"></a>  ...</span>
 <span id="11-cb64-5"><a href="#11-cb64-5" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">nav</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Riferimento:</p>
@@ -20091,10 +20091,10 @@ dopo un rerender.</p>
 <h2 id="11-36-convergenza-semantica">36. Convergenza semantica</h2>
 <p>Nel popup troviamo:</p>
 <div class="sourceCode" id="11-cb133"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="11-cb133-1"><a href="#11-cb133-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">section</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;autoplay-section ux-group&quot;</span><span class="dt">&gt;</span></span>
-<span id="11-cb133-2"><a href="#11-cb133-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">h2</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;ux-heading&quot;</span><span class="dt">&gt;</span>Autoplay<span class="dt">&lt;/</span><span class="kw">h2</span><span class="dt">&gt;</span></span>
+class="sourceCode html"><code class="sourceCode html"><span id="11-cb133-1"><a href="#11-cb133-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">section</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;autoplay-section ux-group&quot;</span><span class="dt">&gt;</span></span>
+<span id="11-cb133-2"><a href="#11-cb133-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">h2</span><span class="ot"> class</span><span class="op">=</span><span class="st">&quot;ux-heading&quot;</span><span class="dt">&gt;</span>Autoplay<span class="dt">&lt;/</span><span class="kw">h2</span><span class="dt">&gt;</span></span>
 <span id="11-cb133-3"><a href="#11-cb133-3" aria-hidden="true" tabindex="-1"></a>  ...</span>
-<span id="11-cb133-4"><a href="#11-cb133-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span> <span class="er">data-ux-open</span><span class="dt">&gt;</span>Impostazioni autoplay<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
+<span id="11-cb133-4"><a href="#11-cb133-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">button</span><span class="ot"> data-ux-open</span><span class="dt">&gt;</span>Impostazioni autoplay<span class="dt">&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span>
 <span id="11-cb133-5"><a href="#11-cb133-5" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">section</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Nel floating menu il markup è generato da una stringa template in
 <code>floating-menu.js</code>.</p>
@@ -20114,7 +20114,7 @@ protocol</strong>.</p>
 Data attributes come interfaccia tra markup e behavior</h2>
 <p>Invece di legare il comportamento a:</p>
 <div class="sourceCode" id="11-cb135"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb135-1"><a href="#11-cb135-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.popup-course-autoplay-weird-wrapper</span> <span class="op">&gt;</span> div<span class="in">:nth-child(2)</span></span></code></pre></div>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb135-1"><a href="#11-cb135-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.popup-course-autoplay-weird-wrapper</span> <span class="op">&gt;</span> div<span class="in">:nth-child(</span><span class="dv">2</span><span class="in">)</span></span></code></pre></div>
 <p>la funzione condivisa cerca:</p>
 <div class="sourceCode" id="11-cb136"><pre
 class="sourceCode js"><code class="sourceCode javascript"><span id="11-cb136-1"><a href="#11-cb136-1" aria-hidden="true" tabindex="-1"></a><span class="bu">root</span><span class="op">.</span><span class="fu">querySelector</span>(<span class="st">&quot;[data-ux-home]&quot;</span>)</span></code></pre></div>
@@ -20177,7 +20177,7 @@ CSS Multiversity</code></pre>
 <p>potrebbero esserci collisioni.</p>
 <p>Per esempio:</p>
 <div class="sourceCode" id="11-cb144"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb144-1"><a href="#11-cb144-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.button</span> { <span class="fu">...</span> }</span></code></pre></div>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb144-1"><a href="#11-cb144-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.button</span> { ... }</span></code></pre></div>
 <p>oppure stili globali su:</p>
 <pre class="text"><code>button
 input
@@ -20219,14 +20219,14 @@ boundary di sicurezza per segreti.</p>
 CSS deve entrare in entrambi i mondi</h2>
 <p>Nel popup basta:</p>
 <div class="sourceCode" id="11-cb154"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="11-cb154-1"><a href="#11-cb154-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">link</span> <span class="er">rel</span><span class="ot">=</span><span class="st">&quot;stylesheet&quot;</span> <span class="er">href</span><span class="ot">=</span><span class="st">&quot;menu-ux.css&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="11-cb154-1"><a href="#11-cb154-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">link</span><span class="ot"> rel</span><span class="op">=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;menu-ux.css&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>popup.html:14–16</code></pre>
 <p>Nel floating menu invece quel CSS deve essere caricato <strong>dentro
 lo ShadowRoot</strong>.</p>
 <p>Il template contiene:</p>
 <div class="sourceCode" id="11-cb156"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="11-cb156-1"><a href="#11-cb156-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">link</span> <span class="er">rel</span><span class="ot">=</span><span class="st">&quot;stylesheet&quot;</span> <span class="er">href</span><span class="ot">=</span><span class="st">&quot;__PP_MENU_UX_CSS__&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="11-cb156-1"><a href="#11-cb156-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">link</span><span class="ot"> rel</span><span class="op">=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;__PP_MENU_UX_CSS__&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>poi il placeholder viene sostituito con:</p>
 <div class="sourceCode" id="11-cb157"><pre
 class="sourceCode js"><code class="sourceCode javascript"><span id="11-cb157-1"><a href="#11-cb157-1" aria-hidden="true" tabindex="-1"></a>chrome<span class="op">.</span><span class="at">runtime</span><span class="op">.</span><span class="fu">getURL</span>(<span class="st">&quot;menu-ux.css&quot;</span>)</span></code></pre></div>
@@ -20257,7 +20257,7 @@ class="sourceCode css"><code class="sourceCode css"><span id="11-cb161-1"><a hre
 <p>Queste proprietà sono <strong>design token</strong>.</p>
 <p>Invece di scrivere in ogni selettore:</p>
 <div class="sourceCode" id="11-cb163"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb163-1"><a href="#11-cb163-1" aria-hidden="true" tabindex="-1"></a>font-size<span class="in">: 12px;</span></span></code></pre></div>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb163-1"><a href="#11-cb163-1" aria-hidden="true" tabindex="-1"></a>font-size<span class="in">:</span> 12px;</span></code></pre></div>
 <p>si usa un ruolo:</p>
 <pre class="text"><code>copy size
 action size
@@ -20285,9 +20285,9 @@ class="sourceCode css"><code class="sourceCode css"><span id="11-cb167-1"><a hre
 <span id="11-cb167-3"><a href="#11-cb167-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">.toggle-row</span> <span class="op">&gt;</span> span<span class="op">,</span></span>
 <span id="11-cb167-4"><a href="#11-cb167-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">.chapter-limit-row</span><span class="op">,</span></span>
 <span id="11-cb167-5"><a href="#11-cb167-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">.test-choice-list</span> label<span class="op">,</span></span>
-<span id="11-cb167-6"><a href="#11-cb167-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">...</span></span>
+<span id="11-cb167-6"><a href="#11-cb167-6" aria-hidden="true" tabindex="-1"></a>  ...</span>
 <span id="11-cb167-7"><a href="#11-cb167-7" aria-hidden="true" tabindex="-1"></a><span class="in">)</span> {</span>
-<span id="11-cb167-8"><a href="#11-cb167-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">font-size</span>: <span class="fu">var(</span><span class="va">--ux-copy-size</span><span class="fu">)</span><span class="op">;</span></span>
+<span id="11-cb167-8"><a href="#11-cb167-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">font-size</span><span class="ch">:</span> <span class="fu">var(</span><span class="va">--ux-copy-size</span><span class="fu">)</span><span class="op">;</span></span>
 <span id="11-cb167-9"><a href="#11-cb167-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>menu-ux.css:80–95</code></pre>
@@ -20418,7 +20418,7 @@ truth.</strong></p>
 banner come shortcut contestuale</h2>
 <p>Il popup possiede:</p>
 <div class="sourceCode" id="11-cb186"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="11-cb186-1"><a href="#11-cb186-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">button</span> <span class="er">id</span><span class="ot">=</span><span class="st">&quot;activeOperationBanner&quot;</span> <span class="er">...</span> <span class="er">hidden</span><span class="dt">&gt;&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="11-cb186-1"><a href="#11-cb186-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">button</span><span class="ot"> id</span><span class="op">=</span><span class="st">&quot;activeOperationBanner&quot;</span><span class="ot"> </span><span class="er">...</span><span class="ot"> hidden</span><span class="dt">&gt;&lt;/</span><span class="kw">button</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>popup.html:42</code></pre>
 <p>Quando viene cliccato:</p>
@@ -20600,18 +20600,18 @@ deve convivere col passato</h2>
 <p>Aggiungere una nuova regola come:</p>
 <div class="sourceCode" id="11-cb209"><pre
 class="sourceCode css"><code class="sourceCode css"><span id="11-cb209-1"><a href="#11-cb209-1" aria-hidden="true" tabindex="-1"></a><span class="fu">.ux-heading</span> {</span>
-<span id="11-cb209-2"><a href="#11-cb209-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">font-size</span>: <span class="fu">var(</span><span class="va">--ux-action-size</span><span class="fu">)</span><span class="op">;</span></span>
+<span id="11-cb209-2"><a href="#11-cb209-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">font-size</span><span class="ch">:</span> <span class="fu">var(</span><span class="va">--ux-action-size</span><span class="fu">)</span><span class="op">;</span></span>
 <span id="11-cb209-3"><a href="#11-cb209-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>non garantisce che vinca.</p>
 <p>Potrebbero esistere selettori più specifici come:</p>
 <div class="sourceCode" id="11-cb210"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb210-1"><a href="#11-cb210-1" aria-hidden="true" tabindex="-1"></a>html<span class="ex">[data-menu-size</span><span class="op">=</span><span class="st">&quot;small&quot;</span><span class="ex">]</span> <span class="fu">.some-old-control</span> { <span class="fu">...</span> }</span></code></pre></div>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb210-1"><a href="#11-cb210-1" aria-hidden="true" tabindex="-1"></a>html<span class="ex">[</span><span class="ss">data-menu-size</span><span class="op">=</span><span class="st">&quot;small&quot;</span><span class="ex">]</span> <span class="fu">.some-old-control</span> { ... }</span></code></pre></div>
 <hr />
 <h2 id="11-62-specificity-come-problema-di-migrazione">62. Specificity come
 problema di migrazione</h2>
 <p>Il file contiene infatti il commento:</p>
 <div class="sourceCode" id="11-cb211"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb211-1"><a href="#11-cb211-1" aria-hidden="true" tabindex="-1"></a>Root specificity keeps old size-specific rules from overriding the shared scale<span class="fu">.</span></span></code></pre></div>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb211-1"><a href="#11-cb211-1" aria-hidden="true" tabindex="-1"></a>Root specificity keeps old size-specific rules from overriding the shared scale.</span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>menu-ux.css:65+</code></pre>
 <p>Questo ci ricorda che il CSS possiede anch'esso una forma di
@@ -20630,8 +20630,8 @@ spazio.</p>
 <p>perché il floating panel ha un vincolo di dimensione.</p>
 <p>Il CSS usa:</p>
 <div class="sourceCode" id="11-cb215"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb215-1"><a href="#11-cb215-1" aria-hidden="true" tabindex="-1"></a><span class="in">:host</span> <span class="fu">.menu-tabs</span><span class="ex">[data-count</span><span class="op">=</span><span class="st">&quot;4&quot;</span><span class="ex">]</span> {</span>
-<span id="11-cb215-2"><a href="#11-cb215-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">grid-template-columns</span>: <span class="fu">repeat(</span><span class="dv">4</span><span class="op">,</span> <span class="bu">auto</span><span class="fu">)</span><span class="op">;</span></span>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb215-1"><a href="#11-cb215-1" aria-hidden="true" tabindex="-1"></a><span class="in">:host</span> <span class="fu">.menu-tabs</span><span class="ex">[</span><span class="ss">data-count</span><span class="op">=</span><span class="st">&quot;4&quot;</span><span class="ex">]</span> {</span>
+<span id="11-cb215-2"><a href="#11-cb215-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">grid-template-columns</span><span class="ch">:</span> <span class="fu">repeat(</span><span class="dv">4</span><span class="op">,</span> <span class="bu">auto</span><span class="fu">)</span><span class="op">;</span></span>
 <span id="11-cb215-3"><a href="#11-cb215-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>menu-ux.css:58</code></pre>
@@ -20955,8 +20955,8 @@ di “Cancella dati degli esami”</h2>
 <pre class="text"><code>testo troppo vicino al pulsante</code></pre>
 <p>La correzione è:</p>
 <div class="sourceCode" id="11-cb255"><pre
-class="sourceCode css"><code class="sourceCode css"><span id="11-cb255-1"><a href="#11-cb255-1" aria-hidden="true" tabindex="-1"></a><span class="ex">[data-action</span><span class="op">=</span><span class="st">&quot;clear-commission-data&quot;</span><span class="ex">]</span> {</span>
-<span id="11-cb255-2"><a href="#11-cb255-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">margin-top</span>: <span class="dv">12</span><span class="dt">px</span><span class="op">;</span></span>
+class="sourceCode css"><code class="sourceCode css"><span id="11-cb255-1"><a href="#11-cb255-1" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="ss">data-action</span><span class="op">=</span><span class="st">&quot;clear-commission-data&quot;</span><span class="ex">]</span> {</span>
+<span id="11-cb255-2"><a href="#11-cb255-2" aria-hidden="true" tabindex="-1"></a>  <span class="kw">margin-top</span><span class="ch">:</span> <span class="dv">12</span><span class="dt">px</span><span class="op">;</span></span>
 <span id="11-cb255-3"><a href="#11-cb255-3" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Riferimento:</p>
 <pre class="text"><code>menu-ux.css:99</code></pre>
@@ -23493,7 +23493,7 @@ mappa completa di PlumePilot</h1>
 <h2 id="12-116-tecnica--budget">116. Tecnica → budget</h2>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Tecnica</th>
 <th style="text-align: right;">CPU</th>
 <th style="text-align: right;">Rete</th>
@@ -23502,84 +23502,84 @@ mappa completa di PlumePilot</h1>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Course master index</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">leggero ↑</td>
 <td style="text-align: right;">↑</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>lessonApiCache</code></td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">↑</td>
 <td style="text-align: right;">↑</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Pacing</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">burst ↓</td>
 <td style="text-align: right;">picco ↓/≈</td>
 <td style="text-align: right;">↑</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Promise.all</td>
 <td style="text-align: right;">wall time ↓</td>
 <td style="text-align: right;">concurrency ↑</td>
 <td style="text-align: right;">picco ↑</td>
 <td style="text-align: right;">dipende</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Conversione EPUB seriale</td>
 <td style="text-align: right;">wall time ↑</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">picco ↓</td>
 <td style="text-align: right;">prevedibile</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Text fast path</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">↑</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Regional rendering</td>
 <td style="text-align: right;">↑</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">dipende</td>
 <td style="text-align: right;">mitigata da yield</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Canvas cap</td>
 <td style="text-align: right;">↓/≈</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">↑</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Asset dedup SHA-256</td>
 <td style="text-align: right;">↑</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">dipende</td>
 </tr>
-<tr class="even">
+<tr>
 <td><code>yieldToBrowser()</code></td>
 <td style="text-align: right;">overhead ↑</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">↑↑</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Bounded cache</td>
 <td style="text-align: right;">≈</td>
 <td style="text-align: right;">possibile ↑ su eviction</td>
 <td style="text-align: right;">↓</td>
 <td style="text-align: right;">≈</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Cancellation</td>
 <td style="text-align: right;">lavoro totale ↓</td>
 <td style="text-align: right;">richieste ↓</td>
@@ -23956,45 +23956,45 @@ store policy</code></pre>
 <p>Per il nostro caso possiamo usare questa matrice:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Livello</th>
 <th>Domanda</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Linguaggio</td>
 <td>Il motore JS comprende questa sintassi?</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Web Platform</td>
 <td>Il browser offre questa API DOM/Web?</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>WebExtension</td>
 <td>L'extension runtime espone questa API?</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Manifest</td>
 <td>Questa dichiarazione è valida per quel browser?</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Lifecycle</td>
 <td>Il background vive e muore nello stesso modo?</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Packaging</td>
 <td>Lo ZIP richiesto ha la stessa struttura?</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Policy</td>
 <td>Il codice è accettabile per lo store?</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Review</td>
 <td>Il revisore può ricostruire e comprendere il pacchetto?</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>UX</td>
 <td>La stessa UI si comporta allo stesso modo?</td>
 </tr>
@@ -24095,7 +24095,7 @@ III — Manifest V3 non significa lo stesso runtime ovunque</h1>
 <p>Il manifest del repository 2.35.2 contiene ancora una forma che
 descrive entrambe le possibilità:</p>
 <div class="sourceCode" id="13-cb19"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb19-1"><a href="#13-cb19-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb19-1"><a href="#13-cb19-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;background&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="13-cb19-2"><a href="#13-cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="13-cb19-3"><a href="#13-cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;achievements.js&quot;</span><span class="ot">,</span></span>
 <span id="13-cb19-4"><a href="#13-cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;commission-state.js&quot;</span><span class="ot">,</span></span>
@@ -24169,7 +24169,7 @@ scelta interessante: produrre manifest diversi</h2>
 <p>La documentazione WebExtensions mostra anche una possibile strategia
 universale:</p>
 <div class="sourceCode" id="13-cb27"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb27-1"><a href="#13-cb27-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;background&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb27-1"><a href="#13-cb27-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;background&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="13-cb27-2"><a href="#13-cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;background.js&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
 <span id="13-cb27-3"><a href="#13-cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;service_worker&quot;</span><span class="fu">:</span> <span class="st">&quot;background.js&quot;</span></span>
 <span id="13-cb27-4"><a href="#13-cb27-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
@@ -24333,7 +24333,7 @@ class="sourceCode js"><code class="sourceCode javascript"><span id="13-cb43-1"><
 <h2 id="13-15-firefox-id">15. Firefox ID</h2>
 <p>Nel manifest Firefox viene aggiunto:</p>
 <div class="sourceCode" id="13-cb46"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb46-1"><a href="#13-cb46-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;browser_specific_settings&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb46-1"><a href="#13-cb46-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;browser_specific_settings&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="13-cb46-2"><a href="#13-cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;gecko&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="13-cb46-3"><a href="#13-cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;plumepilot@fabiofloris&quot;</span></span>
 <span id="13-cb46-4"><a href="#13-cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
@@ -24349,7 +24349,7 @@ storica.</p>
 declarations</h2>
 <p>Nel target Firefox troviamo inoltre:</p>
 <div class="sourceCode" id="13-cb47"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb47-1"><a href="#13-cb47-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;data_collection_permissions&quot;:</span> <span class="fu">{</span></span>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb47-1"><a href="#13-cb47-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;data_collection_permissions&quot;</span><span class="er">:</span> <span class="fu">{</span></span>
 <span id="13-cb47-2"><a href="#13-cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;required&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
 <span id="13-cb47-3"><a href="#13-cb47-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;authenticationInfo&quot;</span><span class="ot">,</span></span>
 <span id="13-cb47-4"><a href="#13-cb47-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;websiteContent&quot;</span><span class="ot">,</span></span>
@@ -24372,10 +24372,10 @@ informazione nel manifest Firefox.</p>
 <h2 id="13-17-versioni-minime">17. Versioni minime</h2>
 <p>Il pacchetto Firefox dichiara:</p>
 <div class="sourceCode" id="13-cb49"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb49-1"><a href="#13-cb49-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;140.0&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb49-1"><a href="#13-cb49-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;strict_min_version&quot;</span><span class="er">:</span> <span class="st">&quot;140.0&quot;</span></span></code></pre></div>
 <p>e per Android:</p>
 <div class="sourceCode" id="13-cb50"><pre
-class="sourceCode json"><code class="sourceCode json"><span id="13-cb50-1"><a href="#13-cb50-1" aria-hidden="true" tabindex="-1"></a><span class="er">&quot;strict_min_version&quot;:</span> <span class="er">&quot;142.0&quot;</span></span></code></pre></div>
+class="sourceCode json"><code class="sourceCode json"><span id="13-cb50-1"><a href="#13-cb50-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;strict_min_version&quot;</span><span class="er">:</span> <span class="st">&quot;142.0&quot;</span></span></code></pre></div>
 <p>La versione minima è una forma di contratto.</p>
 <p>Stiamo dicendo:</p>
 <pre class="text"><code>sotto questa versione
@@ -25065,7 +25065,7 @@ spingere nella stessa direzione.</p>
 <h2 id="13-58-runtime-self-contained">58. Runtime self-contained</h2>
 <p>Il validator controlla che i file first-party non contengano:</p>
 <div class="sourceCode" id="13-cb148"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="13-cb148-1"><a href="#13-cb148-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
+class="sourceCode html"><code class="sourceCode html"><span id="13-cb148-1"><a href="#13-cb148-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">script</span><span class="ot"> src</span><span class="op">=</span><span class="st">&quot;https://...&quot;</span><span class="dt">&gt;</span></span></code></pre></div>
 <p>Il principio per MV3 è importante:</p>
 <pre class="text"><code>codice eseguibile dell&#39;estensione
 deve essere comprensibile dal pacchetto</code></pre>
@@ -25248,7 +25248,7 @@ feature non è “done” quando funziona su Chrome</h2>
 <p>Per una release reale la matrice è più simile a:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Area</th>
 <th style="text-align: right;">Chrome</th>
 <th style="text-align: right;">Edge</th>
@@ -25256,49 +25256,49 @@ feature non è “done” quando funziona su Chrome</h2>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Runtime feature</td>
 <td style="text-align: right;">✓</td>
 <td style="text-align: right;">✓</td>
 <td style="text-align: right;">✓</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Manifest</td>
 <td style="text-align: right;">✓</td>
 <td style="text-align: right;">✓</td>
 <td style="text-align: right;">✓</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Background</td>
 <td style="text-align: right;">SW</td>
 <td style="text-align: right;">SW</td>
 <td style="text-align: right;">scripts</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Audio path</td>
 <td style="text-align: right;">offscreen</td>
 <td style="text-align: right;">offscreen</td>
 <td style="text-align: right;">tab fallback</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Locale package</td>
 <td style="text-align: right;">base</td>
 <td style="text-align: right;"><code>_locales</code></td>
 <td style="text-align: right;">base</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Review-safe transforms</td>
 <td style="text-align: right;">no</td>
 <td style="text-align: right;">no</td>
 <td style="text-align: right;">sì</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Source archive</td>
 <td style="text-align: right;">no</td>
 <td style="text-align: right;">no</td>
 <td style="text-align: right;">sì</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Store validation</td>
 <td style="text-align: right;">CWS</td>
 <td style="text-align: right;">Edge</td>
@@ -26007,7 +26007,7 @@ del tipo:</p>
 <p>con:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Capability</th>
 <th>Chrome</th>
 <th>Edge</th>
@@ -26016,42 +26016,42 @@ del tipo:</p>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>background</td>
 <td>service worker</td>
 <td>service worker</td>
 <td>scripts</td>
 <td>build</td>
 </tr>
-<tr class="even">
+<tr>
 <td>sound</td>
 <td>offscreen</td>
 <td>offscreen</td>
 <td>content tab</td>
 <td>runtime</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>storage</td>
 <td>local</td>
 <td>local</td>
 <td>local</td>
 <td>shared</td>
 </tr>
-<tr class="even">
+<tr>
 <td>popup</td>
 <td>yes</td>
 <td>yes</td>
 <td>yes</td>
 <td>shared</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>MAIN world</td>
 <td>yes</td>
 <td>yes</td>
 <td>yes*</td>
 <td>validated target</td>
 </tr>
-<tr class="even">
+<tr>
 <td>source review</td>
 <td>CWS</td>
 <td>Edge</td>
@@ -26622,7 +26622,7 @@ external contract</h2>
 finale</h1>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Problema</th>
 <th>Chrome</th>
 <th>Edge</th>
@@ -26631,77 +26631,77 @@ finale</h1>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>background</td>
 <td>service worker</td>
 <td>service worker</td>
 <td>scripts</td>
 <td>build specialization</td>
 </tr>
-<tr class="even">
+<tr>
 <td>audio senza DOM</td>
 <td>offscreen</td>
 <td>offscreen</td>
 <td>tab fallback</td>
 <td>capability + fallback</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>permission offscreen</td>
 <td>sì</td>
 <td>sì</td>
 <td>no</td>
 <td>target manifest</td>
 </tr>
-<tr class="even">
+<tr>
 <td>add-on ID Gecko</td>
 <td>no</td>
 <td>no</td>
 <td>sì</td>
 <td>target manifest</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>data declarations Gecko</td>
 <td>no</td>
 <td>no</td>
 <td>sì</td>
 <td>target manifest</td>
 </tr>
-<tr class="even">
+<tr>
 <td>locale store runtime</td>
 <td>base</td>
 <td><code>_locales</code></td>
 <td>base</td>
 <td>package injection</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>readable vendor</td>
 <td>sì</td>
 <td>sì</td>
 <td>sì</td>
 <td>pinned readable upstream</td>
 </tr>
-<tr class="even">
+<tr>
 <td>review-safe vendor transforms</td>
 <td>no</td>
 <td>no</td>
 <td>sì</td>
 <td>deterministic build patch</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>source submission</td>
 <td>no</td>
 <td>no</td>
 <td>sì</td>
 <td>dedicated source ZIP</td>
 </tr>
-<tr class="even">
+<tr>
 <td>checksum artifact</td>
 <td>sì</td>
 <td>sì</td>
 <td>sì</td>
 <td>SHA256SUMS</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>UI timing/layout workaround</td>
 <td>quando serve</td>
 <td>quando serve</td>
@@ -28783,45 +28783,45 @@ Error taxonomy → recovery policy</h1>
 <h2 id="14-157-tabella-mentale">157. Tabella mentale</h2>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Failure</th>
 <th>Recovery</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>rete temporanea</td>
 <td>retry/backoff</td>
 </tr>
-<tr class="even">
+<tr>
 <td>API incomplete</td>
 <td>visual fallback</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>DOM not ready</td>
 <td>wait/re-observe</td>
 </tr>
-<tr class="even">
+<tr>
 <td>identity ambiguous</td>
 <td>stop/fallback</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>hidden tab timeout</td>
 <td>defer</td>
 </tr>
-<tr class="even">
+<tr>
 <td>stale cache</td>
 <td>refresh</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>user cancel</td>
 <td>abort/cleanup</td>
 </tr>
-<tr class="even">
+<tr>
 <td>artifact invariant</td>
 <td>fail build</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>store warning</td>
 <td>classify/document</td>
 </tr>
@@ -33201,45 +33201,45 @@ merge accidentale”</h2>
 table</h1>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Problema</th>
 <th>Strumento principale</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>branch solo stale</td>
 <td>merge/rebase</td>
 </tr>
-<tr class="even">
+<tr>
 <td>commit singolo da portare</td>
 <td>cherry-pick</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>modifica da annullare pubblicamente</td>
 <td>revert</td>
 </tr>
-<tr class="even">
+<tr>
 <td>history privata rumorosa</td>
 <td>interactive rebase</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>squash ancestry mismatch</td>
 <td>rebase/reparent/content reconstruction</td>
 </tr>
-<tr class="even">
+<tr>
 <td>wrong public main commit</td>
 <td>revert/restore commit</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>wrong release artifact</td>
 <td>rebuild + new version if published</td>
 </tr>
-<tr class="even">
+<tr>
 <td>wrong tag non pubblico</td>
 <td>recreate carefully</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>wrong tag già pubblico</td>
 <td>prefer new corrective release</td>
 </tr>
@@ -37879,57 +37879,57 @@ Architecture fitness questions</h1>
 <p>Possiamo usare una scorecard:</p>
 <table>
 <thead>
-<tr class="header">
+<tr>
 <th>Domanda</th>
 <th>Risposta desiderata</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td>Owner dello stato?</td>
 <td>Uno chiaro</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Identity?</td>
 <td>Stabile e composita quando serve</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Authority?</td>
 <td>Esplicita</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Lifetime?</td>
 <td>Coerente con storage</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Unknown?</td>
 <td>Rappresentabile</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Side effect?</td>
 <td>Protetto da guard/revalidation</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Cancellation?</td>
 <td>Definita</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Failure?</td>
 <td>Classificata</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Fallback?</td>
 <td>Sicuro</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Test?</td>
 <td>Property verificabile</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>Boundary?</td>
 <td>Normalizzato</td>
 </tr>
-<tr class="even">
+<tr>
 <td>Observability?</td>
 <td>Sufficiente</td>
 </tr>
