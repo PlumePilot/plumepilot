@@ -27,6 +27,8 @@ Il vero problema è rispondere a domande come:
 - se la tab è nascosta, i timeout hanno ancora lo stesso significato?
 - se il frontend ricostruisce la sidebar, posso continuare a usare il vecchio riferimento DOM?
 
+Un **nodo DOM** è un oggetto dell'albero della pagina, per esempio un elemento o un pezzo di testo. Per **rendering** intendiamo il lavoro con cui il browser prepara e mostra l'interfaccia a partire dai dati e dagli stili. Un **accordion** è un gruppo di sezioni apribili e richiudibili. Nella pagina del corso, aprirne una può far comparire nel DOM le righe delle attività.
+
 Queste non sono domande specifiche di PlumePilot.
 
 Sono problemi tipici di qualunque software che debba integrarsi con una **UI dinamica non controllata**: browser extension, userscript, test end-to-end, automazione, accessibility tooling, web scraping interattivo o integrazioni con applicazioni legacy.
@@ -100,6 +102,8 @@ L'identità DOM no.
 ---
 
 ## 2. Un riferimento DOM non è un'identità logica
+
+Un **selettore CSS** è un'espressione che indica quali elementi cercare. Il selettore `.lesson` cerca un elemento con la classe `lesson`. Un [**riferimento DOM**](glossario.md#stale-dom-reference) conserva l'oggetto trovato in quel momento, anche se la piattaforma lo sostituisce in seguito.
 
 Supponiamo di fare:
 
@@ -1664,6 +1668,8 @@ Quindi il check significa più precisamente:
 
 ## 42. La percentuale è una baseline
 
+La [**baseline DOM**](glossario.md#baseline-dom) è il progresso iniziale letto dalla pagina. Il **delta di sessione** è l'incremento osservato da PlumePilot durante la sessione. Sommandoli, il codice può stimare il progresso quando manca un valore preciso.
+
 Il codice di progresso contiene:
 
 ```js
@@ -1702,7 +1708,7 @@ quello prevale.
 
 ## 43. Hierarchy of evidence
 
-Possiamo descrivere questa architettura come una gerarchia di evidenze:
+La **gerarchia di evidenze** ordina le fonti secondo la loro affidabilità per una decisione. Qui stabilisce quando usare un valore preciso e quando ricorrere alla stima:
 
 ```text
 valore esatto disponibile
@@ -1731,6 +1737,8 @@ stato locale
 ```
 
 non avranno tutti lo stesso peso.
+
+Nel diagramma, la [**master call**](glossario.md#master-call) è la richiesta che restituisce un riepilogo del corso, con una percentuale per modulo. Quella percentuale orienta la ricerca. Le singole attività richiedono evidenza più dettagliata.
 
 ---
 

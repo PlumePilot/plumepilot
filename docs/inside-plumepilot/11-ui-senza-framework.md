@@ -19,6 +19,8 @@ Nei capitoli precedenti abbiamo parlato soprattutto del motore di PlumePilot:
 
 Ora arriviamo alla parte che l'utente vede direttamente.
 
+Un **framework UI** fornisce struttura e strumenti per costruire e aggiornare le viste. In questo capitolo, il [**livello di presentazione**](glossario.md#presentation-layer) comprende le funzioni che preparano e mostrano lo stato dell'estensione, ad esempio traducendo un'impostazione autoplay in un interruttore acceso o spento.
+
 PlumePilot possiede due interfacce principali:
 
 ```text
@@ -2529,6 +2531,8 @@ non browser E2E completo
 ---
 
 ## 67. Browser fixture
+
+Una [**fixture**](glossario.md#fixture) è un insieme stabile di dati o di elementi predisposti per ripetere un test. Qui la pagina di prova e lo storage simulato danno ai controller del menu condizioni note a ogni esecuzione.
 
 La documentazione del redesign descrive anche:
 

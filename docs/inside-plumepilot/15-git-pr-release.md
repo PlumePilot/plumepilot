@@ -23,6 +23,12 @@ store submission
 versione installata dall'utente
 ```
 
+Il **working tree** è l'insieme dei file del progetto come li vedi e modifichi sul disco. Un [**commit**](glossario.md#git-commit) registra una versione di quei file e i riferimenti alla storia precedente. Un [**branch**](glossario.md#branch) è un riferimento che avanza con i nuovi commit. Un **tag** serve a contrassegnare un punto preciso della storia, per esempio la versione `v2.35.1`.
+
+La [**pull request**](glossario.md#pull-request) o **PR** è la proposta di integrare modifiche, con la relativa discussione e revisione. La **release** riguarda la versione che il progetto distribuisce. Per PlumePilot, la consegna allo store è un passaggio successivo alla creazione dello ZIP per quel browser.
+
+Nella storia che segue, **SHA** indica l'identificatore calcolato da Git per un oggetto. Il commit e il suo [**tree**](glossario.md#git-tree) sono oggetti distinti. Il tree descrive i file e le cartelle, mentre il commit include anche la storia, per esempio il riferimento al commit precedente.
+
 Queste cose sono collegate.
 
 Ma **non sono la stessa cosa**.
@@ -5177,7 +5183,7 @@ Per un progetto piccolo il manual upload può restare ragionevole.
 
 ## 308. CI
 
-Continuous Integration:
+La **CI** (*continuous integration*, integrazione continua) esegue controlli automatici sulle modifiche mentre vengono sviluppate e integrate. Nel caso di una PR, può verificare che una proposta superi i test prima della revisione.
 
 ```text
 integra e verifica spesso
@@ -5187,7 +5193,7 @@ integra e verifica spesso
 
 ## 309. CD
 
-Può significare:
+**CD** può indicare la preparazione automatica di versioni distribuibili (*continuous delivery*) oppure la loro pubblicazione automatica dopo i controlli (*continuous deployment*). I due termini che si incontrano sono:
 
 ```text
 Continuous Delivery

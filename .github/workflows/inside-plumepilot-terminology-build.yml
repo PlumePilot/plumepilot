@@ -1,0 +1,55 @@
+name: Build the Italian Inside PlumePilot reader
+
+on:
+  push:
+    branches: [docs/inside-plumepilot-terminology]
+    paths:
+      - '.github/workflows/inside-plumepilot-terminology-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-reader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pandoc
+        run: sudo apt-get update -qq && sudo apt-get install -y pandoc
+      - name: Generate the reader
+        run: node scripts/build-inside-plumepilot.mjs
+      - name: Verify glossary links
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class Reader(HTMLParser):
+              ids = set()
+              fragments = set()
+              sections = 0
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if 'id' in attrs:
+                      self.ids.add(attrs['id'])
+                  if tag == 'a' and attrs.get('href', '').startswith('#'):
+                      self.fragments.add(attrs['href'][1:])
+                  if tag == 'section' and attrs.get('class') == 'chapter':
+                      self.sections += 1
+
+          reader = Reader()
+          reader.feed(Path('docs/inside-plumepilot/Inside-PlumePilot.html').read_text(encoding='utf-8'))
+          assert reader.sections == 20
+          assert reader.fragments <= reader.ids, reader.fragments - reader.ids
+          assert {'glossario-promise', 'glossario-master-call'} <= reader.fragments
+          PY
+      - name: Commit the reader
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/inside-plumepilot/Inside-PlumePilot.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs(book): regenerate the Italian offline reader'
+            git push origin HEAD:docs/inside-plumepilot-terminology
+          fi

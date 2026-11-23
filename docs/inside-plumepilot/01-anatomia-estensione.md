@@ -16,7 +16,9 @@ Nel nostro snapshot di riferimento, il manifest inizia così:
 }
 ```
 
-`manifest_version: 3` ci dice che stiamo usando il modello moderno delle extension Chromium e delle WebExtensions compatibili.
+`manifest_version: 3` indica **Manifest V3**, la versione del modello che disciplina come il browser carica e gestisce i componenti dell'estensione. **WebExtensions** indica il modello di API e configurazione condiviso da più browser. **Chromium** è il progetto open source su cui si basano Chrome ed Edge. Vedremo le differenze di configurazione con Firefox nel [Capitolo 13](13-cross-browser.md).
+
+Nei frammenti potresti incontrare nomi come `StudyWing` o `PEGASO_`. [**StudyWing**](glossario.md#studywing) era il nome precedente di PlumePilot. Prefissi come `PEGASO_` risalgono al periodo in cui l'estensione era dedicata a Pegaso e identificano ancora messaggi usati nel codice.
 
 Ma le righe realmente interessanti arrivano poco dopo.
 
@@ -46,7 +48,7 @@ Questa è già una prima lezione architetturale:
 
 > Il browser crea confini prima ancora che il nostro codice inizi a girare.
 
-Non possiamo comprendere PlumePilot guardando soltanto le funzioni. Dobbiamo capire **in quale runtime** gira ogni funzione.
+Il **runtime** è l'ambiente in cui gira il codice. Nel popup possiamo aggiornare gli elementi di `popup.html`. Un content script lavora invece sulla pagina a cui è associato e il background ha un ciclo di vita gestito dal browser.
 
 ---
 

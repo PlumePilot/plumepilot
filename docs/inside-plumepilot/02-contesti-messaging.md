@@ -6,6 +6,8 @@ Nel capitolo precedente abbiamo visto che PlumePilot non vive in un unico ambien
 
 Il popup, il background, i content script nel mondo isolato, gli script nel `MAIN` world e le pagine builder sono componenti distinti. Possono appartenere alla stessa estensione, ma **non condividono automaticamente memoria, scope globale o ciclo di vita**.
 
+Lo **scope globale** è l'insieme dei nomi accessibili al codice a livello globale nel suo ambiente. Il **ciclo di vita** (*lifecycle*) indica quando quell'ambiente nasce e quando viene chiuso, sospeso o ricreato. Per esempio, il popup può chiudersi mentre la [**pagina builder**](glossario.md#pagina-builder) continua a produrre il file da scaricare.
+
 Questo cambia radicalmente il modo in cui dobbiamo ragionare sul programma.
 
 In una normale funzione possiamo fare questo:
@@ -64,6 +66,8 @@ Questo oggetto non contiene comportamento. Contiene **dati che descrivono una ri
 
 Il campo più importante è spesso `type`.
 
+Il **payload** è il contenuto che accompagna il tipo del messaggio. Qui `type` indica che si vuole avviare un export, mentre `format` e `sourceTabId` precisano il tipo di export e la scheda di origine. Un oggetto **serializzabile** può essere rappresentato come dati e ricostruito dall'altra parte del confine.
+
 Puoi pensarlo come a una route:
 
 ```text
@@ -78,7 +82,7 @@ PEGASO_START_EXPORT
 
 nel sistema di messaging.
 
-Il destinatario guarda quel valore e decide quale handler eseguire.
+Il destinatario guarda quel valore e sceglie l'**handler**, la funzione che gestisce quel tipo di messaggio.
 
 In `background.js` accade esattamente questo:
 
@@ -99,7 +103,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 Riferimento reale: [`background.js`, dispatcher dei messaggi](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/background.js#L918-L945).
 
-Il background si comporta quindi come un piccolo **dispatcher**:
+Il background si comporta quindi come un [**dispatcher**](glossario.md#dispatcher). Smista il messaggio alla funzione corrispondente a `message.type`:
 
 ```text
 message.type
@@ -674,6 +678,8 @@ La differenza è che qui il meccanismo di risposta è gestito dal runtime dell'e
 
 ## 11. Perché PlumePilot trasforma i callback in Promise
 
+Un [**callback**](glossario.md#callback) è una funzione che passiamo a un'altra funzione perché la chiami al momento opportuno. Qui il browser esegue il callback quando ha una risposta al messaggio o un errore da comunicare. Una [**Promise**](glossario.md#promise) dà al chiamante un oggetto su cui aspettare quell'esito con `await`.
+
 Nel popup troviamo:
 
 ```js
@@ -691,6 +697,8 @@ function runtimeMessage(message) {
 ```
 
 Riferimento: [`popup.js` L1296–L1306](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/popup.js#L1296-L1306).
+
+In `runtimeMessage()`, `resolve(...)` conclude l'attesa con un valore. Anche un errore del canale viene restituito come valore, `{ accepted: false, reason: ... }`. Il chiamante può così verificare `accepted` dopo `await`.
 
 Il chiamante può quindi scrivere:
 

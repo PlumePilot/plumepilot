@@ -34,6 +34,8 @@ DOM
 
 Quando la piattaforma mostra un capitolo, una percentuale, una dispensa o un test, quei dati devono essere arrivati da qualche parte.
 
+**HTTP** è il protocollo con cui il browser invia la richiesta e il server risponde. Un [**endpoint**](glossario.md#endpoint) è il punto dell'API a cui si indirizza una richiesta, per esempio un percorso da leggere con il metodo `GET`. Il **payload** della risposta è il suo contenuto utile, spesso codificato in **JSON**.
+
 PlumePilot ha imparato progressivamente a osservare proprio questo livello.
 
 Ed è qui che entra il tema del capitolo:
@@ -658,19 +660,15 @@ perché rende più chiaro:
 
 ## 18. Quello che nel progetto chiamiamo "master call"
 
-Uno degli endpoint più importanti è costruito così:
+Nel lessico di PlumePilot, la [**master call**](glossario.md#master-call) è la richiesta HTTP che chiede alla piattaforma l'indice di un corso. La risposta raggruppa i moduli con i rispettivi identificatori, l'ordine di visualizzazione e la percentuale di progresso. Nello snapshot del libro, il percorso della richiesta di indice termina con `/0`.
+
+Il codice costruisce l'URL così:
 
 ```js
 url = `${API_ORIGIN}/student/course/${encodeURIComponent(courseCode)}/video-lessons/0`;
 ```
 
 Riferimento: [`commission-interceptor.js` L453-L455](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L453-L455).
-
-Nel nostro lessico durante lo sviluppo l'abbiamo spesso chiamato **master call**.
-
-Non è necessariamente il nome ufficiale dell'endpoint.
-
-È il nostro nome concettuale per una risposta che descrive l'insieme dei moduli del corso e il loro stato sintetico.
 
 Possiamo pensarla come:
 
@@ -683,7 +681,7 @@ corso
  └── modulo E   100%
 ```
 
-Questo tipo di vista aggregata è preziosissima.
+Se il modulo C risulta all'80%, PlumePilot può dargli priorità nella ricerca della prima attività incompleta. La [**chiamata di dettaglio**](glossario.md#chiamata-di-dettaglio) restituisce lo stato di obiettivi, video e test del singolo modulo. È lì che si cercano le evidenze sulle singole attività. Il [Capitolo 08](08-prima-attivita-incompleta.md) mostra come recupera la ricerca quando il riepilogo o il dettaglio sono incompleti.
 
 ---
 
@@ -707,6 +705,8 @@ return {
 
 Riferimento: [`commission-interceptor.js` L99-L120](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L99-L120).
 
+`displayOrder` indica l'ordine di visualizzazione esposto dalla piattaforma. `masterOrder` è la posizione, a partire da zero, della voce nella risposta originale della master call prima dell'ordinamento locale. Conservare entrambi aiuta quando più voci riportano lo stesso `displayOrder`.
+
 Questa fase è molto simile a ciò che in un backend potresti chiamare:
 
 ```text
@@ -715,6 +715,8 @@ adapter
 anti-corruption layer
 normalization layer
 ```
+
+Un **DTO** (*Data Transfer Object*) trasporta dati tra componenti. Qui il *mapping* converte campi e tipi del JSON in quelli usati da PlumePilot. Un [**adapter**](glossario.md#adapter) fa da traduttore tra due interfacce. Quando quella traduzione protegge il modello interno dalle convenzioni di un sistema esterno, si parla di [**anti-corruption layer**](glossario.md#anti-corruption-layer).
 
 Il resto di PlumePilot non deve conoscere ogni dettaglio del JSON originale.
 
@@ -888,7 +890,9 @@ Il resto dell'applicazione ragiona su concetti PlumePilot, non sul payload grezz
 
 ## 26. `content.js` non conosce il token
 
-Quando `content.js` vuole dati API usa:
+Nel codice, [**Turbo API**](glossario.md#turbo-api) identifica il canale interno con cui `content.js` chiede dati strutturati a un componente che comunica con la piattaforma. La richiesta `outline` cerca l'indice del corso e `lesson` chiede il dettaglio di una lezione.
+
+Il codice usa questo canale con `turboApiRequest()`:
 
 ```js
 function turboApiRequest(action, payload = {}) {
@@ -916,7 +920,7 @@ const response = await turboApiRequest("lesson", {
 });
 ```
 
-Concettualmente è una piccola **RPC locale**.
+Concettualmente è una piccola **RPC locale** (*remote procedure call*). Il chiamante chiede a un altro ambiente di esecuzione di svolgere un'operazione e ne attende il risultato attraverso messaggi, anche se entrambi gli ambienti appartengono alla stessa scheda.
 
 ---
 

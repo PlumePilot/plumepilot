@@ -1,6 +1,24 @@
 # Glossario — Inside PlumePilot
 
-Questo glossario crescerà insieme ai capitoli. Le definizioni sono volutamente orientate al modo in cui i concetti compaiono nel progetto.
+I capitoli introducono i termini mentre compaiono negli esempi. Qui trovi le definizioni da consultare durante la lettura, compresi i nomi che PlumePilot usa per i propri componenti e flussi.
+
+## API
+*Application Programming Interface*. Insieme di regole con cui un programma espone operazioni o dati a un altro. Nel libro incontriamo sia le API WebExtensions offerte dal browser sia quelle HTTP con cui la piattaforma serve i dati del corso.
+
+## DOM
+*Document Object Model*. Rappresentazione ad albero di un documento che JavaScript può leggere e modificare. La riga di una lezione è un elemento dell'albero finché la pagina la mantiene nel documento.
+
+## Cache
+Copia di dati o risultati tenuta per riutilizzarli. `lessonApiCache` conserva dettagli delle lezioni già letti, così PlumePilot può evitare una richiesta ogni volta che incontra la stessa lezione.
+
+## Storage
+Area in cui il browser conserva dati per una pagina o un'estensione. Il [Capitolo 06](06-stato-cache-storage.md) confronta la durata e l'ambito di accesso delle diverse aree usate da PlumePilot.
+
+## Fallback
+Percorso alternativo usato quando il percorso iniziale non fornisce un risultato utilizzabile. Per esempio, la ricerca della prima attività incompleta può controllare la pagina del corso quando i dati organizzati dall'API non bastano.
+
+## StudyWing
+Nome precedente di PlumePilot. Rimane visibile in alcuni nomi interni, per esempio `updatedByStudyWing`. I riferimenti a StudyWing nel codice storico si riferiscono allo stesso progetto.
 
 ## Adapter
 Componente che traduce tra due interfacce o ambienti differenti. `bridge.js` svolge in parte questo ruolo tra il runtime WebExtension e il `MAIN` world della pagina.
@@ -50,6 +68,12 @@ Messaggio che esprime l'intenzione di far eseguire un'azione a un altro componen
 ## Correlation ID
 Identificatore usato per collegare richieste, aggiornamenti ed eventi appartenenti allo stesso workflow. In PlumePilot `operationId` svolge questo ruolo durante gli export.
 
+## operationId
+Identificatore assegnato a un'operazione come un export. Collega gli aggiornamenti di stato e i comandi, compresa la cancellazione, all'operazione per cui sono stati emessi. Il [Capitolo 02](02-contesti-messaging.md) lo segue dalla richiesta al background fino agli aggiornamenti verso l'interfaccia.
+
+## Pagina builder
+Pagina dell'estensione che riceve i dati raccolti e costruisce il file da scaricare. Il [Capitolo 09](09-generazione-documenti.md) segue questa fase degli export di PlumePilot.
+
 ## Deduplicazione
 Strategia con cui un componente riconosce una richiesta o un evento già processato e ne evita la ripetizione degli effetti.
 
@@ -86,6 +110,9 @@ Layer che traduce il markup e i comportamenti di una pagina host in operazioni e
 ## DOM snapshot
 Fotografia dello stato del DOM in un preciso momento. Le collezioni restituite da `querySelectorAll()` sono statiche: future mutazioni della pagina non ne aggiornano automaticamente la membership.
 
+## Baseline DOM
+Valore iniziale del progresso del corso letto dalla pagina. In assenza di un valore più preciso, PlumePilot può sommare a questa base gli incrementi osservati durante la sessione.
+
 ## Event delegation
 Tecnica che gestisce gli eventi su un antenato stabile e usa il target dell'evento per capire quale elemento dinamico è stato coinvolto. È utile quando i figli vengono creati e distrutti frequentemente.
 
@@ -118,6 +145,21 @@ Riferimento a un nodo ottenuto in passato che è stato rimosso, sostituito o non
 
 ## API adapter
 Componente che traduce un'API esterna in un'interfaccia interna più stabile, nascondendo dettagli come URL, autenticazione, parsing e formato grezzo delle risposte.
+
+## Endpoint
+Punto di accesso a un'operazione o risorsa di un'API. In un'API HTTP una richiesta lo identifica con un metodo, come `GET`, e un URL.
+
+## Master call
+Nome interno di PlumePilot per la richiesta HTTP che restituisce l'indice del corso, chiamato anche *course index* o *master index*. L'indice elenca i moduli con identificatori, ordine e progresso aggregato. PlumePilot usa il riepilogo per stabilire da quali moduli iniziare la verifica. I dati sulle singole attività arrivano dalla chiamata di dettaglio o da un controllo nella pagina. Vedi la [ricerca della prima attività incompleta](08-prima-attivita-incompleta.md).
+
+## Chiamata di dettaglio
+Richiesta che restituisce le attività di un modulo, per esempio obiettivi, video e test con i dati di avanzamento disponibili. Nel codice e negli esempi può comparire come *detail call* o *lesson detail*. Il [Capitolo 04](04-api-reverse-engineering.md) mostra come la sua risposta viene normalizzata.
+
+## Turbo API
+Nome che il codice di PlumePilot usa per il proprio scambio di messaggi per chiedere dati della piattaforma. `turboApiRequest("outline", ...)` chiede l'indice del corso e `turboApiRequest("lesson", ...)` chiede il dettaglio di una lezione.
+
+## Monitor della commissione
+Funzione di PlumePilot che controlla i cambiamenti nello stato degli esami in valutazione e aggiorna le informazioni mostrate nell'estensione. Il background concede un [lease](#lease) per coordinare i controlli quando sono aperte più schede.
 
 ## Anti-corruption layer
 Layer che protegge il modello interno dell'applicazione dalle strutture e convenzioni di un sistema esterno, traducendole in concetti propri del dominio locale.
@@ -195,7 +237,10 @@ Unità di lavoro programmata dall’event loop, per esempio un evento utente o i
 Unità di lavoro eseguita dopo il task corrente e prima del task successivo; le continuazioni delle Promise e `MutationObserver` dipendono da questo meccanismo.
 
 ## Promise
-Oggetto che rappresenta un risultato futuro e può passare da pending a fulfilled oppure rejected.
+Oggetto JavaScript che rappresenta l'esito di un'operazione. Gli stati sono *pending* (in attesa), *fulfilled* (con un valore) e *rejected* (con un motivo di rifiuto). `.then()` permette di collegare un passaggio al risultato e `await` sospende la funzione asincrona fino a quando l'esito è disponibile. Il [Capitolo 05](05-asincronia-javascript.md) mostra come PlumePilot usa una Promise per aspettare la risposta del browser.
+
+## Callback
+Funzione passata a un'altra funzione, che decide quando chiamarla. Ad esempio, il browser chiama un callback di `chrome.runtime.sendMessage()` per comunicare l'esito dell'invio.
 
 ## Concurrency
 Situazione in cui più operazioni sono in-flight nello stesso intervallo temporale, anche se il loro codice JavaScript non viene eseguito simultaneamente.
@@ -356,6 +401,9 @@ Contatore o versione associata a un’operazione asincrona. Una continuation vec
 ## Precision / Recall
 Coppia di concetti dell'information retrieval usabile come modello mentale: la precision indica quanto spesso i candidati selezionati sono rilevanti; la recall quanto bene la ricerca riesce a non perdere risultati realmente rilevanti.
 
+## Pipeline
+Sequenza di fasi in cui l'uscita di una fase alimenta quella successiva. Per esempio, l'export raccoglie e normalizza i dati, li trasforma nella struttura del documento e infine li scrive nel file scaricabile.
+
 ## ArrayBuffer
 Blocco di memoria binaria grezza usato dalle API Web come contenitore di byte. Non attribuisce da solo un significato ai dati; view tipizzate come `Uint8Array` permettono di interpretarli.
 
@@ -410,6 +458,9 @@ Esito in cui un batch produce comunque un artefatto utile pur registrando fallim
 ## Golden file
 Artefatto di riferimento usato nei test per confrontare l'output di una pipeline di generazione documenti. Spesso conviene verificarne struttura e semantica invece dei byte esatti.
 
+## Fixture
+Dati o ambiente predisposti per rendere ripetibile un test. Una pagina LMS di esempio può esercitare il menu di PlumePilot e un PDF con una tabella può esercitare la conversione in EPUB.
+
 ## Editing host
 Elemento modificabile, tipicamente tramite `contenteditable`, che il browser tratta come radice di una regione di editing. Gestisce input e caret ma non fornisce da solo un document model di alto livello.
 
@@ -442,6 +493,9 @@ Annotazione inline applicata a una porzione di testo, come grassetto, corsivo, e
 
 ## Rich-text block
 Elemento strutturale a livello di blocco, come paragrafo, elemento di lista o callout, la cui semantica riguarda una regione più ampia del testo inline.
+
+## Callout
+Riquadro che mette in evidenza una nota o un avviso. Nell'editor del quiz HTML di PlumePilot è un tipo di blocco degli appunti. Vedi il [Capitolo 10](10-rich-text-editor.md).
 
 ## Sanitization allowlist
 Strategia di sanitizzazione che ricostruisce il contenuto accettando soltanto tag, attributi e valori esplicitamente previsti dal formato, invece di tentare di enumerare tutto ciò che deve essere rifiutato.
@@ -584,6 +638,9 @@ Associazione di un file atteso a un digest crittografico noto, usata per rilevar
 ## Artifact identity
 Identità dei byte esatti di un output distribuibile, tipicamente espressa tramite checksum. È distinta dall’identità del commit sorgente e dalla versione logica del prodotto; uno stesso commit può generare artifact browser-specifici differenti.
 
+## Artefatto di build
+File prodotto preparando il software per la distribuzione. Per PlumePilot, un esempio è lo ZIP dell'estensione per Firefox. Il [Capitolo 13](13-cross-browser.md) mostra come si prepara un pacchetto per ciascun browser.
+
 ## Release matrix
 Matrice che esplicita quali feature, manifest, adapter, package e verifiche devono essere validi per ogni target supportato.
 
@@ -667,6 +724,12 @@ Oggetto immutabile che collega un tree a uno o più parent e contiene metadata c
 
 ## Git ref
 Puntatore nominato e mobile a un oggetto Git. Un branch è normalmente un ref che avanza verso nuovi commit.
+
+## Branch
+Riferimento Git che punta al commit più recente di una linea di lavoro. Quando registri un commit sul branch corrente, il riferimento avanza.
+
+## Pull request
+Proposta di integrare i commit di un branch in un altro, con uno spazio per revisione, discussione e controlli automatici. Il [Capitolo 15](15-git-pr-release.md) segue questo passaggio nelle release di PlumePilot.
 
 ## HEAD
 Riferimento che rappresenta la posizione corrente del checkout Git. Normalmente punta a un branch; in detached HEAD punta direttamente a un commit.

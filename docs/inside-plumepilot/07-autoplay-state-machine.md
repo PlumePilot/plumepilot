@@ -2,6 +2,8 @@
 
 ## Dal flusso di funzioni al comportamento del sistema
 
+L'**autoplay** di PlumePilot coordina l'avanzamento tra le attività del corso durante la visione, secondo le preferenze attive. Lo leggeremo come una [**macchina a stati**](glossario.md#state-machine). Uno **stato** descrive in quale fase si trova il flusso, una **transizione** è il passaggio a un'altra fase e una **guardia** è la condizione da verificare prima di consentire il passaggio. La fine di un video è un evento. La preferenza di fermarsi davanti a un test può impedire l'avvio del video successivo.
+
 Finora abbiamo studiato quasi tutti gli ingredienti che rendono possibile l'autoplay di PlumePilot:
 
 - il DOM dinamico della piattaforma;
@@ -1226,6 +1228,8 @@ Il software conserva il minimo contesto necessario a ricostruire una transizione
 ---
 
 ## 23. Soglia del 70% e limite sessione sono stati terminali relativi
+
+La **soglia del 70%** riguarda il progresso del corso. Il **limite della sessione** riguarda il numero di capitoli da completare prima di fermare l'autoplay. Sono due regole di arresto distinte.
 
 Dopo aver terminato un capitolo:
 
@@ -2687,6 +2691,8 @@ E una seconda lezione:
 Nel Capitolo 08 prenderemo una delle submachine più interessanti emerse qui:
 
 # Trovare la prima attività incompleta — Euristiche, master call e fallback
+
+La [**master call**](glossario.md#master-call) fornisce l'indice dei moduli e delle loro percentuali. Il **fallback visuale** è il controllo della pagina del corso quando i dati strutturati non bastano per decidere.
 
 Seguiremo l'evoluzione reale dell'algoritmo:
 
