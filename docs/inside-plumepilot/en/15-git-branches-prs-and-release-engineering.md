@@ -7,6 +7,12 @@
 
 A software project exists as a working tree, commit graph, branch, PR, tag, release, browser archive, store submission, and installed user version. These are related but not identical.
 
+The **working tree** is the set of project files you see and edit on disk. A [**commit**](glossary.md#git-commit) records a version of those files and links to the preceding history. A [**branch**](glossary.md#branch) is a reference that moves forward as you commit on it. A **tag** marks a specific point in history, such as version `v2.35.1`.
+
+A [**pull request**](glossary.md#pull-request), or **PR**, proposes integrating changes and gives people a place to review and discuss them. A **release** is the version the project distributes. For PlumePilot, submitting it to a store happens after building the ZIP for that browser.
+
+In the story that follows, **SHA** refers to the identifier Git computes for an object. A commit and its [**tree**](glossary.md#git-tree) are separate objects. The tree describes the files and directories, while the commit also carries history, such as a reference to the preceding commit.
+
 The old candidate `170b21ec` and realigned candidate `4d32a8c2` share tree `992149b6`: **the files were identical, but the histories and parent commits differed**. This is our starting point for understanding Git as a data model and release engineering as a separate discipline.
 
 ---
@@ -2479,6 +2485,8 @@ Automation can help, but credentials, changing store policies, review control, a
 # Part CLXV — CI/CD terminology
 
 ## 308. Continuous Integration
+
+**Continuous integration** (CI) runs automated checks on changes as they are developed and integrated. For a PR, it can check whether a proposed change passes its tests before review.
 
 CI combines changes frequently and runs checks to detect regressions early.
 

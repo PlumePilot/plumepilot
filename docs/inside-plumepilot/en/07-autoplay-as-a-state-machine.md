@@ -2,6 +2,8 @@
 
 ## From function flow to system behavior
 
+PlumePilot's **autoplay** advances through course activities during viewing according to the active preferences. We can read it as a [**state machine**](glossary.md#state-machine). A **state** describes the current phase, a **transition** moves to another phase, and a **guard** is a condition checked before allowing that move. A video ending is an event. A preference to stop at a test may prevent the next video from starting.
+
 We have now studied almost all the ingredients that make PlumePilot's autoplay possible: the host platform's dynamic DOM, the extension's JavaScript execution contexts, messaging, Multiversity APIs, Promises, timers and race conditions, caches, and persisted state.
 
 Now we can change perspective.
@@ -1053,6 +1055,8 @@ The system stores the minimum context needed to reconstruct an interrupted trans
 # Part X — Terminal states and orthogonal conditions
 
 ## 23. The 70% threshold and session limit are relative terminal states
+
+The **70% threshold** applies to course progress. The **session limit** is the number of chapters to finish before autoplay stops. They are two separate stop rules.
 
 After finishing a chapter:
 
@@ -2416,6 +2420,8 @@ And a second lesson:
 Chapter 08 will study one of the most interesting submachines introduced here:
 
 **Finding the first incomplete activity — Heuristics, master calls, and fallbacks.**
+
+The [**master call**](glossary.md#master-call) provides the module index and their progress percentages. The **visual fallback** checks the course page when structured data does not give us enough to decide.
 
 We will trace how the algorithm evolved:
 

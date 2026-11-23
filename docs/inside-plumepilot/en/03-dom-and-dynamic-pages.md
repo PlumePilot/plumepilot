@@ -17,6 +17,8 @@ We could describe a content script as code that "reads the DOM and clicks elemen
 - Do timeouts mean the same thing in a hidden tab?
 - Can an old DOM reference survive a sidebar rebuild?
 
+A **DOM node** is an object in the page tree, such as an element or a piece of text. **Rendering** is the work the browser does to prepare and display the interface from its data and styles. An **accordion** is a group of expandable and collapsible sections. On a course page, expanding one can make the activity rows appear in the DOM.
+
 These are not PlumePilot-specific questions. They arise in extensions, userscripts, end-to-end tests, interactive scrapers, automation, accessibility tools, and integrations with legacy applications.
 
 The central lesson is:
@@ -78,6 +80,8 @@ The text is the same. **The DOM identity is not.**
 ---
 
 ## 2. A DOM reference is not a logical identity
+
+A **CSS selector** is an expression that specifies which elements to look for. The selector `.lesson` looks for an element with the `lesson` class. A [**DOM reference**](glossary.md#stale-dom-reference) holds on to the object found at that time, even if the platform later replaces it.
 
 Suppose we write:
 
@@ -1284,6 +1288,8 @@ However, it is **not a universal visibility test**. An element can have positive
 
 ## 42. The percentage is a baseline
 
+The [**DOM baseline**](glossary.md#dom-baseline) is the initial progress value read from the page. The **session delta** is the increase PlumePilot observes during the session. Adding the two provides an estimate when a more precise value is unavailable.
+
 Progress logic first reads the DOM percentage:
 
 ```js
@@ -1313,6 +1319,8 @@ The DOM provides a **baseline**. A more exact value takes precedence when availa
 
 ## 43. Hierarchy of evidence
 
+A **hierarchy of evidence** ranks sources by how reliable they are for a decision. Here it determines when to use an exact value and when to use the estimate.
+
 ```text
 is an exact value available?
       ├── yes → exactPercent
@@ -1325,7 +1333,7 @@ is an exact value available?
 
 Not every source knows everything at every moment. PlumePilot combines signals with different reliability levels.
 
-In later chapters we will distinguish the roles of the DOM, APIs, caches, master calls, and local state.
+In later chapters we will distinguish the roles of the DOM, APIs, caches, the [**master call**](glossary.md#master-call), and local state. The master call gives us a course overview with a percentage for each module. That percentage guides the search. Individual activities need more detailed evidence.
 
 ---
 

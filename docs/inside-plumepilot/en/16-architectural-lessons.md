@@ -7,6 +7,8 @@
 
 The previous chapters looked at concrete subsystems: messaging, APIs, dynamic DOM, autoplay, state, EPUB and quiz export, editing, UI, browser distribution, tests, and Git. This chapter asks a different question: **which recurring architectural ideas explain why those systems work, fail, recover, and evolve?**
 
+An **architectural pattern** is a recurring way to organize responsibilities for the same kind of problem. A [**boundary**](glossary.md#boundary) governs how components communicate. An [**adapter**](glossary.md#adapter) translates data or operations across it, as when PlumePilot converts a platform response into its own lesson model.
+
 These principles were not all designed up front. Many became visible through real bugs and refactors. The goal is to name those patterns without claiming that PlumePilot needs a large framework or a wholesale rewrite.
 
 ---
@@ -194,7 +196,7 @@ Master progress, lesson detail APIs, visible DOM, and cached snapshots can disag
 
 ## 17. Master call
 
-The master index is valuable for:
+The [**master call**](glossary.md#master-call) returns an index with each module's overall progress. The overview helps with:
 
 ```text
 routing
@@ -214,7 +216,7 @@ It is therefore a useful **index for where to verify**, not necessarily the fina
 
 ## 18. Lesson-detail API
 
-Detail responses can provide better activity-level evidence but may be missing, partial, stale, or temporarily unavailable. Increased granularity does not guarantee perfect reliability.
+The [**detail call**](glossary.md#detail-call) asks the platform for a module's individual activities. Its response can provide more precise evidence about objectives, videos, and tests. It may still be missing, partial, stale, or temporarily unavailable.
 
 ---
 

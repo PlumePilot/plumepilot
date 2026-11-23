@@ -146,7 +146,7 @@ Support grew from one LMS environment into Pegaso, Mercatorum and San Raffaele. 
 
 ## 18. Formalize the platform adapter earlier
 
-A simple adapter object can expose normalized capabilities—resolve sections, identify current course, locate lesson, parse progress—without imposing a class hierarchy.
+A [**platform adapter**](glossary.md#platform-adapter) presents the differences between the three universities' pages through a common interface. The rest of the extension could ask it which chapter is open without having to know the selectors or paths used by each platform.
 
 **Code from the original chapter:**
 
@@ -260,7 +260,7 @@ Chapter 07 showed that playback behavior depends on the current lesson, operatio
 
 ## 29. Introduce an explicit transition layer
 
-A reducer or transition function can accept current state and an event, return the next state and describe permitted effects. XState is optional; a small domain-specific reducer may be enough.
+A **reducer** computes the next state from the current state and an event. A **transition layer** collects those rules. For autoplay it could receive a "video ended" event and decide whether to switch into a progress-verification state. An implementation could use XState or a small function specific to the domain.
 
 **Code from the original chapter:**
 

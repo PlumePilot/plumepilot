@@ -1,8 +1,26 @@
 # Glossary — Inside PlumePilot
 
-This glossary follows the terminology and examples used throughout the book. Definitions describe how each concept appears in the PlumePilot case study.
+The chapters introduce terms as they come up in the examples. Here you can look up those definitions, including the names PlumePilot uses for its own components and workflows.
 
 ---
+
+## API
+*Application Programming Interface*. The rules by which one program exposes operations or data to another. The book covers both the WebExtensions APIs provided by the browser and the HTTP APIs the platform uses to serve course data.
+
+## DOM
+*Document Object Model*. A tree representation of a document that JavaScript can read and change. A lesson row is an element of the tree while the page keeps it in the document.
+
+## Cache
+A copy of data or a result kept for reuse. `lessonApiCache` holds lesson details already read so that PlumePilot can avoid making a new request each time it encounters the same lesson.
+
+## Storage
+An area where the browser keeps data for a page or extension. [Chapter 06](06-state-cache-and-storage.md) compares the lifetime and access scope of the storage areas PlumePilot uses.
+
+## Fallback
+An alternative path used when the initial one produces no usable result. For example, the search for the first incomplete activity can check the course page when the API's structured data is insufficient.
+
+## StudyWing
+PlumePilot's previous name. It still appears in some internal names, such as `updatedByStudyWing`. Historical references to StudyWing refer to the same project.
 
 ## Adapter
 A component that translates between two different interfaces or environments. `bridge.js` partly serves this role between the WebExtension runtime and the page's `MAIN` world.
@@ -52,6 +70,12 @@ A message expressing an intention for another component to perform an action. `P
 ## Correlation ID
 An identifier that associates requests, progress updates and events belonging to the same workflow. PlumePilot uses `operationId` during exports.
 
+## operationId
+An identifier assigned to an operation such as an export. It ties status updates and commands, including cancellation, to the operation they concern. [Chapter 02](02-contexts-and-messaging.md) follows it from the request to the background through to the UI updates.
+
+## Builder page
+An extension page that receives the collected data and builds the file to download. [Chapter 09](09-generating-pdf-html-and-epub.md) follows this stage of PlumePilot's exports.
+
 ## Deduplication
 Recognizing a request or event that has already been processed and preventing duplicate effects.
 
@@ -88,6 +112,9 @@ A layer translating host-page markup and behavior into more stable extension-dom
 ## DOM snapshot
 A record of DOM state at one moment. Collections returned by `querySelectorAll()` are static: subsequent page mutations do not automatically update their membership.
 
+## DOM baseline
+The initial course-progress value read from the page. When a more precise value is unavailable, PlumePilot can add progress observed during the session to this baseline.
+
 ## Event delegation
 Handling events on a stable ancestor and using the event target to identify which dynamic descendant was involved. Useful when child nodes are frequently created and destroyed.
 
@@ -120,6 +147,21 @@ A previously obtained node reference whose node has been removed, replaced or no
 
 ## API adapter
 A component translating an external API into a more stable internal interface, hiding details such as URLs, authentication, parsing and raw response formats.
+
+## Endpoint
+An entry point for an operation or resource in an API. An HTTP API request identifies it through a method such as `GET` and a URL.
+
+## Master call
+PlumePilot's name for the HTTP request that returns the course index, also called the *master index*. The index lists modules with their identifiers, order, and overall progress. PlumePilot uses that overview to choose which modules to check first. Evidence about individual activities comes from a detail call or a check in the course page. See [the first incomplete activity search](08-finding-first-incomplete-activity.md).
+
+## Detail call
+A request that returns a module's activities, such as objectives, videos, and tests, with available progress data. The code and examples also refer to this as *lesson detail*. [Chapter 04](04-apis-and-reverse-engineering.md) shows how the response is normalized.
+
+## Turbo API
+PlumePilot's name for an internal message exchange used to request platform data. `turboApiRequest("outline", ...)` asks for the course index, and `turboApiRequest("lesson", ...)` asks for a lesson's details.
+
+## Exam commission monitor
+PlumePilot feature that checks for changes in exam evaluation status and updates the information displayed by the extension. The background grants a [lease](#lease) to coordinate checks when several tabs are open.
 
 ## Anti-corruption layer
 A layer protecting the application's internal model from the conventions and structures of an external system by translating them into local domain concepts.
@@ -197,7 +239,10 @@ A unit scheduled by the event loop, such as a user event or timer callback.
 Work run after the current task and before the next task. Promise continuations and `MutationObserver` callbacks use the microtask mechanism.
 
 ## Promise
-An object representing a future outcome that moves from pending to fulfilled or rejected.
+A JavaScript object representing the outcome of an operation. It is *pending* while waiting, *fulfilled* with a value, or *rejected* with a reason. `.then()` connects another step to the result, and `await` suspends the asynchronous function until the outcome is available. [Chapter 05](05-javascript-asynchrony.md) shows how PlumePilot uses a Promise to wait for the browser's response.
+
+## Callback
+A function passed to another function, which decides when to call it. For example, the browser calls a `chrome.runtime.sendMessage()` callback to report the outcome of sending a message.
 
 ## Concurrency
 Several operations are in flight during the same time interval, even when their JavaScript executes on only one thread.
@@ -358,6 +403,9 @@ A counter or version associated with an asynchronous operation. A stale continua
 ## Precision / Recall
 Information-retrieval concepts: precision measures how many selected candidates are relevant; recall measures how well the search avoids missing genuinely relevant candidates.
 
+## Pipeline
+A sequence of stages where one stage's output feeds the next. An export collects and normalizes input, transforms it into a document structure, and writes the downloadable file.
+
 ## ArrayBuffer
 A raw binary-memory block used by Web APIs. It does not assign meaning to bytes; typed views such as `Uint8Array` interpret them.
 
@@ -412,6 +460,9 @@ A batch produces a useful artifact despite recording failures in some items rath
 ## Golden file
 A reference artifact used to compare generated output in tests. Checking structure and semantics is often preferable to comparing exact bytes.
 
+## Fixture
+Data or an environment prepared to make a test repeatable. A sample LMS page can exercise PlumePilot's menu, and a PDF containing a table can exercise its EPUB conversion.
+
 ## Editing host
 An editable element, typically `contenteditable`, that the browser treats as the root of an editing region. It handles input and the caret without providing a high-level document model.
 
@@ -444,6 +495,9 @@ An inline annotation such as bold, italic, highlight, superscript or study mask.
 
 ## Rich-text block
 A block-level structural element such as a paragraph, list item or callout, whose semantics span more than an inline text run.
+
+## Callout
+A box that sets apart a note or a warning. In PlumePilot's HTML quiz editor it is a type of note block. See [Chapter 10](10-small-rich-text-editor.md).
 
 ## Sanitization allowlist
 Reconstructing accepted content using only explicitly permitted tags, attributes and values rather than trying to enumerate everything forbidden.
@@ -586,6 +640,9 @@ Associating an expected file with a known cryptographic digest to detect acciden
 ## Artifact identity
 The exact-byte identity of a distributable output, usually represented by a checksum. It differs from source commit identity and human product version; one commit can generate several browser-specific artifacts.
 
+## Build artifact
+A file produced when preparing software for distribution. PlumePilot's Firefox extension ZIP is one example. [Chapter 13](13-chrome-edge-and-firefox.md) shows how PlumePilot prepares a package for each browser.
+
 ## Release matrix
 A table specifying which features, manifests, adapters, packages and checks must hold for each supported target.
 
@@ -669,6 +726,12 @@ An immutable object referencing a tree, parent commits and metadata such as auth
 
 ## Git ref
 A named, movable pointer to a Git object. A branch is typically a ref advancing to new commits.
+
+## Branch
+A Git reference pointing to the latest commit in a line of work. Committing on the current branch advances that reference.
+
+## Pull request
+A proposal to integrate commits from one branch into another, with a place for review, discussion, and automated checks. [Chapter 15](15-git-branches-prs-and-release-engineering.md) follows this step for PlumePilot's releases.
 
 ## HEAD
 The ref representing the current Git checkout. Normally points to a branch; in detached HEAD it references a commit directly.

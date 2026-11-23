@@ -7,6 +7,10 @@
 
 Earlier chapters introduced DOM scans, network calls, polling, caches, retries, PDF exports, canvas rendering, ZIP compression, MutationObservers, and long-running batch operations. Examined separately, each looks like a local implementation detail. Together they reveal a larger issue: **the browser must run JavaScript while also handling DOM/layout, rendering, input, network I/O, image decoding, caches, and multiple extension contexts**.
 
+The suffix **-bound** identifies the resource that limits speed. A *CPU-bound* operation spends most of its time computing. An *I/O-bound* operation spends most of its time waiting for data, for instance from the network. The **main thread** is the page's primary execution thread. Too much uninterrupted work there can delay clicks and redraws.
+
+The [**working set**](glossary.md#working-set) is the data held in memory during a stage of the operation. [**Peak memory**](glossary.md#peak-memory) is the most memory used at any point, for instance when an EPUB conversion keeps images and buffers in memory at the same time.
+
 Saying *"PlumePilot is slow"* is therefore not a useful diagnosis by itself. We need to ask which resource is constrained, whether work is redundant, and whether the user interface remains responsive. This chapter studies **resource budgets, measurement, working-set design, and correctness-preserving optimization**, rather than collecting isolated micro-optimizations.
 
 ---
@@ -994,6 +998,8 @@ Possible causes include permanent Maps, forgotten event listeners, closures reta
 ---
 
 ## 66. Three snapshots as a mental method
+
+A **memory snapshot** records the objects the browser is still keeping in memory. **Retention** means those objects remain reachable, for example through a cache. The **garbage collector** (GC) periodically releases objects the program can no longer reach. The browser's **just-in-time compilation** (JIT) and caches can also affect measurements.
 
 Compare memory **before export**, **during peak work**, and **after completion and settling**. The middle snapshot is expected to grow; the diagnostic question is whether the post-export baseline gradually rises over repeated runs. Garbage collection, JIT behavior, and browser caches can make exact values noisy, so observe trends and object retention rather than demanding identical numbers after every execution.
 

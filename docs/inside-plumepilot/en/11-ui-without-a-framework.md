@@ -7,6 +7,8 @@
 
 In the earlier chapters we studied the extension's engine: messaging, dynamic DOM, APIs, asynchrony, cache, autoplay, export, and the offline quiz editor. Now we turn to what the user directly sees.
 
+A **UI framework** provides structure and tools for building and updating views. Here the [**presentation layer**](glossary.md#presentation-layer) is the code that prepares and displays the extension's state. For example, it renders the autoplay setting as a switch that is on or off.
+
 PlumePilot has two main interfaces: the **toolbar popup** and the **floating menu** embedded in the LMS page. Over time they gained the same features at different speeds. A new action would first appear in the popup, later be requested in the floating menu, and then labels, styling, and preferences would slowly drift apart.
 
 The v2.35.2 redesign addresses this as an **architecture and information-design problem**, not simply a CSS cleanup. Its goals are consistent meaning, fewer overwhelming screens, shared configuration behavior, preserved accessibility, and a predictable active-operation experience—without rewriting the stable autoplay engine.
@@ -1392,6 +1394,8 @@ These tests are a useful middle layer between unit tests of pure values and full
 ---
 
 ## 67. Browser fixture
+
+A [**fixture**](glossary.md#fixture) is a stable set of data or elements prepared for a repeatable test. Here a test page and simulated storage give the menu controllers the same known conditions on every run.
 
 The redesign documentation also describes a Chromium browser fixture running the real UI controllers with simulated storage.
 

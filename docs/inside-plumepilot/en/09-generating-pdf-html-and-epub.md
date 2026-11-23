@@ -16,7 +16,7 @@ PlumePilot
 decision / navigation / state
 ```
 
-Document generation introduces a different pipeline:
+A [**pipeline**](glossary.md#pipeline) is a sequence of stages where one stage's output feeds the next. During document generation, normalization puts the collected data in a consistent format. Transformation adapts the data to the document, and **serialization** represents it as text or bytes that can be saved to a file.
 
 ```text
 page / API
@@ -47,6 +47,8 @@ Each solves a different problem:
 - **PDF** mainly preserves the original document faithfully.
 - **Offline HTML** turns structured data into a small self-contained application.
 - **EPUB** attempts to reinterpret a fixed-page document as an ebook that adapts to the reader's screen.
+
+In an EPUB with [**reflow**](glossary.md#reflow), the text rearranges itself when the screen width or font changes. In a [**fixed layout**](glossary.md#fixed-layout), positions on the page follow the original design.
 
 The third task is by far the hardest.
 
@@ -138,6 +140,8 @@ The popup can close without necessarily destroying document generation.
 # Part II — The browser's binary building blocks
 
 ## 3. `ArrayBuffer`, `Uint8Array`, and `Blob`
+
+A PDF or EPUB is a sequence of **bytes**. A byte is eight bits and can encode 256 values. The file format determines how to interpret that sequence, for example which bytes describe text and which describe an image.
 
 Ordinary JavaScript application code often deals with strings and objects. PDFs and EPUBs are **sequences of bytes**.
 

@@ -7,6 +7,8 @@
 
 A bug fixed today can return tomorrow. A bug explained through a minimal reproduction, a verified cause, a clearly stated invariant, and an automated regression test becomes durable project knowledge. PlumePilot offers many practical examples: autoplay recovery, reusable video elements, hidden tabs, incomplete-activity routing, multi-university storage, offline quiz exports, and the cross-browser release process.
 
+A **regression** is the loss of behavior that used to work. A [**minimal reproduction**](glossary.md#minimal-reproducer) recreates the fault with just the essential steps and data. An [**invariant**](glossary.md#invariant) is a rule that should keep holding, such as recognizing the same lesson after the page recreates its row. A [**regression test**](glossary.md#regression-test) repeats the scenario and checks that rule.
+
 ---
 
 # Part I — The complete debugging cycle
@@ -1159,11 +1161,15 @@ Measure wall time and throughput under a fixed browser, machine, and fixture. Do
 
 ## 103. EPUB fixtures
 
+A [**fixture**](glossary.md#fixture) is prepared, repeatable input to a test. For an EPUB export, it can be a sample PDF with features that exercise the converter.
+
 Maintain representative PDFs for text, formulas, tables, diagrams, and page images. The same input should expose conversion regressions reproducibly.
 
 ---
 
 ## 104. Golden output
+
+A [**golden output**](glossary.md#golden-file) is the expected result kept as a reference for later tests.
 
 Inspect chapter order, manifest, links, media types, page modes, and expected content. Byte-identical ZIP output is not always necessary.
 

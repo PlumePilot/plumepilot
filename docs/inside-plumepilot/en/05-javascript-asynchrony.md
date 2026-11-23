@@ -217,13 +217,13 @@ The intent is to give the current click-handling task a chance to finish before 
 
 ## 9. A Promise is not its eventual value
 
-A Promise may be:
+A [**Promise**](glossary.md#promise) is a JavaScript object representing an operation's outcome. Code can use it immediately to decide how to continue when the value or the reason for failure becomes available.
 
-```text
-pending
-fulfilled
-rejected
-```
+A Promise has one of three states:
+
+- **Pending** means the outcome is still outstanding.
+- **Fulfilled** means the operation produced a value.
+- **Rejected** means the Promise completed with a reason for failure.
 
 For example:
 
@@ -231,7 +231,9 @@ For example:
 const promise = fetch(url);
 ```
 
-`promise` is not yet the HTTP response. It represents an operation whose eventual result will be a response or an error.
+Here the Promise fulfills with a `Response` object when the HTTP response becomes available. A status such as `404` can still produce a `Response`. Check `response.ok` to see whether HTTP reported success. A network error causes the Promise to reject.
+
+At `await promise`, the asynchronous function suspends and the browser can handle other work. The function resumes with the value when the Promise is *fulfilled*. If it is *rejected*, `await` throws the rejection reason, which can be handled with `try` and `catch`.
 
 ---
 

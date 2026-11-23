@@ -8,6 +8,10 @@ In the preceding chapters we studied the DOM, APIs, messaging, and asynchrony. W
 
 There is no single answer. A user preference such as the theme may remain useful for months. An API response may be useful for five minutes. An in-flight Promise belongs to one script instance. A cancelled export should no longer block future work, even if the popup that started it has disappeared.
 
+**State** is what the program remembers to decide how to behave. A [**cache**](glossary.md#cache) keeps reusable copies, such as lesson details we already looked up. [**Storage**](glossary.md#storage) is where the browser keeps data such as preferences. How long those data last depends on the storage area.
+
+An [`operationId`](glossary.md#operationid) ties messages to one export, even if the popup closes. A **recovery flag** records that the extension may need to resume an interrupted flow, for example after reloading the page.
+
 The real architectural problem is not merely:
 
 ```text
@@ -1944,6 +1948,8 @@ When the signature changes, the outline must be rebuilt.
 ---
 
 ## 33. TTL, fingerprint, and event: three different invalidation methods
+
+**Invalidating** an entry means removing it from the class of information that the cache can reuse. A [**TTL**](glossary.md#ttl), or *time to live*, limits how long it remains valid. A [**fingerprint**](glossary.md#cache-fingerprint) is a signature derived from the source data that we can compare on the next read. An event can invalidate an entry before it expires, for example when a download fails with a link we saved.
 
 ### Time-based
 

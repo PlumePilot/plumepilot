@@ -5,6 +5,8 @@
 > **Reference snapshot for this chapter**  
 > This chapter uses the **2.35.2 release candidate**, branch `feat/ui-ux-2.35.2`, commit `f6fcb4c29c83ba9150df0be31da04fc91dffb634`. Unlike Chapters 11–12, this snapshot also includes manifest preparation, release notes, and AMO-related material because cross-browser packaging is part of the topic.
 
+**AMO** stands for *addons.mozilla.org*, Mozilla's catalog for Firefox add-ons. **Packaging** prepares an archive from the source files and manifest required for the target browser. That archive is a [**build artifact**](glossary.md#build-artifact) submitted to the store.
+
 DOM, Fetch, Maps, and Promises behave similarly across modern browsers, but a WebExtension is more than ordinary browser JavaScript. It depends on a manifest, privileged extension APIs, background lifecycles, declared permissions, packaged resources, and the distribution policies of multiple stores.
 
 PlumePilot's cross-browser challenge is therefore not simply “make the same JavaScript run everywhere.” It is **keep the core functionality coherent while supplying independently valid Chrome, Edge, and Firefox artifacts that can be installed, reviewed, and updated**.
@@ -393,6 +395,8 @@ manifest.action.default_title = "__MSG_extensionName__";
 # Part VII — Reviewability is a technical property
 
 ## 20. Vendor bundles and review
+
+**Vendor code** comes from external libraries included in the project. A **bundle** groups multiple files for distribution. **Minification** reduces the space occupied by code, for example by shortening local names. **Obfuscation** applies transformations intended to make the code difficult to read.
 
 PlumePilot uses substantial third-party libraries such as PDF.js, pdf-lib, JSZip, and fontkit. Bundled JavaScript is normal in web development, but extension reviewers need to understand what code is included, where it came from, and whether it uses restricted dynamic-execution capabilities. Thus third-party code is not only a runtime dependency; its **reviewability** becomes part of the release architecture.
 

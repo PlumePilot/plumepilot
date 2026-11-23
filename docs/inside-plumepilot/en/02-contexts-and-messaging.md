@@ -6,6 +6,8 @@ In the previous chapter we saw that PlumePilot does not live inside a single Jav
 
 The popup, background, isolated content scripts, `MAIN`-world scripts, and builder pages are separate components. They belong to the same extension, but **they do not automatically share memory, global scope, or lifecycle**.
 
+**Global scope** is the set of names available globally within an execution environment. Its **lifecycle** determines when that environment starts, closes, is suspended, or is recreated. The popup can close while a [**builder page**](glossary.md#builder-page) continues creating the download.
+
 In an ordinary function, we can write:
 
 ```js
@@ -52,9 +54,11 @@ Across a boundary, the contract becomes serializable data:
 }
 ```
 
-The object carries a request, not executable behavior. Its `type` field plays a role similar to an HTTP route such as `POST /exports/start`. The recipient uses it to choose the handler.
+The object carries the data for a request. Its `type` field plays a role similar to an HTTP route such as `POST /exports/start`. The recipient uses it to choose the **handler**, the function that processes that type of message.
 
-In `background.js`, the dispatcher follows this pattern:
+The **payload** is the content that accompanies the message type. Here `format` and `sourceTabId` specify what to export and which tab it comes from. A **serializable** object can be represented as data and reconstructed on the other side of the boundary.
+
+In `background.js`, the [**dispatcher**](glossary.md#dispatcher) is the code that routes a message to the handler for its `type`:
 
 ```js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -480,6 +484,8 @@ Think of a route that needs a database query before producing its response. The 
 
 ## 11. Why PlumePilot wraps callbacks in Promises
 
+A [**callback**](glossary.md#callback) is a function passed to another function for it to call at the appropriate time. Here the browser calls it when there is a message response or error to report. A [**Promise**](glossary.md#promise) gives the caller an object it can `await` to get that outcome.
+
 The popup defines this adapter around the callback-oriented runtime API:
 
 ```js
@@ -497,6 +503,8 @@ function runtimeMessage(message) {
 ```
 
 Source: [`popup.js` L1296–L1306](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/popup.js#L1296-L1306).
+
+In `runtimeMessage()`, `resolve(...)` completes the wait with a value. Even a messaging error is returned as a value, `{ accepted: false, reason: ... }`. The caller can check `accepted` after `await`.
 
 The caller can then write:
 

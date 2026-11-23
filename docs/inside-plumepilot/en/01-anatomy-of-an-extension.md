@@ -16,7 +16,11 @@ In our reference snapshot, the manifest begins like this:
 }
 ```
 
-`manifest_version: 3` tells us that we are using the modern Chromium extension model and compatible WebExtensions.
+`manifest_version: 3` identifies **Manifest V3**, the version of the model that governs how the browser loads and manages extension components. **WebExtensions** refers to the API and configuration model shared by multiple browsers. **Chromium** is the open-source project that Chrome and Edge are based on. [Chapter 13](13-chrome-edge-and-firefox.md) discusses how Firefox configuration differs.
+
+You may see names such as `StudyWing` or `PEGASO_` in code samples. [**StudyWing**](glossary.md#studywing) was PlumePilot's previous name. Prefixes such as `PEGASO_` date back to when the extension was built for Pegaso and still identify messages used in the code.
+
+The **runtime** is the environment where code runs. The popup can update elements in `popup.html`. A content script works on the page it is associated with, and the browser manages the background's lifecycle.
 
 But the truly interesting lines come shortly afterward.
 

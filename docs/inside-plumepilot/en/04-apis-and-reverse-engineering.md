@@ -6,6 +6,8 @@ So far we have studied PlumePilot from the outside in: extension components, mes
 
 But a modern web application does not live in the DOM alone. The interface is often the visible result of requests made to a backend. Understanding those requests lets us work with more structured data, avoid unnecessary UI navigation, and discover identifiers that the rendered page does not expose clearly.
 
+**HTTP** is the protocol the browser and server use to exchange requests and responses. An [**endpoint**](glossary.md#endpoint) is the API location that handles a request, such as a path you can read with `GET`. The response **payload** is the content it carries, often encoded as **JSON**.
+
 In this chapter, we will study a real integration technique: observing the host application's network interactions, mapping the responses into a small internal model, and safely reusing the authenticated context already established by the application.
 
 This is not a guide to bypassing authentication or accessing somebody else's data. PlumePilot works inside the user's existing authenticated browser session, and the architectural questions are about **boundaries, validation, credentials, failure handling, and resilience**.
@@ -465,7 +467,9 @@ Narrow scope makes it easier to understand what can be observed, where data may 
 
 ## 18. The endpoint we call the "master call"
 
-One of the most important endpoints is constructed as follows:
+In PlumePilot, the [**master call**](glossary.md#master-call) is the HTTP request for a course index. The response lists modules with their identifiers, display order, and overall progress. In the book's reference snapshot, the index request path ends in `/0`.
+
+The code builds the URL as follows:
 
 ```js
 url = `${API_ORIGIN}/student/course/${encodeURIComponent(courseCode)}/video-lessons/0`;
@@ -473,9 +477,7 @@ url = `${API_ORIGIN}/student/course/${encodeURIComponent(courseCode)}/video-less
 
 Source: [`commission-interceptor.js` L453–L455](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L453-L455).
 
-During development, we often called this the **master call**. That is our project terminology, not necessarily the platform's official endpoint name.
-
-It yields a synthetic overview of course modules and their progress:
+It yields an overview of course modules and their progress:
 
 ```text
 course
@@ -486,7 +488,7 @@ course
  └── module E   100%
 ```
 
-Such an index is extremely useful for prioritizing subsequent work.
+If module C is at 80%, PlumePilot can prioritize it when looking for the first incomplete activity. The [**detail call**](glossary.md#detail-call) supplies progress for individual objectives, videos, and tests within the module. [Chapter 08](08-finding-first-incomplete-activity.md) shows how the search recovers if the overview or details are incomplete.
 
 ---
 
@@ -508,7 +510,9 @@ return {
 
 Source: [`commission-interceptor.js` L99–L120](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L99-L120).
 
-Backend developers may recognize this as DTO mapping, an adapter, an anti-corruption layer, or a normalization boundary. Other components no longer need to know every detail of the external payload.
+A **DTO** (*Data Transfer Object*) carries data between components. *Mapping* converts the JSON fields and types into those PlumePilot uses. The `displayOrder` field is the order shown by the platform. The `masterOrder` field keeps the item's zero-based position in the original master-call response, which helps when several items have the same `displayOrder`.
+
+An [**adapter**](glossary.md#adapter) translates between interfaces. When the translation shields the internal model from the rules and conventions of an external system, it is called an [**anti-corruption layer**](glossary.md#anti-corruption-layer).
 
 ---
 
@@ -658,7 +662,9 @@ The rest of the application can reason about PlumePilot concepts rather than raw
 
 ## 26. `content.js` does not need the token
 
-To request API data, `content.js` uses:
+[**Turbo API**](glossary.md#turbo-api) is the code's name for the internal messaging channel through which `content.js` requests structured data from a component that talks to the platform. An `outline` request looks up the course index and a `lesson` request asks for one lesson's details.
+
+The code uses that channel with `turboApiRequest()`:
 
 ```js
 function turboApiRequest(action, payload = {}) {
@@ -686,7 +692,7 @@ const response = await turboApiRequest("lesson", {
 });
 ```
 
-Conceptually, this is a small **local RPC**: remote procedure call over a message boundary.
+Conceptually, this is a small **local RPC** (*remote procedure call*). The caller asks another execution environment to do some work and waits for its result over messages, even though both environments belong to the same tab.
 
 ---
 

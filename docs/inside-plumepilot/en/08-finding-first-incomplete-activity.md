@@ -6,6 +6,8 @@ One of PlumePilot's seemingly simplest features actually poses an interesting al
 
 > **Given a course containing many chapters and activities, how can we find the first genuinely incomplete activity without opening and inspecting everything?**
 
+The [**search space**](glossary.md#search-space) is the set of activities that could be the answer. An [**index**](glossary.md#index) summarizes the course and points to where to look. A [**heuristic**](glossary.md#heuristic) is a rule of thumb for setting priorities, such as checking a chapter below 100% first. A [**fallback**](glossary.md#fallback) is another way to proceed when the original method does not give us enough information.
+
 The naive answer is straightforward:
 
 ```text
@@ -94,6 +96,8 @@ O(N)
 ```
 
 if we treat each chapter as one unit.
+
+**Big O notation** describes how cost grows with the size of the problem. Counting chapter visits as units, the worst-case number of visits grows at most linearly with `N`. Each visit costs **CPU** time for computation and may also involve **I/O** (*input/output*), such as waiting for network data.
 
 But that hides what is actually expensive inside the browser.
 
@@ -243,7 +247,7 @@ But it can tell us:
 
 > **Where is it most useful to look first?**
 
-This is exactly the role of PlumePilot's course/master index.
+The [**master call**](glossary.md#master-call) is the request PlumePilot uses to obtain the **course index**, or **master index**. That overview suggests checking module 3. The [**detail call**](glossary.md#detail-call) goes into that module and shows, for example, video B at 42% and the test at 0%. If the index is missing or stale, or if the detail is incomplete, the algorithm can extend its checks to the course interface.
 
 ---
 
