@@ -845,7 +845,7 @@
   }
 
   function visibleLessonVideo(keepEndedPlayer = false) {
-    if (!courseSurfaceAvailable()) return null;
+    if (!continuousFullscreenAvailable()) return null;
     const selected = document.querySelector(
       "div.border-t > div.cursor-pointer > div:first-child > div.visible.bg-platform-primary",
     );
@@ -883,11 +883,10 @@
   }
 
   function continuousFullscreenAvailable() {
-    return PLATFORM_ID === "pegaso" && courseSurfaceAvailable() && document.fullscreenEnabled === true;
+    return Boolean(currentCourseCode() && document.fullscreenEnabled);
   }
 
   function renderContinuousFullscreen() {
-    if (PLATFORM_ID !== "pegaso") return;
     const active = Boolean(fullscreenCourse && document.fullscreenElement === document.documentElement);
     if (fullscreenCourse && fullscreenCourse !== currentCourseCode()) {
       void stopContinuousFullscreen();
@@ -4905,41 +4904,39 @@
       renderCommissionExams();
   });
 
-  if (PLATFORM_ID === "pegaso") {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message?.type === "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY") {
-        sendResponse({ available: continuousFullscreenAvailable() });
-      }
-    });
-    document.addEventListener("click", (event) => {
-      if (!event.isTrusted || event.defaultPrevented ||
-          (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
-      const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
-      if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;
-      const video = fullscreenPlayer?.element.contains(icon)
-        ? fullscreenPlayer.video
-        : visibleLessonVideo(Boolean(fullscreenCourse));
-      const element = lessonPlayer(video, icon);
-      if (!element || !document.fullscreenEnabled) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      void toggleContinuousFullscreen(video, element);
-    }, true);
-    document.addEventListener("fullscreenchange", () => {
-      if (fullscreenTransition) return;
-      const root = document.documentElement;
-      if (fullscreenCourse && document.fullscreenElement !== root) {
-        if (root.matches(":fullscreen")) {
-          void stopContinuousFullscreen();
-          return;
-        }
-        resetContinuousFullscreen();
-      }
-      renderContinuousFullscreen();
-    });
-    for (const event of ["play", "ended", "loadedmetadata"]) {
-      document.addEventListener(event, renderContinuousFullscreen, true);
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY") {
+      sendResponse({ available: continuousFullscreenAvailable() });
     }
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.isTrusted || event.defaultPrevented ||
+        (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
+    const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
+    if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;
+    const video = fullscreenPlayer?.element.contains(icon)
+      ? fullscreenPlayer.video
+      : visibleLessonVideo(Boolean(fullscreenCourse));
+    const element = lessonPlayer(video, icon);
+    if (!element || !document.fullscreenEnabled) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void toggleContinuousFullscreen(video, element);
+  }, true);
+  document.addEventListener("fullscreenchange", () => {
+    if (fullscreenTransition) return;
+    const root = document.documentElement;
+    if (fullscreenCourse && document.fullscreenElement !== root) {
+      if (root.matches(":fullscreen")) {
+        void stopContinuousFullscreen();
+        return;
+      }
+      resetContinuousFullscreen();
+    }
+    renderContinuousFullscreen();
+  });
+  for (const event of ["play", "ended", "loadedmetadata"]) {
+    document.addEventListener(event, renderContinuousFullscreen, true);
   }
 
   const observer = new MutationObserver(scheduleVisibilityCheck);
