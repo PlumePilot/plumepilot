@@ -14,9 +14,8 @@ function offlineQuizRuntime(DATA) {
         String.fromCharCode(byte),
       ).join(""),
     );
-  const notes = new Map(
-    Object.entries(decodeNotes(byId("notes-data").textContent || "e30=")),
-  );
+  let savedNotesData = byId("notes-data").textContent || "e30=";
+  const notes = new Map(Object.entries(decodeNotes(savedNotesData)));
   const statuses = { verified: "🟢 Verificata", review: "🟡 Da rivedere", verify: "🔴 Da verificare" };
   let filter = "all";
   const hasText = (value) => Boolean(value && value.replace(/<[^>]*>/g, "").trim());
@@ -24,20 +23,30 @@ function offlineQuizRuntime(DATA) {
     hasText(note.explanationHtml || note.explanation) ||
     hasText(note.observationsHtml || note.observations)
   ));
-  function cleanHtml(source) {
-    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "SUP", "SUB", "BR", "DIV", "P", "SPAN"]);
+  function cleanHtml(source, pasted = false) {
+    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "UL", "OL", "LI", "SUP", "SUB", "BR", "DIV", "P", "SPAN", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "CODE", "DEL", "HR"]);
     const styles = new Set(["yellow", "green", "blue", "pink"]);
     const blocks = new Set(["important", "attention", "review"]);
-    const doc = new DOMParser().parseFromString("<body>" + source + "</body>", "text/html");
+    const discarded = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "TEMPLATE", "NOSCRIPT", "SVG", "MATH"]);
+    const template = document.createElement("template");
+    template.innerHTML = source;
     function clean(node) {
       if (node.nodeType === 3) return document.createTextNode(node.textContent);
       if (node.nodeType !== 1) return document.createDocumentFragment();
       const fragment = document.createDocumentFragment();
       if (!allowed.has(node.tagName)) {
-        // Unknown markup is discarded along with its content.
+        if (pasted && !discarded.has(node.tagName)) {
+          for (const child of node.childNodes) fragment.appendChild(clean(child));
+        }
         return fragment;
       }
       const element = document.createElement(node.tagName.toLowerCase());
+      if (node.tagName === "OL") {
+        const start = node.getAttribute("start")?.trim();
+        if (/^-?\d+$/.test(start || "") && Number.isSafeInteger(Number(start))) {
+          element.start = Number(start);
+        }
+      }
       if (node.tagName === "SPAN") {
         if (node.classList.contains("study-mask")) element.className = "study-mask";
         else if (node.classList.contains("highlight") && styles.has(node.dataset.color)) {
@@ -55,9 +64,90 @@ function offlineQuizRuntime(DATA) {
       return element;
     }
     const result = document.createElement("div");
-    for (const child of doc.body.childNodes) result.appendChild(clean(child));
+    for (const child of template.content.childNodes) result.appendChild(clean(child));
     return result.innerHTML;
   }
+  function markdownPaste(source) {
+    const escape = (value) => value.replace(/[&<>]/g, (char) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]
+    ));
+    let formatted = false;
+    const inline = (value) => {
+      const tokens = /\\[\\*_~\x60]|(\x60|\*\*|__|~~|\*|_)(\S(?:.*?\S)?)\1(?!\w)/g;
+      let html = "";
+      let offset = 0;
+      for (const match of value.matchAll(tokens)) {
+        html += escape(value.slice(offset, match.index));
+        offset = match.index + match[0].length;
+        if (!match[1]) {
+          formatted = true;
+          html += escape(match[0].slice(1));
+          continue;
+        }
+        const tag = { "\x60": "code", "**": "strong", "__": "strong", "~~": "del", "*": "em", "_": "em" }[match[1]];
+        formatted = true;
+        html += "<" + tag + ">" + escape(match[2]) + "</" + tag + ">";
+      }
+      return html + escape(value.slice(offset));
+    };
+
+    let list = "";
+    let html = "";
+    let fence = null;
+    let code = [];
+    const closeList = () => {
+      if (list) html += "</" + list + ">";
+      list = "";
+    };
+    const closeCode = () => {
+      html += "<pre><code>" + escape(code.join("\n")) + "</code></pre>";
+      fence = null;
+      code = [];
+    };
+    for (const line of source.split(/\r\n?|\n/)) {
+      const marker = line.match(/^ {0,3}(\x60{3,}|~{3,})(.*)$/);
+      if (fence) {
+        if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) {
+          closeCode();
+        } else {
+          code.push(line);
+        }
+        continue;
+      }
+      if (marker && (marker[1][0] === "~" || !marker[2].includes("\x60"))) {
+        closeList();
+        fence = marker[1];
+        formatted = true;
+        continue;
+      }
+      const item = line.match(/^ {0,3}([-*+]|(\d{1,9})[.)])[ \t]+(.+)$/);
+      if (item) {
+        const tag = item[2] === undefined ? "ul" : "ol";
+        if (tag !== list) {
+          closeList();
+          list = tag;
+          const start = Number(item[2] ?? 1);
+          html += start === 1 ? "<" + tag + ">" : `<ol start="${start}">`;
+        }
+        formatted = true;
+        html += "<li>" + inline(item[3]) + "</li>";
+        continue;
+      }
+      closeList();
+      const heading = line.match(/^ {0,3}(#{1,6})[ \t]+(.+)$/);
+      if (heading) {
+        const tag = "h" + heading[1].length;
+        formatted = true;
+        html += "<" + tag + ">" + inline(heading[2]) + "</" + tag + ">";
+      } else {
+        html += "<div>" + (line ? inline(line) : "<br>") + "</div>";
+      }
+    }
+    closeList();
+    if (fence) closeCode();
+    return formatted ? html : "";
+  }
+
   function updateReview() {
     const counts = { verified: 0, review: 0, verify: 0, plain: 0, observations: 0 };
     for (const test of DATA.tests) for (const question of test.questions) {
@@ -635,7 +725,14 @@ function offlineQuizRuntime(DATA) {
       });
       editor.addEventListener("paste", (event) => {
         event.preventDefault();
-        document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
+        const clipboard = event.clipboardData;
+        if (!clipboard) return;
+        const plain = clipboard.getData("text/plain");
+        const rich = cleanHtml(clipboard.getData("text/html"), true);
+        const formatted = /<(?:b|strong|i|em|u|s|del|ul|ol|sup|sub|h[1-6]|blockquote|pre|code|hr)(?:\s|>)/i.test(rich);
+        const html = formatted ? rich : markdownPaste(plain) || rich;
+        if (html) document.execCommand("insertHTML", false, html);
+        else if (plain) document.execCommand("insertText", false, plain);
       });
       editor.addEventListener("click", (event) => {
         const mask = event.target.closest(".study-mask");
@@ -766,12 +863,15 @@ function offlineQuizRuntime(DATA) {
       score();
     }
   }
-  function downloadAnnotated() {
+  function annotatedHtml(notesData) {
     const clone = document.documentElement.cloneNode(true);
-    clone.querySelector("#notes-data").textContent = encodeNotes(
-      Object.fromEntries(notes),
-    );
-    const html = "<!doctype html>\n" + clone.outerHTML;
+    clone.querySelector("#save-in-place-controls")?.remove();
+    clone.querySelector("#save-in-place-status")?.remove();
+    clone.querySelector("#notes-data").textContent = notesData;
+    return "<!doctype html>\n" + clone.outerHTML;
+  }
+  function downloadAnnotated() {
+    const html = annotatedHtml(encodeNotes(Object.fromEntries(notes)));
     const url = URL.createObjectURL(
       new Blob([html], { type: "text/html;charset=utf-8" }),
     );
@@ -782,6 +882,70 @@ function offlineQuizRuntime(DATA) {
     anchor.click();
     anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  function mountSaveInPlace() {
+    if (location.protocol !== "file:" || typeof window.showOpenFilePicker !== "function") return;
+
+    const filename = decodeURIComponent(location.pathname.split("/").pop());
+    const quizScript = document.currentScript.textContent;
+    const controls = document.createElement("span");
+    controls.id = "save-in-place-controls";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.textContent = "Salva appunti nel file";
+    const status = document.createElement("span");
+    status.setAttribute("role", "status");
+    controls.append(save);
+    byId("downloadNotes").before(controls);
+    byId("downloadNotes").parentElement.append(status);
+    status.id = "save-in-place-status";
+    let fileHandle;
+
+    save.onclick = async () => {
+      save.disabled = true;
+      status.textContent = fileHandle ? "Salvataggio in corso…" : "Seleziona il file HTML del quiz aperto.";
+      try {
+        const [selected] = fileHandle ? [fileHandle] : await window.showOpenFilePicker({
+          types: [{ description: "Quiz HTML", accept: { "text/html": [".html", ".htm"] } }],
+        });
+        const file = await selected.getFile();
+        const originalSource = await file.text();
+        const source = originalSource.replace(/\r\n?/g, "\n");
+        const storedNotes = source.match(/<script id="notes-data" type="application\/octet-stream">([A-Za-z0-9+/=]*)<\/script>/)?.[1];
+        if (file.name !== filename || !source.includes("<script>" + quizScript + "</" + "script>")) {
+          throw new Error("Seleziona lo stesso file HTML che hai aperto.");
+        }
+        if (storedNotes !== savedNotesData) {
+          throw new Error("Il file contiene appunti diversi. Scarica una copia per conservare le modifiche di questa scheda.");
+        }
+
+        const notesData = encodeNotes(Object.fromEntries(notes));
+        const html = annotatedHtml(notesData);
+        const writable = await selected.createWritable({ mode: "exclusive" });
+        try {
+          if (await (await selected.getFile()).text() !== originalSource) {
+            throw new Error("Il file è cambiato durante il salvataggio. Scarica una copia per conservare gli appunti.");
+          }
+          await writable.write(html);
+          await writable.close();
+        } catch (error) {
+          await writable.abort().catch(() => {});
+          throw error;
+        }
+        fileHandle = selected;
+        savedNotesData = notesData;
+        status.textContent = "Appunti salvati nel file.";
+      } catch (error) {
+        fileHandle = undefined;
+        status.textContent = error.name === "AbortError"
+          ? "Salvataggio annullato."
+          : error.name === "NotAllowedError"
+            ? "Scrittura non autorizzata. Puoi scaricare una copia con gli appunti."
+            : error.message || "Salvataggio non riuscito.";
+      } finally {
+        save.disabled = false;
+      }
+    };
   }
   byId("check").onclick = () => reveal(true);
   byId("reset").onclick = () => {
@@ -795,6 +959,7 @@ function offlineQuizRuntime(DATA) {
   byId("shuffleAnswers").onchange = render;
   byId("reviewFilter").onchange = (event) => { filter = event.target.value; render(); };
   mountThemeControl();
+  mountSaveInPlace();
   render();
 }
 

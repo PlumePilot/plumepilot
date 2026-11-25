@@ -5,6 +5,8 @@
 
   const HOST_ID = "studywing-floating-menu-host";
   const PROGRESS_OVERLAY_HOST_ID = "studywing-course-progress-overlay-host";
+  const FULLSCREEN_PLAYER_ATTRIBUTE = "data-plumepilot-fullscreen-player";
+  const PLAYER_FULLSCREEN_ICON = 'img[src^="/assets/expand-"][src$=".svg"]';
   const COURSE_SELECTOR = "div.flex-wrap.bg-platform-light-gray";
   const EXAM_ONLINE_PATH = "/exam-online";
   const HOME_PATHS = new Set([
@@ -51,6 +53,7 @@
     stopAtTests: false,
     autoCompleteTests: false,
     autoplaySkipCompletedVideos: false,
+    pegasoContinuousFullscreen: false,
     autoplayChapterLimitEnabled: false,
     autoplayChapterLimits: {},
     autoplayChapterLimitSessions: {},
@@ -86,6 +89,11 @@
   let ui = null;
   let visibilityTimer = null;
   let feedbackTimer = null;
+  let achievementFeedbackTimer = null;
+  let fullscreenCourse = "";
+  let fullscreenTransition = false;
+  let fullscreenPlayer = null;
+  let fullscreenStyle = null;
   let notificationTimer = null;
   let mascotIdleTimer = null;
   let dragState = null;
@@ -836,6 +844,150 @@
     );
   }
 
+  function visibleLessonVideo(keepEndedPlayer = false) {
+    if (!continuousFullscreenAvailable()) return null;
+    const selected = document.querySelector(
+      "div.border-t > div.cursor-pointer > div:first-child > div.visible.bg-platform-primary",
+    );
+    const lessonName = selected?.closest("div.border-t")?.querySelector(".text-base")?.textContent.trim();
+    if (/^(obiettivi|test(?: di autovalutazione)?)$/i.test(lessonName || "")) return null;
+
+    const visible = (video) => {
+      const rect = video.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 &&
+        getComputedStyle(video).visibility === "visible";
+    };
+    const videos = Array.from(document.querySelectorAll("video"));
+    const current = videos.find((video) => !video.ended && visible(video));
+    if (current) return current;
+
+    // Keep the last frame at fullscreen size while autoplay selects the next lesson.
+    const previous = fullscreenPlayer?.video;
+    return keepEndedPlayer && videos.includes(previous) && visible(previous) ? previous : null;
+  }
+
+  function lessonPlayer(video, icon = null) {
+    if (!video) return null;
+    let container = video.parentElement;
+    for (let depth = 0; container && depth < 8; depth++, container = container.parentElement) {
+      if (container.matches(COURSE_SELECTOR) || container.querySelectorAll("video").length !== 1) break;
+      if (icon ? container.contains(icon) : container.querySelector(PLAYER_FULLSCREEN_ICON)) return container;
+    }
+    return null;
+  }
+
+  function clearFullscreenPlayer() {
+    if (!fullscreenPlayer) return;
+    fullscreenPlayer.element.removeAttribute(FULLSCREEN_PLAYER_ATTRIBUTE);
+    fullscreenPlayer = null;
+  }
+
+  function continuousFullscreenAvailable() {
+    return Boolean(currentCourseCode() && document.fullscreenEnabled);
+  }
+
+  function renderContinuousFullscreen() {
+    const active = Boolean(fullscreenCourse && document.fullscreenElement === document.documentElement);
+    if (fullscreenCourse && fullscreenCourse !== currentCourseCode()) {
+      void stopContinuousFullscreen();
+      return;
+    }
+
+    if (ui) {
+      host.toggleAttribute("data-continuous-fullscreen", active);
+      ui.continuousFullscreenGroup.hidden = !continuousFullscreenAvailable();
+      ui.continuousFullscreen.checked = settings.pegasoContinuousFullscreen === true;
+    }
+
+    const video = active ? visibleLessonVideo(true) : null;
+    if (video && fullscreenPlayer?.video === video && fullscreenPlayer.element.contains(video)) return;
+    clearFullscreenPlayer();
+    const element = lessonPlayer(video);
+    if (!element) return;
+    fullscreenPlayer = { element, video };
+    element.setAttribute(FULLSCREEN_PLAYER_ATTRIBUTE, "");
+  }
+
+  function resetContinuousFullscreen() {
+    fullscreenCourse = "";
+    clearFullscreenPlayer();
+    fullscreenStyle?.remove();
+    fullscreenStyle = null;
+  }
+
+  async function exitContinuousFullscreen() {
+    const root = document.documentElement;
+    // A player can enter fullscreen above the document. Unwind both levels.
+    while (document.fullscreenElement && root.matches(":fullscreen")) {
+      const before = document.fullscreenElement;
+      await document.exitFullscreen();
+      if (document.fullscreenElement === before) break;
+    }
+  }
+
+  async function stopContinuousFullscreen() {
+    if (fullscreenTransition || !fullscreenCourse) return;
+    fullscreenTransition = true;
+    try {
+      await exitContinuousFullscreen();
+    } catch {
+      setFeedback("Premi Esc per uscire dallo schermo intero.", true);
+    } finally {
+      if (!document.documentElement.matches(":fullscreen")) resetContinuousFullscreen();
+      fullscreenTransition = false;
+      if (!fullscreenCourse || fullscreenCourse === currentCourseCode()) renderContinuousFullscreen();
+    }
+  }
+
+  async function toggleContinuousFullscreen(video, element) {
+    if (fullscreenTransition) return;
+    if (fullscreenCourse) {
+      await stopContinuousFullscreen();
+      return;
+    }
+    if (!element || document.fullscreenElement || !document.fullscreenEnabled) return;
+
+    const course = currentCourseCode();
+    fullscreenTransition = true;
+    try {
+      await document.documentElement.requestFullscreen();
+      if (course !== currentCourseCode() ||
+          document.fullscreenElement !== document.documentElement) {
+        await exitContinuousFullscreen();
+        return;
+      }
+      fullscreenCourse = course;
+      fullscreenPlayer = { element, video };
+      element.setAttribute(FULLSCREEN_PLAYER_ATTRIBUTE, "");
+      fullscreenStyle = document.createElement("style");
+      fullscreenStyle.textContent = `
+        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 10000 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: none !important;
+          max-height: none !important;
+          margin: 0 !important;
+          background: #000;
+        }
+        :root:fullscreen video[${FULLSCREEN_PLAYER_ATTRIBUTE}],
+        :root:fullscreen [${FULLSCREEN_PLAYER_ATTRIBUTE}] video {
+          object-fit: contain !important;
+        }
+      `;
+      document.head.append(fullscreenStyle);
+      closePanel();
+    } catch {
+      resetContinuousFullscreen();
+      setFeedback("Impossibile attivare lo schermo intero continuo.", true);
+    } finally {
+      fullscreenTransition = false;
+      renderContinuousFullscreen();
+    }
+  }
+
   function selectMenuTab(
     requestedTab,
     { focus = false, acknowledge = true } = {},
@@ -898,7 +1050,7 @@
           result?.accepted &&
           normalizeVisualStyle(settings.visualStyle) === "gaming"
         )
-          setFeedback(
+          showFloatingAchievementFeedback(
             `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP`,
           );
       },
@@ -1036,6 +1188,23 @@
       operation.message ||
       `Creazione del ${operation.kind.toUpperCase()} in corso…`
     );
+  }
+
+  function showFloatingAchievementFeedback(message) {
+    if (!ui || ui.panel.hidden) return;
+    clearTimeout(achievementFeedbackTimer);
+    ui.achievementFeedback.hidden = false;
+    ui.achievementFeedback.textContent = message;
+    placeAchievementFeedback();
+    achievementFeedbackTimer = setTimeout(hideAchievementFeedback, 5000);
+  }
+
+  function hideAchievementFeedback() {
+    clearTimeout(achievementFeedbackTimer);
+    achievementFeedbackTimer = null;
+    if (!ui) return;
+    ui.achievementFeedback.hidden = true;
+    ui.achievementFeedback.textContent = "";
   }
 
   function setFeedback(message, isError = false) {
@@ -1273,14 +1442,18 @@
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
+    const isExportCollection = operation?.kind === "tests" || operation?.kind === "materials";
+    const bannerMessage = busy ? operationLabel(operation) : "";
     ui.activeOperationBanner.hidden = !busy;
-    ui.activeOperationBanner.textContent = busy ? operationLabel(operation) : "";
+    ui.activeOperationBanner.textContent = bannerMessage;
+    ui.activeOperationBanner.title = isExportCollection ? bannerMessage : "";
+    ui.activeOperationBanner.dataset.compact = String(isExportCollection);
     applyFloatingMenuLayout();
 
-    if (operation) {
+    if (busy && !isExportCollection) {
       clearTimeout(feedbackTimer);
       ui.status.dataset.error = "false";
-      ui.status.textContent = operationLabel(operation);
+      ui.status.textContent = bannerMessage;
     } else if (ui.status.dataset.error !== "true") {
       ui.status.textContent = "";
     }
@@ -1544,6 +1717,7 @@
   function closePanel() {
     if (!ui || ui.panel.hidden) return;
     ui.panel.hidden = true;
+    hideAchievementFeedback();
     ui.launcher.setAttribute("aria-expanded", "false");
     ui.launcher.title = "Clicca per aprire PlumePilot · Trascina per spostare";
     ui.launcher.setAttribute(
@@ -1626,6 +1800,28 @@
     return normalizedPosition({ edge, offset });
   }
 
+  function placeAchievementFeedback() {
+    if (ui.achievementFeedback.hidden) return;
+    const gap = 10;
+    const inset = 12;
+    const panel = ui.panel.getBoundingClientRect();
+    const feedback = ui.achievementFeedback;
+    const { width, height } = feedback.getBoundingClientRect();
+    const left = panel.left - gap - width;
+    const right = panel.right + gap;
+    const top = clamp(panel.top, inset, Math.max(inset, window.innerHeight - height - inset));
+
+    if (right + width <= window.innerWidth - inset || left >= inset) {
+      feedback.style.left = `${right + width <= window.innerWidth - inset ? right : left}px`;
+      feedback.style.top = `${top}px`;
+      return;
+    }
+
+    const tabs = ui.tabList.getBoundingClientRect();
+    feedback.style.left = `${clamp(panel.left + gap, inset, window.innerWidth - width - inset)}px`;
+    feedback.style.top = `${tabs.bottom + gap}px`;
+  }
+
   function placePanel() {
     if (!host || !ui || ui.panel.hidden) return;
     const launcherRect = host.getBoundingClientRect();
@@ -1643,6 +1839,7 @@
     const viewportPadding = 12;
     ui.panel.style.left = `${clamp(left, viewportPadding, Math.max(viewportPadding, window.innerWidth - panelRect.width - viewportPadding))}px`;
     ui.panel.style.top = `${clamp(top, viewportPadding, Math.max(viewportPadding, window.innerHeight - panelRect.height - viewportPadding))}px`;
+    placeAchievementFeedback();
   }
 
   function applyLauncherPosition() {
@@ -2325,6 +2522,25 @@
         :host([data-visual-style="gaming"]) .action,
         :host([data-visual-style="gaming"]) .bookmark-action {
           font-family: "Pixelify Sans", system-ui, sans-serif;
+        }
+        .floating-achievement-feedback {
+          position: fixed;
+          z-index: 6;
+          box-sizing: border-box;
+          width: min(240px, calc(100vw - 24px));
+          padding: 8px 10px;
+          border: 1px solid var(--sw-border);
+          border-radius: 8px;
+          background: var(--sw-elevated);
+          color: var(--sw-heading);
+          box-shadow: 0 4px 14px var(--sw-panel-shadow);
+          font: 650 12px/1.4 system-ui, sans-serif;
+          overflow-wrap: anywhere;
+          pointer-events: none;
+        }
+        :host([data-continuous-fullscreen]) .launcher,
+        :host([data-continuous-fullscreen]) .notification-badge {
+          display: none;
         }
         .panel {
           position: fixed;
@@ -3394,6 +3610,11 @@
         :host([data-visual-style="gaming"]) .materials-sprite.is-playing {
           animation: action-six-frames 1200ms steps(5, end) 1 both;
         }
+        .ux-operation-banner[data-compact="true"] {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .status {
           margin: 8px 0 0;
           color: var(--sw-accent);
@@ -3655,6 +3876,7 @@
         <span class="notification-alert-sprite"></span>
         <span class="notification-badge-text" data-role="notification-badge-text">!</span>
       </span>
+      <div class="floating-achievement-feedback" data-role="floating-achievement-feedback" role="status" hidden></div>
       <section id="studywing-panel" class="panel" aria-label="Menu PlumePilot" hidden>
         <div class="header">
           <span class="header-logo" aria-hidden="true">
@@ -3715,6 +3937,10 @@
 <p class="ux-copy" data-role="first-incomplete-hint"></p>
             </section>
 <section class="ux-group"><h2 class="ux-heading">Autoplay</h2>
+            <div data-role="continuous-fullscreen-group" hidden>
+              <label class="setting gaming-control-row"><span>Schermo intero continuo</span><input data-setting="continuous-fullscreen" type="checkbox"></label>
+              <p class="ux-copy">Attiva lo schermo intero dal player. Con l’autoplay resta attivo al cambio di video. Per uscire premi Esc o usa lo stesso comando del player.</p>
+            </div>
             <label class="setting gaming-control-row"><span>Avanzamento automatico</span><span class="gaming-control-sprite autoplay-control-sprite" data-role="autoplay-control-sprite" aria-hidden="true"></span><input data-setting="enabled" type="checkbox"></label>
 <p class="ux-summary" data-role="autoplay-options-summary"></p>
 <button class="ux-navigation" data-action="toggle-autoplay-options" data-ux-open type="button" aria-controls="studywing-autoplay-options" aria-expanded="false"><span>Impostazioni autoplay</span><span aria-hidden="true">›</span></button>
@@ -3724,7 +3950,7 @@
 <section class="ux-group" data-menu-section><h2 class="ux-heading">Materiali per lo studio</h2><div class="actions" data-menu-group="materials">
 <div data-menu-item="study-materials">              <button class="action materials has-gaming-art gaming-art-compact" data-action="materials" data-layout-item="study-materials" type="button"><span class="gaming-action-sprite materials-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="materials-label">Esporta dispense</span></button><p class="ux-format">PDF con indice · EPUB</p></div><div data-menu-item="test-collection">              <button class="action test-collection has-gaming-art gaming-art-compact" data-action="test-collection" data-layout-item="test-collection" type="button"><span class="gaming-action-sprite test-collection-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="test-collection-label">Crea raccolta test</span></button><p class="ux-format">PDF con soluzioni · Quiz HTML offline</p></div></div></section>
 <details class="ux-group ux-completion" data-menu-section data-role="course-completion"><summary>Completamento del corso</summary><div class="actions" data-menu-group="completion">
-<div data-menu-item="complete-tests">              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button><p class="ux-format">Completa i test di autovalutazione sulla piattaforma.</p></div><div data-menu-item="complete-objectives">              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button><p class="ux-format">Completa gli Obiettivi ancora da svolgere.</p></div></div></details>
+<div data-menu-item="complete-tests">              <button class="action turbo has-gaming-art gaming-art-compact" data-action="turbo" data-layout-item="complete-tests" type="button"><span class="gaming-action-sprite turbo-tests-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="turbo-label">Completa tutti i test</span></button><p class="ux-format">Completa i test di autovalutazione del corso corrente.</p></div><div data-menu-item="complete-objectives">              <button class="action objectives has-gaming-art" data-action="objectives" data-layout-item="complete-objectives" type="button"><span class="gaming-action-sprite objectives-sprite" aria-hidden="true"></span><span class="gaming-action-label" data-role="objectives-label">Completa tutti gli Obiettivi</span></button><p class="ux-format">Completa gli Obiettivi ancora da svolgere.</p></div></div></details>
 </div>
 <section id="studywing-autoplay-options" class="ux-settings-view ux-group" data-ux-detail aria-labelledby="studywing-autoplay-settings-title" hidden>
 <button class="ux-back" type="button" data-ux-back>← Corso</button>
@@ -3917,6 +4143,8 @@
       body: shadow.querySelector(".body"),
       launcher: shadow.querySelector(".launcher"),
       panel: shadow.querySelector(".panel"),
+      achievementFeedback: shadow.querySelector('[data-role="floating-achievement-feedback"]'),
+      continuousFullscreenGroup: shadow.querySelector('[data-role="continuous-fullscreen-group"]'),
       notificationBadge: shadow.querySelector(".notification-badge"),
       notificationBadgeText: shadow.querySelector(
         '[data-role="notification-badge-text"]',
@@ -4039,6 +4267,7 @@
       commissionControlSprite: shadow.querySelector(
         '[data-role="commission-control-sprite"]',
       ),
+      continuousFullscreen: shadow.querySelector('[data-setting="continuous-fullscreen"]'),
       findFirstIncomplete: shadow.querySelector(
         '[data-action="find-first-incomplete"]',
       ),
@@ -4316,6 +4545,9 @@
       button.scrollIntoView({ block: "nearest" });
       button.focus();
     });
+    ui.continuousFullscreen.addEventListener("change", () => {
+      writeSetting("pegasoContinuousFullscreen", ui.continuousFullscreen.checked);
+    });
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
       ui.findFirstIncomplete.disabled = true;
@@ -4479,6 +4711,7 @@
   }
 
   function removeMenu() {
+    hideAchievementFeedback();
     clearTimeout(feedbackTimer);
     clearTimeout(notificationTimer);
     clearTimeout(mascotIdleTimer);
@@ -4496,11 +4729,13 @@
   function applyVisibility() {
     const supportedSurface =
       courseSurfaceAvailable() || isCommissionOnlyPage();
+    const fullscreenOnCourse = fullscreenCourse && fullscreenCourse === currentCourseCode();
     const shouldShow =
-      settings.floatingMenuEnabled === true && supportedSurface;
+      settings.floatingMenuEnabled === true && (supportedSurface || fullscreenOnCourse);
     if (shouldShow) createMenu();
     else removeMenu();
     if (shouldShow) renderCommissionExams();
+    renderContinuousFullscreen();
   }
 
   function scheduleVisibilityCheck() {
@@ -4529,6 +4764,10 @@
   document.addEventListener(
     "keydown",
     (event) => {
+      if (event.key === "Escape" && fullscreenCourse) {
+        void stopContinuousFullscreen();
+        return;
+      }
       if (event.key === "Escape" && ui && !ui.panel.hidden) {
         if (ui.courseNavigation?.close()) { event.preventDefault(); event.stopPropagation(); return; }
         closePanel();
@@ -4595,10 +4834,12 @@
     if (changes.floatingMenuEnabled || changes.commissionCheckEnabled)
       scheduleVisibilityCheck();
     if (changes.visualStyle) {
+      hideAchievementFeedback();
       applyVisualStyle();
       claimEnabledGamingAchievements();
     }
     if (changes.themePreference) applyTheme();
+    if (changes.pegasoContinuousFullscreen) renderContinuousFullscreen();
     if (changes.menuSize) applyMenuSize();
     if (
       changes.visualStyle ||
@@ -4662,6 +4903,41 @@
     )
       renderCommissionExams();
   });
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY") {
+      sendResponse({ available: continuousFullscreenAvailable() });
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.isTrusted || event.defaultPrevented ||
+        (!fullscreenCourse && settings.pegasoContinuousFullscreen !== true)) return;
+    const icon = event.target?.closest?.(PLAYER_FULLSCREEN_ICON);
+    if (!icon || (!fullscreenCourse && document.fullscreenElement)) return;
+    const video = fullscreenPlayer?.element.contains(icon)
+      ? fullscreenPlayer.video
+      : visibleLessonVideo(Boolean(fullscreenCourse));
+    const element = lessonPlayer(video, icon);
+    if (!element || !document.fullscreenEnabled) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void toggleContinuousFullscreen(video, element);
+  }, true);
+  document.addEventListener("fullscreenchange", () => {
+    if (fullscreenTransition) return;
+    const root = document.documentElement;
+    if (fullscreenCourse && document.fullscreenElement !== root) {
+      if (root.matches(":fullscreen")) {
+        void stopContinuousFullscreen();
+        return;
+      }
+      resetContinuousFullscreen();
+    }
+    renderContinuousFullscreen();
+  });
+  for (const event of ["play", "ended", "loadedmetadata"]) {
+    document.addEventListener(event, renderContinuousFullscreen, true);
+  }
 
   const observer = new MutationObserver(scheduleVisibilityCheck);
   observer.observe(document.documentElement, {

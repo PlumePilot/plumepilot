@@ -102,6 +102,13 @@
       </section>
 
       <section class="autoplay-section ux-group"><h2 class="ux-heading">Autoplay</h2>
+        <div id="continuousFullscreenSetting" hidden>
+          <label class="toggle-row gaming-control-row" for="pegasoContinuousFullscreen">
+            <span>Schermo intero continuo</span>
+            <input id="pegasoContinuousFullscreen" type="checkbox" aria-describedby="continuousFullscreenHint" disabled>
+          </label>
+          <p id="continuousFullscreenHint" class="ux-copy">Attiva lo schermo intero dal player. Con l’autoplay resta attivo al cambio di video. Per uscire premi Esc o usa lo stesso comando del player.</p>
+        </div>
         <label class="toggle-row autoplay-master gaming-control-row" for="enabled">
           <span>Avanzamento automatico</span>
           <span id="autoplayControlSprite" class="gaming-control-sprite autoplay-control-sprite" aria-hidden="true"></span>
@@ -153,7 +160,7 @@
           </button>
           <button class="expand-button" type="button" aria-label="Mostra informazioni sui test automatici" aria-controls="turboInfo" aria-expanded="false"></button>
         </div>
-        <p class="ux-format">Completa i test di autovalutazione sulla piattaforma.</p>
+        <p class="ux-format">Completa i test di autovalutazione del corso corrente.</p>
         <div id="turboInfo" class="info-panel" hidden>Turbo test! Completa in sequenza tutti i test di autovalutazione ancora da svolgere. I test già completati non vengono ripetuti. Durante l’operazione mantieni aperta la scheda del corso.</div>
         <div id="turboTestsStatus" class="action-status" aria-live="polite"></div>
       </section>

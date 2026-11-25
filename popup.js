@@ -7,6 +7,8 @@
       if (chrome.runtime.lastError) chrome.tabs.create({ url: chrome.runtime.getURL("pausa/index.html") });
     });
   });
+  const continuousFullscreenSetting = document.getElementById("continuousFullscreenSetting");
+  const continuousFullscreenCheckbox = document.getElementById("pegasoContinuousFullscreen");
   const autoplaySkipCompletedVideosCheckbox = document.getElementById(
     "autoplaySkipCompletedVideos",
   );
@@ -1249,7 +1251,7 @@
   }
   function withActiveCourseTab(callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
-      callback(tabs[0]?.id || null),
+      callback(tabs[0]?.id ?? null),
     );
   }
   function runtimeMessage(message) {
@@ -1270,6 +1272,7 @@
       stopAtTests: false,
       autoCompleteTests: false,
       autoplaySkipCompletedVideos: false,
+      pegasoContinuousFullscreen: false,
       autoplayChapterLimitEnabled: false,
       autoplayChapterLimits: {},
       autoplayChapterLimitSessions: {},
@@ -1296,6 +1299,8 @@
     },
     (result) => {
       checkbox.checked = result.enabled;
+      continuousFullscreenCheckbox.checked = result.pegasoContinuousFullscreen === true;
+      continuousFullscreenCheckbox.disabled = false;
       autoplaySkipCompletedVideosCheckbox.checked = result.autoplaySkipCompletedVideos === true;
       renderTestBehavior(result.stopAtTests, result.autoCompleteTests);
       chapterLimitMaps = {
@@ -1337,6 +1342,15 @@
   });
   withActiveCourseTab((tabId) => {
     if (!tabId) return;
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: "PEGASO_CONTINUOUS_FULLSCREEN_AVAILABILITY" },
+      { frameId: 0 },
+      (response) => {
+        if (chrome.runtime.lastError) return;
+        continuousFullscreenSetting.hidden = response?.available !== true;
+      },
+    );
     activeCourseTabId = tabId;
     updateAutoplayControls();
     chrome.tabs.sendMessage(
@@ -1375,6 +1389,9 @@
       checkbox.checked = changes.enabled.newValue !== false;
       updateStatus(checkbox.checked);
       updateAutoplayControls();
+    }
+    if (changes.pegasoContinuousFullscreen) {
+      continuousFullscreenCheckbox.checked = changes.pegasoContinuousFullscreen.newValue === true;
     }
     if (changes.autoplaySkipCompletedVideos) {
       autoplaySkipCompletedVideosCheckbox.checked = changes.autoplaySkipCompletedVideos.newValue === true;
@@ -1492,6 +1509,10 @@
     chrome.storage.local.set({ enabled: checkbox.checked });
     if (checkbox.checked) playActionAnimation(autoplayControlSprite);
     if (checkbox.checked) claimAchievement("discover-autoplay");
+  });
+
+  continuousFullscreenCheckbox.addEventListener("change", () => {
+    chrome.storage.local.set({ pegasoContinuousFullscreen: continuousFullscreenCheckbox.checked });
   });
 
   autoplaySkipCompletedVideosCheckbox.addEventListener("change", () => {
