@@ -1,5 +1,7 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
 
   const gamingFonts = new WeakMap();
   function ensureGamingFont(document, url) {
@@ -25,19 +27,19 @@
   function autoplayPresentation({ skipCompleted = false, testBehavior = "ignore",
     limitEnabled = false, limit = 1, stopAt70 = false, thresholdBypassed = false } = {}) {
     const effectiveTestBehavior = limitEnabled && testBehavior === "stop" ? "ignore" : testBehavior;
-    const parts = [skipCompleted ? "Solo video da completare" : "Tutti i video",
-      effectiveTestBehavior === "complete" ? "Test automatici"
-        : effectiveTestBehavior === "stop" ? "Stop ai test" : "Test ignorati"];
-    if (stopAt70 && !thresholdBypassed) parts.push("Stop al 70%");
-    if (limitEnabled) parts.push(`Limite: ${Math.max(1, Number(limit) || 1)} capitoli`);
+    const parts = [skipCompleted ? t`Solo video da completare` : t`Tutti i video`,
+      effectiveTestBehavior === "complete" ? t`Test automatici`
+        : effectiveTestBehavior === "stop" ? t`Stop ai test` : t`Test ignorati`];
+    if (stopAt70 && !thresholdBypassed) parts.push(t`Stop al 70%`);
+    if (limitEnabled) parts.push(t`Limite: ${Math.max(1, Number(limit) || 1)} capitoli`);
     return {
       summary: parts.join(" · "),
       testOverride: limitEnabled && testBehavior === "stop"
-        ? "Con il limite capitoli attivo, l’autoplay ignora i test invece di fermarsi. La scelta salvata resta “Fermati”." : "",
+        ? t`Con il limite capitoli attivo, l’autoplay ignora i test invece di fermarsi. La scelta salvata resta “Fermati”.` : "",
       stopHint: stopAt70 && !thresholdBypassed && limitEnabled
-        ? "Lo stop al 70% ha la precedenza sul limite capitoli e termina l’attività corrente."
-        : stopAt70 && thresholdBypassed ? "Per questo corso hai scelto di continuare oltre il 70%."
-          : "Lo stop al 70% termina l’attività corrente prima di fermarsi.",
+        ? t`Lo stop al 70% ha la precedenza sul limite capitoli e termina l’attività corrente.`
+        : stopAt70 && thresholdBypassed ? t`Per questo corso hai scelto di continuare oltre il 70%.`
+          : t`Lo stop al 70% termina l’attività corrente prima di fermarsi.`,
     };
   }
 
@@ -167,7 +169,7 @@
       const focusedId = focused?.closest?.("[data-layout-item]")?.dataset.layoutItem;
       const focusedDirection = focused?.dataset.direction;
       const rows = [];
-      for (const [group, title] of [["materials", "Materiali per lo studio"], ["completion", "Completamento del corso"]]) {
+      for (const [group, title] of [["materials", t`Materiali per lo studio`], ["completion", t`Completamento del corso`]]) {
         const heading = document.createElement("li");
         heading.className = "ux-layout-heading";
         heading.textContent = title;
@@ -188,7 +190,7 @@
           input.type = "checkbox";
           input.checked = item.visible;
           const text = document.createElement("span");
-          text.textContent = definition.label;
+          text.textContent = localized(definition.label);
           label.append(input, text);
           const moves = document.createElement("span");
           moves.className = "floating-menu-layout-moves";
@@ -198,7 +200,7 @@
             button.dataset.direction = direction;
             button.textContent = direction === "up" ? "↑" : "↓";
             button.disabled = direction === "up" ? index === 0 : index === items.length - 1;
-            button.setAttribute("aria-label", `Sposta ${definition.label} ${direction === "up" ? "verso l’alto" : "verso il basso"}`);
+            button.setAttribute("aria-label", t`Sposta ${localized(definition.label)} ${direction === "up" ? t`verso l’alto` : t`verso il basso`}`);
             moves.append(button);
           }
           row.append(handle, label, moves);

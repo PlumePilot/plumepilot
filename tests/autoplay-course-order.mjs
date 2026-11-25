@@ -6,6 +6,7 @@ const extract = (start, end) => source.slice(source.indexOf(start), source.index
 const row = (name, progress) => ({name, progress});
 const objective = row("Obiettivi", 100), first = row("Video 1", 100), second = row("Video 2", 100), third = row("Video 3", 0);
 const sameChapter = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   autoplaySkipCompletedVideos: false,
   currentChapter: () => ({}), chapterRows: () => [objective, first, second, third],
   findChapter: () => ({}), lessonName: r => r.name, getProgress: r => r.progress, log() {},
@@ -30,6 +31,7 @@ async function transition({crossSection = false, sequential = true, missingCurre
   const openedSections = [], openedChapters = [], clicked = [];
   let apiCalls = 0, activeSection = "B";
   const context = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
     autoplaySkipCompletedVideos: skipCompleted,
     playbackDiscoveryCancelled: () => false,
     stopAtCurrentTestBeforeDiscovery: async () => stopAtTest,
@@ -91,6 +93,7 @@ assert.equal(stopped.clicked.length, 0, "test stop remains effective");
 
 let stored;
 const recovery = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   documentIsHidden: () => false, readChapterRecovery: () => null,
   MAX_CHAPTER_RELOADS: 1, CHAPTER_RECOVERY_KEY: "recovery", log() {},
   sessionStorage: {setItem: (_key, value) => {stored = JSON.parse(value);}}, location: {reload() {}},
@@ -103,6 +106,7 @@ console.log("PASS: replay order within/across chapters and sections; bookmark se
 let pendingResume = null, advances = 0;
 const replayPlayer = {ended: false, duration: 60, currentTime: 5};
 const resumed = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   smartResumeRunning: false,
   video: () => replayPlayer, currentLesson: () => first, lessonName: r => r.name,
   playbackContext: null, timer: null, rememberPlaybackLesson() {}, log() {}, enabled: true,
@@ -125,6 +129,7 @@ const reused = {dataset: {}, ended: true, duration: 60, currentTime: 60,
   addEventListener: (name, fn) => listeners.set(name, fn)};
 let endTimer;
 const events = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   smartResumeRunning: false,
   currentLesson: () => first, rememberPlaybackLesson() {}, captureEndedVideoProgress: async () => {},
   lastVideo: null, timer: null, enabled: true, log() {}, clearTimeout() {},

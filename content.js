@@ -1,5 +1,7 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
 
   const STUDYWING_DEBUG = false;
   const debugLog = (...values) => {
@@ -175,7 +177,7 @@
       Array.isArray(result.newUnlockIds) ? result.newUnlockIds : [],
     ));
     const latest = results[results.length - 1] || {};
-    return `${rewardIds.size ? ` ${rewardIds.size === 1 ? "Nuova ricompensa disponibile!" : `${rewardIds.size} nuove ricompense disponibili!`}` : ""}${latest.levelUp ? ` Livello ${latest.level} raggiunto!` : ""}`;
+    return `${rewardIds.size ? ` ${rewardIds.size === 1 ? t`Nuova ricompensa disponibile!` : t`${rewardIds.size} nuove ricompense disponibili!`}` : ""}${latest.levelUp ? t` Livello ${latest.level} raggiunto!` : ""}`;
   }
 
   function showAchievementNotifications(results) {
@@ -183,12 +185,12 @@
     const unlock = achievementUnlockSuffix(results);
     const message = results.length === 1
       ? (results[0].achievement.id === "chapter-video-completion"
-          ? `Video del capitolo completati: +${results[0].awardedExp} EXP.${unlock}`
-          : `Traguardo completato: ${results[0].achievement.title} · +${results[0].awardedExp} EXP.${unlock}`)
-      : `Ricompense ottenute: ${results.map((result) =>
+          ? t`Video del capitolo completati: +${results[0].awardedExp} EXP.${unlock}`
+          : t`Traguardo completato: ${localized(results[0].achievement.title)} · +${results[0].awardedExp} EXP.${unlock}`)
+      : t`Ricompense ottenute: ${results.map((result) =>
           result.achievement.id === "chapter-video-completion"
-            ? `video del capitolo +${result.awardedExp} EXP`
-            : `${result.achievement.title} +${result.awardedExp} EXP`,
+            ? t`video del capitolo +${result.awardedExp} EXP`
+            : `${localized(result.achievement.title)} +${result.awardedExp} EXP`,
         ).join(" · ")}.${unlock}`;
     window.StudyWingNotifications?.show({
       message,
@@ -335,7 +337,7 @@
         exportCancelRequested = true;
         window.postMessage({ type: TURBO_API_CANCEL }, "*");
         setExportCollectionStatus(
-          "Interruzione della raccolta in corso…",
+          t`Interruzione della raccolta in corso…`,
           false,
           operationId,
         );
@@ -870,7 +872,7 @@
           "UniPegaso session-conflict dialog detected. Leaving it open according to the user's preference.",
         );
         setResumeDiscoveryStatus(
-          "Conflitto tra lezioni rilevato.\nPlumePilot ha lasciato aperto l’avviso e attende una tua scelta.",
+          t`Conflitto tra lezioni rilevato.\nPlumePilot ha lasciato aperto l’avviso e attende una tua scelta.`,
           "fallback",
         );
       }
@@ -887,7 +889,7 @@
           "The UniPegaso session-conflict dialog returned after automatic recovery. Leaving it open to prevent a reload loop.",
         );
         setResumeDiscoveryStatus(
-          "Conflitto di sessione ancora presente.\nRipristino automatico interrotto per evitare ricaricamenti continui.",
+          t`Conflitto di sessione ancora presente.\nRipristino automatico interrotto per evitare ricaricamenti continui.`,
           "fallback",
         );
       }
@@ -904,7 +906,7 @@
       "UniPegaso session-conflict dialog detected. Confirming its one-time recovery reload.",
     );
     setResumeDiscoveryStatus(
-      "Conflitto tra lezioni rilevato.\nPlumePilot ricaricherà la lezione una sola volta.",
+      t`Conflitto tra lezioni rilevato.\nPlumePilot ricaricherà la lezione una sola volta.`,
       "fallback",
     );
 
@@ -1086,7 +1088,7 @@
           "UniPegaso viewing-validation dialog detected. Leaving it open according to the user's preference.",
         );
         setResumeDiscoveryStatus(
-          "Errore di convalida della visione rilevato.\nPlumePilot ha lasciato aperto l’avviso e attende una tua scelta.",
+          t`Errore di convalida della visione rilevato.\nPlumePilot ha lasciato aperto l’avviso e attende una tua scelta.`,
           "fallback",
         );
       }
@@ -1103,7 +1105,7 @@
           "The UniPegaso viewing-validation dialog returned after automatic recovery. Leaving it open to prevent a reload loop.",
         );
         setResumeDiscoveryStatus(
-          "UniPegaso continua a rifiutare la visione della lezione.\nRipristino automatico interrotto per evitare ricaricamenti continui.",
+          t`UniPegaso continua a rifiutare la visione della lezione.\nRipristino automatico interrotto per evitare ricaricamenti continui.`,
           "fallback",
         );
       }
@@ -1118,7 +1120,7 @@
       "UniPegaso viewing-validation dialog detected. Confirming its one-time recovery reload.",
     );
     setResumeDiscoveryStatus(
-      "UniPegaso non ha convalidato la visione del video.\nLa lezione verrà ricaricata una sola volta dall’inizio.",
+      t`UniPegaso non ha convalidato la visione del video.\nLa lezione verrà ricaricata una sola volta dall’inizio.`,
       "fallback",
     );
 
@@ -1609,7 +1611,7 @@
   }
 
   function exportAbortError() {
-    const error = new Error("Operazione annullata dall’utente");
+    const error = new Error(t`Operazione annullata dall’utente`);
     error.name = "AbortError";
     return error;
   }
@@ -2248,7 +2250,7 @@
       ensureExportNotCancelled(operationId);
       const sectionText = sectionNames[sectionIndex];
       setExportCollectionStatus(
-        `Recupero ${sectionIndex + 1}/${sectionNames.length}: ripristino della sezione ${sectionText}`,
+        t`Recupero ${sectionIndex + 1}/${sectionNames.length}: ripristino della sezione ${sectionText}`,
         false,
         operationId,
       );
@@ -2268,7 +2270,7 @@
         ensureExportNotCancelled(operationId);
         const item = sectionMissing[itemIndex];
         setExportCollectionStatus(
-          `Recupero: ${itemIndex + 1}/${sectionMissing.length} in ${sectionText}: ${item.identity.chapterText}`,
+          t`Recupero: ${itemIndex + 1}/${sectionMissing.length} in ${sectionText}: ${item.identity.chapterText}`,
           false,
           operationId,
         );
@@ -2327,7 +2329,7 @@
       ensureExportNotCancelled(operationId);
       const item = retryable[index];
       setExportCollectionStatus(
-        `Recupero PDF ${index + 1}/${retryable.length}: ${item.identity.chapterText}`,
+        t`Recupero PDF ${index + 1}/${retryable.length}: ${item.identity.chapterText}`,
         false,
         operationId,
       );
@@ -2829,7 +2831,7 @@
 
     if (cached?.sectionSignature === sectionSignature && cached.outline?.length) {
       setExportCollectionStatus(
-        `Struttura del corso recuperata dalla cache: ${cached.outline.length} dispense.`,
+        t`Struttura del corso recuperata dalla cache: ${cached.outline.length} dispense.`,
         false,
         operationId,
       );
@@ -2840,7 +2842,7 @@
       initialSections,
       (sectionText, sectionIndex, sectionCount) =>
         setExportCollectionStatus(
-          `Preparazione API: lettura sezione ${sectionIndex + 1}/${sectionCount}: ${sectionText}`,
+          t`Preparazione API: lettura sezione ${sectionIndex + 1}/${sectionCount}: ${sectionText}`,
           false,
           operationId,
         ),
@@ -2928,14 +2930,14 @@
   }
 
   async function recoverCourseTestOutline(initialSections, initialOutline, courseIndex, operationId) {
-    if (!courseIndex?.length) throw new Error("Indice master dei test non disponibile");
+    if (!courseIndex?.length) throw new Error(t`Indice master dei test non disponibile`);
     const routes = [...courseIndex].sort((a, b) => a.masterOrder - b.masterOrder);
     const seen = new Set();
     for (const route of routes) {
       if (![route.lpId, route.id].every(value => Number.isInteger(value) && value > 0) ||
           !Number.isInteger(route.folderId) || route.folderId < 0 ||
           !Number.isInteger(route.masterOrder) || seen.has(testRouteKey(route))) {
-        throw new Error("Identità dei capitoli ambigua nell’indice master");
+        throw new Error(t`Identità dei capitoli ambigua nell’indice master`);
       }
       seen.add(testRouteKey(route));
     }
@@ -2985,7 +2987,7 @@
           Number(response.data.test.lp_id) === entry.route.lpId) return response;
       if (response.error === "AUTH_UNAVAILABLE") return response;
       if (attempt < API_LESSON_RETRY_DELAYS_MS.length) {
-        setExportCollectionStatus(`Recupero test: ${entry.identity.chapterText}…`, false, operationId);
+        setExportCollectionStatus(t`Recupero test: ${entry.identity.chapterText}…`, false, operationId);
         await exportSleep(API_LESSON_RETRY_DELAYS_MS[attempt], operationId);
       }
     }
@@ -3033,8 +3035,8 @@
     ).length;
     setExportCollectionStatus(
       cachedCount
-        ? `${cachedCount}/${outline.length} dispense già disponibili in cache.`
-        : `Verifica accesso API per ${outline.length} dispense…`,
+        ? t`${cachedCount}/${outline.length} dispense già disponibili in cache.`
+        : t`Verifica accesso API per ${outline.length} dispense…`,
       false,
       operationId,
     );
@@ -3047,7 +3049,7 @@
           "material",
           (attempt, total) =>
             setExportCollectionStatus(
-              `Risposta incompleta per ${outline[0].identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
+              t`Risposta incompleta per ${outline[0].identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
               false,
               operationId,
             ),
@@ -3087,7 +3089,7 @@
       }
 
       setExportCollectionStatus(
-        `Raccolta API ${index + 1}/${outline.length}: ${identity.chapterText}`,
+        t`Raccolta API ${index + 1}/${outline.length}: ${identity.chapterText}`,
         false,
         operationId,
       );
@@ -3101,7 +3103,7 @@
               "material",
               (attempt, total) =>
                 setExportCollectionStatus(
-                  `Risposta incompleta per ${identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
+                  t`Risposta incompleta per ${identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
                   false,
                   operationId,
                 ),
@@ -3118,7 +3120,7 @@
         );
         const failure = {
           chapter: qualifiedChapter,
-          reason: "Dati della dispensa non disponibili tramite API",
+          reason: t`Dati della dispensa non disponibili tramite API`,
         };
         failure.identity = identity;
         failure.order = entry.order;
@@ -3141,7 +3143,7 @@
       if (!materialUrl) {
         const failure = {
           chapter: qualifiedChapter,
-          reason: "Dispensa non trovata",
+          reason: t`Dispensa non trovata`,
         };
         failure.identity = identity;
         failure.order = entry.order;
@@ -3204,8 +3206,8 @@
     if (collectingCourseMaterials) {
       setExportCollectionStatus(
         format === "materials"
-          ? "La raccolta delle dispense è già in esecuzione."
-          : `La raccolta per il ${label} è già in esecuzione.`,
+          ? t`La raccolta delle dispense è già in esecuzione.`
+          : t`La raccolta per il ${label} è già in esecuzione.`,
         true,
         operationId,
       );
@@ -3218,7 +3220,7 @@
 
     if (courseBatchRunning()) {
       setExportCollectionStatus(
-        "Interrompi l’operazione automatica prima di raccogliere le dispense.",
+        t`Interrompi l’operazione automatica prima di raccogliere le dispense.`,
         true,
         operationId,
       );
@@ -3238,7 +3240,7 @@
 
     if (initialSections.length === 0) {
       setExportCollectionStatus(
-        "Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.",
+        t`Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.`,
         true,
         operationId,
       );
@@ -3272,7 +3274,7 @@
         materials.length = 0;
         missing.length = 0;
         setExportCollectionStatus(
-          "API non disponibile. Avvio della raccolta visuale di sicurezza…",
+          t`API non disponibile. Avvio della raccolta visuale di sicurezza…`,
           false,
           operationId,
         );
@@ -3285,7 +3287,7 @@
           ensureExportNotCancelled(operationId);
           const sectionText = initialSections[sectionIndex];
           setExportCollectionStatus(
-            `Apertura sezione ${sectionIndex + 1} di ${initialSections.length}: ${sectionText}`,
+            t`Apertura sezione ${sectionIndex + 1} di ${initialSections.length}: ${sectionText}`,
             false,
             operationId,
           );
@@ -3298,7 +3300,7 @@
           if (!sectionOpened) {
             missing.push({
               chapter: sectionText,
-              reason: "Impossibile aprire la sezione",
+              reason: t`Impossibile aprire la sezione`,
             });
             continue;
           }
@@ -3337,7 +3339,7 @@
             }
 
             setExportCollectionStatus(
-              `Sezione ${sectionIndex + 1}/${initialSections.length}, capitolo ${chapterIndex + 1}/${sectionChapters.length}: ${identity.chapterText}`,
+              t`Sezione ${sectionIndex + 1}/${initialSections.length}, capitolo ${chapterIndex + 1}/${sectionChapters.length}: ${identity.chapterText}`,
               false,
               operationId,
             );
@@ -3352,7 +3354,7 @@
               if (!opened) {
                 missing.push({
                   chapter: qualifiedChapter,
-                  reason: "Impossibile aprire il capitolo",
+                  reason: t`Impossibile aprire il capitolo`,
                   identity,
                   order: materialOrder,
                   lessonNumber: cacheEntry.lessonNumber,
@@ -3362,7 +3364,7 @@
                     collectionCourseCode,
                     cacheEntry,
                     "error",
-                    "Impossibile aprire il capitolo",
+                    t`Impossibile aprire il capitolo`,
                   );
                 }
                 continue;
@@ -3378,7 +3380,7 @@
             if (!link || link === MATERIAL_LINK_ABSENT) {
               const failure = {
                 chapter: qualifiedChapter,
-                reason: "Dispensa non trovata",
+                reason: t`Dispensa non trovata`,
               };
 
               if (collectionFormat === "epub") {
@@ -3436,7 +3438,7 @@
       ) {
         ensureExportNotCancelled(operationId);
         setExportCollectionStatus(
-          `Raccolta API completata: ${missing.filter((item) => item.identity).length} dispense da recuperare visivamente…`,
+          t`Raccolta API completata: ${missing.filter((item) => item.identity).length} dispense da recuperare visivamente…`,
           false,
           operationId,
         );
@@ -3446,7 +3448,7 @@
       if (collectionFormat === "epub" && missing.some((item) => item.identity)) {
         ensureExportNotCancelled(operationId);
         setExportCollectionStatus(
-          `Prima raccolta completata: ${missing.filter((item) => item.identity).length} dispense mancanti. Avvio del recupero…`,
+          t`Prima raccolta completata: ${missing.filter((item) => item.identity).length} dispense mancanti. Avvio del recupero…`,
           false,
           operationId,
         );
@@ -3461,8 +3463,8 @@
 
       if (materials.length === 0) {
         const noMaterialsMessage = format === "materials"
-          ? "Nessuna dispensa trovata. L’esportazione non è stata avviata."
-          : `Nessuna dispensa trovata. La creazione del ${label} non è stata avviata.`;
+          ? t`Nessuna dispensa trovata. L’esportazione non è stata avviata.`
+          : t`Nessuna dispensa trovata. La creazione del ${label} non è stata avviata.`;
         setExportCollectionStatus(
           noMaterialsMessage,
           true,
@@ -3478,8 +3480,8 @@
 
       setExportCollectionStatus(
         format === "materials"
-          ? `Raccolte ${materials.length} dispense. Apertura della scelta del formato…`
-          : `Raccolte ${materials.length} dispense. Apertura dello strumento ${label}…`,
+          ? t`Raccolte ${materials.length} dispense. Apertura della scelta del formato…`
+          : t`Raccolte ${materials.length} dispense. Apertura dello strumento ${label}…`,
         false,
         operationId,
       );
@@ -3500,14 +3502,14 @@
 
       removeExportCollectionToastAfter(
         format === "materials"
-          ? `Raccolte ${materials.length} dispense. Apertura della scelta del formato…`
-          : `Raccolte ${materials.length} dispense. Apertura dello strumento ${label}…`,
+          ? t`Raccolte ${materials.length} dispense. Apertura della scelta del formato…`
+          : t`Raccolte ${materials.length} dispense. Apertura dello strumento ${label}…`,
         8000,
       );
     } catch (error) {
       if (error?.name === "AbortError") {
         log(`Course ${label} collection cancelled by the user.`);
-        const cancelledMessage = `Raccolta ${label} annullata. Nessun file è stato creato.`;
+        const cancelledMessage = t`Raccolta ${label} annullata. Nessun file è stato creato.`;
         setExportCollectionStatus(
           cancelledMessage,
           false,
@@ -3521,7 +3523,7 @@
         return;
       }
       log(`Course ${label} collection failed:`, error);
-      const failedMessage = `Raccolta ${label} non riuscita: ${error?.message || "Errore sconosciuto"}`;
+      const failedMessage = t`Raccolta ${label} non riuscita: ${error?.message || t`Errore sconosciuto`}`;
       setExportCollectionStatus(
         failedMessage,
         true,
@@ -3613,7 +3615,7 @@
   async function collectCourseTests(operationId) {
     if (collectingCourseMaterials || courseBatchRunning() || window !== window.top) {
       setExportCollectionStatus(
-        "Un’altra operazione del corso è già in esecuzione.",
+        t`Un’altra operazione del corso è già in esecuzione.`,
         true,
         operationId,
       );
@@ -3626,7 +3628,7 @@
     const collectionCourseTitle = courseTitle();
     if (!courseCode || !initialSections.length) {
       setExportCollectionStatus(
-        "Apri prima la pagina dei contenuti di un corso.",
+        t`Apri prima la pagina dei contenuti di un corso.`,
         true,
         operationId,
       );
@@ -3649,13 +3651,13 @@
             initialSections,
             (sectionText, sectionIndex, sectionCount) =>
               setExportCollectionStatus(
-                `Preparazione test: sezione ${sectionIndex + 1}/${sectionCount}: ${sectionText}`,
+                t`Preparazione test: sezione ${sectionIndex + 1}/${sectionCount}: ${sectionText}`,
                 false,
                 operationId,
               ),
             operationId,
           );
-      if (!outline?.length) throw new Error("Struttura del corso non disponibile");
+      if (!outline?.length) throw new Error(t`Struttura del corso non disponibile`);
       if (!cachedOutline || cachedOutline.sectionSignature !== sectionSignature) {
         materialOutlineCache.set(courseCode, { sectionSignature, outline });
       }
@@ -3675,24 +3677,24 @@
         const route = entry.route;
         const qualifiedChapter = `${entry.identity.sectionText} — ${entry.identity.chapterText}`;
         setExportCollectionStatus(
-          `Raccolta test ${index + 1}/${outline.length}: ${entry.identity.chapterText}`,
+          t`Raccolta test ${index + 1}/${outline.length}: ${entry.identity.chapterText}`,
           false,
           operationId,
         );
 
         const lesson = await requestExportTestLesson(courseCode, entry, operationId);
         if (!lesson.ok) {
-          missing.push({ chapter: qualifiedChapter, reason: lesson.error || "Dati del capitolo non disponibili" });
+          missing.push({ chapter: qualifiedChapter, reason: lesson.error || t`Dati del capitolo non disponibili` });
           continue;
         }
 
         const test = lesson.data?.test;
         if (!Number.isInteger(Number(test?.id)) || Number(test.id) < 1) {
-          missing.push({ chapter: qualifiedChapter, reason: "Test di autovalutazione non disponibile" });
+          missing.push({ chapter: qualifiedChapter, reason: t`Test di autovalutazione non disponibile` });
           continue;
         }
         if (Number(test.testEmpty) === 1) {
-          missing.push({ chapter: qualifiedChapter, reason: "Test privo di domande" });
+          missing.push({ chapter: qualifiedChapter, reason: t`Test privo di domande` });
           continue;
         }
 
@@ -3708,7 +3710,7 @@
             test,
             operationId,
             (attempt, total) => setExportCollectionStatus(
-              `Domande non disponibili per ${entry.identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
+              t`Domande non disponibili per ${entry.identity.chapterText}. Nuovo tentativo ${attempt}/${total}…`,
               false,
               operationId,
             ),
@@ -3719,8 +3721,8 @@
             missing.push({
               chapter: qualifiedChapter,
               reason: response.error === "TEST_SOURCE_IDENTITY_MISMATCH"
-                ? "Le domande ricevute non corrispondono al test richiesto"
-                : response.error || "Domande del test non disponibili",
+                ? t`Le domande ricevute non corrispondono al test richiesto`
+                : response.error || t`Domande del test non disponibili`,
             });
             continue;
           }
@@ -3744,10 +3746,10 @@
 
       ensureExportNotCancelled(operationId);
       if (!collected.length) {
-        throw new Error("Nessun test con domande è stato trovato");
+        throw new Error(t`Nessun test con domande è stato trovato`);
       }
       collected.sort((first, second) => first.order - second.order);
-      const completedMessage = `Raccolti ${collected.length} test. Apertura dello strumento di esportazione…`;
+      const completedMessage = t`Raccolti ${collected.length} test. Apertura dello strumento di esportazione…`;
       setExportCollectionStatus(completedMessage, false, operationId);
       window.postMessage({
         type: "PEGASO_COURSE_TESTS_COLLECTED",
@@ -3758,8 +3760,8 @@
     } catch (error) {
       const cancelled = error?.name === "AbortError";
       const terminalMessage = cancelled
-        ? "Raccolta dei test annullata. Nessun file è stato creato."
-        : `Raccolta dei test non riuscita: ${error?.message || "Errore sconosciuto"}`;
+        ? t`Raccolta dei test annullata. Nessun file è stato creato.`
+        : t`Raccolta dei test non riuscita: ${error?.message || t`Errore sconosciuto`}`;
       setExportCollectionStatus(terminalMessage, !cancelled, operationId);
       window.postMessage({ type: "PEGASO_EXPORT_COLLECTION_FAILED", operationId }, "*");
       removeExportCollectionToastAfter(terminalMessage, cancelled ? 5000 : 15000);
@@ -4491,9 +4493,9 @@
         exact: exactAvailable,
         updatedByStudyWing: exactAvailable || state.sessionDelta >= 1,
         message: exactAvailable
-          ? "Calcolato sui dati completi del corso."
+          ? t`Calcolato sui dati completi del corso.`
           : state.sessionDelta > 0
-            ? "Aggiornato in tempo reale da PlumePilot."
+            ? t`Aggiornato in tempo reale da PlumePilot.`
             : `Sincronizzato con ${window.location.hostname.includes("mercatorum.multiversity.click") ? "Mercatorum" : window.location.hostname.includes("utsr.multiversity.click") ? "San Raffaele" : "Pegaso"}.`,
       },
     }, "*");
@@ -4970,7 +4972,7 @@
     if (firstUncachedEntry) {
       setTurboTestStatus({
         running: true,
-        message: `Verifica accesso API per ${lessonCount} moduli…`,
+        message: t`Verifica accesso API per ${lessonCount} moduli…`,
       });
       firstUncachedLesson = await requestLessonWithRetry(
         courseCode,
@@ -5014,8 +5016,8 @@
       setTurboTestStatus({
         running: true,
         message:
-          `Modalità API — modulo ${lessonNumber}/${lessonCount}\n` +
-          `Completati ora: ${results.completed}; già verdi: ${results.alreadyGreen}`,
+          t`Modalità API — modulo ${lessonNumber}/${lessonCount}\n` +
+          t`Completati ora: ${results.completed}; già verdi: ${results.alreadyGreen}`,
       });
 
       const cachedTest = cachedLessonNumbers.has(lessonNumber)
@@ -5133,8 +5135,8 @@
       setObjectivesStatus({
         running: true,
         message:
-          `Modalità API — modulo ${lessonNumber}/${outline.length}\n` +
-          `Completati ora: ${results.completed}; già completati: ${results.alreadyCompleted}`,
+          t`Modalità API — modulo ${lessonNumber}/${outline.length}\n` +
+          t`Completati ora: ${results.completed}; già completati: ${results.alreadyCompleted}`,
       });
 
       const cachedObjective = cachedCompletedObjective(courseCode, lessonNumber);
@@ -5202,14 +5204,14 @@
   async function runObjectivesBatch() {
     if (window !== window.top) return;
     if (objectivesRunning) {
-      setObjectivesStatus({ running: true, message: "Il completamento degli Obiettivi è già in esecuzione." });
+      setObjectivesStatus({ running: true, message: t`Il completamento degli Obiettivi è già in esecuzione.` });
       return;
     }
     if (collectingCourseMaterials || turboTestsRunning) {
       setObjectivesStatus({
         running: false,
         error: true,
-        message: "Attendi il completamento dell’altra operazione di PlumePilot.",
+        message: t`Attendi il completamento dell’altra operazione di PlumePilot.`,
       });
       return;
     }
@@ -5217,7 +5219,7 @@
       setObjectivesStatus({
         running: false,
         error: true,
-        message: "Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.",
+        message: t`Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.`,
       });
       return;
     }
@@ -5238,25 +5240,25 @@
     try {
       setObjectivesStatus({
         running: true,
-        message: "Completamento degli Obiettivi avviato. Preparazione del corso…",
+        message: t`Completamento degli Obiettivi avviato. Preparazione del corso…`,
       });
       const apiHandled = await runApiObjectives(results);
       if (!apiHandled && !objectivesCancelRequested) {
-        throw new Error("API non disponibile. Nessun Obiettivo è stato modificato.");
+        throw new Error(t`API non disponibile. Nessun Obiettivo è stato modificato.`);
       }
       const summary =
-        `Controllati ${results.checked} capitoli. ` +
-        `${results.completed} Obiettivi completati, ` +
-        `${results.alreadyCompleted} già completati (${results.cached} dalla cache), ` +
-        `${results.unavailable} non disponibili, ` +
-        `${results.failed} non riusciti.`;
+        t`Controllati ${results.checked} capitoli. ` +
+        t`${results.completed} Obiettivi completati, ` +
+        t`${results.alreadyCompleted} già completati (${results.cached} dalla cache), ` +
+        t`${results.unavailable} non disponibili, ` +
+        t`${results.failed} non riusciti.`;
       setObjectivesStatus({
         running: false,
         error: !objectivesCancelRequested && results.failed > 0,
         outcome: objectivesCancelRequested ? "cancelled" : results.failed > 0 ? "error" : "success",
         message: objectivesCancelRequested
-          ? `Completamento degli Obiettivi interrotto in sicurezza. ${summary}`
-          : `Completamento degli Obiettivi terminato. ${summary}`,
+          ? t`Completamento degli Obiettivi interrotto in sicurezza. ${summary}`
+          : t`Completamento degli Obiettivi terminato. ${summary}`,
       });
     } catch (error) {
       log("Objectives batch failed:", error);
@@ -5264,7 +5266,7 @@
         running: false,
         error: true,
         outcome: "error",
-        message: `Completamento degli Obiettivi interrotto: ${error?.message || "Errore sconosciuto"}`,
+        message: t`Completamento degli Obiettivi interrotto: ${error?.message || t`Errore sconosciuto`}`,
       });
     } finally {
       objectivesRunning = false;
@@ -5282,7 +5284,7 @@
     if (turboTestsRunning) {
       setTurboTestStatus({
         running: true,
-        message: "I test automatici sono già in esecuzione.",
+        message: t`I test automatici sono già in esecuzione.`,
       });
       return;
     }
@@ -5291,7 +5293,7 @@
       setTurboTestStatus({
         running: false,
         error: true,
-        message: "Attendi il completamento dell’altra operazione di PlumePilot.",
+        message: t`Attendi il completamento dell’altra operazione di PlumePilot.`,
       });
       return;
     }
@@ -5303,7 +5305,7 @@
         running: false,
         error: true,
         message:
-          "Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.",
+          t`Nessuna sezione trovata. Apri prima la pagina dei contenuti del corso.`,
       });
       return;
     }
@@ -5325,7 +5327,7 @@
     try {
       setTurboTestStatus({
         running: true,
-        message: `Test automatici avviati. Controllo di ${initialSections.length} sezioni…`,
+        message: t`Test automatici avviati. Controllo di ${initialSections.length} sezioni…`,
       });
 
       const apiHandled = await runApiTurboTests(results);
@@ -5341,7 +5343,7 @@
         setTurboTestStatus({
           running: true,
           message:
-            "API non disponibile. Avvio della modalità visuale di sicurezza…",
+            t`API non disponibile. Avvio della modalità visuale di sicurezza…`,
         });
 
         for (
@@ -5356,7 +5358,7 @@
           const sectionText = initialSections[sectionIndex];
           setTurboTestStatus({
             running: true,
-            message: `Apertura sezione ${sectionIndex + 1}/${initialSections.length}: ${sectionText}`,
+            message: t`Apertura sezione ${sectionIndex + 1}/${initialSections.length}: ${sectionText}`,
           });
 
           const sectionOpened = await openSection(sectionText);
@@ -5384,10 +5386,10 @@
             setTurboTestStatus({
               running: true,
               message:
-                `Sezione ${sectionIndex + 1}/${initialSections.length}, ` +
-                `capitolo ${chapterIndex + 1}/${sectionChapters.length}\n` +
+                t`Sezione ${sectionIndex + 1}/${initialSections.length}, ` +
+                t`capitolo ${chapterIndex + 1}/${sectionChapters.length}\n` +
                 `${identity.chapterText}\n` +
-                `Completati ora: ${results.completed}; già verdi: ${results.alreadyGreen}`,
+                t`Completati ora: ${results.completed}; già verdi: ${results.alreadyGreen}`,
             });
 
             const opened = await openChapter(identity);
@@ -5445,24 +5447,24 @@
       }
 
       const summary =
-        `Controllati ${results.checked} capitoli. ` +
-        `${results.completed} test completati, ` +
-        `${results.alreadyGreen} già verdi (${results.cached} dalla cache), ` +
-        `${results.unavailable} non disponibili, ` +
-        `${results.failed} non riusciti.`;
+        t`Controllati ${results.checked} capitoli. ` +
+        t`${results.completed} test completati, ` +
+        t`${results.alreadyGreen} già verdi (${results.cached} dalla cache), ` +
+        t`${results.unavailable} non disponibili, ` +
+        t`${results.failed} non riusciti.`;
 
       if (turboTestsCancelRequested) {
         setTurboTestStatus({
           running: false,
           outcome: "cancelled",
-          message: `Test automatici interrotti in sicurezza. ${summary}`,
+          message: t`Test automatici interrotti in sicurezza. ${summary}`,
         });
       } else {
         setTurboTestStatus({
           running: false,
           error: results.failed > 0,
           outcome: results.failed > 0 ? "error" : "success",
-          message: `Test automatici completati. ${summary}`,
+          message: t`Test automatici completati. ${summary}`,
         });
       }
     } catch (error) {
@@ -5471,7 +5473,7 @@
         running: false,
         error: true,
         outcome: "error",
-        message: `Test automatici interrotti: ${error?.message || "Errore sconosciuto"}`,
+        message: t`Test automatici interrotti: ${error?.message || t`Errore sconosciuto`}`,
       });
     } finally {
       turboTestsRunning = false;
@@ -5658,7 +5660,7 @@
     if (renderedTest) {
       log("Stop at tests: test boundary found before resume discovery.");
       setResumeDiscoveryStatus(
-        `Test di fine lezione raggiunto\n${currentIdentity.chapterText}`,
+        t`Test di fine lezione raggiunto\n${currentIdentity.chapterText}`,
         "success",
       );
       renderedTest.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -5672,14 +5674,14 @@
         "Stop at tests: current test could not be verified; stopping safely.",
       );
       setResumeDiscoveryStatus(
-        "Impossibile verificare il test corrente. Avanzamento fermato per sicurezza.",
+        t`Impossibile verificare il test corrente. Avanzamento fermato per sicurezza.`,
         "fallback",
       );
       return true;
     }
 
     setResumeDiscoveryStatus(
-      `Verifica del test di fine lezione…\nModulo ${lessonNumber}: ${currentIdentity.chapterText}`,
+      t`Verifica del test di fine lezione…\nModulo ${lessonNumber}: ${currentIdentity.chapterText}`,
     );
     const courseIndex = await getPlaybackCourseIndex(courseCode);
     const indexedChapter = courseIndex?.find(
@@ -5707,7 +5709,7 @@
         lesson.error,
       );
       setResumeDiscoveryStatus(
-        "Test corrente non verificabile. Avanzamento fermato per sicurezza.",
+        t`Test corrente non verificabile. Avanzamento fermato per sicurezza.`,
         "fallback",
       );
       return true;
@@ -5724,7 +5726,7 @@
       lpItemId: test.lp_item_id,
     });
     setResumeDiscoveryStatus(
-      `Test di fine lezione raggiunto\n${currentIdentity.chapterText}`,
+      t`Test di fine lezione raggiunto\n${currentIdentity.chapterText}`,
       "success",
     );
 
@@ -5839,15 +5841,15 @@
     const ignoreStopAtTests = options.ignoreStopAtTests === true;
     setResumeDiscoveryStatus(
       includeCurrent
-        ? "Ricerca della prima attività incompleta…"
-        : "Ricerca della prossima attività da completare…",
+        ? t`Ricerca della prima attività incompleta…`
+        : t`Ricerca della prossima attività da completare…`,
     );
 
     const courseCode = courseCodeFromUrl();
     if (!courseCode) {
       log("API resume discovery unavailable: course code not found.");
       setResumeDiscoveryStatus(
-        "Ricerca API non disponibile. Avvio della verifica visuale dei capitoli…",
+        t`Ricerca API non disponibile. Avvio della verifica visuale dei capitoli…`,
         "fallback",
       );
       return { status: "fallback" };
@@ -5861,7 +5863,7 @@
     if (!outline) {
       log("API resume discovery unavailable: course outline not found.");
       setResumeDiscoveryStatus(
-        "Indice del corso non disponibile. Avvio della verifica visuale dei capitoli…",
+        t`Indice del corso non disponibile. Avvio della verifica visuale dei capitoli…`,
         "fallback",
       );
       return { status: "fallback" };
@@ -5885,7 +5887,7 @@
         currentIdentity,
       );
       setResumeDiscoveryStatus(
-        "Capitolo corrente non riconosciuto. Avvio della verifica visuale…",
+        t`Capitolo corrente non riconosciuto. Avvio della verifica visuale…`,
         "fallback",
       );
       return { status: "fallback" };
@@ -5953,8 +5955,8 @@
       }
 
       setResumeDiscoveryStatus(
-        `${includeCurrent ? "Ricerca della prima attività incompleta" : "Ricerca della prossima attività"}…\n` +
-          `Controllo modulo ${entry.lessonNumber}/${outline.length}: ${entry.identity.chapterText}` +
+        `${includeCurrent ? t`Ricerca della prima attività incompleta` : t`Ricerca della prossima attività`}…\n` +
+          t`Controllo modulo ${entry.lessonNumber}/${outline.length}: ${entry.identity.chapterText}` +
           (indexedChapter
             ? ` (${Math.round(indexedChapter.percentage)}%)`
             : ""),
@@ -5983,8 +5985,8 @@
           lesson.error,
         );
         setResumeDiscoveryStatus(
-          `Dati API incompleti per il modulo ${entry.lessonNumber}. ` +
-            "Verifica visuale diretta del capitolo…",
+          t`Dati API incompleti per il modulo ${entry.lessonNumber}. ` +
+            t`Verifica visuale diretta del capitolo…`,
           "fallback",
         );
         return {
@@ -6037,8 +6039,8 @@
             "opening that module directly for visual verification.",
         );
         setResumeDiscoveryStatus(
-          `Dati del test non disponibili per il modulo ${entry.lessonNumber}. ` +
-            "Verifica visuale diretta del capitolo…",
+          t`Dati del test non disponibili per il modulo ${entry.lessonNumber}. ` +
+            t`Verifica visuale diretta del capitolo…`,
           "fallback",
         );
         return {
@@ -6067,9 +6069,9 @@
           },
         );
         const activityTitle =
-          unfinishedItem?.title || test?.title || "Attività successiva";
+          unfinishedItem?.title || test?.title || t`Attività successiva`;
         setResumeDiscoveryStatus(
-          `Prossima attività trovata — modulo ${entry.lessonNumber}\n${activityTitle}`,
+          t`Prossima attività trovata — modulo ${entry.lessonNumber}\n${activityTitle}`,
           "success",
         );
         return {
@@ -6092,8 +6094,8 @@
 
     setResumeDiscoveryStatus(
       options.forwardVideoSearch
-        ? "Non risultano altre videolezioni da riprodurre."
-        : "Ricerca completata: non risultano altre attività da completare.",
+        ? t`Non risultano altre videolezioni da riprodurre.`
+        : t`Ricerca completata: non risultano altre attività da completare.`,
       "success",
     );
     return { status: "end" };
@@ -6245,7 +6247,7 @@
     if (!nextIdentity) {
       log("No more chapters or course sections available.");
       setResumeDiscoveryStatus(
-        "Verifica completata: non risultano altri capitoli da controllare.",
+        t`Verifica completata: non risultano altri capitoli da controllare.`,
         "success",
       );
       return false;
@@ -6263,7 +6265,7 @@
       Number(apiTestTarget.percentage) < 100
     ) {
       setResumeDiscoveryStatus(
-        `Completamento del test — modulo ${apiDiscovery.entry.lessonNumber}…\n${nextIdentity.chapterText}`,
+        t`Completamento del test — modulo ${apiDiscovery.entry.lessonNumber}…\n${nextIdentity.chapterText}`,
       );
       log(
         "API resume discovery found a test-only target; completing it without opening the chapter:",
@@ -6277,7 +6279,7 @@
 
       if (completed) {
         setResumeDiscoveryStatus(
-          `Test completato — modulo ${apiDiscovery.entry.lessonNumber}\n${nextIdentity.chapterText}`,
+          t`Test completato — modulo ${apiDiscovery.entry.lessonNumber}\n${nextIdentity.chapterText}`,
           "success",
         );
         return await continueAfterVerifiedChapter();
@@ -6295,12 +6297,12 @@
 
     if (apiVisualVerification) {
       setResumeDiscoveryStatus(
-        `Controllo visuale del modulo ${apiDiscovery.entry.lessonNumber}…\n${nextIdentity.chapterText}`,
+        t`Controllo visuale del modulo ${apiDiscovery.entry.lessonNumber}…\n${nextIdentity.chapterText}`,
         "fallback",
       );
     } else if (apiDiscovery.status === "fallback") {
       setResumeDiscoveryStatus(
-        `Verifica visuale in corso…\nApertura: ${nextIdentity.chapterText}`,
+        t`Verifica visuale in corso…\nApertura: ${nextIdentity.chapterText}`,
         "fallback",
       );
     }
@@ -6383,17 +6385,17 @@
         ? visibleIncompleteActivity(nextIdentity, apiVerifiedActivities)
         : apiUnfinishedItem || (apiTestTarget ? {...apiTestTarget, contentType: "test"} : null);
       if (activity?.contentType === "unknown") {
-        setResumeDiscoveryStatus(`Impossibile verificare il completamento di “${activity.title}”. Nessuna attività selezionata; riprova dopo il caricamento.`, "fallback");
+        setResumeDiscoveryStatus(t`Impossibile verificare il completamento di “${activity.title}”. Nessuna attività selezionata; riprova dopo il caricamento.`, "fallback");
         return false;
       }
       if (activity?.contentType === "test") {
         const test = getEndOfLessonTest(chapterReady);
         if (!test) {
-          setResumeDiscoveryStatus("Test incompleto individuato, ma la sua riga non è disponibile. Riprova dopo il caricamento.", "fallback");
+          setResumeDiscoveryStatus(t`Test incompleto individuato, ma la sua riga non è disponibile. Riprova dopo il caricamento.`, "fallback");
           return false;
         }
         test.scrollIntoView({block: "center", behavior: "smooth"});
-        setResumeDiscoveryStatus(`Test da completare\n${nextIdentity.chapterText}`, "success");
+        setResumeDiscoveryStatus(t`Test da completare\n${nextIdentity.chapterText}`, "success");
         return true;
       }
       if (activity) {
@@ -6403,14 +6405,14 @@
           : candidates.find((candidate) => normalizedText(lessonName(candidate)) === normalizedText(activity.title)) ||
             firstUnfinishedVideo(nextIdentity);
         if (!row || !clickRow(row)) {
-          setResumeDiscoveryStatus("Attività incompleta individuata, ma non ancora selezionabile. Riprova dopo il caricamento.", "fallback");
+          setResumeDiscoveryStatus(t`Attività incompleta individuata, ma non ancora selezionabile. Riprova dopo il caricamento.`, "fallback");
           return false;
         }
         if (activity.contentType === "video") {
           const player = await waitFor(() => video());
           if (player) attach(player);
         }
-        setResumeDiscoveryStatus(`Prima attività incompleta\n${lessonName(row)}`, "success");
+        setResumeDiscoveryStatus(t`Prima attività incompleta\n${lessonName(row)}`, "success");
         return true;
       }
       return await continueAfterVerifiedChapter();
@@ -6435,7 +6437,7 @@
       if (stopAtTests && options.ignoreStopAtTests !== true) {
         log("API-confirmed test boundary reached. Stopping here:", nextIdentity);
         setResumeDiscoveryStatus(
-          `Test di fine lezione raggiunto\n${nextIdentity.chapterText}`,
+          t`Test di fine lezione raggiunto\n${nextIdentity.chapterText}`,
           "success",
         );
         renderedTest?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -6533,7 +6535,7 @@
         ) {
           log("Test boundary reached. Stopping here:", nextIdentity);
           setResumeDiscoveryStatus(
-            `Test di fine lezione raggiunto\n${nextIdentity.chapterText}`,
+            t`Test di fine lezione raggiunto\n${nextIdentity.chapterText}`,
             "success",
           );
           test.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -6592,7 +6594,7 @@
 
     if (apiDiscovery.status === "fallback" || apiVisualVerification) {
       setResumeDiscoveryStatus(
-        `Attività trovata con la verifica visuale\n${lessonName(unfinished)}`,
+        t`Attività trovata con la verifica visuale\n${lessonName(unfinished)}`,
         "success",
       );
     }
@@ -6743,7 +6745,7 @@
           "End-of-lesson test boundary reached. Automatic progression stopped.",
         );
         setResumeDiscoveryStatus(
-          `Test di fine lezione raggiunto\n${chapterIdentity(chapter).chapterText}`,
+          t`Test di fine lezione raggiunto\n${chapterIdentity(chapter).chapterText}`,
           "success",
         );
         test.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -6791,8 +6793,8 @@
         log("Autoplay stopped after reaching 70% course progress.");
         setResumeDiscoveryStatus(
           sessionLimitReached
-            ? "Soglia del 70% e limite della sessione raggiunti."
-            : "Soglia del 70% raggiunta: autoplay interrotto.",
+            ? t`Soglia del 70% e limite della sessione raggiunti.`
+            : t`Soglia del 70% raggiunta: autoplay interrotto.`,
           "success",
         );
         publishCourseProgressStatus();
@@ -6803,7 +6805,7 @@
         const activeLimit = Math.min(chapterLimit, chapterLimitMaximum);
         log(`Autoplay session limit reached after ${activeLimit} chapters.`);
         setResumeDiscoveryStatus(
-          `Limite della sessione raggiunto: ${activeLimit} capitoli completati.`,
+          t`Limite della sessione raggiunto: ${activeLimit} capitoli completati.`,
           "success",
         );
         return;
@@ -6841,8 +6843,8 @@
     if (!enabled || !courseCode) {
       setResumeDiscoveryStatus(
         !enabled
-          ? "Attiva l’avanzamento automatico per usare il segnalibro."
-          : "Apri la pagina delle lezioni di un corso prima di avviare la ricerca.",
+          ? t`Attiva l’avanzamento automatico per usare il segnalibro.`
+          : t`Apri la pagina delle lezioni di un corso prima di avviare la ricerca.`,
         "fallback",
       );
       return;
@@ -6857,7 +6859,7 @@
         "First-incomplete discovery skipped while a protected playback recovery is active.",
       );
       setResumeDiscoveryStatus(
-        "Ripristino della riproduzione in corso. Riprova tra qualche istante.",
+        t`Ripristino della riproduzione in corso. Riprova tra qualche istante.`,
         "fallback",
       );
       return;
@@ -6873,7 +6875,7 @@
         "First-incomplete bookmark unavailable because another PlumePilot operation is running.",
       );
       setResumeDiscoveryStatus(
-        "Un’altra operazione di PlumePilot è in corso. Riprova al termine.",
+        t`Un’altra operazione di PlumePilot è in corso. Riprova al termine.`,
         "fallback",
       );
       return;
@@ -6888,7 +6890,7 @@
     try {
       log("Starting first-incomplete discovery:", reason);
       setResumeDiscoveryStatus(
-        "Preparazione del segnalibro: ricerca dall’inizio del corso…",
+        t`Preparazione del segnalibro: ricerca dall’inizio del corso…`,
       );
 
       const currentIdentity = chapterIdentity(currentChapter(currentLesson()));
@@ -6912,7 +6914,7 @@
             "First-incomplete bookmark could not read the course structure.",
           );
           setResumeDiscoveryStatus(
-            "Struttura del corso non disponibile. Ricerca non avviata.",
+            t`Struttura del corso non disponibile. Ricerca non avviata.`,
             "fallback",
           );
         }
@@ -6927,7 +6929,7 @@
       if (!startingEntry || isCancelled()) {
         if (!isCancelled()) {
           setResumeDiscoveryStatus(
-            "Impossibile individuare il primo capitolo del corso.",
+            t`Impossibile individuare il primo capitolo del corso.`,
             "fallback",
           );
         }
@@ -6960,7 +6962,7 @@
     } catch (error) {
       log("First-incomplete discovery failed safely:", error);
       setResumeDiscoveryStatus(
-        `Ricerca della prima attività incompleta non riuscita: ${error?.message || "errore sconosciuto"}`,
+        t`Ricerca della prima attività incompleta non riuscita: ${error?.message || t`errore sconosciuto`}`,
         "fallback",
       );
     } finally {

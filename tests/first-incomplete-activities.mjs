@@ -23,6 +23,7 @@ const complete = () => ({ok: true, data: {
 async function discover({pendingChapter, type = "video", currentActivity = null, failedChapter, ambiguous = false, noTest = false, masterPercentages = null} = {}) {
   const requested = [];
   const context = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
     normalizedText: value => String(value || "").trim(),
     playbackDiscoveryCancelled: () => false,
     setResumeDiscoveryStatus() {}, removeResumeDiscoveryStatus() {}, log() {},
@@ -105,6 +106,7 @@ let cacheReads = 0;
 const freshResponse = {ok: true, data: {playbackDataComplete: true, playbackItems: [activity("video", 12)]}};
 const cachedResponse = complete();
 const cache = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   cachedLessonResponse: () => {cacheReads++; return cachedResponse;},
   turboApiRequest: async () => freshResponse, rememberLessonResponse() {},
   hasRequiredLessonData: response => response.data.playbackDataComplete,
@@ -124,6 +126,7 @@ async function openBookmark(type, autoCompleteTests, {hiddenObjectivePercentage 
   const clicks = [];
   const test = {scrollIntoView() {testScrolls++;}};
   const context = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
     playbackDiscoveryCancelled: () => false,
     stopAtCurrentTestBeforeDiscovery: async () => {throw new Error("Bookmark must bypass autoplay test boundaries");},
     findNextPlaybackTargetViaApi: async () => ({status: "target", entry: outline[0],
@@ -166,6 +169,7 @@ const preparationOrder = [];
 let searchOptions, searchStart;
 let startCourse = "COURSE", navigateDuringMaster = false;
 const start = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   enabled: true, busy: false, collectingCourseMaterials: false, courseBatchRunning: () => false,
   courseCodeFromUrl: () => startCourse, readChapterRecovery: () => null,
   readSessionConflictRecovery: () => null, readWatchValidationRecovery: () => null,
@@ -200,6 +204,7 @@ const bridge = readFileSync(new URL("../bridge.js", import.meta.url), "utf8");
 const messages = [];
 let skipPreference = false;
 const preferences = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   window: {postMessage: message => messages.push(message)}, extensionVersion: "2.35.0",
   chrome: {storage: {local: {get: (defaults, callback) => callback({...defaults, autoplaySkipCompletedVideos: skipPreference})}}},
   currentPlatformCourseMap: value => value, commissionCheckEnabled: false,
@@ -217,6 +222,7 @@ console.log("PASS: earliest incomplete Obiettivi/videos/tests; stale 100% master
 // from the original range so earlier 100% summaries are still verified.
 const fallbackOpened = [], fallbackRequested = [], fallbackClicked = [];
 const fallbackContext = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   autoplaySkipCompletedVideos: false,
   courseCodeFromUrl: () => "COURSE", playbackDiscoveryCancelled: () => false,
   getPlaybackCourseOutline: async () => outline,
