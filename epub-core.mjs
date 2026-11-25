@@ -4,6 +4,8 @@ import { inkBands, intersectsBand, inkIsCovered, refineInkBands } from "./epub-r
 import { hasUnsupportedMathText, wrapMathText } from "./epub-math.mjs";
 import { createImageAssetRegistry } from "./epub-assets.mjs";
 
+const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
   if (STUDYWING_DEBUG) console.info(...values);
@@ -25,8 +27,8 @@ const VISUAL_MIN_BLOCK_HEIGHT = 350;
 const VISUAL_CUT_SEARCH_RADIUS = 100;
 const VISUAL_BLANK_BAND_HEIGHT = 10;
 const EPUB_CONVERSION_PERCENT = 92;
-const STUDYWING_SIGNATURE =
-  "Generato con PlumePilot – Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.";
+const studyWingSignature = () =>
+  t`Generato con PlumePilot – Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.`;
 
 const IMAGE_OPERATION_NAMES = [
   "paintImageMaskXObject",
@@ -1056,7 +1058,7 @@ function canvasBytes(canvas, mediaType, quality) {
       async (blob) =>
         blob
           ? resolve(new Uint8Array(await blob.arrayBuffer()))
-          : reject(new Error("Impossibile convertire l’immagine di una pagina.")),
+          : reject(new Error(t`Impossibile convertire l’immagine di una pagina.`)),
       mediaType,
       quality,
     ),
@@ -1541,7 +1543,7 @@ async function renderRegionalPage(
             width: canvas.width,
           });
           parts.push(
-            `<section class="visual-page"><img src="../${escapeXml(name)}" alt="${escapeXml(`Pagina ${pageNumber}, regione ${images.length}`)}"/></section>`,
+            `<section class="visual-page"><img src="../${escapeXml(name)}" alt="${escapeXml(t`Pagina ${pageNumber}, regione ${images.length}`)}"/></section>`,
           );
         } finally {
           output.width = 1;
@@ -1591,12 +1593,12 @@ async function fetchPdfWithRetry(
       }
 
       const bytes = new Uint8Array(await response.arrayBuffer());
-      if (!bytes.length) throw new Error("Il PDF scaricato è vuoto");
+      if (!bytes.length) throw new Error(t`Il PDF scaricato è vuoto`);
       return bytes;
     } catch (error) {
       if (signal?.aborted) throw abortError();
       lastError = controller.signal.aborted
-        ? new Error(`Download scaduto dopo ${Math.round(timeoutMs / 1000)} secondi`)
+        ? new Error(t`Download scaduto dopo ${Math.round(timeoutMs / 1000)} secondi`)
         : error;
 
       const clientError =
@@ -1614,7 +1616,7 @@ async function fetchPdfWithRetry(
     }
   }
 
-  throw lastError || new Error("Download del PDF non riuscito");
+  throw lastError || new Error(t`Download del PDF non riuscito`);
 }
 
 async function convertMaterial(
@@ -1632,9 +1634,9 @@ async function convertMaterial(
         total: materialCount,
         percent: ((chapterIndex - 1) / materialCount) * EPUB_CONVERSION_PERCENT,
         message:
-          `Nuovo tentativo di download ${attempt}/${total}: ` +
+          t`Nuovo tentativo di download ${attempt}/${total}: ` +
           material.chapter,
-        details: `Dispensa ${chapterIndex} di ${materialCount}`,
+        details: t`Dispensa ${chapterIndex} di ${materialCount}`,
       }),
   });
   let loadingTask = null;
@@ -1674,11 +1676,11 @@ async function convertMaterial(
           ((chapterIndex - 1 + fraction) / materialCount) *
           EPUB_CONVERSION_PERCENT,
         message:
-          `Conversione dispensa ${chapterIndex} di ${materialCount}: ` +
-          `${material.chapter} — pagina ${pageNumber} di ${pdf.numPages}`,
+          t`Conversione dispensa ${chapterIndex} di ${materialCount}: ` +
+          t`${material.chapter} — pagina ${pageNumber} di ${pdf.numPages}`,
         details:
-          `Dispensa ${chapterIndex} di ${materialCount} · ` +
-          `pagina ${pageNumber} di ${pdf.numPages}`,
+          t`Dispensa ${chapterIndex} di ${materialCount} · ` +
+          t`pagina ${pageNumber} di ${pdf.numPages}`,
       });
 
       const page = await pdf.getPage(pageNumber);
@@ -1747,8 +1749,8 @@ async function convertMaterial(
                 .map(
                   (block, index) =>
                     `<img src="../${escapeXml(block.name)}" ` +
-                    `alt="${escapeXml(material.chapter)}, pagina ${pageNumber}` +
-                    `${blocks.length > 1 ? `, parte ${index + 1}` : ""}"/>`,
+                    `alt="${escapeXml(material.chapter)}, ${t`pagina ${pageNumber}`}` +
+                    `${blocks.length > 1 ? t`, parte ${index + 1}` : ""}"/>`,
                 )
                 .join("\n") +
               `</section>`,
@@ -1765,7 +1767,7 @@ async function convertMaterial(
     }
 
     if (!pages.length) {
-      throw new Error("Il PDF non ha prodotto contenuti EPUB utilizzabili");
+      throw new Error(t`Il PDF non ha prodotto contenuti EPUB utilizzabili`);
     }
 
     return { html: pages.join("\n"), images };
@@ -1823,10 +1825,10 @@ function groupBySection(items) {
   return groups;
 }
 
-const xhtml = (title, body, styleHref = "../styles/book.css") =>
+const xhtml = (title, body, styleHref = "../styles/book.css", locale = "it") =>
   `<?xml version="1.0" encoding="utf-8"?>\n` +
   `<!DOCTYPE html>\n` +
-  `<html xmlns="http://www.w3.org/1999/xhtml" lang="it" xml:lang="it">` +
+  `<html xmlns="http://www.w3.org/1999/xhtml" lang="${locale}" xml:lang="${locale}">` +
   `<head><meta charset="utf-8"/><title>${escapeXml(title)}</title>` +
   `<link rel="stylesheet" type="text/css" href="${styleHref}"/></head>` +
   `<body>${body}</body></html>`;
@@ -1877,14 +1879,17 @@ export async function buildCourseEpub(
   );
 
   const titleName = "text/title.xhtml";
+  const locale = globalThis.PlumePilotLanguage?.current || "it";
   zip.file(
     `OEBPS/${titleName}`,
     xhtml(
       courseTitle,
-      `<main><p class="signature">${escapeXml(STUDYWING_SIGNATURE)}</p>` +
+      `<main><p class="signature">${escapeXml(studyWingSignature())}</p>` +
         `<h1>${escapeXml(courseTitle)}</h1>` +
-        `<p class="subtitle">Dispense complete del corso</p>` +
-        `<p><a href="../nav.xhtml#toc">Indice dei capitoli</a></p></main>`,
+        `<p class="subtitle">${t`Dispense complete del corso`}</p>` +
+        `<p><a href="../nav.xhtml#toc">${t`Indice dei capitoli`}</a></p></main>`,
+      undefined,
+      locale,
     ),
   );
 
@@ -1895,8 +1900,8 @@ export async function buildCourseEpub(
       completed: index,
       total: materials.length,
       percent: (index / materials.length) * EPUB_CONVERSION_PERCENT,
-      message: `Download dispensa ${index + 1} di ${materials.length}: ${material.chapter}`,
-      details: `Dispensa ${index + 1} di ${materials.length}`,
+      message: t`Download dispensa ${index + 1} di ${materials.length}: ${material.chapter}`,
+      details: t`Dispensa ${index + 1} di ${materials.length}`,
     });
 
     try {
@@ -1938,7 +1943,7 @@ export async function buildCourseEpub(
             material.chapterTitle || material.chapter,
             )}</h1>` +
             `<p class="chapter-note">${escapeXml(material.section || "")}</p>` +
-            `<p class="chapter-note"><a href="../nav.xhtml#toc">Torna all’indice</a></p>` +
+            `<p class="chapter-note"${locale === "en" ? ' lang="en" xml:lang="en"' : ""}><a href="../nav.xhtml#toc">${t`Torna all’indice`}</a></p>` +
             `${converted.html}</main>`,
         ),
       );
@@ -1955,7 +1960,7 @@ export async function buildCourseEpub(
       );
       failures.push({
         chapter: material.chapter,
-        reason: error?.message || "Conversione non riuscita",
+        reason: error?.message || t`Conversione non riuscita`,
         cacheKey: material.cacheKey || null,
       });
     }
@@ -1963,7 +1968,7 @@ export async function buildCourseEpub(
 
   if (!included.length) {
     throw new Error(
-      `Non è stato possibile convertire nessuna dispensa. ${failures
+      t`Non è stato possibile convertire nessuna dispensa. ${failures
         .map((failure) => `${failure.chapter}: ${failure.reason}`)
         .join("; ")}`,
     );
@@ -1975,10 +1980,10 @@ export async function buildCourseEpub(
     const fontUrl = new URL("./assets/fonts/plumepilot-math.otf", import.meta.url).href;
     const licenseUrl = new URL("./assets/fonts/STIX-OFL.txt", import.meta.url).href;
     const fontResponse = await fetch(fontUrl, { signal });
-    if (!fontResponse.ok) throw new Error("Il font matematico locale non è disponibile.");
+    if (!fontResponse.ok) throw new Error(t`Il font matematico locale non è disponibile.`);
     const font = new Uint8Array(await fontResponse.arrayBuffer());
     const licenseResponse = await fetch(licenseUrl, { signal });
-    if (!licenseResponse.ok) throw new Error("La licenza del font matematico non è disponibile.");
+    if (!licenseResponse.ok) throw new Error(t`La licenza del font matematico non è disponibile.`);
     const license = await licenseResponse.text();
     throwIfAborted(signal);
     zip.file("OEBPS/fonts/plumepilot-math.otf", font);
@@ -2007,11 +2012,12 @@ export async function buildCourseEpub(
   zip.file(
     "OEBPS/nav.xhtml",
     xhtml(
-      "Indice",
+      t`Indice`,
       `<nav xmlns:epub="http://www.idpf.org/2007/ops" epub:type="toc" id="toc">` +
-        `<h1>Indice</h1><ol><li><a href="${titleName}">Copertina</a></li>` +
+        `<h1>${t`Indice`}</h1><ol><li><a href="${titleName}">${t`Copertina`}</a></li>` +
         `${navItems}</ol></nav>`,
       "styles/book.css",
+      locale,
     ),
   );
 
@@ -2064,7 +2070,7 @@ export async function buildCourseEpub(
       `<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">` +
       `<head><meta name="dtb:uid" content="urn:uuid:${uuid}"/></head>` +
       `<docTitle><text>${escapeXml(courseTitle)}</text></docTitle><navMap>` +
-      `<navPoint id="nav-1" playOrder="1"><navLabel><text>Copertina</text></navLabel>` +
+      `<navPoint id="nav-1" playOrder="1"><navLabel><text>${t`Copertina`}</text></navLabel>` +
       `<content src="${titleName}"/></navPoint>${ncxPoints}</navMap></ncx>`,
   );
   zip.file(
@@ -2076,7 +2082,7 @@ export async function buildCourseEpub(
       `<dc:identifier id="book-id">urn:uuid:${uuid}</dc:identifier>` +
       `<dc:title>${escapeXml(courseTitle)}</dc:title><dc:language>it</dc:language>` +
       `<dc:creator>PlumePilot</dc:creator>` +
-      `<dc:description>Generato con ${escapeXml(generator)}</dc:description>` +
+      `<dc:description${locale === "en" ? ' xml:lang="en"' : ""}>${escapeXml(t`Generato con ${generator}`)}</dc:description>` +
       `<meta property="dcterms:modified">${modified}</meta></metadata>` +
       `<manifest><item id="title" href="${titleName}" media-type="application/xhtml+xml"/>` +
       `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>` +
@@ -2091,8 +2097,8 @@ export async function buildCourseEpub(
     completed: materials.length,
     total: materials.length,
     percent: EPUB_CONVERSION_PERCENT,
-    message: "Creazione del pacchetto EPUB…",
-    details: `${included.length} dispense convertite · compressione 0%`,
+    message: t`Creazione del pacchetto EPUB…`,
+    details: t`${included.length} dispense convertite · compressione 0%`,
     cancellable: false,
   });
   const bytes = await zip.generateAsync(
@@ -2108,10 +2114,10 @@ export async function buildCourseEpub(
         percent:
           EPUB_CONVERSION_PERCENT +
           (metadata.percent / 100) * (100 - EPUB_CONVERSION_PERCENT),
-        message: "Creazione del pacchetto EPUB…",
+        message: t`Creazione del pacchetto EPUB…`,
         details:
-          `${included.length} dispense convertite · ` +
-          `compressione ${Math.round(metadata.percent)}%`,
+          t`${included.length} dispense convertite · ` +
+          t`compressione ${Math.round(metadata.percent)}%`,
         cancellable: false,
       }),
   );

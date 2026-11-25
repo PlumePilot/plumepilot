@@ -29,6 +29,8 @@ const runtimeMessage = (message) => new Promise((resolve) => {
     : response));
 });
 
+const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+
 function setBusy(value) {
   building = value;
   pdfButton.disabled = value;
@@ -39,7 +41,7 @@ function showFailures(failures) {
   missingList.replaceChildren();
   for (const failure of failures) {
     const item = document.createElement("li");
-    item.textContent = `${failure.chapter || "Dispensa"}: ${failure.reason || "non disponibile"}`;
+    item.textContent = `${failure.chapter || t`Dispensa`}: ${failure.reason || t`non disponibile`}`;
     missingList.appendChild(item);
   }
   missingCard.hidden = failures.length === 0;
@@ -59,7 +61,7 @@ function updateOperation(message) {
 }
 
 function setProgress(update) {
-  statusElement.textContent = update.message || "Creazione in corso…";
+  statusElement.textContent = update.message || t`Creazione in corso…`;
   let percent = Number(update.percent);
   if (!Number.isFinite(percent) && Number.isFinite(update.completed) && Number.isFinite(update.total)) {
     percent = update.total ? update.completed / update.total * 100 : 0;
@@ -68,7 +70,7 @@ function setProgress(update) {
   updateOperation(statusElement.textContent);
   if (update.cancellable === false) {
     cancelButton.disabled = true;
-    cancelButton.textContent = "Finalizzazione in corso…";
+    cancelButton.textContent = t`Finalizzazione in corso…`;
   }
 }
 
@@ -86,7 +88,7 @@ function download(bytes, filename, mime) {
 function claimExportAchievement() {
   chrome.runtime.sendMessage({ type: "STUDYWING_ACHIEVEMENT_CLAIM", achievementId: "export-materials" }, (result) => {
     if (!chrome.runtime.lastError && result?.accepted && document.documentElement.dataset.visualStyle === "gaming") {
-      statusElement.textContent += ` Traguardo completato: +${result.awardedExp} EXP.`;
+      statusElement.textContent += t` Traguardo completato: +${result.awardedExp} EXP.`;
     }
   });
 }
@@ -107,13 +109,13 @@ async function invalidateFailedLinks(failures) {
 async function acquire(format) {
   const response = await runtimeMessage({ type: "PEGASO_ACQUIRE_OPERATION", kind: format });
   if (!response?.accepted) {
-    throw new Error(response?.operation?.message || response?.reason || "Un’altra operazione PlumePilot è già in corso.");
+    throw new Error(response?.operation?.message || response?.reason || t`Un’altra operazione PlumePilot è già in corso.`);
   }
   activeOperationId = response.operation.id;
   await runtimeMessage({
     type: "PEGASO_UPDATE_OPERATION",
     operationId: activeOperationId,
-    patch: { phase: "building", message: `Creazione ${format.toUpperCase()} in corso…` },
+    patch: { phase: "building", message: t`Creazione ${format.toUpperCase()} in corso…` },
   });
 }
 
@@ -134,11 +136,12 @@ function releaseOnPageExit() {
 async function build(format) {
   if (building || !job) return;
   setBusy(true);
+  await globalThis.PlumePilotLanguage?.load();
   progressElement.style.width = "0%";
   progressElement.style.background = "";
   cancelButton.hidden = format !== "epub";
   cancelButton.disabled = false;
-  cancelButton.textContent = "Annulla creazione EPUB";
+  cancelButton.textContent = t`Annulla creazione EPUB`;
   buildController = format === "epub" ? new AbortController() : null;
 
   try {
@@ -155,7 +158,7 @@ async function build(format) {
     showFailures(failures);
     await invalidateFailedLinks(result.failures || []);
     progressElement.style.width = "100%";
-    statusElement.textContent = `${format.toUpperCase()} creato: ${result.included.length} dispense incluse${failures.length ? `, ${failures.length} saltate` : ""}.`;
+    statusElement.textContent = t`${format.toUpperCase()} creato: ${result.included.length} dispense incluse${failures.length ? t`, ${failures.length} saltate` : ""}.`;
     download(
       result.bytes,
       result.filename,
@@ -165,8 +168,8 @@ async function build(format) {
   } catch (error) {
     const cancelled = error?.name === "AbortError";
     statusElement.textContent = cancelled
-      ? "Creazione EPUB annullata. Nessun file incompleto è stato scaricato."
-      : `Impossibile creare il ${format.toUpperCase()}: ${error?.message || "errore sconosciuto"}`;
+      ? t`Creazione EPUB annullata. Nessun file incompleto è stato scaricato.`
+      : t`Impossibile creare il ${format.toUpperCase()}: ${error?.message || t`errore sconosciuto`}`;
     progressElement.style.background = cancelled ? "#d99a24" : "#991b1b";
   } finally {
     await release();
@@ -179,8 +182,8 @@ async function build(format) {
 cancelButton.addEventListener("click", () => {
   if (!buildController || buildController.signal.aborted) return;
   cancelButton.disabled = true;
-  cancelButton.textContent = "Annullamento in corso…";
-  statusElement.textContent = "Interruzione sicura della creazione EPUB…";
+  cancelButton.textContent = t`Annullamento in corso…`;
+  statusElement.textContent = t`Interruzione sicura della creazione EPUB…`;
   buildController.abort();
 });
 pdfButton.addEventListener("click", () => build("pdf"));
@@ -188,8 +191,9 @@ epubButton.addEventListener("click", () => build("epub"));
 window.addEventListener("pagehide", releaseOnPageExit);
 
 async function start() {
+  if (globalThis.PlumePilotLanguage) await PlumePilotLanguage.initializePage();
   const jobId = new URLSearchParams(location.search).get("job");
-  if (!jobId) throw new Error("Identificativo della raccolta mancante.");
+  if (!jobId) throw new Error(t`Identificativo della raccolta mancante.`);
   const storageKey = `pegasoExportJob:${jobId}`;
   job = await storageGet(storageKey);
   if (!job?.materials?.length || job.format !== "materials") {
@@ -197,13 +201,13 @@ async function start() {
     if (job?.operationId) {
       await runtimeMessage({ type: "PEGASO_RELEASE_OPERATION", operationId: job.operationId });
     }
-    throw new Error("Impossibile trovare le dispense raccolte.");
+    throw new Error(t`Impossibile trovare le dispense raccolte.`);
   }
   titleElement.textContent = job.courseTitle;
-  document.title = `${job.courseTitle} – Dispense PlumePilot`;
-  summaryElement.textContent = `${job.materials.length} dispense pronte. Puoi scaricare entrambi i formati, uno alla volta, senza ripetere la raccolta.`;
+  document.title = t`${job.courseTitle} – Dispense PlumePilot`;
+  summaryElement.textContent = t`${job.materials.length} dispense pronte. Puoi scaricare entrambi i formati, uno alla volta, senza ripetere la raccolta.`;
   showFailures(job.missing || []);
-  statusElement.textContent = "Scegli PDF oppure EPUB.";
+  statusElement.textContent = t`Scegli PDF oppure EPUB.`;
   await storageRemove(storageKey);
   await runtimeMessage({ type: "PEGASO_RELEASE_OPERATION", operationId: job.operationId });
   setBusy(false);
@@ -212,6 +216,6 @@ async function start() {
 start().catch((error) => {
   console.error("[PlumePilot] Materials builder failed:", error);
   setBusy(true);
-  statusElement.textContent = error?.message || "Impossibile caricare le dispense raccolte.";
+  statusElement.textContent = error?.message || t`Impossibile caricare le dispense raccolte.`;
   progressElement.style.background = "#991b1b";
 });
