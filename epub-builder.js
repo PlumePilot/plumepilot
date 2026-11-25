@@ -14,6 +14,8 @@ let storageKey = null;
 let lastOperationMessage = "";
 let lastOperationUpdateAt = 0;
 
+const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+
 function storageGet(key) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(key, (result) => {
@@ -111,16 +113,17 @@ function invalidateFailedMaterialLinks(failures) {
   });
 }
 async function start() {
+  if (globalThis.PlumePilotLanguage) await PlumePilotLanguage.initializePage();
   const jobId = new URLSearchParams(location.search).get("job");
-  if (!jobId) throw new Error("Identificativo dell’operazione EPUB mancante.");
+  if (!jobId) throw new Error(t`Identificativo dell’operazione EPUB mancante.`);
   storageKey = `pegasoExportJob:${jobId}`;
   const job = await storageGet(storageKey);
   if (!job || !job.materials || job.materials.length === 0) {
-    throw new Error("Impossibile trovare le dispense raccolte.");
+    throw new Error(t`Impossibile trovare le dispense raccolte.`);
   }
   operationId = job.operationId;
   titleElement.textContent = job.courseTitle;
-  document.title = `${job.courseTitle} – Creazione EPUB`;
+  document.title = t`${job.courseTitle} – Creazione EPUB`;
   const result = await buildCourseEpub(
     job.courseTitle,
     job.materials,
@@ -137,8 +140,8 @@ async function start() {
   await invalidateFailedMaterialLinks(result.failures);
   completedDownload = { bytes: result.bytes, filename: result.filename };
   progressBar.style.width = "100%";
-  statusElement.textContent = "EPUB creato con successo.";
-  detailsElement.textContent = `${result.included.length} dispense convertite${failures.length ? `; ${failures.length} saltate` : ""}`;
+  statusElement.textContent = t`EPUB creato con successo.`;
+  detailsElement.textContent = t`${result.included.length} dispense convertite${failures.length ? t`; ${failures.length} saltate` : ""}`;
   cancelBuildButton.hidden = true;
   downloadAgainButton.hidden = false;
   download(result.bytes, result.filename);
@@ -148,8 +151,8 @@ async function start() {
 cancelBuildButton.addEventListener("click", () => {
   if (buildController.signal.aborted) return;
   cancelBuildButton.disabled = true;
-  cancelBuildButton.textContent = "Annullamento in corso…";
-  statusElement.textContent = "Interruzione sicura della creazione EPUB…";
+  cancelBuildButton.textContent = t`Annullamento in corso…`;
+  statusElement.textContent = t`Interruzione sicura della creazione EPUB…`;
   buildController.abort();
 });
 downloadAgainButton.addEventListener("click", () => {
@@ -161,10 +164,10 @@ start().catch(async (error) => {
   console.error("[PlumePilot] EPUB builder failed:", error);
   const cancelled = error?.name === "AbortError";
   statusElement.textContent = cancelled
-    ? "Creazione EPUB annullata."
-    : "Impossibile creare l’EPUB del corso.";
+    ? t`Creazione EPUB annullata.`
+    : t`Impossibile creare l’EPUB del corso.`;
   detailsElement.textContent = cancelled
-    ? "Nessun file incompleto è stato scaricato."
+    ? t`Nessun file incompleto è stato scaricato.`
     : error?.message || "Errore sconosciuto";
   progressBar.style.background = cancelled ? "#d99a24" : "#991b1b";
   cancelBuildButton.hidden = true;

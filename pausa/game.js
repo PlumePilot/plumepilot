@@ -1,5 +1,8 @@
-(() => {
+(async () => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  if (globalThis.PlumePilotLanguage) await PlumePilotLanguage.initializePage();
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
   const level = globalThis.PausaLevel;
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -47,7 +50,7 @@
   function setSound(value, persist = false) {
     soundEnabled = !!value;
     soundButton.textContent = soundEnabled ? "🔊" : "🔇";
-    soundButton.setAttribute("aria-label", soundEnabled ? "Disattiva audio" : "Attiva audio");
+    soundButton.setAttribute("aria-label", soundEnabled ? t`Disattiva audio` : "Attiva audio");
     if (persist) {
       if (globalThis.chrome?.storage?.local) chrome.storage.local.set({ pausaSoundEnabled: soundEnabled });
       else localStorage.setItem("pausaSoundEnabled", String(soundEnabled));
@@ -128,8 +131,8 @@
   function pause() {
     if (state === "playing") {
       state = "paused";
-      show("Pausa", "<p>Il livello riprende da qui quando vuoi.</p>", [
-        { label: "Riprendi", primary: true, onClick: () => { state = "playing"; overlay.hidden = true; lastFrame = performance.now(); } },
+      show(t`Pausa`, `<p>${t`Il livello riprende da qui quando vuoi.`}</p>`, [
+        { label: t`Riprendi`, primary: true, onClick: () => { state = "playing"; overlay.hidden = true; lastFrame = performance.now(); } },
         { label: "Torna a studiare", onClick: close },
       ]);
     } else if (state === "paused") { state = "playing"; overlay.hidden = true; lastFrame = performance.now(); }
@@ -138,9 +141,9 @@
     state = "finished"; effect("finish");
     const sum = Object.values(totals).reduce((a, b) => a + b, 0);
     const cfu = Math.round(30 * sum / level.collectibles.length);
-    show("Ecco come è andata", `<div class="scores">📚 Dispense · ${totals.dispensa} / 30<br>📝 Test · ${totals.test} / 30<br>🎯 Obiettivi · ${totals.obiettivo} / 30</div><p><strong>${sum} / 90 raccolti</strong><br>🎓 <strong>${cfu} / 30 CFU di Plume</strong></p><p><em>Ok, pausa finita.</em></p>`, [
+    show(t`Ecco come è andata`, `<div class="scores">📚 ${t`Dispense`} · ${totals.dispensa} / 30<br>📝 ${t`Test`} · ${totals.test} / 30<br>🎯 ${t`Obiettivi`} · ${totals.obiettivo} / 30</div><p><strong>${sum} / 90 ${t`raccolti`}</strong><br>🎓 <strong>${cfu} / 30 ${t`CFU di Plume`}</strong></p><p><em>${t`Ok, pausa finita.`}</em></p>`, [
       { label: "Torna a studiare", primary: true, onClick: close },
-      { label: "Riprova", onClick: reset },
+      { label: t`Riprova`, onClick: reset },
     ]);
   }
   function updateHud() {
@@ -174,8 +177,8 @@
     if (invulnerable > 0) return;
     hitHazards.add(index); invulnerable = 1.7; velocity = -155;
     const lost = collected.pop();
-    if (lost) { totals[lost.type] -= 1; flash = `Urto · -1 ${lost.type}`; }
-    else flash = "Piccolo urto!";
+    if (lost) { totals[lost.type] -= 1; flash = t`Urto · -1 ${localized(lost.type)}`; }
+    else flash = t`Piccolo urto!`;
     flashUntil = elapsed + 1.1; effect("hit"); updateHud();
   }
   function tick(dt) {
@@ -192,7 +195,7 @@
       if (x < -30) { taken.add(index); return; }
       if (collide(x, item.y * H, 20)) {
         taken.add(index); totals[item.type] += 1; collected.push(item);
-        flash = `+1 ${item.type}`; flashUntil = elapsed + .6;
+        flash = `+1 ${localized(item.type)}`; flashUntil = elapsed + .6;
         effect(item.type);
       }
     });
@@ -283,7 +286,7 @@
     }
     if (elapsed > 82) {
       ctx.font = "bold 34px system-ui"; ctx.fillStyle = dark ? "#f5d88d" : "#654d9a";
-      ctx.textAlign = "right"; ctx.fillText("🎓 Arrivo", W - 40, 280);
+      ctx.textAlign = "right"; ctx.fillText(t`🎓 Arrivo`, W - 40, 280);
     }
   }
   function frame(now) {
@@ -300,8 +303,8 @@
   canvas.addEventListener("pointerdown", (event) => { event.preventDefault(); flap(); });
   soundButton.addEventListener("click", () => { setSound(!soundEnabled, true); if (soundEnabled) effect("doubleChirp"); });
   document.getElementById("close").addEventListener("click", close);
-  show("Una piccola pausa", "<p>Vola con Plume, raccogli dispense, test e obiettivi. Puoi fermarti quando vuoi.</p><p><strong>Spazio, clic o tocco</strong> per salire.</p>", [
-    { label: "Inizia", primary: true, onClick: reset }, { label: "Torna a studiare", onClick: close },
+  show(t`Una piccola pausa`, `<p>${t`Vola con Plume, raccogli dispense, test e obiettivi. Puoi fermarti quando vuoi.`}</p><p><strong>${t`Spazio, clic o tocco`}</strong>${t` per salire.`}</p>`, [
+    { label: t`Inizia`, primary: true, onClick: reset }, { label: "Torna a studiare", onClick: close },
   ]);
   requestAnimationFrame(frame);
 })();

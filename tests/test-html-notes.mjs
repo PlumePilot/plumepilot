@@ -6,12 +6,19 @@ const elements=new Map(['courseTitle','summary','status','progressBar','download
 const document={getElementById:id=>elements.get(id)||new Element(id),createElement:()=>new Element(),body:new Element('body'),documentElement:new Element('root'),title:''};
 const job={courseTitle:'Analisi matematica',operationId:'op',missing:[],tests:[{section:'Modulo 1',chapterTitle:'1 - Insiemi',lessonNumber:1,order:1,testId:42,questions:[{question:'Quanto vale α ≤ β?',correctPosition:1,images:[],answers:[{answer:'Sì',images:[]},{answer:'No',images:[]}]}]}]};
 const NativeURL=URL;NativeURL.createObjectURL=blob=>{capturedBlob=blob;return 'blob:test'};NativeURL.revokeObjectURL=()=>{};
-const chrome={runtime:{lastError:null,getManifest:()=>({version:'test'}),sendMessage:()=>{}},storage:{local:{get:(key,cb)=>cb({[key]:job}),remove:(key,cb)=>cb()}}};
+const english = process.env.PLUMEPILOT_QUIZ_LANGUAGE === "en";
+const chrome={runtime:{lastError:null,getManifest:()=>({version:'test'}),sendMessage:()=>{}},storage:{local:{get:(key,cb)=>cb(typeof key === "string" ? {[key]:job} : {plumePilotLanguage:english ? "en" : "it"}),remove:(key,cb)=>cb()}}};
 const runtimeSource=await readFile(new URL('../offline-quiz-runtime.js', import.meta.url),'utf8');
 const fetchStub=async input=>input==='offline-quiz-runtime.js'
   ? {ok:true,status:200,text:async()=>runtimeSource}
   : fetch(input);
 const context=vm.createContext({document,chrome,location:{search:'?job=test'},URL:NativeURL,URLSearchParams,Blob,setTimeout:fn=>0,clearTimeout,console,fetch:fetchStub,Uint8Array,ArrayBuffer,btoa,TextEncoder,TextDecoder});
+if (english) {
+  for (const script of ['language.js','language-exports.js']) {
+    vm.runInContext(await readFile(new URL('../' + script, import.meta.url),'utf8'),context);
+  }
+  context.PlumePilotLanguage.initializePage = context.PlumePilotLanguage.load;
+}
 vm.runInContext(await readFile(new URL('../test-builder.js', import.meta.url),'utf8'),context);
 await new Promise(resolve=>setImmediate(resolve));
 await listeners.get('downloadHtml:click')();
@@ -19,7 +26,7 @@ const html=await capturedBlob.text();
 if(!html.includes('noteKey'))throw new Error('missing stable note key');
 if(!html.includes('Spiegazione e osservazioni'))throw new Error('missing note UI');
 if(!html.includes("details.open = false"))throw new Error('notes must start closed');
-if(!html.includes('indicator.textContent = "Appunti presenti"'))throw new Error('missing saved-note indicator');
+if(!html.includes('indicator.textContent = t`Appunti presenti`'))throw new Error('missing saved-note indicator');
 if(!html.includes('saveNote(question, field + "Html", cleanHtml(editor.innerHTML))'))throw new Error('saved-note indicator must update while editing');
 if(!html.includes('id="reviewFilter"')||!html.includes('id="reviewCounts"'))throw new Error('review filters and counts missing');
 if(!html.includes('cleanHtml(saved[field + "Html"])'))throw new Error('formatted notes are not sanitized on load');
@@ -27,7 +34,7 @@ if(!html.includes('editor.textContent = saved[field] || ""'))throw new Error('le
 if(!html.includes('filter === "observations"'))throw new Error('observations filter missing');
 if(!html.includes('Nascondi per ripasso'))throw new Error('study mask missing');
 if((runtimeSource.match(/document\.createElement\("div"\);\s*tools\.className = "editor-tools"/g)||[]).length!==1)throw new Error('expected one shared note toolbar');
-if(!html.includes('activeCaption.textContent = "Formattazione: " + labelText'))throw new Error('active note field not indicated');
+if(!html.includes('activeCaption.textContent = t`Formattazione: ` + labelText'))throw new Error('active note field not indicated');
 if(!html.includes('🟢 Verificata')||!html.includes('🟡 Da rivedere')||!html.includes('🔴 Da verificare'))throw new Error('colored personal review options missing');
 if(!html.includes('--note-border:#4f8a68'))throw new Error('missing sage-green saved-note style');
 if(!html.includes('data-theme="auto"'))throw new Error('automatic theme must be the default');
@@ -35,7 +42,10 @@ if(!html.includes('["auto", "Automatico"]')||!html.includes('["dark", "Scuro"]')
 if(!html.includes('@media(prefers-color-scheme:dark)'))throw new Error('automatic theme must follow the system');
 if(!html.includes('document.documentElement.dataset.theme = value'))throw new Error('selected theme must be stored in the downloaded HTML');
 if(!html.includes('Quanto vale α ≤ β?'))throw new Error('unicode lost');
-if(!html.includes('Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.'))throw new Error('missing visible PlumePilot signature');
+if(!html.includes(english ? 'Generated with PlumePilot - Assistant for Multiversity, available on Chrome, Edge, and Firefox.' : 'Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.'))throw new Error('missing visible PlumePilot signature');
+if (english && (!html.includes('<html lang="en"') || !html.includes('>Download HTML with notes<') || !html.includes('> Shuffle questions<'))) {
+  throw new Error('English export lost its language or static labels');
+}
 const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
 new Function(scripts.at(-1));
 console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');

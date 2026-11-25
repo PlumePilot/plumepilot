@@ -11,11 +11,18 @@
   }
 
   function load() {
+    if (!globalThis.chrome?.storage?.local) return Promise.resolve(set("it"));
     return new Promise((resolve) => {
       chrome.storage.local.get({ [KEY]: "it" }, (result) => {
         resolve(set(chrome.runtime.lastError ? "it" : result?.[KEY]));
       });
     });
+  }
+
+  async function initializePage() {
+    document.documentElement.lang = await load();
+    document.title = text(document.title);
+    localizeMarkup(document.body);
   }
 
   function addMessages(entries) {
@@ -67,7 +74,7 @@
   }
 
   globalThis.PlumePilotLanguage = {
-    KEY, set, load, addMessages, text, translate, localizeMarkup, bindPicker,
+    KEY, set, load, initializePage, addMessages, text, translate, localizeMarkup, bindPicker,
     get current() { return language; },
   };
 })();
