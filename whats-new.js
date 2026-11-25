@@ -2,24 +2,28 @@
   "use strict";
 
   const definition = {
-  "version": "2.35.4",
-  "title": "Quiz HTML: appunti più comodi",
-  "summary": "Appunti: elenchi automatici, scorciatoia per rimuovere la formattazione e salvataggio corretto.",
-  "items": [
-    {
-      "title": "Elenchi mentre scrivi",
-      "text": "In un paragrafo vuoto, scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato. Un doppio Invio permette di uscire dall’elenco."
-    },
-    {
-      "title": "Rimuovi formattazione da tastiera",
-      "text": "Seleziona il testo e premi Ctrl + \\ (⌘ + \\ su Mac) per rimuovere la formattazione, inclusi i colori di evidenziazione, come con Tx. Esc continua a interrompere i formati durante la scrittura."
-    },
-    {
-      "title": "Salvataggio degli appunti corretto",
-      "text": "“Scarica HTML con appunti” non aggiunge più il testo \\n in alto nella pagina. Queste modifiche valgono per i nuovi quiz HTML; i file già scaricati non vengono aggiornati automaticamente."
-    }
-  ]
-};
+    "version": "2.35.5",
+    "title": "Quiz offline e schermo intero continuo",
+    "summary": "Incolla Markdown nei quiz HTML, gestisci meglio gli appunti e passa da un video all’altro a schermo intero.",
+    "items": [
+      {
+        "title": "Incolla appunti formattati",
+        "text": "Nei nuovi quiz HTML, incolla testo formattato o Markdown in Spiegazione e Osservazioni. Gli elenchi numerati conservano il numero di partenza e il testo nei blocchi di codice resta letterale."
+      },
+      {
+        "title": "Quiz HTML più comodi da consultare",
+        "text": "Usa l’icona della barra laterale per nascondere o mostrare i capitoli. Su Chrome ed Edge desktop puoi anche salvare gli appunti nello stesso file HTML aperto dal disco. Scarica HTML con appunti permette di salvare una copia, anche su Firefox."
+      },
+      {
+        "title": "Schermo intero continuo",
+        "text": "Su Pegaso, Mercatorum e San Raffaele, attiva Schermo intero continuo in Corso → Autoplay e usa l’icona del player. Con l’autoplay, lo schermo intero resta attivo al cambio di video. Premi Esc o usa la stessa icona per uscire."
+      },
+      {
+        "title": "Menu fluttuante più leggibile",
+        "text": "L’avanzamento della raccolta di test e dispense compare una sola volta. Nel tema Gaming, gli avvisi EXP lasciano accessibili le schede del menu."
+      }
+    ]
+  };
   const RELEASE = Object.freeze({
     ...definition,
     items: Object.freeze(definition.items.map((item) => Object.freeze(item))),

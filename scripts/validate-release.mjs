@@ -30,7 +30,8 @@ async function validateWhatsNew(zip, browser) {
   if (actual.RELEASE.version !== expectedVersion || JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${browser}: Novità/versione non corrispondono alla definizione sorgente.`);
   }
-  const expectedCards = expectedVersion === "2.35.4" ? (browser === "firefox" ? 4 : 3)
+  const expectedCards = expectedVersion === "2.35.5" ? (browser === "firefox" ? 5 : 4)
+    : expectedVersion === "2.35.4" ? (browser === "firefox" ? 4 : 3)
     : expectedVersion === "2.35.3" ? 3
     : expectedVersion === "2.35.2" ? 6
     : expectedVersion === "2.35.1" ? (browser === "firefox" ? 9 : 6) : null;
