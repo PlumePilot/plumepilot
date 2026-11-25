@@ -10,7 +10,7 @@
 
 The English edition mirrors the Italian canonical edition and preserves the same technical snapshots and chapter structure.
 
-[Start with the introduction →](00-introduction.md) · [Complete offline HTML edition](../Inside-PlumePilot-en.html) · [Glossary](glossary.md) · [Sources](SOURCES.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
+[Start with the introduction →](00-introduction.md) · [Complete offline HTML edition](../Inside-PlumePilot-en.html) · <a href="../Inside-PlumePilot-en.html" download="Inside-PlumePilot-en.html">Download offline HTML</a> · [Glossary](glossary.md) · [Sources](SOURCES.md) · [PlumePilot repository](https://github.com/PlumePilot/plumepilot)
 
 ---
 
