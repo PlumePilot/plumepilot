@@ -24,6 +24,7 @@ for (const format of ["pdf", "epub", "materials", "tests"]) {
     chapterKey: "1:1:1", lessonNumber: 1, order: 0, route: {},
   }];
   const context = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
     window: { postMessage: message => messages.push(message) },
     courseTitle: () => currentTitle,
     sections: () => [{text: "Modulo"}],

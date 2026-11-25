@@ -1,5 +1,7 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
 
   if (window !== window.top || window.StudyWingNotifications) return;
 
@@ -79,9 +81,9 @@
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.dataset.role = "toggle";
-    toggle.textContent = "Mostra altro";
+    toggle.textContent = t`Mostra altro`;
     toggle.hidden = true;
-    toggle.setAttribute("aria-label", "Mostra il messaggio completo");
+    toggle.setAttribute("aria-label", t`Mostra il messaggio completo`);
     Object.assign(toggle.style, {
       position: "absolute", right: "13px", bottom: "6px", padding: "2px 4px",
       border: "0", color: "inherit", background: "transparent",
@@ -90,8 +92,8 @@
     const close = document.createElement("button");
     close.type = "button";
     close.textContent = "×";
-    close.setAttribute("aria-label", "Nascondi il messaggio");
-    close.title = "Nascondi";
+    close.setAttribute("aria-label", t`Nascondi il messaggio`);
+    close.title = t`Nascondi`;
     Object.assign(close.style, {
       position: "absolute", top: "6px", right: "7px", width: "28px", height: "28px",
       padding: "0", border: "0", borderRadius: "7px", color: "inherit",
@@ -136,10 +138,10 @@
     text.style.display = active ? "block" : "-webkit-box";
     text.style.overflow = active ? "visible" : "hidden";
     text.style.WebkitLineClamp = active ? "unset" : "3";
-    toggle.textContent = active ? "Mostra meno" : "Mostra altro";
+    toggle.textContent = active ? t`Mostra meno` : t`Mostra altro`;
     toggle.setAttribute(
       "aria-label",
-      active ? "Riduci il messaggio" : "Mostra il messaggio completo",
+      active ? t`Riduci il messaggio` : t`Mostra il messaggio completo`,
     );
   }
 
@@ -201,7 +203,7 @@
   }
 
   function show({ message, type = "info", key = "", progress = false, terminal = false, durationMs } = {}) {
-    const normalizedMessage = String(message || "").trim();
+    const normalizedMessage = localized(String(message || "").trim());
     const normalizedKey = String(key || "");
     if (!normalizedMessage) return;
     if (progress && normalizedKey && hiddenProgressKeys.has(normalizedKey)) return;
@@ -234,7 +236,11 @@
   }
 
   window.addEventListener("message", (event) => {
-    if (event.source !== window || event.data?.type !== "STUDYWING_SHOW_NOTIFICATION") return;
+    if (event.source !== window) return;
+    if (event.data?.type === "PEGASO_AUTONEXT_STATE") {
+      globalThis.PlumePilotLanguage?.set(event.data.plumePilotLanguage);
+    }
+    if (event.data?.type !== "STUDYWING_SHOW_NOTIFICATION") return;
     show(event.data.notification || {});
   });
 

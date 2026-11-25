@@ -122,6 +122,8 @@
         "*://*.utsr.multiversity.click/*"
       ],
       "js": [
+        "language.js",
+        "language-ui.js",
         "notification-manager.js",
         "content.js"
       ],
@@ -141,6 +143,8 @@
         "sound-settings.js",
         "store-links.js",
         "floating-menu-layout.js",
+        "language.js",
+        "language-ui.js",
         "menu-ux.js",
         "floating-menu.js"
       ],

@@ -1,5 +1,22 @@
-(() => {
+(async () => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
+
+  const language = globalThis.PlumePilotLanguage;
+  if (language) {
+    document.documentElement.lang = await language.load();
+    document.title = language.text(document.title);
+    language.localizeMarkup(document.body);
+    language.bindPicker(document.querySelector('[data-role="language-picker"]'), (message) => {
+      document.querySelector('[data-role="language-status"]').textContent = message;
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local" || !changes[language.KEY]) return;
+      if (language.set(changes[language.KEY].newValue) === document.documentElement.lang) return;
+      location.reload();
+    });
+  }
 
   const checkbox = document.getElementById("enabled");
   document.getElementById("openPausa")?.addEventListener("click", () => {
@@ -283,7 +300,7 @@
     (layout, claim) => {
       chrome.storage.local.set({ [floatingLayoutApi.STORAGE_KEY]: layout }, () => {
         floatingMenuLayoutStatus.textContent = chrome.runtime.lastError
-          ? "Impossibile salvare la disposizione." : "Disposizione salvata in entrambi i menu.";
+          ? t`Impossibile salvare la disposizione.` : t`Disposizione salvata in entrambi i menu.`;
         if (claim && !floatingLayoutApi.isDefaultLayout(layout)) claimAchievement("customize-floating-menu");
       });
     });
@@ -323,9 +340,9 @@
     soundPreviewStatus.textContent =
       response?.played === true
         ? volume === 0
-          ? "Anteprima avviata con volume a 0%."
-          : "Anteprima riprodotta."
-        : response?.reason || "Impossibile riprodurre l’anteprima.";
+          ? t`Anteprima avviata con volume a 0%.`
+          : t`Anteprima riprodotta.`
+        : response?.reason || t`Impossibile riprodurre l’anteprima.`;
   }
 
   const COMMISSION_STORAGE_KEYS = [
@@ -350,15 +367,15 @@
   function renderWhatsNewContent() {
     const release = whatsNewApi.RELEASE;
     whatsNewDialogVersion.textContent = `v${release.version}`;
-    whatsNewDialogTitle.textContent = release.title;
-    whatsNewDialogSummary.textContent = release.summary;
+    whatsNewDialogTitle.textContent = localized(release.title);
+    whatsNewDialogSummary.textContent = localized(release.summary);
     whatsNewItems.replaceChildren(
       ...release.items.map((item) => {
         const card = document.createElement("article");
         const title = document.createElement("h3");
         const text = document.createElement("p");
-        title.textContent = item.title;
-        text.textContent = item.text;
+        title.textContent = localized(item.title);
+        text.textContent = localized(item.text);
         card.append(title, text);
         return card;
       }),
@@ -464,10 +481,10 @@
     const model = achievements.view(stateValue);
     achievementState = model.state;
     const claimed = new Set(model.state.claimedAchievementIds);
-    achievementLevel.textContent = `Livello ${model.level}`;
-    achievementTotal.textContent = `${model.state.totalExp} EXP totali`;
+    achievementLevel.textContent = t`Livello ${model.level}`;
+    achievementTotal.textContent = t`${model.state.totalExp} EXP totali`;
     achievementProgressText.textContent = model.capped
-      ? "500 / 500 EXP · Completato"
+      ? t`500 / 500 EXP · Completato`
       : `${model.expWithinLevel} / 100 EXP`;
     achievementProgress.setAttribute(
       "aria-valuenow",
@@ -486,11 +503,11 @@
     achievementProgress.dataset.rewardStyle = rewardSet.id;
     achievementProgress.dataset.midUnlocked = String(midRewardUnlocked);
     achievementMidMarker.title = midRewardUnlocked
-      ? "Premio barra già sbloccato"
-      : `${rewardSet.name}: stile barra a 50 EXP`;
+      ? t`Premio barra già sbloccato`
+      : t`${rewardSet.name}: stile barra a 50 EXP`;
     achievementEndMarker.title = model.capped
-      ? "Tutti i premi sbloccati"
-      : `${rewardSet.name}: stile launcher a 100 EXP`;
+      ? t`Tutti i premi sbloccati`
+      : t`${rewardSet.name}: stile launcher a 100 EXP`;
     for (const [group, target] of [
       ["primary", primaryAchievements],
       ["secondary", secondaryAchievements],
@@ -503,9 +520,9 @@
         row.className = "achievement-row";
         row.dataset.complete = String(complete);
         const title = document.createElement("strong");
-        title.textContent = item.title;
+        title.textContent = localized(item.title);
         const description = document.createElement("small");
-        description.textContent = complete ? "Completato" : item.description;
+        description.textContent = complete ? t`Completato` : localized(item.description);
         const exp = document.createElement("span");
         exp.className = "achievement-exp";
         exp.textContent = `+${item.exp} EXP`;
@@ -533,7 +550,7 @@
       achievementState,
     );
     const unlocked = new Set(achievementState.unlockedCosmeticIds);
-    rewardsSummary.textContent = `${unlocked.size} di ${achievements.REWARD_SETS.length * 2} sbloccate`;
+    rewardsSummary.textContent = t`${unlocked.size} di ${achievements.REWARD_SETS.length * 2} sbloccate`;
     const renderKind = (kind, target) => {
       target.replaceChildren(
         ...achievements.REWARD_SETS.map((set) => {
@@ -552,13 +569,13 @@
           const copy = document.createElement("span");
           copy.className = "reward-copy";
           const name = document.createElement("strong");
-          name.textContent = set.name;
+          name.textContent = localized(set.name);
           const state = document.createElement("small");
           state.textContent = available
             ? active
-              ? "In uso"
-              : "Sbloccato"
-            : `${threshold} EXP richieste`;
+              ? t`In uso`
+              : t`Sbloccato`
+            : t`${threshold} EXP richieste`;
           copy.append(name, state);
           card.append(preview, copy);
           if (available) {
@@ -567,7 +584,7 @@
             button.className = "reward-apply";
             button.dataset.rewardKind = kind;
             button.dataset.rewardStyle = set.id;
-            button.textContent = active ? "In uso" : "Applica";
+            button.textContent = active ? t`In uso` : t`Applica`;
             button.disabled = active;
             card.append(button);
           }
@@ -602,10 +619,10 @@
       const rewards = Array.isArray(result.newUnlockIds)
         ? result.newUnlockIds.length
         : 0;
-      const suffix = `${rewards ? ` · ${rewards === 1 ? "Nuova ricompensa disponibile" : `${rewards} nuove ricompense disponibili`}` : ""}${result.levelUp ? ` · Livello ${result.level} raggiunto!` : ""}`;
-      achievementFeedback.textContent = `${result.achievement.title}: +${result.awardedExp} EXP${suffix}`;
+      const suffix = `${rewards ? ` · ${rewards === 1 ? t`Nuova ricompensa disponibile` : t`${rewards} nuove ricompense disponibili`}` : ""}${result.levelUp ? t` · Livello ${result.level} raggiunto!` : ""}`;
+      achievementFeedback.textContent = `${localized(result.achievement.title)}: +${result.awardedExp} EXP${suffix}`;
       clearTimeout(achievementToastTimer);
-      achievementToast.textContent = `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP${suffix}`;
+      achievementToast.textContent = t`Traguardo completato: ${localized(result.achievement.title)} · +${result.awardedExp} EXP${suffix}`;
       achievementToast.hidden = false;
       achievementToastTimer = setTimeout(() => {
         achievementToast.hidden = true;
@@ -663,7 +680,7 @@
   });
 
   function updateStatus(enabled) {
-    status.textContent = enabled ? "Autoplay attivo" : "Autoplay in pausa";
+    status.textContent = enabled ? t`Autoplay attivo` : t`Autoplay in pausa`;
     document.body.dataset.state = enabled ? "running" : "paused";
   }
   function selectedTestBehavior() {
@@ -695,12 +712,12 @@
     document.getElementById("testBehaviorOverride").hidden = !presentation.testOverride;
     document.getElementById("autoplayStopHint").textContent = presentation.stopHint;
     chapterLimitOptionsSummary.textContent = !limitReady
-      ? "Non disponibile"
+      ? t`Non disponibile`
       : !limitEnabled
-        ? "Disattivato"
+        ? t`Disattivato`
         : chapterLimitStatus.reached
-          ? `Raggiunto · ${completed}/${limit}`
-          : `${completed}/${limit} capitoli`;
+          ? t`Raggiunto · ${completed}/${limit}`
+          : t`${completed}/${limit} capitoli`;
   }
   function renderChapterLimit() {
     const statusValue = chapterLimitStatus;
@@ -721,15 +738,15 @@
     chapterLimitValue.disabled = !ready;
     chapterLimitSlider.disabled = !ready;
     chapterLimitProgress.textContent = !ready
-      ? "Apri un corso per calcolare il limite."
+      ? t`Apri un corso per calcolare il limite.`
       : statusValue.reached
-        ? `Limite raggiunto: ${statusValue.completed} di ${limit} capitoli.`
-        : `Sessione: ${statusValue.completed || 0} di ${limit} capitoli · massimo ${maximum}.`;
+        ? t`Limite raggiunto: ${statusValue.completed} di ${limit} capitoli.`
+        : t`Sessione: ${statusValue.completed || 0} di ${limit} capitoli · massimo ${maximum}.`;
     document.getElementById("chapterLimitControls").hidden = statusValue?.enabled !== true;
     chapterLimitSlider.hidden = statusValue?.enabled !== true;
     chapterLimitProgress.hidden = ready && statusValue?.enabled !== true;
     chapterLimitResume.hidden = statusValue?.enabled !== true || !statusValue?.reached;
-    chapterLimitResume.textContent = `Riprendi per altri ${limit} capitoli`;
+    chapterLimitResume.textContent = t`Riprendi per altri ${limit} capitoli`;
     for (const radio of testBehaviorRadios) {
       if (radio.value === "stop")
         radio.disabled = statusValue?.enabled === true;
@@ -755,11 +772,11 @@
     );
     courseProgressBar.setAttribute(
       "aria-valuetext",
-      ready ? `${percent}%` : "Progresso non disponibile",
+      ready ? `${percent}%` : t`Progresso non disponibile`,
     );
     courseProgressMessage.textContent = ready
-      ? courseProgressStatus.message || "Sincronizzato con la piattaforma."
-      : "Apri un corso per visualizzare il progresso.";
+      ? localized(courseProgressStatus.message) || t`Sincronizzato con la piattaforma.`
+      : t`Apri un corso per visualizzare il progresso.`;
     renderAutoplayStopAt70();
   }
   function normalizedCourseProgressPosition(value) {
@@ -786,17 +803,17 @@
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
-      left: "a sinistra",
-      right: "a destra",
+      left: t`a sinistra`,
+      right: t`a destra`,
     };
     const summary = [];
     if (overlayEnabled === true)
-      summary.push(`Barra ${positionLabels[normalizedPosition]}`);
-    if (thresholdEnabled === true) summary.push("avviso 70%");
+      summary.push(t`Barra ${positionLabels[normalizedPosition]}`);
+    if (thresholdEnabled === true) summary.push(t`avviso 70%`);
 
     courseProgressOptionsSummary.textContent = summary.length
       ? summary.join(" · ")
-      : "Disattivate";
+      : t`Disattivate`;
     renderAutoplayStopAt70();
   }
   function renderAutoplayStopAt70() {
@@ -953,10 +970,10 @@
   function updateAutoplayControls() {
     findFirstIncompleteButton.disabled = !checkbox.checked || Boolean(activeOperation) || !activeCourseTabId;
     const hint = document.getElementById("firstIncompleteHint");
-    hint.textContent = !activeCourseTabId ? "Apri un corso per usare la ricerca."
-      : !checkbox.checked ? "Attiva autoplay per usare la ricerca."
-        : activeOperation ? "Disponibile al termine dell’operazione in corso."
-          : "Cerca Obiettivi, video e test da completare, senza risolvere i test.";
+    hint.textContent = !activeCourseTabId ? t`Apri un corso per usare la ricerca.`
+      : !checkbox.checked ? t`Attiva autoplay per usare la ricerca.`
+        : activeOperation ? t`Disponibile al termine dell’operazione in corso.`
+          : t`Cerca Obiettivi, video e test da completare, senza risolvere i test.`;
     autoplaySkipCompletedVideosCheckbox.disabled = false;
     for (const radio of testBehaviorRadios) radio.disabled = false;
     renderChapterLimit();
@@ -964,14 +981,14 @@
   function operationLabel(operation) {
     if (!operation) return "";
     if (operation.kind === "turbo")
-      return "I test automatici sono in esecuzione.";
+      return t`I test automatici sono in esecuzione.`;
     if (operation.kind === "objectives")
-      return "Il completamento degli Obiettivi è in esecuzione.";
+      return t`Il completamento degli Obiettivi è in esecuzione.`;
     if (operation.kind === "tests")
-      return "È in corso la raccolta dei test del corso.";
+      return t`È in corso la raccolta dei test del corso.`;
     if (operation.kind === "materials")
-      return "È in corso la raccolta delle dispense del corso.";
-    return `È in corso la creazione del ${operation.kind.toUpperCase()} del corso.`;
+      return t`È in corso la raccolta delle dispense del corso.`;
+    return t`È in corso la creazione del ${operation.kind.toUpperCase()} del corso.`;
   }
   function renderOperation(operation) {
     activeOperation = operation || null;
@@ -987,49 +1004,49 @@
       ["collecting", "stopping"].includes(operation.phase);
     materialsButtonLabel.textContent = collectingMaterials
       ? stopping
-        ? "Interruzione dispense…"
-        : "Interrompi raccolta dispense"
-      : "Esporta dispense";
+        ? t`Interruzione dispense…`
+        : t`Interrompi raccolta dispense`
+      : t`Esporta dispense`;
     exportCourseMaterialsButton.disabled =
       (busy && !collectingMaterials) || (collectingMaterials && stopping);
     turboTestsButton.dataset.running = String(turbo);
     turboTestsButtonLabel.textContent = turbo
       ? stopping
-        ? "Interruzione dei test…"
-        : "Interrompi i test automatici"
-      : "Completa tutti i test";
+        ? t`Interruzione dei test…`
+        : t`Interrompi i test automatici`
+      : t`Completa tutti i test`;
     turboTestsButton.disabled = (busy && !turbo) || stopping;
     turboTestsStatus.textContent = turbo
-      ? operation.message || "Test automatici in esecuzione…"
+      ? localized(operation.message) || t`Test automatici in esecuzione…`
       : "";
     objectivesButton.dataset.running = String(objectives);
     objectivesButtonLabel.textContent = objectives
       ? stopping
-        ? "Interruzione Obiettivi…"
-        : "Interrompi Obiettivi"
-      : "Completa tutti gli Obiettivi";
+        ? t`Interruzione Obiettivi…`
+        : t`Interrompi Obiettivi`
+      : t`Completa tutti gli Obiettivi`;
     objectivesButton.disabled = (busy && !objectives) || stopping;
     objectivesStatus.textContent = objectives
-      ? operation.message || "Completamento degli Obiettivi in esecuzione…"
+      ? localized(operation.message) || t`Completamento degli Obiettivi in esecuzione…`
       : "";
     testCollectionButtonLabel.textContent = collectingTests
       ? stopping
-        ? "Interruzione raccolta test…"
-        : "Interrompi raccolta test"
-      : "Crea raccolta test";
+        ? t`Interruzione raccolta test…`
+        : t`Interrompi raccolta test`
+      : t`Crea raccolta test`;
     createTestCollectionButton.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     testCollectionStatus.textContent =
       operation?.kind === "tests"
-        ? operation.message || "Raccolta dei test in corso…"
+        ? localized(operation.message) || t`Raccolta dei test in corso…`
         : "";
     materialsStatus.textContent =
       operation?.kind === "materials"
-        ? operation.message || "Raccolta delle dispense in corso…"
+        ? localized(operation.message) || t`Raccolta delle dispense in corso…`
         : "";
     activeOperationBanner.hidden = !busy;
     activeOperationBanner.textContent = busy
-      ? operation.message || operationLabel(operation)
+      ? localized(operation.message) || operationLabel(operation)
       : "";
     menuUx.applyActionLayout(coursePanel, menuLayout, activeOperation);
     updateAutoplayControls();
@@ -1039,7 +1056,7 @@
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("it-IT", {
+    return new Intl.DateTimeFormat(language?.current === "en" ? "en-GB" : "it-IT", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -1049,9 +1066,9 @@
   function formatCommissionCapture(value) {
     const date = new Date(Number(value));
     if (!Number.isFinite(Number(value)) || Number.isNaN(date.getTime())) {
-      return "Apri una pagina di una piattaforma supportata per creare la situazione iniziale.";
+      return t`Apri una pagina di una piattaforma supportata per creare la situazione iniziale.`;
     }
-    return `Ultimo aggiornamento: ${new Intl.DateTimeFormat("it-IT", {
+    return t`Ultimo aggiornamento: ${new Intl.DateTimeFormat(language?.current === "en" ? "en-GB" : "it-IT", {
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
@@ -1063,14 +1080,14 @@
     const normalized = String(result || "").toLowerCase();
     const pendingVerbalization = /^daverbalizzare(?:-|$)/.test(normalized);
     if (pendingVerbalization && normalized.includes("promosso"))
-      return "Da verbalizzare · Superato";
+      return t`Da verbalizzare · Superato`;
     if (pendingVerbalization && normalized.includes("bocciato"))
-      return "Da verbalizzare · Non superato";
-    if (normalized.includes("promosso")) return "Superato";
-    if (normalized.includes("bocciato")) return "Non superato";
+      return t`Da verbalizzare · Non superato`;
+    if (normalized.includes("promosso")) return t`Superato`;
+    if (normalized.includes("bocciato")) return t`Non superato`;
     return result
       ? String(result).replaceAll("-", " · ")
-      : "Esito non disponibile";
+      : t`Esito non disponibile`;
   }
 
   function commissionExamKey(exam) {
@@ -1107,7 +1124,7 @@
 
     const heading = document.createElement("div");
     heading.className = "commission-exam-title";
-    heading.textContent = exam.title_exam || exam.course_code || "Esame online";
+    heading.textContent = exam.title_exam || exam.course_code || t`Esame online`;
 
     const meta = document.createElement("div");
     meta.className = "commission-exam-meta";
@@ -1115,7 +1132,7 @@
     const date = formatCommissionDate(exam.date_exam);
     if (date) parts.push(date);
     if (Number.isFinite(Number(exam.vote)))
-      parts.push(`Voto ${Number(exam.vote)}/30`);
+      parts.push(t`Voto ${Number(exam.vote)}/30`);
     parts.push(commissionResultLabel(exam.result));
     meta.textContent = parts.join(" · ");
 
@@ -1123,7 +1140,7 @@
     const verdict = document.createElement("div");
     verdict.className = "commission-exam-verdict";
     verdict.dataset.tone = presentation.tone;
-    verdict.textContent = `Commissione: ${presentation.label}`;
+    verdict.textContent = t`Commissione: ${localized(presentation.label)}`;
 
     item.append(heading, meta, verdict);
     const rejectionMotivation = commissionStates.rejectMotivationText(exam);
@@ -1136,7 +1153,7 @@
       motivation.setAttribute("role", "button");
       motivation.setAttribute(
         "aria-label",
-        "Mostra o nascondi la motivazione completa",
+        t`Mostra o nascondi la motivazione completa`,
       );
       const toggleMotivation = () => {
         motivation.dataset.expanded = String(
@@ -1189,8 +1206,8 @@
     if (!enabled) return;
 
     commissionUpdatesTitle.textContent = unseenIds.length
-      ? `${unseenIds.length} ${unseenIds.length === 1 ? "aggiornamento" : "aggiornamenti"} da leggere`
-      : "Stato della commissione";
+      ? t`${unseenIds.length} ${unseenIds.length === 1 ? t`aggiornamento` : t`aggiornamenti`} da leggere`
+      : t`Stato della commissione`;
     commissionLastCheck.textContent = formatCommissionCapture(
       stored.commissionExamsCapturedAt,
     );
@@ -1217,13 +1234,13 @@
 
     commissionExamEmpty.hidden = openExams.length > 0;
     commissionExamEmpty.textContent = stored.commissionExamsCapturedAt
-      ? "Nessun esame in attesa o ancora da confermare."
-      : "Non è stata ancora creata una situazione iniziale.";
+      ? t`Nessun esame in attesa o ancora da confermare.`
+      : t`Non è stata ancora creata una situazione iniziale.`;
     const loadedUnseen = loadedExams.filter((exam) =>
       unseenSet.has(commissionExamKey(exam)),
     ).length;
     confirmedExamsToggle.hidden = loadedExams.length === 0;
-    confirmedExamsLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
+    confirmedExamsLabel.textContent = t`Esiti caricati (${loadedExams.length})${loadedUnseen ? t` · ${loadedUnseen} da leggere` : ""}`;
     for (const [group, section, count] of [
       [passedExams, loadedPassedGroup, loadedPassedCount],
       [failedExams, loadedFailedGroup, loadedFailedCount],
@@ -1524,11 +1541,11 @@
   findFirstIncompleteButton.addEventListener("click", () => {
     findFirstIncompleteButton.disabled = true;
     firstIncompleteStatus.textContent =
-      "Avvio della ricerca dall’inizio del corso…";
+      t`Avvio della ricerca dall’inizio del corso…`;
     withActiveCourseTab((tabId) => {
       if (!tabId) {
         firstIncompleteStatus.textContent =
-          "Apri prima la pagina delle lezioni di un corso.";
+          t`Apri prima la pagina delle lezioni di un corso.`;
         updateAutoplayControls();
         return;
       }
@@ -1540,13 +1557,13 @@
           if (chrome.runtime.lastError || !response?.accepted) {
             firstIncompleteStatus.textContent =
               response?.reason ||
-              "Impossibile avviare la ricerca. Ricarica la pagina del corso e riprova.";
+              t`Impossibile avviare la ricerca. Ricarica la pagina del corso e riprova.`;
             updateAutoplayControls();
             return;
           }
           firstIncompleteStatus.textContent = response.alreadyRunning
-            ? "La ricerca è già in corso nella pagina del corso."
-            : "Ricerca avviata nella pagina del corso.";
+            ? t`La ricerca è già in corso nella pagina del corso.`
+            : t`Ricerca avviata nella pagina del corso.`;
           setTimeout(updateAutoplayControls, 1500);
         },
       );
@@ -1732,7 +1749,7 @@
   resetAchievementsButton.addEventListener("click", () => {
     if (
       !window.confirm(
-        "Vuoi cancellare definitivamente Traguardi, EXP e ricompense cosmetiche? Le altre preferenze di PlumePilot non verranno modificate.",
+        t`Vuoi cancellare definitivamente Traguardi, EXP e ricompense cosmetiche? Le altre preferenze di PlumePilot non verranno modificate.`,
       )
     )
       return;
@@ -1745,10 +1762,10 @@
       () => {
         if (chrome.runtime.lastError)
           achievementFeedback.textContent =
-            "Non è stato possibile reimpostare i Traguardi. Riprova.";
+            t`Non è stato possibile reimpostare i Traguardi. Riprova.`;
         else {
           renderAchievements(null);
-          achievementFeedback.textContent = "Traguardi ed EXP reimpostati.";
+          achievementFeedback.textContent = t`Traguardi ed EXP reimpostati.`;
         }
       },
     );
@@ -1774,21 +1791,21 @@
 
   clearCommissionDataButton.addEventListener("click", () => {
     const confirmed = window.confirm(
-      "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.",
+      t`Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.`,
     );
     if (!confirmed) return;
 
     clearCommissionDataButton.disabled = true;
-    clearCommissionDataStatus.textContent = "Cancellazione in corso…";
+    clearCommissionDataStatus.textContent = t`Cancellazione in corso…`;
     runtimeMessage({ type: "PEGASO_CLEAR_COMMISSION_MEMORY_ALL_TABS" }).then(
       () => {
         chrome.storage.local.remove(COMMISSION_STORAGE_KEYS, () => {
           if (chrome.runtime.lastError) {
             clearCommissionDataStatus.textContent =
-              "Non è stato possibile cancellare i dati. Riprova.";
+              t`Non è stato possibile cancellare i dati. Riprova.`;
           } else {
             clearCommissionDataStatus.textContent =
-              "Dati e cache temporanea degli esami cancellati.";
+              t`Dati e cache temporanea degli esami cancellati.`;
           }
           clearCommissionDataButton.disabled = false;
         });
@@ -1895,12 +1912,12 @@
     const stopping = activeOperation?.kind === "turbo";
     turboTestsButton.disabled = true;
     turboTestsStatus.textContent = stopping
-      ? "Interruzione dopo l’operazione corrente…"
-      : "Avvio dei test automatici…";
+      ? t`Interruzione dopo l’operazione corrente…`
+      : t`Avvio dei test automatici…`;
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         turboTestsStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          t`Apri prima la pagina di un corso supportato.`;
         turboTestsButton.disabled = false;
         return;
       }
@@ -1933,7 +1950,7 @@
                 operationId,
               });
             turboTestsStatus.textContent =
-              "Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.";
+              t`Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.`;
             turboTestsButton.disabled = false;
           } else if (!stopping) {
             playActionAnimation(turboTestsSprite);
@@ -1947,12 +1964,12 @@
     const stopping = activeOperation?.kind === "objectives";
     objectivesButton.disabled = true;
     objectivesStatus.textContent = stopping
-      ? "Interruzione dopo l’operazione corrente…"
-      : "Avvio del completamento degli Obiettivi…";
+      ? t`Interruzione dopo l’operazione corrente…`
+      : t`Avvio del completamento degli Obiettivi…`;
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         objectivesStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          t`Apri prima la pagina di un corso supportato.`;
         objectivesButton.disabled = false;
         return;
       }
@@ -1985,7 +2002,7 @@
                 operationId,
               });
             objectivesStatus.textContent =
-              "Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.";
+              t`Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.`;
             objectivesButton.disabled = false;
           } else if (!stopping) {
             playActionAnimation(objectivesSprite);
@@ -2029,11 +2046,11 @@
   });
 
   function startMaterialsExport() {
-    materialsStatus.textContent = "Avvio della raccolta delle dispense…";
+    materialsStatus.textContent = t`Avvio della raccolta delle dispense…`;
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         materialsStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          t`Apri prima la pagina di un corso supportato.`;
         return;
       }
       const response = await runtimeMessage({
@@ -2045,7 +2062,7 @@
       if (!response?.accepted) {
         materialsStatus.textContent = response?.operation
           ? operationLabel(response.operation)
-          : "Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.";
+          : t`Impossibile avviare l’operazione. Ricarica la pagina del corso e riprova.`;
       } else {
         playActionAnimation(materialsSprite);
       }
@@ -2059,7 +2076,7 @@
       startMaterialsExport();
       return;
     }
-    materialsStatus.textContent = "Interruzione della raccolta delle dispense…";
+    materialsStatus.textContent = t`Interruzione della raccolta delle dispense…`;
     const response = await runtimeMessage({
       type: "PEGASO_CANCEL_EXPORT",
       operationId: activeOperation.id,
@@ -2068,7 +2085,7 @@
       if (response?.operation) renderOperation(response.operation);
       else
         materialsStatus.textContent =
-          response?.reason || "Impossibile interrompere la raccolta.";
+          response?.reason || t`Impossibile interrompere la raccolta.`;
     }
   }
   exportCourseMaterialsButton.addEventListener("click", toggleMaterialsExport);
@@ -2079,18 +2096,18 @@
       activeOperation?.phase === "collecting";
     if (collecting) {
       testCollectionStatus.textContent =
-        "Interruzione della raccolta dei test…";
+        t`Interruzione della raccolta dei test…`;
       runtimeMessage({
         type: "PEGASO_CANCEL_EXPORT",
         operationId: activeOperation.id,
       });
       return;
     }
-    testCollectionStatus.textContent = "Avvio della raccolta dei test…";
+    testCollectionStatus.textContent = t`Avvio della raccolta dei test…`;
     withActiveCourseTab(async (tabId) => {
       if (!tabId) {
         testCollectionStatus.textContent =
-          "Apri prima la pagina di un corso supportato.";
+          t`Apri prima la pagina di un corso supportato.`;
         return;
       }
       const response = await runtimeMessage({
@@ -2101,7 +2118,7 @@
       if (!response?.accepted) {
         testCollectionStatus.textContent = response?.operation
           ? operationLabel(response.operation)
-          : response?.reason || "Impossibile avviare la raccolta.";
+          : response?.reason || t`Impossibile avviare la raccolta.`;
       } else {
         playActionAnimation(testCollectionSprite);
       }

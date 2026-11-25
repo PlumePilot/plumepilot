@@ -5,6 +5,7 @@ import vm from "node:vm";
 const source = readFileSync(new URL("../content.js", import.meta.url), "utf8");
 const interceptor = readFileSync(new URL("../commission-interceptor.js", import.meta.url), "utf8");
 const context = vm.createContext({
+  t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   normalizedText: value => String(value || "").trim().replace(/\\'/g, "'").replace(/[’‘]/g, "'").replace(/\s+/g, " "),
   validPositiveInteger: value => Number.isInteger(Number(value)) && Number(value) > 0,
   validNonNegativeInteger: value => value !== null && value !== "" && typeof value !== "boolean" && Number.isInteger(Number(value)) && Number(value) >= 0,

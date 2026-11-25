@@ -12,6 +12,7 @@ const item = (contentType, percentage) => ({contentType, percentage, percentageK
 async function search({stop = false, automatic = false, testPending = true, masterAllComplete = false, allVideosComplete = false} = {}) {
   const requests = [];
   const context = vm.createContext({
+    t: (parts, ...values) => String.raw({ raw: parts }, ...values),
     courseCodeFromUrl: () => "COURSE", playbackDiscoveryCancelled: () => false,
     getPlaybackCourseOutline: async () => outline,
     getPlaybackCourseIndex: async () => master.map((entry, index) => ({...entry, percentage: !masterAllComplete && index === 4 ? 80 : 100})),
