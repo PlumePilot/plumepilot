@@ -1,5 +1,12 @@
 # PlumePilot — verbale smoke test finale
 
+## Candidata 2.36.0 — aggiornamento del 26 novembre 2026
+
+Il piano corrente, i risultati verificati e i controlli finali ancora da completare sono in [contesto della release 2.36.0](../releases/2.36.0.md). La pubblicazione è prevista nella settimana del 30 novembre–6 dicembre, dopo il collaudo finale. Il test audio con N è ancora temporaneo e deve essere rimosso prima dei pacchetti definitivi.
+
+Le sezioni storiche qui sotto conservano le verifiche delle release precedenti.
+
+
 Compilare questo documento esclusivamente sulla build congelata destinata agli store. Non committare credenziali DEMO, dati personali o screenshot non oscurati.
 
 ## Identità della release

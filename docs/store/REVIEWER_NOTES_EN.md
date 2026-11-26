@@ -1,5 +1,18 @@
 # PlumePilot — AMO Notes for Reviewers
 
+## 2.36.0 candidate checks
+
+Use the final packaged build after the temporary N shortcut has been removed. Credentials below are placeholders and must be verified before submission.
+
+1. In Preferences → Interface → Language, switch between Italiano and English. Both the toolbar popup and floating menu should follow the setting. Reopen a course and verify persistence.
+2. Try Gaming in Small, Medium, and Large. Controls use Chakra Petch and the PlumePilot title retains its pixel font.
+3. Generate a quiz PDF and HTML and handouts in PDF/EPUB. Check translated interface labels, original course content, the HTML sidebar toggle while scrolling, and notes saved and reopened offline.
+4. In Preferences → Behavior, enable Sound notifications, select a sound and audible volume, and use Play preview. A real exam sound requires a previously pending status to change. Opening the toolbar popup should not prevent automated playback.
+5. Verify What’s new in Preferences → About in both languages. On upgrade, verify the dismissible banner shows the same 2.36.0 version and summary.
+
+The N shortcut is a development test and must be absent from the submitted build.
+
+
 Replace every bracketed placeholder immediately before submission. Store real credentials only in AMO's private reviewer field; never commit them to the repository.
 
 ## Test account
@@ -18,9 +31,9 @@ PlumePilot adds local study and course-management tools to Pegaso, Mercatorum an
 2. Open an accessible course.
 3. Select the PlumePilot toolbar icon.
 4. In **Corso**, verify course progress and the action that finds the first incomplete activity.
-5. In **Attività**, inspect the Autoplay options and available course actions.
+5. In **Corso → Impostazioni autoplay**, inspect the Autoplay options and available course actions.
 6. Select **Crea raccolta test**, then choose PDF or interactive HTML. Processing and download occur locally.
-7. Select **Genera dispense del corso** and cancel the operation, or create a short PDF/EPUB if the DEMO course permits it.
+7. Select **Esporta dispense** and cancel the operation, or create a short PDF/EPUB if the DEMO course permits it.
 8. In **Preferenze**, change the theme and menu size and verify the draggable floating menu.
 9. Optionally enable **Gaming** to inspect local Achievements, EXP, and cosmetic rewards.
 

@@ -18,6 +18,14 @@ La modalità Gaming aggiunge invece un tocco leggero al percorso di studio attra
 
 Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissuta come un gioco».
 
+## Lingua e aspetto
+
+In Preferenze → Interfaccia → Lingua puoi scegliere Italiano o English. La scelta è condivisa dal menu principale e dal menu fluttuante. I nuovi quiz HTML conservano la lingua selezionata anche offline. Domande, risposte e materiali mantengono il testo del corso.
+
+Lo stile Gaming usa Chakra Petch per testi e controlli e mantiene Pixelify Sans per il titolo PlumePilot. Le Novità sono consultabili dal menu principale in Preferenze → Informazioni.
+
+Il contesto della candidata 2.36.0 e i controlli ancora da completare sono in [docs/releases/2.36.0.md](docs/releases/2.36.0.md).
+
 ## Inside PlumePilot
 
 Vuoi capire come funziona davvero una browser extension reale? **Inside PlumePilot — Anatomia di una browser extension reale** racconta l'architettura del progetto attraverso il suo codice: JavaScript, WebExtensions, DOM, API, asincronia, cache, autoplay, generazione PDF/EPUB, testing e release engineering.

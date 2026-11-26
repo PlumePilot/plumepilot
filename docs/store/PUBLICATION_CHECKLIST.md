@@ -1,5 +1,12 @@
 # PlumePilot — checklist di pubblicazione
 
+## Candidata 2.36.0 — aggiornamento del 26 novembre 2026
+
+Il piano corrente, i risultati verificati e i controlli finali ancora da completare sono in [contesto della release 2.36.0](../releases/2.36.0.md). La pubblicazione è prevista nella settimana del 30 novembre–6 dicembre, dopo il collaudo finale. Il test audio con N è ancora temporaneo e deve essere rimosso prima dei pacchetti definitivi.
+
+Le sezioni storiche qui sotto conservano le verifiche delle release precedenti.
+
+
 Aggiornata il 14 settembre 2026. Questa checklist prepara la prima pubblicazione su Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons senza includere file aggiuntivi nei pacchetti dell'estensione.
 
 ## Stato e criterio di rilascio

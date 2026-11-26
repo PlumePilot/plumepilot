@@ -4,7 +4,7 @@
   const definition = {
     "version": "2.36.0",
     "title": "PlumePilot ora anche in inglese",
-    "summary": "Scegli Italiano o English per i menu, i testi delle esportazioni e il minigioco Pausa?.",
+    "summary": "PlumePilot in italiano e inglese, stile Gaming più leggibile e miglioramenti per quiz e avvisi sonori.",
     "items": [
       {
         "title": "PlumePilot in italiano e inglese",
@@ -17,6 +17,10 @@
       {
         "title": "Quiz HTML nella lingua scelta, anche offline",
         "text": "Il quiz HTML conserva la lingua scelta al momento dell’esportazione, anche quando lo riapri offline o scarichi una copia con gli appunti."
+      },
+      {
+        "title": "Navigazione più comoda",
+        "text": "Il pulsante per mostrare o nascondere i capitoli resta accessibile mentre scorri i quiz HTML. Nei menu, etichette e selettori sono più coerenti e le tab inglesi si adattano alle tre dimensioni."
       },
       {
         "title": "Pausa? segue la lingua di PlumePilot",

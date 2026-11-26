@@ -5,6 +5,13 @@
 - Adds a shared language setting for the main menu, floating menu, export tools, and Pausa?.
 - Localizes PlumePilot labels in HTML, PDF, and EPUB exports. Offline HTML quizzes keep the language selected at export time.
 - Uses the same release version and summary in the update banner and the What’s new dialog.
+- Uses distinct language entry points for Chrome’s page and extension contexts so both menus follow the saved language.
+- Removes leftover floating menus after Firefox extension reloads.
+- Keeps the offline quiz sidebar toggle accessible during scrolling and translates generic lesson-section labels in exports.
+- Uses Chakra Petch for Gaming controls and text, retaining Pixelify Sans for the PlumePilot title. English tab labels fit all menu sizes.
+- Falls back to a supported platform tab when Chrome’s audio document fails. The affected failure path also existed in 2.35.3.
+- Includes the audio permission for direct repo testing, matching the existing Chrome/Edge store build permission.
+
 
 ## 2.35.4 — Firefox commission monitor compatibility
 

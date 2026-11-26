@@ -31,7 +31,7 @@ assert.equal(manifest.version, release.version);
 
 const language = context.PlumePilotLanguage;
 assert.match(release.title, /inglese/);
-assert.equal(release.items.length, 6);
+assert.equal(release.items.length, 7);
 assert.ok(release.items.some(({ text }) => /PDF ed EPUB/.test(text)));
 assert.ok(release.items.some(({ text }) => /offline/.test(text)));
 assert.ok(release.items.some(({ title }) => /Pausa\?/.test(title)));

@@ -113,7 +113,6 @@ globalThis.PlumePilotLanguage.addMessages({
   "Se il documento audio di Chrome non riesce ad avviare il suono, PlumePilot prova a riprodurlo in una scheda della piattaforma. Attiva Notifiche sonore nelle Preferenze e scegli un volume maggiore di zero.": "If Chrome’s audio document cannot start playback, PlumePilot tries a platform tab. Enable Sound notifications in Preferences and choose a volume above zero.",
   "Novità in PlumePilot $1": "What’s new in PlumePilot $1",
   "PlumePilot ora anche in inglese": "PlumePilot now available in English",
-  "Scegli Italiano o English per i menu, i testi delle esportazioni e il minigioco Pausa?.": "Choose Italian or English for the menus, export labels, and Pausa? minigame.",
   "PlumePilot in italiano e inglese": "PlumePilot in Italian and English",
   "Apri Preferenze → Interfaccia → Lingua dal menu principale o fluttuante. L’italiano è la lingua iniziale e la scelta si applica a entrambi i menu e ai nuovi avvisi di PlumePilot.": "Open Preferences → Interface → Language in the main or floating menu. Italian is the initial language. Your choice applies to both menus and to new PlumePilot notifications.",
   "Interfaccia delle esportazioni tradotta": "Export tools in both languages",
@@ -650,5 +649,8 @@ globalThis.PlumePilotLanguage.addMessages({
   "Vota": "Rate",
   "Voto $1/30": "Grade $1/30",
   "Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.": "Clear saved exams and exam board notification history from this browser? University platform data will be preserved.",
-  "Vuoi cancellare definitivamente Traguardi, EXP e ricompense cosmetiche? Le altre preferenze di PlumePilot non verranno modificate.": "Permanently reset achievements, EXP, and cosmetic rewards? Your other PlumePilot preferences will be preserved."
+  "Vuoi cancellare definitivamente Traguardi, EXP e ricompense cosmetiche? Le altre preferenze di PlumePilot non verranno modificate.": "Permanently reset achievements, EXP, and cosmetic rewards? Your other PlumePilot preferences will be preserved.",
+  "PlumePilot in italiano e inglese, stile Gaming più leggibile e miglioramenti per quiz e avvisi sonori.": "PlumePilot in Italian and English, a clearer Gaming style, and improvements to quizzes and sound alerts.",
+  "Navigazione più comoda": "Easier navigation",
+  "Il pulsante per mostrare o nascondere i capitoli resta accessibile mentre scorri i quiz HTML. Nei menu, etichette e selettori sono più coerenti e le tab inglesi si adattano alle tre dimensioni.": "The chapter sidebar toggle stays accessible while scrolling through HTML quizzes. Menu labels and selectors are more consistent, and English tabs fit all three menu sizes."
 });

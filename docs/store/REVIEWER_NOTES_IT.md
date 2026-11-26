@@ -1,5 +1,18 @@
 # PlumePilot — note per i revisori
 
+## Controlli della candidata 2.36.0
+
+Usare i pacchetti definitivi dopo la rimozione della scorciatoia temporanea N. Verificare le credenziali prima dell’invio.
+
+1. In Preferenze → Interfaccia → Lingua, passare tra Italiano ed English. Entrambi i menu devono seguire la scelta, anche riaprendo il corso.
+2. Provare Gaming nelle tre dimensioni. I controlli usano Chakra Petch e il titolo PlumePilot mantiene il font pixel.
+3. Generare quiz PDF/HTML e dispense PDF/EPUB. Controllare etichette tradotte, contenuti originali, pulsante dei capitoli durante lo scorrimento e salvataggio degli appunti offline.
+4. In Preferenze → Comportamento, attivare Notifiche sonore, scegliere suono e volume udibile e usare Ascolta anteprima. L’avviso reale richiede il cambiamento di uno stato precedentemente in attesa e può partire anche con il popup aperto.
+5. Verificare Novità in Preferenze → Informazioni nelle due lingue. Dopo un aggiornamento, banner e pannello devono mostrare la stessa versione 2.36.0 e lo stesso riepilogo.
+
+La scorciatoia N è riservata allo sviluppo e deve essere assente dal pacchetto inviato.
+
+
 Documento modello per i campi privati di Chrome Web Store, Microsoft Edge Add-ons e Firefox Add-ons. Sostituire ogni segnaposto immediatamente prima dell'invio. Non committare mai credenziali reali.
 
 ## Note comuni
