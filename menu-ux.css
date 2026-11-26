@@ -165,3 +165,8 @@ html[data-menu-size] :is(.tab-button, .preference-macro-summary),
   font-size: var(--ux-copy-size);
   font-weight: 750;
 }
+
+:host([data-visual-style="gaming"][data-menu-size="medium"]) .menu-tab {
+  padding-inline: 2px;
+  gap: 2px;
+}
