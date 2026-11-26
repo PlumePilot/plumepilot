@@ -187,6 +187,8 @@
   const extensionVersion = document.getElementById("extensionVersion");
   const storeReviewLink = document.getElementById("storeReviewLink");
   const whatsNewBanner = document.getElementById("whatsNewBanner");
+  const whatsNewBannerTitle = document.getElementById("whatsNewBannerTitle");
+  const whatsNewBannerSummary = document.getElementById("whatsNewBannerSummary");
   const dismissWhatsNewButton = document.getElementById("dismissWhatsNew");
   const openWhatsNewButton = document.getElementById("openWhatsNew");
   const openWhatsNewFromAboutButton = document.getElementById(
@@ -349,6 +351,8 @@
 
   function renderWhatsNewContent() {
     const release = whatsNewApi.RELEASE;
+    whatsNewBannerTitle.textContent = `Novità in PlumePilot ${release.version}`;
+    whatsNewBannerSummary.textContent = release.summary;
     whatsNewDialogVersion.textContent = `v${release.version}`;
     whatsNewDialogTitle.textContent = release.title;
     whatsNewDialogSummary.textContent = release.summary;
