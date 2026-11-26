@@ -1,4 +1,8 @@
 globalThis.PlumePilotLanguage.addMessages({
+  "Gaming più leggibile": "More readable Gaming style",
+  "Il nuovo font Chakra Petch rende più chiari testi e controlli dello stile Gaming. Il titolo PlumePilot mantiene il font pixel.": "Chakra Petch makes Gaming text and controls easier to read. The PlumePilot title keeps its pixel font.",
+  "Avvisi sonori più affidabili": "More reliable sound alerts",
+  "Se il documento audio di Chrome non riesce ad avviare il suono, PlumePilot prova a riprodurlo in una scheda della piattaforma. Attiva Notifiche sonore nelle Preferenze e scegli un volume maggiore di zero.": "If Chrome’s audio document cannot start playback, PlumePilot tries a platform tab. Enable Sound notifications in Preferences and choose a volume above zero.",
   "Novità in PlumePilot $1": "What’s new in PlumePilot $1",
   "PlumePilot ora anche in inglese": "PlumePilot now available in English",
   "Scegli Italiano o English per i menu, i testi delle esportazioni e il minigioco Pausa?.": "Choose Italian or English for the menus, export labels, and Pausa? minigame.",

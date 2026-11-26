@@ -867,8 +867,14 @@ if (!globalThis.PlumePilotWhatsNew && typeof importScripts === "function") impor
     return new Promise((resolve, reject) => chrome.runtime.sendMessage(message, (response) => chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(response)));
   }
   async function playNotificationSound(sound, volume, sourceTabId) {
-    if (await ensureOffscreenAudioDocument()) {
-      return sendRuntimeMessage({ type: "PLUMEPILOT_OFFSCREEN_PLAY", sound, volume });
+    try {
+      if (await ensureOffscreenAudioDocument()) {
+        const response = await sendRuntimeMessage({ type: "PLUMEPILOT_OFFSCREEN_PLAY", sound, volume });
+        if (response?.played === true) return response;
+        console.warn("[PlumePilot] Audio document did not start playback. Trying a course tab.");
+      }
+    } catch (error) {
+      console.warn("[PlumePilot] Audio document unavailable. Trying a course tab:", error?.message || error);
     }
     const tabs = await new Promise((resolve) => chrome.tabs.query({
       url: [

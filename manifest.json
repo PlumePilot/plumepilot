@@ -28,7 +28,8 @@
     }
   },
   "permissions": [
-    "storage"
+    "storage",
+    "offscreen"
   ],
   "host_permissions": [
     "https://*.cloudfront.net/*",

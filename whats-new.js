@@ -21,6 +21,14 @@
       {
         "title": "Pausa? segue la lingua di PlumePilot",
         "text": "I comandi, le istruzioni e il riepilogo finale del minigioco usano la lingua scelta nelle Preferenze."
+      },
+      {
+        "title": "Gaming più leggibile",
+        "text": "Il nuovo font Chakra Petch rende più chiari testi e controlli dello stile Gaming. Il titolo PlumePilot mantiene il font pixel."
+      },
+      {
+        "title": "Avvisi sonori più affidabili",
+        "text": "Se il documento audio di Chrome non riesce ad avviare il suono, PlumePilot prova a riprodurlo in una scheda della piattaforma. Attiva Notifiche sonore nelle Preferenze e scegli un volume maggiore di zero."
       }
     ]
   };

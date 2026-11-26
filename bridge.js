@@ -248,7 +248,12 @@
             type: "STUDYWING_SOUND_EVENT",
             eventId: result.soundEventId,
           }, (soundResult) => {
-            if (!chrome.runtime.lastError && soundResult?.achievement?.accepted) {
+            const playbackError = chrome.runtime.lastError;
+            if (playbackError || (soundResult?.accepted !== true &&
+                !["disabled", "duplicate"].includes(soundResult?.reason))) {
+              console.warn("[PlumePilot] Exam sound alert was not played:", playbackError?.message || soundResult?.reason || "no-response");
+            }
+            if (!playbackError && soundResult?.achievement?.accepted) {
               window.postMessage({ type: "STUDYWING_ACHIEVEMENT_AWARDED", result: soundResult.achievement }, "*");
             }
           });
