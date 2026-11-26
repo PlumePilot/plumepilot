@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 
 const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
 const interceptor = readFileSync(new URL("../commission-interceptor.js", import.meta.url), "utf8");
@@ -49,15 +50,33 @@ assert.match(background, /\*:\/\/\*\.mercatorum\.multiversity\.click\/\*/);
 assert.match(background, /\*:\/\/\*\.utsr\.multiversity\.click\/\*/);
 
 
-assert.match(floating, /function courseSurfaceAvailable\(\)/);
-assert.match(
-  floating,
-  /const supportedSurface =\s*courseSurfaceAvailable\(\) \|\| isCommissionOnlyPage\(\)/,
+const applyVisibility = floating.slice(
+  floating.indexOf("  function applyVisibility()"),
+  floating.indexOf("  function scheduleVisibilityCheck()"),
 );
-assert.match(
-  floating,
-  /const shouldShow =\s*settings\.floatingMenuEnabled === true && supportedSurface/,
-);
+const visibilityCases = [
+  { name: "course page", course: true, visible: true },
+  { name: "commission page", commission: true, visible: true },
+  { name: "unsupported page", visible: false },
+  { name: "same course during fullscreen transition", fullscreenCourse: "current-course", visible: true },
+  { name: "fullscreen from another course", fullscreenCourse: "other-course", visible: false },
+  { name: "disabled during fullscreen", enabled: false, course: true, fullscreenCourse: "current-course", visible: false },
+];
+for (const { name, course, commission, fullscreenCourse, enabled = true, visible } of visibilityCases) {
+  const calls = [];
+  vm.runInNewContext(`${applyVisibility}\napplyVisibility();`, {
+    settings: { floatingMenuEnabled: enabled },
+    fullscreenCourse,
+    courseSurfaceAvailable: () => course,
+    isCommissionOnlyPage: () => commission,
+    currentCourseCode: () => "current-course",
+    createMenu: () => calls.push("show"),
+    removeMenu: () => calls.push("hide"),
+    renderCommissionExams: () => calls.push("exams"),
+    renderContinuousFullscreen: () => calls.push("fullscreen"),
+  });
+  assert.deepEqual(calls, visible ? ["show", "exams", "fullscreen"] : ["hide", "fullscreen"], name);
+}
 assert.match(floating, /ui\.courseTab\.hidden = false/);
 assert.match(floating, /ui\.courseTools\.inert = !courseAvailable/);
 assert.match(

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 
 const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
 const changelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
@@ -8,12 +9,16 @@ const sourceReadme = readFileSync(new URL("../AMO_SOURCE_README.md", import.meta
 const popupHtml = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
 const floatingMenu = readFileSync(new URL("../floating-menu.js", import.meta.url), "utf8");
 
-assert.match(manifest.version, /^2\.(?:34\.0|35\.[0123])$/);
+const release = vm.runInNewContext(
+  readFileSync(new URL("../whats-new.js", import.meta.url), "utf8") +
+    "\nPlumePilotWhatsNew.RELEASE",
+  {},
+);
+assert.equal(release.version, manifest.version);
 assert.match(changelog, /^## Added in 2\.34\.0:/m);
 assert.match(releaseNotes, /Mercatorum and San Raffaele\/UTSR/);
 assert.match(sourceReadme, new RegExp(`^# PlumePilot ${manifest.version.replaceAll(".", "\\.")}`, "m"));
 assert.ok(sourceReadme.includes(`plumepilot-v${manifest.version}-firefox.zip`));
-assert.match(popupHtml, new RegExp(`Novità in PlumePilot ${manifest.version.replaceAll(".", "\\.")}`));
 assert.doesNotMatch(popupHtml, /quando Pegaso carica l’esito ufficiale/);
 assert.doesNotMatch(floatingMenu, /esiti caricati da Pegaso/);
 
