@@ -122,8 +122,7 @@
         "*://*.utsr.multiversity.click/*"
       ],
       "js": [
-        "language.js",
-        "language-ui.js",
+        "page-language.js",
         "notification-manager.js",
         "content.js"
       ],

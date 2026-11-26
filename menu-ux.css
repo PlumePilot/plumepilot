@@ -157,3 +157,11 @@ html[data-visual-style="gaming"] .ux-select,
 .ux-select:disabled { opacity: .6; cursor: not-allowed; }
 .ux-select-status { margin: 0; color: var(--ux-muted); font-size: var(--ux-copy-size); }
 .ux-select-status:empty { display: none; }
+
+/* Equivalent navigation and preferences headings share the same typeface. */
+html[data-menu-size] :is(.tab-button, .preference-macro-summary),
+:host([data-menu-size]) :is(.menu-tab, .preference-macro-summary) {
+  font-family: var(--ux-font);
+  font-size: var(--ux-copy-size);
+  font-weight: 750;
+}
