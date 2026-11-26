@@ -149,8 +149,7 @@
         "language.js",
         "language-ui.js",
         "menu-ux.js",
-        "floating-menu.js",
-        "exam-alert-test.js"
+        "floating-menu.js"
       ],
       "run_at": "document_idle",
       "all_frames": true

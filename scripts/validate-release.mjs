@@ -156,11 +156,14 @@ for (const browser of expectedBrowsers) {
   if (names.some((name) => name.startsWith("plumepilot-v") || name.startsWith("studywing-v") || name.startsWith("docs/") || name.startsWith("scripts/") || name.startsWith("release/"))) {
     throw new Error(`${browser}: struttura o file di sviluppo inattesi.`);
   }
-  for (const forbidden of ["README.md", "CHANGELOG.md", "INSIDE_PLUMEPILOT.md", "PRIVACY.md", "icons/icon-512.png", "vendor/fontkit-README.md"]) {
+  for (const forbidden of ["exam-alert-test.js", "README.md", "CHANGELOG.md", "INSIDE_PLUMEPILOT.md", "PRIVACY.md", "icons/icon-512.png", "vendor/fontkit-README.md"]) {
     if (zip.file(forbidden)) throw new Error(`${browser}: file ridondante incluso: ${forbidden}.`);
   }
   const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
   validateBrowserManifest(manifest, browser);
+  if (manifest.content_scripts?.some((entry) => entry.js?.includes("exam-alert-test.js"))) {
+    throw new Error(`${browser}: scorciatoia temporanea N ancora registrata.`);
+  }
   await validateWhatsNew(zip, browser);
   if (browser === "firefox") await assertFirefoxReviewSafe(zip, names);
   if (browser === "edge") {
@@ -242,7 +245,7 @@ generatedChecksums.push(`${createHash("sha256").update(sourceBytes).digest("hex"
 const sourceZip = await JSZip.loadAsync(sourceBytes);
 const sourceNames = Object.keys(sourceZip.files).filter((name) => !sourceZip.files[name].dir);
 assertNoMinifiedJavaScript(sourceNames, "Sorgente AMO");
-for (const forbidden of ["INSIDE_PLUMEPILOT.md", "scripts/build-inside-plumepilot.mjs"]) {
+for (const forbidden of ["exam-alert-test.js", "INSIDE_PLUMEPILOT.md", "scripts/build-inside-plumepilot.mjs"]) {
   if (sourceZip.file(forbidden)) throw new Error(`Sorgente AMO: documentazione pubblica inattesa ${forbidden}.`);
 }
 for (const required of [

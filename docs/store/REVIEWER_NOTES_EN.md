@@ -2,7 +2,7 @@
 
 ## 2.36.0 candidate checks
 
-Use the final packaged build after the temporary N shortcut has been removed. Credentials below are placeholders and must be verified before submission.
+The temporary N shortcut has been removed. Use the final packaged build. Credentials below are placeholders and must be verified before submission.
 
 1. In Preferences → Interface → Language, switch between Italiano and English. Both the toolbar popup and floating menu should follow the setting. Reopen a course and verify persistence.
 2. Try Gaming in Small, Medium, and Large. Controls use Chakra Petch and the PlumePilot title retains its pixel font.
@@ -10,7 +10,7 @@ Use the final packaged build after the temporary N shortcut has been removed. Cr
 4. In Preferences → Behavior, enable Sound notifications, select a sound and audible volume, and use Play preview. A real exam sound requires a previously pending status to change. Opening the toolbar popup should not prevent automated playback.
 5. Verify What’s new in Preferences → About in both languages. On upgrade, verify the dismissible banner shows the same 2.36.0 version and summary.
 
-The N shortcut is a development test and must be absent from the submitted build.
+The sound preview is available in Preferences → Behavior.
 
 
 Replace every bracketed placeholder immediately before submission. Store real credentials only in AMO's private reviewer field; never commit them to the repository.
