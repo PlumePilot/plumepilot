@@ -7,6 +7,7 @@
 
   const language = globalThis.PlumePilotLanguage;
   const HOST_ID = "studywing-floating-menu-host";
+  const extensionId = chrome.runtime.id;
   const PROGRESS_OVERLAY_HOST_ID = "studywing-course-progress-overlay-host";
   const FULLSCREEN_PLAYER_ATTRIBUTE = "data-plumepilot-fullscreen-player";
   const PLAYER_FULLSCREEN_ICON = 'img[src^="/assets/expand-"][src$=".svg"]';
@@ -368,6 +369,15 @@
     };
   }
 
+  function removeStaleHosts() {
+    // Firefox can reinject the content script after reloading an extension while
+    // leaving its old shadow DOM in the course. Remove that disconnected UI.
+    for (const element of document.querySelectorAll(`#${HOST_ID}, #${PROGRESS_OVERLAY_HOST_ID}`)) {
+      const owner = element.dataset.plumepilotExtension;
+      if (!owner || owner === extensionId) element.remove();
+    }
+  }
+
   function ensureProgressOverlay() {
     if (progressOverlayHost || !document.documentElement) return;
     const pixelFontUrl = chrome.runtime.getURL(
@@ -375,6 +385,7 @@
     );
     progressOverlayHost = document.createElement("div");
     progressOverlayHost.id = PROGRESS_OVERLAY_HOST_ID;
+    progressOverlayHost.dataset.plumepilotExtension = extensionId;
     progressOverlayHost.dataset.visualStyle = normalizeVisualStyle(
       settings.visualStyle,
     );
@@ -2125,6 +2136,7 @@
 
     host = document.createElement("div");
     host.id = HOST_ID;
+    host.dataset.plumepilotExtension = extensionId;
     applyTheme();
     applyVisualStyle();
     applyMenuSize();
@@ -4973,6 +4985,7 @@
     document.addEventListener(event, renderContinuousFullscreen, true);
   }
 
+  removeStaleHosts();
   const observer = new MutationObserver(scheduleVisibilityCheck);
   observer.observe(document.documentElement, {
     childList: true,

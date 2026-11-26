@@ -50,6 +50,33 @@ assert.match(background, /\*:\/\/\*\.mercatorum\.multiversity\.click\/\*/);
 assert.match(background, /\*:\/\/\*\.utsr\.multiversity\.click\/\*/);
 
 
+const removeStaleHosts = floating.slice(
+  floating.indexOf("  function removeStaleHosts()"),
+  floating.indexOf("  function ensureProgressOverlay()"),
+);
+const removedHosts = [];
+const staleHosts = [
+  { id: "studywing-floating-menu-host", name: "legacy menu" },
+  { id: "studywing-floating-menu-host", name: "previous menu", owner: "current-extension" },
+  { id: "studywing-course-progress-overlay-host", name: "previous progress bar", owner: "current-extension" },
+  { id: "studywing-floating-menu-host", name: "another installation", owner: "other-extension" },
+];
+vm.runInNewContext(`${removeStaleHosts}\nremoveStaleHosts();`, {
+  HOST_ID: "studywing-floating-menu-host",
+  PROGRESS_OVERLAY_HOST_ID: "studywing-course-progress-overlay-host",
+  extensionId: "current-extension",
+  document: {
+    querySelectorAll(selector) {
+      return staleHosts.filter(({ id }) => selector.split(", ").includes(`#${id}`))
+        .map(({ name, owner }) => ({
+          dataset: { plumepilotExtension: owner },
+          remove: () => removedHosts.push(name),
+        }));
+    },
+  },
+});
+assert.deepEqual(removedHosts, ["legacy menu", "previous menu", "previous progress bar"]);
+
 const applyVisibility = floating.slice(
   floating.indexOf("  function applyVisibility()"),
   floating.indexOf("  function scheduleVisibilityCheck()"),
