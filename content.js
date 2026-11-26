@@ -4493,9 +4493,9 @@
         exact: exactAvailable,
         updatedByStudyWing: exactAvailable || state.sessionDelta >= 1,
         message: exactAvailable
-          ? t`Calcolato sui dati completi del corso.`
+          ? "Calcolato sui dati completi del corso."
           : state.sessionDelta > 0
-            ? t`Aggiornato in tempo reale da PlumePilot.`
+            ? "Aggiornato in tempo reale da PlumePilot."
             : `Sincronizzato con ${window.location.hostname.includes("mercatorum.multiversity.click") ? "Mercatorum" : window.location.hostname.includes("utsr.multiversity.click") ? "San Raffaele" : "Pegaso"}.`,
       },
     }, "*");

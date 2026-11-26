@@ -52,7 +52,6 @@
   const faqUrl = storeLinksApi?.FAQ_URL || "https://plumepilot.github.io/plumepilot/faq/";
   const donateUrl = storeLinksApi?.DONATE_URL || "https://ko-fi.com/flo_";
   const defaults = {
-    plumePilotLanguage: "it",
     enabled: true,
     stopAtTests: false,
     autoCompleteTests: false,
@@ -1909,7 +1908,7 @@
     scheduleMascotIdle();
   }
 
-  function togglePanel() {
+  function togglePanel(acknowledge = true) {
     if (!ui) return;
     const opening = ui.panel.hidden;
     ui.panel.hidden = !opening;
@@ -1924,11 +1923,11 @@
         : t`Apri PlumePilot; trascina per spostare l’icona lungo il bordo`,
     );
     if (opening) {
-      claimFloatingAchievement("open-floating-menu");
+      if (acknowledge) claimFloatingAchievement("open-floating-menu");
       requestChapterLimitStatus();
       requestCourseProgressStatus();
       placePanel();
-      if (activeMenuTab === "exams") markCommissionNotificationsSeen();
+      if (acknowledge && activeMenuTab === "exams") markCommissionNotificationsSeen();
       ui.close.focus();
     }
   }
@@ -4041,7 +4040,7 @@
             <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
               <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
               <div class="preference-macro-content">
-                <label><span>Lingua</span> <select data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p data-role="language-status" role="status"></p>
+                <label class="ux-select-row"><span>Lingua</span> <select class="ux-select" data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p class="ux-select-status" data-role="language-status" role="status"></p>
               <label class="setting"><span>Mostra il menu fluttuante</span><input data-setting="floating-menu-enabled" type="checkbox" checked></label>
               <details class="ux-layout-settings"><summary>Pulsanti dei menu</summary>
                 <p class="ux-copy">Ordine e visibilità sono condivisi dai due menu. Trascina i pulsanti o usa le frecce all’interno di ciascun gruppo. Un’operazione in corso resta sempre visibile.</p>
@@ -4088,7 +4087,7 @@
               <fieldset class="preference-group" aria-labelledby="studywing-floating-sound-heading">
                 <label id="studywing-floating-sound-heading" class="preference-group-heading gaming-control-row sound-heading"><span>Notifiche sonore</span><span class="gaming-control-sprite sound-notification-control-sprite" data-role="sound-notification-control-sprite" aria-hidden="true"></span><input data-setting="sound-notifications-enabled" type="checkbox"></label>
                 <div class="preference-options sound-options" data-role="sound-controls">
-                  <label><span>Suono</span><select data-setting="notification-sound" aria-label="Suono delle notifiche"><option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option></select></label>
+                  <label><span>Suono</span><select class="ux-select" data-setting="notification-sound" aria-label="Suono delle notifiche"><option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option></select></label>
                   <label><span>Volume <output data-role="notification-volume-value">70%</output></span><input data-setting="notification-volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume delle notifiche sonore"></label>
                   <button class="bookmark-action" data-action="preview-notification-sound" type="button">Ascolta anteprima</button>
                 </div>
@@ -4119,7 +4118,7 @@
     language?.localizeMarkup(shadow);
     language?.bindPicker(shadow.querySelector('[data-role="language-picker"]'), (message) => {
       shadow.querySelector('[data-role="language-status"]').textContent = message;
-    });
+    }, refreshLanguage);
     hydrateShadowPlaceholders(shadow, {
       __PP_MENU_UX_CSS__: chrome.runtime.getURL("menu-ux.css"),
       __PP_PIXEL_FONT__: pixelFontUrl,
@@ -4394,6 +4393,7 @@
         return;
       }
       togglePanel();
+      if (ui && !ui.panel.hidden) void refreshLanguage?.();
     });
     ui.launcher.addEventListener("pointerdown", beginLauncherDrag);
     ui.launcher.addEventListener("pointermove", moveLauncher);
@@ -4835,26 +4835,35 @@
     }
   });
 
+  function applyMenuLanguage(value) {
+    language.set(value);
+    if (!host || host.lang === value) return;
+
+    const panelOpen = ui && !ui.panel.hidden;
+    const selectedTab = activeMenuTab;
+    const languagePicker = ui?.panel.querySelector('[data-role="language-picker"]');
+    const languageSectionOpen = languagePicker?.closest("details")?.open;
+    const pickerFocused = languagePicker?.matches(":focus");
+
+    removeMenu();
+    applyVisibility();
+    if (panelOpen && ui) {
+      selectMenuTab(selectedTab, { acknowledge: false });
+      togglePanel(false);
+      const picker = ui.panel.querySelector('[data-role="language-picker"]');
+      if (languageSectionOpen) picker.closest("details").open = true;
+      if (pickerFocused) picker.focus();
+    }
+  }
+
+  const refreshLanguage = language?.watch(applyMenuLanguage);
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
     const thresholdWasEnabled =
       settings.courseProgressThresholdEnabled === true;
     for (const key of Object.keys(defaults)) {
       if (changes[key]) settings[key] = changes[key].newValue ?? defaults[key];
-    }
-    if (changes.plumePilotLanguage && language) {
-      const panelOpen = ui && !ui.panel.hidden;
-      const selectedTab = activeMenuTab;
-      language.set(settings.plumePilotLanguage);
-      removeMenu();
-      applyVisibility();
-      if (panelOpen && ui) {
-        selectMenuTab(selectedTab, { acknowledge: false });
-        togglePanel();
-        if (selectedTab === "preferences") {
-          ui.panel.querySelector('[data-role="language-picker"]')?.focus();
-        }
-      }
     }
     if (changes.floatingMenuEnabled || changes.commissionCheckEnabled)
       scheduleVisibilityCheck();
@@ -4970,9 +4979,9 @@
     subtree: true,
   });
 
-  chrome.storage.local.get(defaults, (result) => {
+  chrome.storage.local.get(defaults, async (result) => {
     settings = { ...defaults, ...result };
-    language?.set(settings.plumePilotLanguage);
+    await refreshLanguage?.();
     lastNotification = settings.studywingLastNotification || null;
     applyVisibility();
     renderCourseProgress();

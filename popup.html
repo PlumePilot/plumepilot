@@ -326,7 +326,7 @@
       <details class="preferences-section preference-macro" aria-labelledby="interfaceSectionTitle">
         <summary id="interfaceSectionTitle" class="preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
         <div class="preference-macro-content">
-          <label><span>Lingua</span> <select data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p data-role="language-status" role="status"></p>
+          <label class="ux-select-row"><span>Lingua</span> <select class="ux-select" data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p class="ux-select-status" data-role="language-status" role="status"></p>
         <div class="setting-block floating-menu-setting">
           <div class="setting-row gaming-control-row">
             <label for="floatingMenuEnabled">Mostra il menu fluttuante</label>
@@ -408,7 +408,7 @@
           </div>
           <div id="soundNotificationControls" class="sound-controls">
             <label for="notificationSound">Suono</label>
-            <select id="notificationSound" aria-label="Suono delle notifiche">
+            <select id="notificationSound" class="ux-select" aria-label="Suono delle notifiche">
               <option value="chirp">Cinguettio</option><option value="trumpets">Trombe</option><option value="guitar">Chitarra</option><option value="violin">Violino</option>
             </select>
             <label for="notificationVolume">Volume <output id="notificationVolumeValue" for="notificationVolume">70%</output></label>

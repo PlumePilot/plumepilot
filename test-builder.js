@@ -1,6 +1,7 @@
 (() => {
   "use strict";
   const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
   const A4 = [595.28, 841.89];
   const MARGIN = 54;
   const COLORS = { accent:[207,29,86], purple:[91,44,160], text:[40,29,50], muted:[111,100,121], line:[225,217,232] };
@@ -173,7 +174,7 @@
         const sectionRef = root.sectionRefs[sectionIndex];
         const chapterRefs = root.chapterRefs[sectionIndex];
         context.assign(sectionRef, context.obj({
-          Title:PDFLib.PDFHexString.fromText(section.label), Parent:rootRefs[rootIndex],
+          Title:PDFLib.PDFHexString.fromText(localized(section.label)), Parent:rootRefs[rootIndex],
           Dest:[section.entries[0].page.ref, PDFLib.PDFName.of("Fit")],
           First:chapterRefs[0], Last:chapterRefs.at(-1), Count:chapterRefs.length,
           ...(sectionIndex ? { Prev:root.sectionRefs[sectionIndex - 1] } : {}),
@@ -260,7 +261,7 @@
     const chapterStart = (test, label) => {
       addPage();
       drawLines(label, { bold:true, size:10, color:COLORS.accent, after:8 });
-      drawLines(test.section, { bold:true, size:12, color:COLORS.purple, after:4 });
+      drawLines(localized(test.section), { bold:true, size:12, color:COLORS.purple, after:4 });
       drawLines(test.chapterTitle, { bold:true, size:21, lineHeight:26, after:14 });
       page.drawLine({ start:{x:MARGIN,y:y + 5}, end:{x:A4[0]-MARGIN,y:y + 5}, thickness:.8, color:rgb255(COLORS.line) });
       y -= 10;
@@ -268,7 +269,7 @@
     };
 
     addPage();
-    drawLines("PLUMEPILOT · TEST DI AUTOVALUTAZIONE", { bold:true, size:11, color:COLORS.accent, after:18 });
+    drawLines(t`PLUMEPILOT · TEST DI AUTOVALUTAZIONE`, { bold:true, size:11, color:COLORS.accent, after:18 });
     drawLines(job.courseTitle, { bold:true, size:27, lineHeight:33, after:15 });
     drawLines(t`Le domande sono raccolte nella prima parte. Le soluzioni si trovano alla fine del documento e sono raggiungibili tramite link e segnalibri.`, { size:13, lineHeight:18, color:COLORS.muted });
     drawLines(generatedSignature(), { size:9.5, lineHeight:13, color:COLORS.muted, after:8 });
@@ -337,6 +338,7 @@
     }));
     const tests = await Promise.all(job.tests.map(async (test) => ({
       ...test,
+      section: localized(test.section),
       displayLessonNumber:displayChapterNumber(test),
       questions:await Promise.all(test.questions.map(async (question, questionIndex) => ({
         ...question,
@@ -368,16 +370,19 @@
     .shortcut-help{margin-top:9px;color:var(--muted);font-size:12px}.shortcut-help summary{display:list-item;width:max-content;max-width:100%;font-weight:600}.shortcut-help p{margin:5px 0 0;line-height:1.6}
     .app.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
     #quizSidebar[hidden]{display:none}
-    .app{position:relative}
-    .sidebar-toggle{position:absolute;z-index:2;top:14px;left:236px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:7px;background:transparent;color:#f4e8fc;cursor:pointer}
-    .sidebar-toggle:hover,.sidebar-toggle:focus-visible{background:#fff2}
+    #quizSidebar,.sidebar-toggle{grid-area:1 / 1}
+    .app>.content{grid-area:1 / 2}
+    .sidebar-collapsed>.content{grid-column:1}
+    .sidebar-toggle{position:sticky;z-index:2;top:14px;align-self:start;justify-self:end;margin:14px 12px 0 0;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:7px;background:#2b1839;color:#f4e8fc;cursor:pointer}
+    .sidebar-toggle:hover,.sidebar-toggle:focus-visible{background:#492c60}
     .sidebar-toggle:focus-visible{outline:2px solid currentColor;outline-offset:2px}
     #quizSidebar .brand{padding-right:30px}
-    .sidebar-collapsed .sidebar-toggle{left:16px;color:var(--text)}
+    .sidebar-collapsed .sidebar-toggle{justify-self:start;margin-left:16px;background:var(--card);color:var(--text)}
     .sidebar-collapsed .sidebar-toggle:hover,.sidebar-collapsed .sidebar-toggle:focus-visible{background:var(--line)}
     @media(max-width:760px){
-      .sidebar-toggle,.sidebar-collapsed .sidebar-toggle{left:auto;right:12px}
-      .sidebar-collapsed .content{margin-top:54px}
+      .app,.app.sidebar-collapsed{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+      .app>.content{grid-area:2 / 1}
+      .sidebar-collapsed .sidebar-toggle{justify-self:end;margin-left:0}
     }
     </style></head><body><div class="app"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-controls="quizSidebar" aria-expanded="true" aria-label="${t`Nascondi capitoli`}" title="${t`Nascondi capitoli`}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 5v14"/></svg></button><aside id="quizSidebar"><div class="brand">${t`PLUMEPILOT · QUIZ OFFLINE`}</div><h1 id="title"></h1><p class="score" id="score"></p><nav id="nav"></nav><p class="generated-signature">${generatedSignature()}</p></aside><main class="content"><section class="toolbar"><h2 id="chapterTitle" tabindex="-1"></h2><div class="options"><label><input id="shuffleQuestions" type="checkbox"> ${t`Mescola domande`}</label><label><input id="shuffleAnswers" type="checkbox"> ${t`Mescola risposte`}</label><label><input id="showSolutions" type="checkbox"> ${t`Mostra soluzioni`}</label></div><p id="reviewCounts" class="review-counts" aria-live="polite"></p><label class="review-filter">${t`Filtra domande`} <select id="reviewFilter"><option value="all">${t`Tutte`}</option><option value="verified">${t`🟢 Verificate`}</option><option value="review">${t`🟡 Da rivedere`}</option><option value="verify">${t`🔴 Da verificare`}</option><option value="observations">${t`Con osservazioni`}</option></select></label></section><div id="questions"></div><div class="actions"><button class="check" id="check">${t`Verifica capitolo`}</button><button id="reset">${t`Ricomincia capitolo`}</button><button id="downloadNotes">${t`Scarica HTML con appunti`}</button><output class="chapter-score" id="chapterScore" aria-live="polite" hidden></output></div></main></div><script id="notes-data" type="application/octet-stream">e30=</script><script>
     const DATA=${payload};

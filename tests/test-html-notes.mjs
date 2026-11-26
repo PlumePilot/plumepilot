@@ -4,7 +4,7 @@ const listeners=new Map();let capturedBlob=null;
 class Element {constructor(id=''){this.id=id;this.style={};this.dataset={};this.hidden=false;this.disabled=false;this.textContent='';}addEventListener(type,fn){listeners.set(this.id+':'+type,fn)}appendChild(){}append(){}remove(){}click(){}replaceChildren(){}}
 const elements=new Map(['courseTitle','summary','status','progressBar','downloadPdf','downloadHtml','missingCard','missingList'].map(id=>[id,new Element(id)]));
 const document={getElementById:id=>elements.get(id)||new Element(id),createElement:()=>new Element(),body:new Element('body'),documentElement:new Element('root'),title:''};
-const job={courseTitle:'Analisi matematica',operationId:'op',missing:[],tests:[{section:'Modulo 1',chapterTitle:'1 - Insiemi',lessonNumber:1,order:1,testId:42,questions:[{question:'Quanto vale α ≤ β?',correctPosition:1,images:[],answers:[{answer:'Sì',images:[]},{answer:'No',images:[]}]}]}]};
+const job={courseTitle:'Analisi matematica',operationId:'op',missing:[],tests:[{section:'lezioni',chapterTitle:'1 - Insiemi',lessonNumber:1,order:1,testId:42,questions:[{question:'Quanto vale α ≤ β?',correctPosition:1,images:[],answers:[{answer:'Sì',images:[]},{answer:'No',images:[]}]}]}]};
 const NativeURL=URL;NativeURL.createObjectURL=blob=>{capturedBlob=blob;return 'blob:test'};NativeURL.revokeObjectURL=()=>{};
 const english = process.env.PLUMEPILOT_QUIZ_LANGUAGE === "en";
 const chrome={runtime:{lastError:null,getManifest:()=>({version:'test'}),sendMessage:()=>{}},storage:{local:{get:(key,cb)=>cb(typeof key === "string" ? {[key]:job} : {plumePilotLanguage:english ? "en" : "it"}),remove:(key,cb)=>cb()}}};
@@ -46,6 +46,8 @@ if(!html.includes(english ? 'Generated with PlumePilot - Assistant for Multivers
 if (english && (!html.includes('<html lang="en"') || !html.includes('>Download HTML with notes<') || !html.includes('> Shuffle questions<'))) {
   throw new Error('English export lost its language or static labels');
 }
+const expectedSection = english ? "lessons" : "lezioni";
+if (!html.includes(`"section":"${expectedSection}"`)) throw new Error('incorrect exported section label');
 const scripts=[...html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)].map(match=>match[1]);
 new Function(scripts.at(-1));
 console.log('PASS: generated offline HTML keeps notes closed, marks saved content and supports persistent themes');

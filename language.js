@@ -10,13 +10,36 @@
     return language;
   }
 
-  function load() {
-    if (!globalThis.chrome?.storage?.local) return Promise.resolve(set("it"));
+  function read() {
+    if (!globalThis.chrome?.storage?.local) return Promise.resolve(null);
     return new Promise((resolve) => {
       chrome.storage.local.get({ [KEY]: "it" }, (result) => {
-        resolve(set(chrome.runtime.lastError ? "it" : result?.[KEY]));
+        resolve(chrome.runtime.lastError ? null : result?.[KEY] === "en" ? "en" : "it");
       });
     });
+  }
+
+  async function load() {
+    return set(await read() ?? language);
+  }
+
+  function watch(onChange) {
+    let revision = 0;
+    async function refresh() {
+      const request = ++revision;
+      const value = await read();
+      if (request === revision && value !== null) onChange(value);
+    }
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local" || !changes[KEY]) return;
+      revision++;
+      onChange(changes[KEY].newValue === "en" ? "en" : "it");
+    });
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) void refresh();
+    });
+    return refresh;
   }
 
   async function initializePage() {
@@ -61,12 +84,15 @@
     }
   }
 
-  function bindPicker(picker, onError) {
+  function bindPicker(picker, onError, refresh) {
     if (!picker) return;
     picker.value = language;
     picker.addEventListener("change", () => {
       chrome.storage.local.set({ [KEY]: picker.value }, () => {
-        if (!chrome.runtime.lastError) return;
+        if (!chrome.runtime.lastError) {
+          void refresh?.();
+          return;
+        }
         picker.value = language;
         onError(text("Impossibile salvare la lingua."));
       });
@@ -74,7 +100,7 @@
   }
 
   globalThis.PlumePilotLanguage = {
-    KEY, set, load, initializePage, addMessages, text, translate, localizeMarkup, bindPicker,
+    KEY, set, load, watch, initializePage, addMessages, text, translate, localizeMarkup, bindPicker,
     get current() { return language; },
   };
 })();

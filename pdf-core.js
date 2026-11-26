@@ -2,6 +2,7 @@
   "use strict";
   const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
 
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
   const A4 = [595.28, 841.89];
   const PAGE_MARGIN = 54;
   const ACCENT = { r: 207 / 255, g: 29 / 255, b: 86 / 255 };
@@ -158,7 +159,7 @@
     groups.forEach((group, sectionIndex) => {
       const childRefs = chapterRefs[sectionIndex];
       const sectionItem = {
-        Title: PDFHexString.fromText(group.label),
+        Title: PDFHexString.fromText(localized(group.label)),
         Parent: outlineRef,
         Dest: [group.items[0].firstPage.ref, PDFName.of("Fit")],
         First: childRefs[0],
@@ -336,10 +337,11 @@
 
     for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
       const group = groups[groupIndex];
+      const label = localized(group.label);
       const sectionGap = groupIndex > 0 ? 8 : 0;
       const firstEntryHeight = chapterEntryHeight(group.items[0]);
       if (
-        y - sectionGap - sectionHeadingHeight(group.label) - firstEntryHeight <
+        y - sectionGap - sectionHeadingHeight(label) - firstEntryHeight <
         54
       ) {
         addIndexPage();
@@ -347,14 +349,14 @@
         y -= sectionGap;
       }
 
-      drawSectionHeading(group.label, group.items[0].firstPage);
+      drawSectionHeading(label, group.items[0].firstPage);
 
       for (const item of group.items) {
         const entryHeight = chapterEntryHeight(item);
 
         if (y - entryHeight < 54) {
           addIndexPage();
-          drawSectionHeading(group.label, item.firstPage, true);
+          drawSectionHeading(label, item.firstPage, true);
         }
 
         drawChapterEntry(item);

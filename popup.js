@@ -8,14 +8,13 @@
     document.documentElement.lang = await language.load();
     document.title = language.text(document.title);
     language.localizeMarkup(document.body);
+    const refreshLanguage = language.watch((value) => {
+      if (value !== document.documentElement.lang) location.reload();
+    });
     language.bindPicker(document.querySelector('[data-role="language-picker"]'), (message) => {
       document.querySelector('[data-role="language-status"]').textContent = message;
-    });
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes[language.KEY]) return;
-      if (language.set(changes[language.KEY].newValue) === document.documentElement.lang) return;
-      location.reload();
-    });
+    }, refreshLanguage);
+    void refreshLanguage();
   }
 
   const checkbox = document.getElementById("enabled");

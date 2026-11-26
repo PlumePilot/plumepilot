@@ -133,7 +133,7 @@
       state = "paused";
       show(t`Pausa`, `<p>${t`Il livello riprende da qui quando vuoi.`}</p>`, [
         { label: t`Riprendi`, primary: true, onClick: () => { state = "playing"; overlay.hidden = true; lastFrame = performance.now(); } },
-        { label: "Torna a studiare", onClick: close },
+        { label: t`Torna a studiare`, onClick: close },
       ]);
     } else if (state === "paused") { state = "playing"; overlay.hidden = true; lastFrame = performance.now(); }
   }
@@ -142,7 +142,7 @@
     const sum = Object.values(totals).reduce((a, b) => a + b, 0);
     const cfu = Math.round(30 * sum / level.collectibles.length);
     show(t`Ecco come è andata`, `<div class="scores">📚 ${t`Dispense`} · ${totals.dispensa} / 30<br>📝 ${t`Test`} · ${totals.test} / 30<br>🎯 ${t`Obiettivi`} · ${totals.obiettivo} / 30</div><p><strong>${sum} / 90 ${t`raccolti`}</strong><br>🎓 <strong>${cfu} / 30 ${t`CFU di Plume`}</strong></p><p><em>${t`Ok, pausa finita.`}</em></p>`, [
-      { label: "Torna a studiare", primary: true, onClick: close },
+      { label: t`Torna a studiare`, primary: true, onClick: close },
       { label: t`Riprova`, onClick: reset },
     ]);
   }
@@ -304,7 +304,7 @@
   soundButton.addEventListener("click", () => { setSound(!soundEnabled, true); if (soundEnabled) effect("doubleChirp"); });
   document.getElementById("close").addEventListener("click", close);
   show(t`Una piccola pausa`, `<p>${t`Vola con Plume, raccogli dispense, test e obiettivi. Puoi fermarti quando vuoi.`}</p><p><strong>${t`Spazio, clic o tocco`}</strong>${t` per salire.`}</p>`, [
-    { label: t`Inizia`, primary: true, onClick: reset }, { label: "Torna a studiare", onClick: close },
+    { label: t`Inizia`, primary: true, onClick: reset }, { label: t`Torna a studiare`, onClick: close },
   ]);
   requestAnimationFrame(frame);
 })();

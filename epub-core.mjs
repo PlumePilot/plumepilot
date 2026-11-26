@@ -6,6 +6,8 @@ import { createImageAssetRegistry } from "./epub-assets.mjs";
 
 const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
 
+const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
+
 const STUDYWING_DEBUG = false;
 const debugLog = (...values) => {
   if (STUDYWING_DEBUG) console.info(...values);
@@ -1935,14 +1937,15 @@ export async function buildCourseEpub(
         }
         usesMathFont ||= converted.html.includes('<span class="math-symbol">');
       }
+      const chapterTitle = chapterLabelFor(material);
+      const section = localized(material.section);
+      const sectionLanguage = section !== material.section ? ' lang="en" xml:lang="en"' : "";
       zip.file(
         `OEBPS/${file}`,
         xhtml(
-          material.chapter,
-          `<main><h1>${escapeXml(
-            material.chapterTitle || material.chapter,
-            )}</h1>` +
-            `<p class="chapter-note">${escapeXml(material.section || "")}</p>` +
+          chapterTitle,
+          `<main><h1>${escapeXml(chapterTitle)}</h1>` +
+            `<p class="chapter-note"${sectionLanguage}>${escapeXml(section || "")}</p>` +
             `<p class="chapter-note"${locale === "en" ? ' lang="en" xml:lang="en"' : ""}><a href="../nav.xhtml#toc">${t`Torna all’indice`}</a></p>` +
             `${converted.html}</main>`,
         ),
@@ -2000,7 +2003,7 @@ export async function buildCourseEpub(
   const sectionGroups = groupBySection(included);
   const navItems = sectionGroups
     .map((group) =>
-      `<li><a href="${escapeXml(group.items[0].file)}">${escapeXml(group.label)}</a>` +
+      `<li><a href="${escapeXml(group.items[0].file)}">${escapeXml(localized(group.label))}</a>` +
         `<ol>${group.items
           .map(
             (item) =>
@@ -2058,7 +2061,7 @@ export async function buildCourseEpub(
 
       return (
         `<navPoint id="nav-section-${sectionIndex + 1}" playOrder="${sectionPlayOrder}">` +
-        `<navLabel><text>${escapeXml(group.label)}</text></navLabel>` +
+        `<navLabel><text>${escapeXml(localized(group.label))}</text></navLabel>` +
         `<content src="${escapeXml(group.items[0].file)}"/>${childPoints}</navPoint>`
       );
     })
