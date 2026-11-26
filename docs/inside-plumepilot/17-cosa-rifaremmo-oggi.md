@@ -422,6 +422,8 @@ URL patterns
 
 ## 18. Oggi formalizzeremmo prima l'adapter
 
+Un [**adapter di piattaforma**](glossario.md#platform-adapter) raccoglie le differenze tra le pagine dei tre atenei in una stessa interfaccia. Il resto dell'estensione potrebbe chiedergli quale capitolo è aperto senza conoscere i selettori o i percorsi usati da ciascuna piattaforma.
+
 Per esempio:
 
 ```js
@@ -610,6 +612,8 @@ DOM state
 ---
 
 ## 29. Oggi introdurremmo un reducer/state transition layer
+
+Un **reducer** calcola lo stato successivo a partire dallo stato corrente e da un evento. Un **livello di transizione** raccoglie queste regole. Per l'autoplay, per esempio, riceverebbe l'evento «video terminato» e deciderebbe se lo stato passa alla verifica del progresso.
 
 Non necessariamente XState.
 

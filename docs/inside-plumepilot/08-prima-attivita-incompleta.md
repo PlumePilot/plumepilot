@@ -6,6 +6,8 @@ Una delle funzioni apparentemente più semplici di PlumePilot pone in realtà un
 
 > **Dato un corso composto da molti capitoli e molte attività, come troviamo la prima attività realmente incompleta senza aprire e controllare tutto?**
 
+Lo [**spazio di ricerca**](glossario.md#search-space) è l'insieme delle attività che potrebbero essere la risposta. Un [**indice**](glossario.md#index) riassume il corso e indica dove cercare. Un'[**euristica**](glossario.md#heuristic) è una regola pratica per stabilire le priorità, per esempio controllare prima un capitolo sotto il 100%. Il [**fallback**](glossario.md#fallback) è il percorso alternativo che permette di continuare quando quel primo metodo non fornisce abbastanza informazioni.
+
 La risposta ingenua è facile:
 
 ```text
@@ -126,6 +128,8 @@ O(N)
 ```
 
 se consideriamo ogni capitolo come una unità.
+
+La **notazione Big O** descrive come cresce il costo al crescere della dimensione del problema. Qui, contando come unità le visite ai capitoli, nel caso peggiore il loro numero cresce al più linearmente con `N`. Il costo di ciascuna visita include la **CPU**, cioè il calcolo, e può includere **I/O** (*input/output*), come l'attesa di dati dalla rete.
 
 Ma questa notazione nasconde la parte realmente costosa.
 
@@ -313,7 +317,7 @@ Ma può dirci:
 
 > **Dove conviene guardare per prima.**
 
-È esattamente il ruolo assunto dal course/master index di PlumePilot.
+La [**master call**](glossario.md#master-call) è la richiesta da cui PlumePilot ricava il **course index** o **master index**. Quel riepilogo suggerisce di verificare il modulo 3. La [**chiamata di dettaglio**](glossario.md#chiamata-di-dettaglio) entra nel modulo e mostra, per esempio, il video B al 42% e il test allo 0%. Se l'indice è mancante o datato, o se il dettaglio è incompleto, l'algoritmo può ampliare le verifiche fino all'interfaccia del corso.
 
 ---
 

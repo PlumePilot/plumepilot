@@ -10,6 +10,10 @@ fetch('/api/users')
   .then(users => console.log(users));
 ```
 
+`fetch('/api/users')` avvia una richiesta HTTP all'[**API**](glossario.md#api) degli utenti, cioè all'interfaccia con cui il browser chiede quei dati al server. Restituisce subito una [**Promise**](glossario.md#promise), un oggetto che rappresenta l'esito dell'operazione. Mentre la risposta è in arrivo, il browser può continuare a gestire altri eventi.
+
+Ogni `.then()` riceve un **callback**, una funzione da eseguire quando il passaggio precedente riesce. Il primo callback usa `response.json()` per leggere il corpo della risposta e interpretarlo come **JSON**, un formato testuale per dati strutturati. Anche questa lettura restituisce una Promise. Il secondo callback riceve i dati risultanti e li scrive nella console. Un errore di rete o di lettura si propaga lungo la catena come rifiuto della Promise.
+
 L'esempio è utile per imparare `fetch`, ma elimina quasi tutti i problemi che rendono interessante il software reale:
 
 - chi decide quando eseguire la richiesta?
@@ -17,10 +21,10 @@ L'esempio è utile per imparare `fetch`, ma elimina quasi tutti i problemi che r
 - dove conserviamo il risultato?
 - quanto possiamo fidarci del dato ricevuto?
 - cosa accade se due parti dell'applicazione avviano la stessa operazione?
-- come comunichiamo il risultato a una UI che vive in un altro contesto?
+- come comunichiamo il risultato a un'interfaccia utente (**UI**, da *user interface*) che vive in un altro contesto?
 - cosa succede in Firefox se l'API usata in Chrome non è disponibile allo stesso modo?
 
-PlumePilot contiene tutte queste domande perché non è nato come esercizio didattico. È nato da problemi concreti: avanzare tra attività di un corso, organizzare materiali, creare quiz consultabili offline, generare PDF ed EPUB, osservare cambiamenti nello stato degli esami e offrire tutto questo in tre browser diversi.
+PlumePilot è nato per accompagnare lo studio nel **LMS** (*Learning Management System*), la piattaforma online che ospita corsi e attività. Cerca di risolvere problemi concreti come avanzare tra le attività, organizzare i materiali, creare quiz consultabili offline, generare PDF ed EPUB e osservare lo stato degli esami da tre browser diversi.
 
 Per questo il progetto è un buon laboratorio: i concetti non vengono aggiunti artificialmente alla spiegazione. Sono già lì perché il problema li ha resi necessari.
 
@@ -34,16 +38,16 @@ Questa descrizione smette presto di essere sufficiente.
 
 L'attuale PlumePilot contiene, tra le altre cose:
 
-- un popup dell'estensione;
-- un background/service worker;
-- più gruppi di content script caricati in momenti e contesti differenti;
-- un bridge tra il runtime dell'estensione e il runtime della pagina;
-- storage persistente;
-- coordinamento di operazioni lunghe;
-- generatori separati per PDF, EPUB e quiz;
-- un menu fluttuante inserito nelle pagine supportate;
-- compatibilità con Chrome, Edge e Firefox;
-- un processo di build e validazione delle release.
+- un **popup**, la pagina che si apre facendo clic sull'icona dell'estensione
+- un **background**, il componente che coordina eventi e operazioni anche quando il popup è chiuso. Su Chrome ed Edge, negli esempi del libro, gira come **service worker**, uno script che il browser può avviare in risposta agli eventi
+- più **content script**, programmi dell'estensione che girano in associazione a una pagina del corso
+- un **bridge**, il collegamento che inoltra messaggi tra gli ambienti di esecuzione dell'estensione e della pagina
+- **storage persistente** per conservare dati come il tema scelto anche dopo aver chiuso il popup o riavviato il browser
+- coordinamento di operazioni lunghe
+- generatori separati per PDF, EPUB e quiz
+- un menu fluttuante inserito nelle pagine supportate
+- compatibilità con Chrome, Edge e Firefox
+- una **build** che prepara i pacchetti da convalidare prima di distribuire una nuova versione, o **release**.
 
 Quindi una prima idea fondamentale è questa:
 
@@ -83,9 +87,13 @@ cache PlumePilot
 informazioni già osservate
 ```
 
-Tre fonti diverse, con costi e livelli di affidabilità diversi.
+Il [**DOM**](glossario.md#dom) è l'albero di elementi della pagina che JavaScript può leggere o modificare. L'API può fornire dati più strutturati sugli stessi elementi del corso. La [**cache**](glossario.md#cache) conserva informazioni già ottenute per riutilizzarle quando sono ancora valide.
+
+Per ciascuna di queste fonti cambia quanto costa consultarla e quanto possiamo fidarci del dato.
 
 Uno dei passaggi più interessanti nello sviluppo della ricerca della prima attività incompleta è stato proprio smettere di trattare una singola fonte come risposta universale e usare invece alcune informazioni come **indice** per decidere dove verificare.
+
+Un esempio è la [**master call**](glossario.md#master-call), il nome che usiamo per la richiesta HTTP che restituisce l'elenco dei moduli del corso con il progresso di ciascuno. Un modulo all'80% è un buon punto da cui iniziare la verifica. Il dettaglio del modulo serve poi a capire quali attività risultano incomplete.
 
 Questa distinzione è generalizzabile ben oltre PlumePilot:
 
@@ -113,19 +121,19 @@ Nel browser, invece:
 
 La correttezza non dipende soltanto da **cosa** fa il codice, ma anche da **quando** accadono gli eventi.
 
-Per questo parleremo molto di:
+Chiamiamo **asincrone** le operazioni che possono lasciare proseguire altro lavoro mentre si attende il loro esito. Per leggere gli esempi servono alcuni concetti ricorrenti:
 
-- Promise;
-- eventi;
-- timeout;
-- polling;
-- lease;
-- serializzazione;
-- race condition;
-- cancellazione;
-- idempotenza.
+- **Promise**, per usare il risultato di un'operazione appena è disponibile.
+- **Eventi**, segnali come la fine di un video.
+- [**Timeout**](glossario.md#timeout), la scadenza oltre la quale smettiamo di aspettare una risposta.
+- [**Polling**](glossario.md#polling), una verifica ripetuta a intervalli, ad esempio per vedere se una riga è comparsa nella pagina.
+- [**Lease**](glossario.md#lease), un diritto temporaneo a eseguire un'operazione.
+- **Serializzazione delle operazioni**, che impone un ordine di esecuzione quando più componenti vogliono aggiornare lo stesso stato.
+- [**Race condition**](glossario.md#race-condition), un difetto che emerge solo con certi ordini degli eventi.
+- **Cancellazione**, il segnale con cui chiediamo a un'operazione di fermarsi.
+- [**Idempotenza**](glossario.md#idempotenza), la proprietà di un'operazione che può essere ripetuta ottenendo lo stesso effetto previsto.
 
-Il monitor della commissione è un ottimo esempio. Nel codice reale, `bridge.js` non si limita a dire “controlla la commissione”: prima chiede al background il diritto temporaneo di eseguire il controllo, riceve un `leaseId`, effettua l'operazione e infine rilascia il lease.
+Il [**monitor della commissione**](glossario.md#monitor-della-commissione) controlla lo stato degli esami in valutazione. Prima di avviare il controllo, `bridge.js` chiede un lease al background. Se lo ottiene, riceve un `leaseId` che identifica la concessione, effettua l'operazione e infine rilascia il lease. Così due schede aperte non devono effettuare lo stesso controllo insieme.
 
 Non è burocrazia. È coordinamento concorrente.
 

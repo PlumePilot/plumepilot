@@ -10,13 +10,15 @@ A questo punto possiamo porci una domanda apparentemente semplice:
 
 La risposta non è unica.
 
+Lo **stato** è ciò che il programma ricorda per decidere come comportarsi. Una [**cache**](glossario.md#cache) conserva copie riutilizzabili, come i dettagli di una lezione già letti. Lo [**storage**](glossario.md#storage) è il servizio con cui il browser conserva dati come le preferenze. La loro durata dipende dall'area di storage scelta.
+
 Una preferenza dell'utente come il tema può vivere per mesi.
 
 Il risultato di una richiesta API può essere utile per cinque minuti.
 
-Un `operationId` deve sopravvivere al popup che si chiude, ma non può restare valido per sempre.
+Un [`operationId`](glossario.md#operationid) collega tutti i messaggi di uno stesso export. Deve restare valido anche se il popup si chiude, per il tempo necessario a concludere l'operazione.
 
-Un flag di recovery deve sopravvivere a un reload della pagina, ma sarebbe pericoloso conservarlo per giorni.
+Un **flag**, di solito un valore vero o falso, può indicare che c'è un **recovery** da eseguire. È il tentativo di riprendere un flusso interrotto, per esempio dopo il ricaricamento della pagina.
 
 Un Bearer token deve esistere abbastanza a lungo da effettuare una richiesta, ma non deve essere scritto su disco.
 
@@ -2580,7 +2582,7 @@ Se la firma cambia, la cache viene rigenerata.
 
 ## 33. TTL, fingerprint, evento: tre modi diversi di invalidare
 
-A questo punto possiamo confrontare tre strategie presenti nello stesso progetto.
+**Invalidare** una voce significa toglierla dai risultati riutilizzabili della cache. Il [**TTL**](glossario.md#ttl), o *time to live*, limita la durata di validità. Un [**fingerprint**](glossario.md#cache-fingerprint) è una firma ricavata dai dati di partenza, da confrontare alla lettura successiva. Un evento può invalidare una voce anche prima che scada, per esempio quando un download fallisce con un link che avevamo salvato.
 
 ### Time based
 

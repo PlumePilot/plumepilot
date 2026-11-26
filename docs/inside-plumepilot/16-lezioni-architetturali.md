@@ -31,6 +31,8 @@ store package
 
 Nel farlo abbiamo seguito feature concrete.
 
+Un **pattern architetturale** è un modo ricorrente di organizzare responsabilità per risolvere lo stesso tipo di problema. Un [**confine**](glossario.md#boundary) stabilisce come due componenti possono comunicare. Un [**adapter**](glossario.md#adapter) traduce i dati o le operazioni che passano da una parte all'altra, come quando PlumePilot converte una risposta della piattaforma nel proprio modello delle lezioni.
+
 Questo capitolo cambia prospettiva.
 
 Non ci chiederemo più:
@@ -445,7 +447,7 @@ Il problema non è soltanto scegliere una fonte.
 
 ## 17. Master call
 
-La master call è molto utile per:
+La [**master call**](glossario.md#master-call) restituisce l'indice con il progresso aggregato dei moduli. Da quel riepilogo ricaviamo:
 
 ```text
 routing
@@ -471,7 +473,7 @@ non necessariamente la source of truth finale.
 
 ## 18. Detail API
 
-Una lesson detail response fornisce evidenza più precisa su:
+La [**chiamata di dettaglio**](glossario.md#chiamata-di-dettaglio) chiede alla piattaforma i dati delle singole attività di un modulo. La risposta fornisce evidenza più precisa su:
 
 ```text
 Obiettivi

@@ -49,6 +49,10 @@ network-bound
 
 oppure una combinazione delle precedenti.
 
+Il suffisso **-bound** indica la risorsa che limita la velocità. Un'operazione *CPU-bound* passa gran parte del tempo a calcolare. Una *I/O-bound* aspetta soprattutto dati, ad esempio dalla rete. Il **main thread** è il filo di esecuzione principale della pagina. Se vi facciamo troppo lavoro senza pause, il browser può faticare a rispondere ai clic e a ridisegnare la UI.
+
+Il [**working set**](glossario.md#working-set) è l'insieme di dati tenuti in memoria in una fase del lavoro. La [**memoria di picco**](glossario.md#peak-memory) è il massimo raggiunto durante l'operazione, ad esempio quando la conversione EPUB tiene aperte immagini e buffer nello stesso momento.
+
 Il nostro obiettivo in questo capitolo non sarà quindi collezionare micro-ottimizzazioni.
 
 Costruiremo invece un metodo per rispondere a quattro domande:
@@ -2327,7 +2331,7 @@ PlumePilot contiene esempi di difese contro alcuni di questi rischi:
 
 ## 66. Tre snapshot come metodo mentale
 
-Per investigare retention è utile confrontare:
+Uno **snapshot della memoria** registra quali oggetti il browser sta ancora tenendo in memoria. La **retention** è il fatto che quegli oggetti rimangano raggiungibili, per esempio attraverso una cache. Per capire quali dati sopravvivono alla fine di un export, è utile confrontare:
 
 ```text
 A — prima dell'operazione
@@ -2343,7 +2347,7 @@ La domanda è:
 C torna vicino ad A?
 ```
 
-Non necessariamente byte-per-byte, perché GC, JIT e cache del browser possono variare.
+Il valore può variare tra una prova e l'altra. Il **GC** (*garbage collector*) libera periodicamente gli oggetti che il programma non può più raggiungere. Anche la compilazione **JIT** (*just in time*) e le cache del browser possono incidere sulla misura.
 
 Ma il trend è più informativo del singolo numero.
 

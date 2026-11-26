@@ -7,6 +7,8 @@
 > `f6fcb4c29c83ba9150df0be31da04fc91dffb634`.  
 > A differenza dei Capitoli 11–12, questo snapshot include anche la preparazione di **manifest, Novità e materiale AMO 2.35.2**, perché proprio il packaging cross-browser è parte dell'argomento.
 
+**AMO** sta per *addons.mozilla.org*, il catalogo di Mozilla per gli add-on di Firefox. Il **packaging** prepara l'archivio da consegnare allo store, passando dal sorgente ai file e al manifest previsti per il browser di destinazione. Questo archivio è un [**artefatto di build**](glossario.md#artefatto-di-build).
+
 Nei capitoli precedenti abbiamo spesso scritto:
 
 ```text
@@ -23,7 +25,7 @@ Il DOM è DOM.
 
 Una `Map` è una `Map`.
 
-Una Promise continua a rappresentare un'operazione asincrona.
+Una [Promise](glossario.md#promise) continua a rappresentare l'esito di un'operazione asincrona.
 
 Ma quando costruiamo, distribuiamo e manteniamo una **browser extension reale**, quella semplificazione smette presto di essere sufficiente.
 
@@ -784,6 +786,8 @@ Questa è stata una delle lezioni più pratiche del progetto.
 # Parte VII — Reviewability è una proprietà tecnica
 
 ## 20. Il problema dei vendor bundle
+
+Il **vendor code** è il codice di librerie esterne incluse nel progetto. Un **bundle** riunisce più file da distribuire insieme. La **minificazione** riduce lo spazio occupato dal codice, per esempio abbreviando i nomi locali. L'**offuscamento** aggiunge trasformazioni progettate per renderne difficile la lettura.
 
 PlumePilot usa librerie importanti:
 

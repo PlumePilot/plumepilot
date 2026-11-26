@@ -16,7 +16,7 @@ PlumePilot
 decisione / navigazione / stato
 ```
 
-Con la generazione dei documenti compare invece una pipeline diversa:
+Una [**pipeline**](glossario.md#pipeline) è una sequenza di fasi in cui l'uscita di una fase alimenta quella successiva. Nella generazione dei documenti, la normalizzazione porta i dati raccolti a un formato coerente. La trasformazione li adatta al documento e la **serializzazione** li rappresenta come testo o byte da salvare in un file.
 
 ```text
 pagina / API
@@ -47,6 +47,8 @@ La cosa interessante è che i tre output risolvono problemi diversi.
 - Il **PDF** cerca soprattutto di preservare fedelmente il documento originale.
 - L'**HTML offline** trasforma dati strutturati in una piccola applicazione autonoma.
 - L'**EPUB** prova a reinterpretare un documento pensato per pagine fisse come un libro digitale adattabile allo schermo.
+
+Quando il testo di un EPUB si ridispone dopo un cambio di larghezza o di carattere, si parla di [**reflow**](glossario.md#reflow). In un documento a [**layout fisso**](glossario.md#fixed-layout), le posizioni sulla pagina seguono l'impaginazione originale.
 
 Il terzo problema è di gran lunga il più difficile.
 
@@ -165,7 +167,7 @@ Il popup può quindi essere chiuso senza distruggere necessariamente il processo
 
 Quando lavoriamo normalmente con JavaScript manipoliamo soprattutto oggetti e stringhe.
 
-Un PDF o un EPUB, però, è una sequenza di byte.
+Un PDF o un EPUB è una sequenza di **byte**. Un byte, composto da otto bit, può rappresentare 256 valori. Il formato del file stabilisce come interpretare la sequenza, per esempio quali byte descrivono testo e quali un'immagine.
 
 Per questo nel codice compaiono spesso tre concetti:
 

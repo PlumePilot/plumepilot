@@ -8,6 +8,8 @@
 
 Un bug corretto oggi può tornare domani.
 
+Una **regressione** è la perdita di un comportamento che prima funzionava. Una [**riproduzione minima**](glossario.md#minimal-reproducer) ricrea il problema con pochi passi e dati essenziali. L'[**invariante**](glossario.md#invariant) è la regola che deve continuare a valere, per esempio riconoscere la stessa lezione anche dopo che la pagina ne ha ricreato la riga. Un [**test di regressione**](glossario.md#regression-test) ripete lo scenario e verifica quella regola.
+
 Un bug corretto e trasformato in:
 
 ```text
@@ -2492,7 +2494,7 @@ Test e benchmark si completano.
 
 ## 103. EPUB
 
-Una fixture può rappresentare:
+Una [**fixture**](glossario.md#fixture) è un input predisposto e ripetibile per un test. Per l'export EPUB può essere un PDF di esempio che contiene:
 
 ```text
 tabella
@@ -2508,7 +2510,7 @@ e diventare input stabile.
 
 ## 104. Golden output
 
-Possiamo confrontare:
+Il [**golden output**](glossario.md#golden-file) è il risultato atteso che conserviamo come riferimento per i test successivi. Per l'EPUB possiamo confrontare:
 
 ```text
 struttura XHTML

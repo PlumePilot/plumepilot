@@ -6,6 +6,8 @@ Nel Capitolo 9 abbiamo visto che il quiz HTML generato da PlumePilot non è semp
 
 Con la versione 2.35.0 quell'applicazione ha acquistato una caratteristica ancora più interessante: due campi di appunti per ogni domanda — **Spiegazione** e **Osservazioni** — non sono più semplici caselle di testo, ma piccoli editor rich-text.
 
+Il **rich text** conserva sia le parole sia la loro formattazione, per esempio il grassetto. Con l'attributo HTML `contenteditable`, il browser permette di modificare direttamente una parte della pagina. L'API [`Selection`](glossario.md#selection) descrive la selezione corrente o il **caret**, il cursore che segna il punto di inserimento del testo. Un [`Range`](glossario.md#range) delimita un intervallo nel DOM con un punto iniziale e uno finale.
+
 L'utente può usare:
 
 - grassetto;
@@ -16,10 +18,10 @@ L'utente può usare:
 - liste puntate e numerate;
 - checklist;
 - evidenziazioni colorate;
-- callout;
+- [callout](glossario.md#callout), riquadri che mettono in evidenza una nota;
 - testo nascosto per il ripasso;
 - simboli matematici;
-- undo e redo;
+- undo e redo, per annullare e ripristinare un'azione;
 - scorciatoie da tastiera;
 - stato personale della domanda.
 

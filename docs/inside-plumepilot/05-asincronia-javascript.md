@@ -389,15 +389,13 @@ poi rileggi il DOM in un task successivo
 
 ## 9. Una Promise non è il risultato
 
-Una `Promise` rappresenta un valore che può diventare disponibile in futuro.
+Una [**Promise**](glossario.md#promise) è un oggetto JavaScript che rappresenta l'esito di un'operazione. Il codice può usarlo subito per stabilire come proseguire quando il valore o il motivo dell'errore saranno disponibili.
 
-Può trovarsi in uno di tre stati concettuali:
+Può trovarsi in uno di tre stati:
 
-```text
-pending
-fulfilled
-rejected
-```
+- **Pending** significa che l'esito è ancora in attesa.
+- **Fulfilled** significa che l'operazione ha prodotto un valore.
+- **Rejected** significa che la Promise si è conclusa con un motivo di errore.
 
 Per esempio:
 
@@ -405,9 +403,9 @@ Per esempio:
 const promise = fetch(url);
 ```
 
-`promise` non contiene ancora la risposta HTTP.
+In questo caso la Promise si completa con un oggetto `Response` quando la risposta HTTP diventa disponibile. Anche uno status come `404` può produrre una `Response`. Per riconoscere una risposta HTTP riuscita si controlla `response.ok`. Un errore di rete causa il rifiuto della Promise.
 
-Contiene una rappresentazione dell'operazione che produrrà quella risposta oppure un errore.
+Con `await promise` la funzione asincrona sospende la propria esecuzione e lascia al browser la possibilità di gestire altro lavoro. Riprende con il valore quando la Promise è *fulfilled*. Se è *rejected*, `await` solleva il motivo del rifiuto, gestibile con `try` e `catch`.
 
 ---
 

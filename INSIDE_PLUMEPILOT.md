@@ -26,6 +26,10 @@ fetch('/api/users')
   .then(users => console.log(users));
 ```
 
+`fetch('/api/users')` avvia una richiesta HTTP all'[**API**](#api) degli utenti, cioè all'interfaccia con cui il browser chiede quei dati al server. Restituisce subito una [**Promise**](#promise), un oggetto che rappresenta l'esito dell'operazione. Mentre la risposta è in arrivo, il browser può continuare a gestire altri eventi.
+
+Ogni `.then()` riceve un **callback**, una funzione da eseguire quando il passaggio precedente riesce. Il primo callback usa `response.json()` per leggere il corpo della risposta e interpretarlo come **JSON**, un formato testuale per dati strutturati. Anche questa lettura restituisce una Promise. Il secondo callback riceve i dati risultanti e li scrive nella console. Un errore di rete o di lettura si propaga lungo la catena come rifiuto della Promise.
+
 L'esempio è utile per imparare `fetch`, ma elimina quasi tutti i problemi che rendono interessante il software reale:
 
 - chi decide quando eseguire la richiesta?
@@ -33,10 +37,10 @@ L'esempio è utile per imparare `fetch`, ma elimina quasi tutti i problemi che r
 - dove conserviamo il risultato?
 - quanto possiamo fidarci del dato ricevuto?
 - cosa accade se due parti dell'applicazione avviano la stessa operazione?
-- come comunichiamo il risultato a una UI che vive in un altro contesto?
+- come comunichiamo il risultato a un'interfaccia utente (**UI**, da *user interface*) che vive in un altro contesto?
 - cosa succede in Firefox se l'API usata in Chrome non è disponibile allo stesso modo?
 
-PlumePilot contiene tutte queste domande perché non è nato come esercizio didattico. È nato da problemi concreti: avanzare tra attività di un corso, organizzare materiali, creare quiz consultabili offline, generare PDF ed EPUB, osservare cambiamenti nello stato degli esami e offrire tutto questo in tre browser diversi.
+PlumePilot è nato per accompagnare lo studio nel **LMS** (*Learning Management System*), la piattaforma online che ospita corsi e attività. Cerca di risolvere problemi concreti come avanzare tra le attività, organizzare i materiali, creare quiz consultabili offline, generare PDF ed EPUB e osservare lo stato degli esami da tre browser diversi.
 
 Per questo il progetto è un buon laboratorio: i concetti non vengono aggiunti artificialmente alla spiegazione. Sono già lì perché il problema li ha resi necessari.
 
@@ -50,16 +54,16 @@ Questa descrizione smette presto di essere sufficiente.
 
 L'attuale PlumePilot contiene, tra le altre cose:
 
-- un popup dell'estensione;
-- un background/service worker;
-- più gruppi di content script caricati in momenti e contesti differenti;
-- un bridge tra il runtime dell'estensione e il runtime della pagina;
-- storage persistente;
-- coordinamento di operazioni lunghe;
-- generatori separati per PDF, EPUB e quiz;
-- un menu fluttuante inserito nelle pagine supportate;
-- compatibilità con Chrome, Edge e Firefox;
-- un processo di build e validazione delle release.
+- un **popup**, la pagina che si apre facendo clic sull'icona dell'estensione
+- un **background**, il componente che coordina eventi e operazioni anche quando il popup è chiuso. Su Chrome ed Edge, negli esempi del libro, gira come **service worker**, uno script che il browser può avviare in risposta agli eventi
+- più **content script**, programmi dell'estensione che girano in associazione a una pagina del corso
+- un **bridge**, il collegamento che inoltra messaggi tra gli ambienti di esecuzione dell'estensione e della pagina
+- **storage persistente** per conservare dati come il tema scelto anche dopo aver chiuso il popup o riavviato il browser
+- coordinamento di operazioni lunghe
+- generatori separati per PDF, EPUB e quiz
+- un menu fluttuante inserito nelle pagine supportate
+- compatibilità con Chrome, Edge e Firefox
+- una **build** che prepara i pacchetti da convalidare prima di distribuire una nuova versione, o **release**.
 
 Quindi una prima idea fondamentale è questa:
 
@@ -99,9 +103,13 @@ cache PlumePilot
 informazioni già osservate
 ```
 
-Tre fonti diverse, con costi e livelli di affidabilità diversi.
+Il [**DOM**](#dom) è l'albero di elementi della pagina che JavaScript può leggere o modificare. L'API può fornire dati più strutturati sugli stessi elementi del corso. La [**cache**](#cache) conserva informazioni già ottenute per riutilizzarle quando sono ancora valide.
+
+Per ciascuna di queste fonti cambia quanto costa consultarla e quanto possiamo fidarci del dato.
 
 Uno dei passaggi più interessanti nello sviluppo della ricerca della prima attività incompleta è stato proprio smettere di trattare una singola fonte come risposta universale e usare invece alcune informazioni come **indice** per decidere dove verificare.
+
+Un esempio è la [**master call**](#master-call), il nome che usiamo per la richiesta HTTP che restituisce l'elenco dei moduli del corso con il progresso di ciascuno. Un modulo all'80% è un buon punto da cui iniziare la verifica. Il dettaglio del modulo serve poi a capire quali attività risultano incomplete.
 
 Questa distinzione è generalizzabile ben oltre PlumePilot:
 
@@ -129,19 +137,19 @@ Nel browser, invece:
 
 La correttezza non dipende soltanto da **cosa** fa il codice, ma anche da **quando** accadono gli eventi.
 
-Per questo parleremo molto di:
+Chiamiamo **asincrone** le operazioni che possono lasciare proseguire altro lavoro mentre si attende il loro esito. Per leggere gli esempi servono alcuni concetti ricorrenti:
 
-- Promise;
-- eventi;
-- timeout;
-- polling;
-- lease;
-- serializzazione;
-- race condition;
-- cancellazione;
-- idempotenza.
+- **Promise**, per usare il risultato di un'operazione appena è disponibile.
+- **Eventi**, segnali come la fine di un video.
+- [**Timeout**](#timeout), la scadenza oltre la quale smettiamo di aspettare una risposta.
+- [**Polling**](#polling), una verifica ripetuta a intervalli, ad esempio per vedere se una riga è comparsa nella pagina.
+- [**Lease**](#lease), un diritto temporaneo a eseguire un'operazione.
+- **Serializzazione delle operazioni**, che impone un ordine di esecuzione quando più componenti vogliono aggiornare lo stesso stato.
+- [**Race condition**](#race-condition), un difetto che emerge solo con certi ordini degli eventi.
+- **Cancellazione**, il segnale con cui chiediamo a un'operazione di fermarsi.
+- [**Idempotenza**](#idempotenza), la proprietà di un'operazione che può essere ripetuta ottenendo lo stesso effetto previsto.
 
-Il monitor della commissione è un ottimo esempio. Nel codice reale, `bridge.js` non si limita a dire “controlla la commissione”: prima chiede al background il diritto temporaneo di eseguire il controllo, riceve un `leaseId`, effettua l'operazione e infine rilascia il lease.
+Il [**monitor della commissione**](#monitor-della-commissione) controlla lo stato degli esami in valutazione. Prima di avviare il controllo, `bridge.js` chiede un lease al background. Se lo ottiene, riceve un `leaseId` che identifica la concessione, effettua l'operazione e infine rilascia il lease. Così due schede aperte non devono effettuare lo stesso controllo insieme.
 
 Non è burocrazia. È coordinamento concorrente.
 
@@ -297,7 +305,9 @@ Nel nostro snapshot di riferimento, il manifest inizia così:
 }
 ```
 
-`manifest_version: 3` ci dice che stiamo usando il modello moderno delle extension Chromium e delle WebExtensions compatibili.
+`manifest_version: 3` indica **Manifest V3**, la versione del modello che disciplina come il browser carica e gestisce i componenti dell'estensione. **WebExtensions** indica il modello di API e configurazione condiviso da più browser. **Chromium** è il progetto open source su cui si basano Chrome ed Edge. Vedremo le differenze di configurazione con Firefox nel [Capitolo 13](#13--chrome-edge-e-firefox).
+
+Nei frammenti potresti incontrare nomi come `StudyWing` o `PEGASO_`. [**StudyWing**](#studywing) era il nome precedente di PlumePilot. Prefissi come `PEGASO_` risalgono al periodo in cui l'estensione era dedicata a Pegaso e identificano ancora messaggi usati nel codice.
 
 Ma le righe realmente interessanti arrivano poco dopo.
 
@@ -327,7 +337,7 @@ Questa è già una prima lezione architetturale:
 
 > Il browser crea confini prima ancora che il nostro codice inizi a girare.
 
-Non possiamo comprendere PlumePilot guardando soltanto le funzioni. Dobbiamo capire **in quale runtime** gira ogni funzione.
+Il **runtime** è l'ambiente in cui gira il codice. Nel popup possiamo aggiornare gli elementi di `popup.html`. Un content script lavora invece sulla pagina a cui è associato e il background ha un ciclo di vita gestito dal browser.
 
 ---
 
@@ -1009,6 +1019,8 @@ Nel capitolo precedente abbiamo visto che PlumePilot non vive in un unico ambien
 
 Il popup, il background, i content script nel mondo isolato, gli script nel `MAIN` world e le pagine builder sono componenti distinti. Possono appartenere alla stessa estensione, ma **non condividono automaticamente memoria, scope globale o ciclo di vita**.
 
+Lo **scope globale** è l'insieme dei nomi accessibili al codice a livello globale nel suo ambiente. Il **ciclo di vita** (*lifecycle*) indica quando quell'ambiente nasce e quando viene chiuso, sospeso o ricreato. Per esempio, il popup può chiudersi mentre la [**pagina builder**](#pagina-builder) continua a produrre il file da scaricare.
+
 Questo cambia radicalmente il modo in cui dobbiamo ragionare sul programma.
 
 In una normale funzione possiamo fare questo:
@@ -1067,6 +1079,8 @@ Questo oggetto non contiene comportamento. Contiene **dati che descrivono una ri
 
 Il campo più importante è spesso `type`.
 
+Il **payload** è il contenuto che accompagna il tipo del messaggio. Qui `type` indica che si vuole avviare un export, mentre `format` e `sourceTabId` precisano il tipo di export e la scheda di origine. Un oggetto **serializzabile** può essere rappresentato come dati e ricostruito dall'altra parte del confine.
+
 Puoi pensarlo come a una route:
 
 ```text
@@ -1081,7 +1095,7 @@ PEGASO_START_EXPORT
 
 nel sistema di messaging.
 
-Il destinatario guarda quel valore e decide quale handler eseguire.
+Il destinatario guarda quel valore e sceglie l'**handler**, la funzione che gestisce quel tipo di messaggio.
 
 In `background.js` accade esattamente questo:
 
@@ -1102,7 +1116,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 Riferimento reale: [`background.js`, dispatcher dei messaggi](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/background.js#L918-L945).
 
-Il background si comporta quindi come un piccolo **dispatcher**:
+Il background si comporta quindi come un [**dispatcher**](#dispatcher). Smista il messaggio alla funzione corrispondente a `message.type`:
 
 ```text
 message.type
@@ -1677,6 +1691,8 @@ La differenza è che qui il meccanismo di risposta è gestito dal runtime dell'e
 
 ## 11. Perché PlumePilot trasforma i callback in Promise
 
+Un [**callback**](#callback) è una funzione che passiamo a un'altra funzione perché la chiami al momento opportuno. Qui il browser esegue il callback quando ha una risposta al messaggio o un errore da comunicare. Una [**Promise**](#promise) dà al chiamante un oggetto su cui aspettare quell'esito con `await`.
+
 Nel popup troviamo:
 
 ```js
@@ -1694,6 +1710,8 @@ function runtimeMessage(message) {
 ```
 
 Riferimento: [`popup.js` L1296–L1306](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/popup.js#L1296-L1306).
+
+In `runtimeMessage()`, `resolve(...)` conclude l'attesa con un valore. Anche un errore del canale viene restituito come valore, `{ accepted: false, reason: ... }`. Il chiamante può così verificare `accepted` dopo `await`.
 
 Il chiamante può quindi scrivere:
 
@@ -3410,6 +3428,8 @@ Il vero problema è rispondere a domande come:
 - se la tab è nascosta, i timeout hanno ancora lo stesso significato?
 - se il frontend ricostruisce la sidebar, posso continuare a usare il vecchio riferimento DOM?
 
+Un **nodo DOM** è un oggetto dell'albero della pagina, per esempio un elemento o un pezzo di testo. Per **rendering** intendiamo il lavoro con cui il browser prepara e mostra l'interfaccia a partire dai dati e dagli stili. Un **accordion** è un gruppo di sezioni apribili e richiudibili. Nella pagina del corso, aprirne una può far comparire nel DOM le righe delle attività.
+
 Queste non sono domande specifiche di PlumePilot.
 
 Sono problemi tipici di qualunque software che debba integrarsi con una **UI dinamica non controllata**: browser extension, userscript, test end-to-end, automazione, accessibility tooling, web scraping interattivo o integrazioni con applicazioni legacy.
@@ -3483,6 +3503,8 @@ L'identità DOM no.
 ---
 
 ## 2. Un riferimento DOM non è un'identità logica
+
+Un **selettore CSS** è un'espressione che indica quali elementi cercare. Il selettore `.lesson` cerca un elemento con la classe `lesson`. Un [**riferimento DOM**](#stale-dom-reference) conserva l'oggetto trovato in quel momento, anche se la piattaforma lo sostituisce in seguito.
 
 Supponiamo di fare:
 
@@ -5047,6 +5069,8 @@ Quindi il check significa più precisamente:
 
 ## 42. La percentuale è una baseline
 
+La [**baseline DOM**](#baseline-dom) è il progresso iniziale letto dalla pagina. Il **delta di sessione** è l'incremento osservato da PlumePilot durante la sessione. Sommandoli, il codice può stimare il progresso quando manca un valore preciso.
+
 Il codice di progresso contiene:
 
 ```js
@@ -5085,7 +5109,7 @@ quello prevale.
 
 ## 43. Hierarchy of evidence
 
-Possiamo descrivere questa architettura come una gerarchia di evidenze:
+La **gerarchia di evidenze** ordina le fonti secondo la loro affidabilità per una decisione. Qui stabilisce quando usare un valore preciso e quando ricorrere alla stima:
 
 ```text
 valore esatto disponibile
@@ -5114,6 +5138,8 @@ stato locale
 ```
 
 non avranno tutti lo stesso peso.
+
+Nel diagramma, la [**master call**](#master-call) è la richiesta che restituisce un riepilogo del corso, con una percentuale per modulo. Quella percentuale orienta la ricerca. Le singole attività richiedono evidenza più dettagliata.
 
 ---
 
@@ -6408,6 +6434,8 @@ DOM
 
 Quando la piattaforma mostra un capitolo, una percentuale, una dispensa o un test, quei dati devono essere arrivati da qualche parte.
 
+**HTTP** è il protocollo con cui il browser invia la richiesta e il server risponde. Un [**endpoint**](#endpoint) è il punto dell'API a cui si indirizza una richiesta, per esempio un percorso da leggere con il metodo `GET`. Il **payload** della risposta è il suo contenuto utile, spesso codificato in **JSON**.
+
 PlumePilot ha imparato progressivamente a osservare proprio questo livello.
 
 Ed è qui che entra il tema del capitolo:
@@ -7032,19 +7060,15 @@ perché rende più chiaro:
 
 ## 18. Quello che nel progetto chiamiamo "master call"
 
-Uno degli endpoint più importanti è costruito così:
+Nel lessico di PlumePilot, la [**master call**](#master-call) è la richiesta HTTP che chiede alla piattaforma l'indice di un corso. La risposta raggruppa i moduli con i rispettivi identificatori, l'ordine di visualizzazione e la percentuale di progresso. Nello snapshot del libro, il percorso della richiesta di indice termina con `/0`.
+
+Il codice costruisce l'URL così:
 
 ```js
 url = `${API_ORIGIN}/student/course/${encodeURIComponent(courseCode)}/video-lessons/0`;
 ```
 
 Riferimento: [`commission-interceptor.js` L453-L455](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L453-L455).
-
-Nel nostro lessico durante lo sviluppo l'abbiamo spesso chiamato **master call**.
-
-Non è necessariamente il nome ufficiale dell'endpoint.
-
-È il nostro nome concettuale per una risposta che descrive l'insieme dei moduli del corso e il loro stato sintetico.
 
 Possiamo pensarla come:
 
@@ -7057,7 +7081,7 @@ corso
  └── modulo E   100%
 ```
 
-Questo tipo di vista aggregata è preziosissima.
+Se il modulo C risulta all'80%, PlumePilot può dargli priorità nella ricerca della prima attività incompleta. La [**chiamata di dettaglio**](#chiamata-di-dettaglio) restituisce lo stato di obiettivi, video e test del singolo modulo. È lì che si cercano le evidenze sulle singole attività. Il [Capitolo 08](#08--trovare-la-prima-attività-incompleta) mostra come recupera la ricerca quando il riepilogo o il dettaglio sono incompleti.
 
 ---
 
@@ -7081,6 +7105,8 @@ return {
 
 Riferimento: [`commission-interceptor.js` L99-L120](https://github.com/PlumePilot/plumepilot/blob/a8007425f81792e7570516dbdf1e7fb2cbda4d53/commission-interceptor.js#L99-L120).
 
+`displayOrder` indica l'ordine di visualizzazione esposto dalla piattaforma. `masterOrder` è la posizione, a partire da zero, della voce nella risposta originale della master call prima dell'ordinamento locale. Conservare entrambi aiuta quando più voci riportano lo stesso `displayOrder`.
+
 Questa fase è molto simile a ciò che in un backend potresti chiamare:
 
 ```text
@@ -7089,6 +7115,8 @@ adapter
 anti-corruption layer
 normalization layer
 ```
+
+Un **DTO** (*Data Transfer Object*) trasporta dati tra componenti. Qui il *mapping* converte campi e tipi del JSON in quelli usati da PlumePilot. Un [**adapter**](#adapter) fa da traduttore tra due interfacce. Quando quella traduzione protegge il modello interno dalle convenzioni di un sistema esterno, si parla di [**anti-corruption layer**](#anti-corruption-layer).
 
 Il resto di PlumePilot non deve conoscere ogni dettaglio del JSON originale.
 
@@ -7262,7 +7290,9 @@ Il resto dell'applicazione ragiona su concetti PlumePilot, non sul payload grezz
 
 ## 26. `content.js` non conosce il token
 
-Quando `content.js` vuole dati API usa:
+Nel codice, [**Turbo API**](#turbo-api) identifica il canale interno con cui `content.js` chiede dati strutturati a un componente che comunica con la piattaforma. La richiesta `outline` cerca l'indice del corso e `lesson` chiede il dettaglio di una lezione.
+
+Il codice usa questo canale con `turboApiRequest()`:
 
 ```js
 function turboApiRequest(action, payload = {}) {
@@ -7290,7 +7320,7 @@ const response = await turboApiRequest("lesson", {
 });
 ```
 
-Concettualmente è una piccola **RPC locale**.
+Concettualmente è una piccola **RPC locale** (*remote procedure call*). Il chiamante chiede a un altro ambiente di esecuzione di svolgere un'operazione e ne attende il risultato attraverso messaggi, anche se entrambi gli ambienti appartengono alla stessa scheda.
 
 ---
 
@@ -9817,15 +9847,13 @@ poi rileggi il DOM in un task successivo
 
 ## 9. Una Promise non è il risultato
 
-Una `Promise` rappresenta un valore che può diventare disponibile in futuro.
+Una [**Promise**](#promise) è un oggetto JavaScript che rappresenta l'esito di un'operazione. Il codice può usarlo subito per stabilire come proseguire quando il valore o il motivo dell'errore saranno disponibili.
 
-Può trovarsi in uno di tre stati concettuali:
+Può trovarsi in uno di tre stati:
 
-```text
-pending
-fulfilled
-rejected
-```
+- **Pending** significa che l'esito è ancora in attesa.
+- **Fulfilled** significa che l'operazione ha prodotto un valore.
+- **Rejected** significa che la Promise si è conclusa con un motivo di errore.
 
 Per esempio:
 
@@ -9833,9 +9861,9 @@ Per esempio:
 const promise = fetch(url);
 ```
 
-`promise` non contiene ancora la risposta HTTP.
+In questo caso la Promise si completa con un oggetto `Response` quando la risposta HTTP diventa disponibile. Anche uno status come `404` può produrre una `Response`. Per riconoscere una risposta HTTP riuscita si controlla `response.ok`. Un errore di rete causa il rifiuto della Promise.
 
-Contiene una rappresentazione dell'operazione che produrrà quella risposta oppure un errore.
+Con `await promise` la funzione asincrona sospende la propria esecuzione e lascia al browser la possibilità di gestire altro lavoro. Riprende con il valore quando la Promise è *fulfilled*. Se è *rejected*, `await` solleva il motivo del rifiuto, gestibile con `try` e `catch`.
 
 ---
 
@@ -12782,13 +12810,15 @@ A questo punto possiamo porci una domanda apparentemente semplice:
 
 La risposta non è unica.
 
+Lo **stato** è ciò che il programma ricorda per decidere come comportarsi. Una [**cache**](#cache) conserva copie riutilizzabili, come i dettagli di una lezione già letti. Lo [**storage**](#storage) è il servizio con cui il browser conserva dati come le preferenze. La loro durata dipende dall'area di storage scelta.
+
 Una preferenza dell'utente come il tema può vivere per mesi.
 
 Il risultato di una richiesta API può essere utile per cinque minuti.
 
-Un `operationId` deve sopravvivere al popup che si chiude, ma non può restare valido per sempre.
+Un [`operationId`](#operationid) collega tutti i messaggi di uno stesso export. Deve restare valido anche se il popup si chiude, per il tempo necessario a concludere l'operazione.
 
-Un flag di recovery deve sopravvivere a un reload della pagina, ma sarebbe pericoloso conservarlo per giorni.
+Un **flag**, di solito un valore vero o falso, può indicare che c'è un **recovery** da eseguire. È il tentativo di riprendere un flusso interrotto, per esempio dopo il ricaricamento della pagina.
 
 Un Bearer token deve esistere abbastanza a lungo da effettuare una richiesta, ma non deve essere scritto su disco.
 
@@ -15352,7 +15382,7 @@ Se la firma cambia, la cache viene rigenerata.
 
 ## 33. TTL, fingerprint, evento: tre modi diversi di invalidare
 
-A questo punto possiamo confrontare tre strategie presenti nello stesso progetto.
+**Invalidare** una voce significa toglierla dai risultati riutilizzabili della cache. Il [**TTL**](#ttl), o *time to live*, limita la durata di validità. Un [**fingerprint**](#cache-fingerprint) è una firma ricavata dai dati di partenza, da confrontare alla lettura successiva. Un evento può invalidare una voce anche prima che scada, per esempio quando un download fallisce con un link che avevamo salvato.
 
 ### Time based
 
@@ -16671,6 +16701,8 @@ materials-builder.js
 
 ## Dal flusso di funzioni al comportamento del sistema
 
+L'**autoplay** di PlumePilot coordina l'avanzamento tra le attività del corso durante la visione, secondo le preferenze attive. Lo leggeremo come una [**macchina a stati**](#state-machine). Uno **stato** descrive in quale fase si trova il flusso, una **transizione** è il passaggio a un'altra fase e una **guardia** è la condizione da verificare prima di consentire il passaggio. La fine di un video è un evento. La preferenza di fermarsi davanti a un test può impedire l'avvio del video successivo.
+
 Finora abbiamo studiato quasi tutti gli ingredienti che rendono possibile l'autoplay di PlumePilot:
 
 - il DOM dinamico della piattaforma;
@@ -17895,6 +17927,8 @@ Il software conserva il minimo contesto necessario a ricostruire una transizione
 ---
 
 ## 23. Soglia del 70% e limite sessione sono stati terminali relativi
+
+La **soglia del 70%** riguarda il progresso del corso. Il **limite della sessione** riguarda il numero di capitoli da completare prima di fermare l'autoplay. Sono due regole di arresto distinte.
 
 Dopo aver terminato un capitolo:
 
@@ -19357,6 +19391,8 @@ Nel Capitolo 08 prenderemo una delle submachine più interessanti emerse qui:
 
 # Trovare la prima attività incompleta — Euristiche, master call e fallback
 
+La [**master call**](#master-call) fornisce l'indice dei moduli e delle loro percentuali. Il **fallback visuale** è il controllo della pagina del corso quando i dati strutturati non bastano per decidere.
+
 Seguiremo l'evoluzione reale dell'algoritmo:
 
 ```text
@@ -19388,6 +19424,8 @@ e affronteremo un problema molto più generale di PlumePilot:
 Una delle funzioni apparentemente più semplici di PlumePilot pone in realtà un problema algoritmico interessante:
 
 > **Dato un corso composto da molti capitoli e molte attività, come troviamo la prima attività realmente incompleta senza aprire e controllare tutto?**
+
+Lo [**spazio di ricerca**](#search-space) è l'insieme delle attività che potrebbero essere la risposta. Un [**indice**](#index) riassume il corso e indica dove cercare. Un'[**euristica**](#heuristic) è una regola pratica per stabilire le priorità, per esempio controllare prima un capitolo sotto il 100%. Il [**fallback**](#fallback) è il percorso alternativo che permette di continuare quando quel primo metodo non fornisce abbastanza informazioni.
 
 La risposta ingenua è facile:
 
@@ -19509,6 +19547,8 @@ O(N)
 ```
 
 se consideriamo ogni capitolo come una unità.
+
+La **notazione Big O** descrive come cresce il costo al crescere della dimensione del problema. Qui, contando come unità le visite ai capitoli, nel caso peggiore il loro numero cresce al più linearmente con `N`. Il costo di ciascuna visita include la **CPU**, cioè il calcolo, e può includere **I/O** (*input/output*), come l'attesa di dati dalla rete.
 
 Ma questa notazione nasconde la parte realmente costosa.
 
@@ -19696,7 +19736,7 @@ Ma può dirci:
 
 > **Dove conviene guardare per prima.**
 
-È esattamente il ruolo assunto dal course/master index di PlumePilot.
+La [**master call**](#master-call) è la richiesta da cui PlumePilot ricava il **course index** o **master index**. Quel riepilogo suggerisce di verificare il modulo 3. La [**chiamata di dettaglio**](#chiamata-di-dettaglio) entra nel modulo e mostra, per esempio, il video B al 42% e il test allo 0%. Se l'indice è mancante o datato, o se il dettaglio è incompleto, l'algoritmo può ampliare le verifiche fino all'interfaccia del corso.
 
 ---
 
@@ -21383,7 +21423,7 @@ PlumePilot
 decisione / navigazione / stato
 ```
 
-Con la generazione dei documenti compare invece una pipeline diversa:
+Una [**pipeline**](#pipeline) è una sequenza di fasi in cui l'uscita di una fase alimenta quella successiva. Nella generazione dei documenti, la normalizzazione porta i dati raccolti a un formato coerente. La trasformazione li adatta al documento e la **serializzazione** li rappresenta come testo o byte da salvare in un file.
 
 ```text
 pagina / API
@@ -21414,6 +21454,8 @@ La cosa interessante è che i tre output risolvono problemi diversi.
 - Il **PDF** cerca soprattutto di preservare fedelmente il documento originale.
 - L'**HTML offline** trasforma dati strutturati in una piccola applicazione autonoma.
 - L'**EPUB** prova a reinterpretare un documento pensato per pagine fisse come un libro digitale adattabile allo schermo.
+
+Quando il testo di un EPUB si ridispone dopo un cambio di larghezza o di carattere, si parla di [**reflow**](#reflow). In un documento a [**layout fisso**](#fixed-layout), le posizioni sulla pagina seguono l'impaginazione originale.
 
 Il terzo problema è di gran lunga il più difficile.
 
@@ -21532,7 +21574,7 @@ Il popup può quindi essere chiuso senza distruggere necessariamente il processo
 
 Quando lavoriamo normalmente con JavaScript manipoliamo soprattutto oggetti e stringhe.
 
-Un PDF o un EPUB, però, è una sequenza di byte.
+Un PDF o un EPUB è una sequenza di **byte**. Un byte, composto da otto bit, può rappresentare 256 valori. Il formato del file stabilisce come interpretare la sequenza, per esempio quali byte descrivono testo e quali un'immagine.
 
 Per questo nel codice compaiono spesso tre concetti:
 
@@ -23994,6 +24036,8 @@ Nel Capitolo 9 abbiamo visto che il quiz HTML generato da PlumePilot non è semp
 
 Con la versione 2.35.0 quell'applicazione ha acquistato una caratteristica ancora più interessante: due campi di appunti per ogni domanda — **Spiegazione** e **Osservazioni** — non sono più semplici caselle di testo, ma piccoli editor rich-text.
 
+Il **rich text** conserva sia le parole sia la loro formattazione, per esempio il grassetto. Con l'attributo HTML `contenteditable`, il browser permette di modificare direttamente una parte della pagina. L'API [`Selection`](#selection) descrive la selezione corrente o il **caret**, il cursore che segna il punto di inserimento del testo. Un [`Range`](#range) delimita un intervallo nel DOM con un punto iniziale e uno finale.
+
 L'utente può usare:
 
 - grassetto;
@@ -24004,10 +24048,10 @@ L'utente può usare:
 - liste puntate e numerate;
 - checklist;
 - evidenziazioni colorate;
-- callout;
+- [callout](#callout), riquadri che mettono in evidenza una nota;
 - testo nascosto per il ripasso;
 - simboli matematici;
-- undo e redo;
+- undo e redo, per annullare e ripristinare un'azione;
 - scorciatoie da tastiera;
 - stato personale della domanda.
 
@@ -27007,6 +27051,8 @@ Nei capitoli precedenti abbiamo parlato soprattutto del motore di PlumePilot:
 
 Ora arriviamo alla parte che l'utente vede direttamente.
 
+Un **framework UI** fornisce struttura e strumenti per costruire e aggiornare le viste. In questo capitolo, il [**livello di presentazione**](#presentation-layer) comprende le funzioni che preparano e mostrano lo stato dell'estensione, ad esempio traducendo un'impostazione autoplay in un interruttore acceso o spento.
+
 PlumePilot possiede due interfacce principali:
 
 ```text
@@ -29518,6 +29564,8 @@ non browser E2E completo
 
 ## 67. Browser fixture
 
+Una [**fixture**](#fixture) è un insieme stabile di dati o di elementi predisposti per ripetere un test. Qui la pagina di prova e lo storage simulato danno ai controller del menu condizioni note a ogni esecuzione.
+
 La documentazione del redesign descrive anche:
 
 ```text
@@ -30664,6 +30712,10 @@ network-bound
 ```
 
 oppure una combinazione delle precedenti.
+
+Il suffisso **-bound** indica la risorsa che limita la velocità. Un'operazione *CPU-bound* passa gran parte del tempo a calcolare. Una *I/O-bound* aspetta soprattutto dati, ad esempio dalla rete. Il **main thread** è il filo di esecuzione principale della pagina. Se vi facciamo troppo lavoro senza pause, il browser può faticare a rispondere ai clic e a ridisegnare la UI.
+
+Il [**working set**](#working-set) è l'insieme di dati tenuti in memoria in una fase del lavoro. La [**memoria di picco**](#peak-memory) è il massimo raggiunto durante l'operazione, ad esempio quando la conversione EPUB tiene aperte immagini e buffer nello stesso momento.
 
 Il nostro obiettivo in questo capitolo non sarà quindi collezionare micro-ottimizzazioni.
 
@@ -32943,7 +32995,7 @@ PlumePilot contiene esempi di difese contro alcuni di questi rischi:
 
 ## 66. Tre snapshot come metodo mentale
 
-Per investigare retention è utile confrontare:
+Uno **snapshot della memoria** registra quali oggetti il browser sta ancora tenendo in memoria. La **retention** è il fatto che quegli oggetti rimangano raggiungibili, per esempio attraverso una cache. Per capire quali dati sopravvivono alla fine di un export, è utile confrontare:
 
 ```text
 A — prima dell'operazione
@@ -32959,7 +33011,7 @@ La domanda è:
 C torna vicino ad A?
 ```
 
-Non necessariamente byte-per-byte, perché GC, JIT e cache del browser possono variare.
+Il valore può variare tra una prova e l'altra. Il **GC** (*garbage collector*) libera periodicamente gli oggetti che il programma non può più raggiungere. Anche la compilazione **JIT** (*just in time*) e le cache del browser possono incidere sulla misura.
 
 Ma il trend è più informativo del singolo numero.
 
@@ -34605,6 +34657,8 @@ che sono quattro problemi diversi.
 > `f6fcb4c29c83ba9150df0be31da04fc91dffb634`.  
 > A differenza dei Capitoli 11–12, questo snapshot include anche la preparazione di **manifest, Novità e materiale AMO 2.35.2**, perché proprio il packaging cross-browser è parte dell'argomento.
 
+**AMO** sta per *addons.mozilla.org*, il catalogo di Mozilla per gli add-on di Firefox. Il **packaging** prepara l'archivio da consegnare allo store, passando dal sorgente ai file e al manifest previsti per il browser di destinazione. Questo archivio è un [**artefatto di build**](#artefatto-di-build).
+
 Nei capitoli precedenti abbiamo spesso scritto:
 
 ```text
@@ -34621,7 +34675,7 @@ Il DOM è DOM.
 
 Una `Map` è una `Map`.
 
-Una Promise continua a rappresentare un'operazione asincrona.
+Una [Promise](#promise) continua a rappresentare l'esito di un'operazione asincrona.
 
 Ma quando costruiamo, distribuiamo e manteniamo una **browser extension reale**, quella semplificazione smette presto di essere sufficiente.
 
@@ -35382,6 +35436,8 @@ Questa è stata una delle lezioni più pratiche del progetto.
 # Parte VII — Reviewability è una proprietà tecnica
 
 ## 20. Il problema dei vendor bundle
+
+Il **vendor code** è il codice di librerie esterne incluse nel progetto. Un **bundle** riunisce più file da distribuire insieme. La **minificazione** riduce lo spazio occupato dal codice, per esempio abbreviando i nomi locali. L'**offuscamento** aggiunge trasformazioni progettate per renderne difficile la lettura.
 
 PlumePilot usa librerie importanti:
 
@@ -39167,6 +39223,8 @@ Il vero obiettivo sarà capire quando un bug smette di essere semplicemente “c
 
 Un bug corretto oggi può tornare domani.
 
+Una **regressione** è la perdita di un comportamento che prima funzionava. Una [**riproduzione minima**](#minimal-reproducer) ricrea il problema con pochi passi e dati essenziali. L'[**invariante**](#invariant) è la regola che deve continuare a valere, per esempio riconoscere la stessa lezione anche dopo che la pagina ne ha ricreato la riga. Un [**test di regressione**](#regression-test) ripete lo scenario e verifica quella regola.
+
 Un bug corretto e trasformato in:
 
 ```text
@@ -41651,7 +41709,7 @@ Test e benchmark si completano.
 
 ## 103. EPUB
 
-Una fixture può rappresentare:
+Una [**fixture**](#fixture) è un input predisposto e ripetibile per un test. Per l'export EPUB può essere un PDF di esempio che contiene:
 
 ```text
 tabella
@@ -41667,7 +41725,7 @@ e diventare input stabile.
 
 ## 104. Golden output
 
-Possiamo confrontare:
+Il [**golden output**](#golden-file) è il risultato atteso che conserviamo come riferimento per i test successivi. Per l'EPUB possiamo confrontare:
 
 ```text
 struttura XHTML
@@ -44842,6 +44900,12 @@ ZIP
 store submission
 versione installata dall'utente
 ```
+
+Il **working tree** è l'insieme dei file del progetto come li vedi e modifichi sul disco. Un [**commit**](#git-commit) registra una versione di quei file e i riferimenti alla storia precedente. Un [**branch**](#branch) è un riferimento che avanza con i nuovi commit. Un **tag** serve a contrassegnare un punto preciso della storia, per esempio la versione `v2.35.1`.
+
+La [**pull request**](#pull-request) o **PR** è la proposta di integrare modifiche, con la relativa discussione e revisione. La **release** riguarda la versione che il progetto distribuisce. Per PlumePilot, la consegna allo store è un passaggio successivo alla creazione dello ZIP per quel browser.
+
+Nella storia che segue, **SHA** indica l'identificatore calcolato da Git per un oggetto. Il commit e il suo [**tree**](#git-tree) sono oggetti distinti. Il tree descrive i file e le cartelle, mentre il commit include anche la storia, per esempio il riferimento al commit precedente.
 
 Queste cose sono collegate.
 
@@ -49997,7 +50061,7 @@ Per un progetto piccolo il manual upload può restare ragionevole.
 
 ## 308. CI
 
-Continuous Integration:
+La **CI** (*continuous integration*, integrazione continua) esegue controlli automatici sulle modifiche mentre vengono sviluppate e integrate. Nel caso di una PR, può verificare che una proposta superi i test prima della revisione.
 
 ```text
 integra e verifica spesso
@@ -50007,7 +50071,7 @@ integra e verifica spesso
 
 ## 309. CD
 
-Può significare:
+**CD** può indicare la preparazione automatica di versioni distribuibili (*continuous delivery*) oppure la loro pubblicazione automatica dopo i controlli (*continuous deployment*). I due termini che si incontrano sono:
 
 ```text
 Continuous Delivery
@@ -51208,6 +51272,8 @@ store package
 
 Nel farlo abbiamo seguito feature concrete.
 
+Un **pattern architetturale** è un modo ricorrente di organizzare responsabilità per risolvere lo stesso tipo di problema. Un [**confine**](#boundary) stabilisce come due componenti possono comunicare. Un [**adapter**](#adapter) traduce i dati o le operazioni che passano da una parte all'altra, come quando PlumePilot converte una risposta della piattaforma nel proprio modello delle lezioni.
+
 Questo capitolo cambia prospettiva.
 
 Non ci chiederemo più:
@@ -51622,7 +51688,7 @@ Il problema non è soltanto scegliere una fonte.
 
 ## 17. Master call
 
-La master call è molto utile per:
+La [**master call**](#master-call) restituisce l'indice con il progresso aggregato dei moduli. Da quel riepilogo ricaviamo:
 
 ```text
 routing
@@ -51648,7 +51714,7 @@ non necessariamente la source of truth finale.
 
 ## 18. Detail API
 
-Una lesson detail response fornisce evidenza più precisa su:
+La [**chiamata di dettaglio**](#chiamata-di-dettaglio) chiede alla piattaforma i dati delle singole attività di un modulo. La risposta fornisce evidenza più precisa su:
 
 ```text
 Obiettivi
@@ -56087,6 +56153,8 @@ URL patterns
 
 ## 18. Oggi formalizzeremmo prima l'adapter
 
+Un [**adapter di piattaforma**](#platform-adapter) raccoglie le differenze tra le pagine dei tre atenei in una stessa interfaccia. Il resto dell'estensione potrebbe chiedergli quale capitolo è aperto senza conoscere i selettori o i percorsi usati da ciascuna piattaforma.
+
 Per esempio:
 
 ```js
@@ -56275,6 +56343,8 @@ DOM state
 ---
 
 ## 29. Oggi introdurremmo un reducer/state transition layer
+
+Un **reducer** calcola lo stato successivo a partire dallo stato corrente e da un evento. Un **livello di transizione** raccoglie queste regole. Per l'autoplay, per esempio, riceverebbe l'evento «video terminato» e deciderebbe se lo stato passa alla verifica del progresso.
 
 Non necessariamente XState.
 
@@ -59105,7 +59175,25 @@ JavaScript, WebExtensions, DOM, API, asincronia e software engineering attravers
 
 # Glossario — Inside PlumePilot
 
-Questo glossario crescerà insieme ai capitoli. Le definizioni sono volutamente orientate al modo in cui i concetti compaiono nel progetto.
+I capitoli introducono i termini mentre compaiono negli esempi. Qui trovi le definizioni da consultare durante la lettura, compresi i nomi che PlumePilot usa per i propri componenti e flussi.
+
+## API
+*Application Programming Interface*. Insieme di regole con cui un programma espone operazioni o dati a un altro. Nel libro incontriamo sia le API WebExtensions offerte dal browser sia quelle HTTP con cui la piattaforma serve i dati del corso.
+
+## DOM
+*Document Object Model*. Rappresentazione ad albero di un documento che JavaScript può leggere e modificare. La riga di una lezione è un elemento dell'albero finché la pagina la mantiene nel documento.
+
+## Cache
+Copia di dati o risultati tenuta per riutilizzarli. `lessonApiCache` conserva dettagli delle lezioni già letti, così PlumePilot può evitare una richiesta ogni volta che incontra la stessa lezione.
+
+## Storage
+Area in cui il browser conserva dati per una pagina o un'estensione. Il [Capitolo 06](#06--stato-cache-e-storage) confronta la durata e l'ambito di accesso delle diverse aree usate da PlumePilot.
+
+## Fallback
+Percorso alternativo usato quando il percorso iniziale non fornisce un risultato utilizzabile. Per esempio, la ricerca della prima attività incompleta può controllare la pagina del corso quando i dati organizzati dall'API non bastano.
+
+## StudyWing
+Nome precedente di PlumePilot. Rimane visibile in alcuni nomi interni, per esempio `updatedByStudyWing`. I riferimenti a StudyWing nel codice storico si riferiscono allo stesso progetto.
 
 ## Adapter
 Componente che traduce tra due interfacce o ambienti differenti. `bridge.js` svolge in parte questo ruolo tra il runtime WebExtension e il `MAIN` world della pagina.
@@ -59155,6 +59243,12 @@ Messaggio che esprime l'intenzione di far eseguire un'azione a un altro componen
 ## Correlation ID
 Identificatore usato per collegare richieste, aggiornamenti ed eventi appartenenti allo stesso workflow. In PlumePilot `operationId` svolge questo ruolo durante gli export.
 
+## operationId
+Identificatore assegnato a un'operazione come un export. Collega gli aggiornamenti di stato e i comandi, compresa la cancellazione, all'operazione per cui sono stati emessi. Il [Capitolo 02](#02--contesti-e-messaging) lo segue dalla richiesta al background fino agli aggiornamenti verso l'interfaccia.
+
+## Pagina builder
+Pagina dell'estensione che riceve i dati raccolti e costruisce il file da scaricare. Il [Capitolo 09](#09--generare-pdf-html-ed-epub-nel-browser) segue questa fase degli export di PlumePilot.
+
 ## Deduplicazione
 Strategia con cui un componente riconosce una richiesta o un evento già processato e ne evita la ripetizione degli effetti.
 
@@ -59191,6 +59285,9 @@ Layer che traduce il markup e i comportamenti di una pagina host in operazioni e
 ## DOM snapshot
 Fotografia dello stato del DOM in un preciso momento. Le collezioni restituite da `querySelectorAll()` sono statiche: future mutazioni della pagina non ne aggiornano automaticamente la membership.
 
+## Baseline DOM
+Valore iniziale del progresso del corso letto dalla pagina. In assenza di un valore più preciso, PlumePilot può sommare a questa base gli incrementi osservati durante la sessione.
+
 ## Event delegation
 Tecnica che gestisce gli eventi su un antenato stabile e usa il target dell'evento per capire quale elemento dinamico è stato coinvolto. È utile quando i figli vengono creati e distrutti frequentemente.
 
@@ -59223,6 +59320,21 @@ Riferimento a un nodo ottenuto in passato che è stato rimosso, sostituito o non
 
 ## API adapter
 Componente che traduce un'API esterna in un'interfaccia interna più stabile, nascondendo dettagli come URL, autenticazione, parsing e formato grezzo delle risposte.
+
+## Endpoint
+Punto di accesso a un'operazione o risorsa di un'API. In un'API HTTP una richiesta lo identifica con un metodo, come `GET`, e un URL.
+
+## Master call
+Nome interno di PlumePilot per la richiesta HTTP che restituisce l'indice del corso, chiamato anche *course index* o *master index*. L'indice elenca i moduli con identificatori, ordine e progresso aggregato. PlumePilot usa il riepilogo per stabilire da quali moduli iniziare la verifica. I dati sulle singole attività arrivano dalla chiamata di dettaglio o da un controllo nella pagina. Vedi la [ricerca della prima attività incompleta](#08--trovare-la-prima-attività-incompleta).
+
+## Chiamata di dettaglio
+Richiesta che restituisce le attività di un modulo, per esempio obiettivi, video e test con i dati di avanzamento disponibili. Nel codice e negli esempi può comparire come *detail call* o *lesson detail*. Il [Capitolo 04](#04--api-e-reverse-engineering) mostra come la sua risposta viene normalizzata.
+
+## Turbo API
+Nome che il codice di PlumePilot usa per il proprio scambio di messaggi per chiedere dati della piattaforma. `turboApiRequest("outline", ...)` chiede l'indice del corso e `turboApiRequest("lesson", ...)` chiede il dettaglio di una lezione.
+
+## Monitor della commissione
+Funzione di PlumePilot che controlla i cambiamenti nello stato degli esami in valutazione e aggiorna le informazioni mostrate nell'estensione. Il background concede un [lease](#lease) per coordinare i controlli quando sono aperte più schede.
 
 ## Anti-corruption layer
 Layer che protegge il modello interno dell'applicazione dalle strutture e convenzioni di un sistema esterno, traducendole in concetti propri del dominio locale.
@@ -59300,7 +59412,10 @@ Unità di lavoro programmata dall’event loop, per esempio un evento utente o i
 Unità di lavoro eseguita dopo il task corrente e prima del task successivo; le continuazioni delle Promise e `MutationObserver` dipendono da questo meccanismo.
 
 ## Promise
-Oggetto che rappresenta un risultato futuro e può passare da pending a fulfilled oppure rejected.
+Oggetto JavaScript che rappresenta l'esito di un'operazione. Gli stati sono *pending* (in attesa), *fulfilled* (con un valore) e *rejected* (con un motivo di rifiuto). `.then()` permette di collegare un passaggio al risultato e `await` sospende la funzione asincrona fino a quando l'esito è disponibile. Il [Capitolo 05](#05--asincronia-javascript) mostra come PlumePilot usa una Promise per aspettare la risposta del browser.
+
+## Callback
+Funzione passata a un'altra funzione, che decide quando chiamarla. Ad esempio, il browser chiama un callback di `chrome.runtime.sendMessage()` per comunicare l'esito dell'invio.
 
 ## Concurrency
 Situazione in cui più operazioni sono in-flight nello stesso intervallo temporale, anche se il loro codice JavaScript non viene eseguito simultaneamente.
@@ -59461,6 +59576,9 @@ Contatore o versione associata a un’operazione asincrona. Una continuation vec
 ## Precision / Recall
 Coppia di concetti dell'information retrieval usabile come modello mentale: la precision indica quanto spesso i candidati selezionati sono rilevanti; la recall quanto bene la ricerca riesce a non perdere risultati realmente rilevanti.
 
+## Pipeline
+Sequenza di fasi in cui l'uscita di una fase alimenta quella successiva. Per esempio, l'export raccoglie e normalizza i dati, li trasforma nella struttura del documento e infine li scrive nel file scaricabile.
+
 ## ArrayBuffer
 Blocco di memoria binaria grezza usato dalle API Web come contenitore di byte. Non attribuisce da solo un significato ai dati; view tipizzate come `Uint8Array` permettono di interpretarli.
 
@@ -59515,6 +59633,9 @@ Esito in cui un batch produce comunque un artefatto utile pur registrando fallim
 ## Golden file
 Artefatto di riferimento usato nei test per confrontare l'output di una pipeline di generazione documenti. Spesso conviene verificarne struttura e semantica invece dei byte esatti.
 
+## Fixture
+Dati o ambiente predisposti per rendere ripetibile un test. Una pagina LMS di esempio può esercitare il menu di PlumePilot e un PDF con una tabella può esercitare la conversione in EPUB.
+
 ## Editing host
 Elemento modificabile, tipicamente tramite `contenteditable`, che il browser tratta come radice di una regione di editing. Gestisce input e caret ma non fornisce da solo un document model di alto livello.
 
@@ -59547,6 +59668,9 @@ Annotazione inline applicata a una porzione di testo, come grassetto, corsivo, e
 
 ## Rich-text block
 Elemento strutturale a livello di blocco, come paragrafo, elemento di lista o callout, la cui semantica riguarda una regione più ampia del testo inline.
+
+## Callout
+Riquadro che mette in evidenza una nota o un avviso. Nell'editor del quiz HTML di PlumePilot è un tipo di blocco degli appunti. Vedi il [Capitolo 10](#10--un-piccolo-rich-text-editor).
 
 ## Sanitization allowlist
 Strategia di sanitizzazione che ricostruisce il contenuto accettando soltanto tag, attributi e valori esplicitamente previsti dal formato, invece di tentare di enumerare tutto ciò che deve essere rifiutato.
@@ -59689,6 +59813,9 @@ Associazione di un file atteso a un digest crittografico noto, usata per rilevar
 ## Artifact identity
 Identità dei byte esatti di un output distribuibile, tipicamente espressa tramite checksum. È distinta dall’identità del commit sorgente e dalla versione logica del prodotto; uno stesso commit può generare artifact browser-specifici differenti.
 
+## Artefatto di build
+File prodotto preparando il software per la distribuzione. Per PlumePilot, un esempio è lo ZIP dell'estensione per Firefox. Il [Capitolo 13](#13--chrome-edge-e-firefox) mostra come si prepara un pacchetto per ciascun browser.
+
 ## Release matrix
 Matrice che esplicita quali feature, manifest, adapter, package e verifiche devono essere validi per ogni target supportato.
 
@@ -59772,6 +59899,12 @@ Oggetto immutabile che collega un tree a uno o più parent e contiene metadata c
 
 ## Git ref
 Puntatore nominato e mobile a un oggetto Git. Un branch è normalmente un ref che avanza verso nuovi commit.
+
+## Branch
+Riferimento Git che punta al commit più recente di una linea di lavoro. Quando registri un commit sul branch corrente, il riferimento avanza.
+
+## Pull request
+Proposta di integrare i commit di un branch in un altro, con uno spazio per revisione, discussione e controlli automatici. Il [Capitolo 15](#15--git-branch-pr-build-e-release-engineering) segue questo passaggio nelle release di PlumePilot.
 
 ## HEAD
 Riferimento che rappresenta la posizione corrente del checkout Git. Normalmente punta a un branch; in detached HEAD punta direttamente a un commit.
