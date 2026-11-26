@@ -85,3 +85,12 @@ I font nella cartella `vendor/standard_fonts/` provengono dalla distribuzione `p
 ## Verifica per la revisione AMO
 
 Prima di ogni invio a Firefox Add-ons occorre verificare che le copie sorgente siano identiche alle release ufficiali indicate e riportare questi collegamenti nelle **Notes for Reviewers**. Le copie sorgente della candidata PlumePilot 2.34.0 devono essere verificate con `npm pack` e `cmp` contro i percorsi elencati prima dell’upload definitivo; il pacchetto Firefox risultante deve inoltre superare lo scan review-safe di `scripts/validate-release.mjs`.
+
+## Chakra Petch
+
+- Uso: testi e controlli dell’interfaccia Gaming.
+- Progetto: <https://github.com/google/fonts/tree/main/ofl/chakrapetch>.
+- Font distribuiti da Google Fonts, versione v13, pesi Regular (400), Medium (500) e Bold (700).
+- File: `assets/fonts/chakra-petch-regular.ttf`, `assets/fonts/chakra-petch-medium.ttf`, `assets/fonts/chakra-petch-bold.ttf`.
+- Licenza: SIL Open Font License 1.1.
+- Testo originale della licenza e copyright: `assets/fonts/Chakra-Petch-OFL.txt`.
