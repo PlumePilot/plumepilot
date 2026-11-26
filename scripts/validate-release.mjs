@@ -262,7 +262,7 @@ const sourceReadme = await sourceZip.file("AMO_SOURCE_README.md").async("string"
 if (!sourceReadme.includes(`PlumePilot ${expectedVersion}`) || !sourceReadme.includes(`plumepilot-v${expectedVersion}-firefox.zip`)) {
   throw new Error("Sorgente AMO: versione o nome del pacchetto non allineati al manifest.");
 }
-if (Object.keys(sourceZip.files).some((name) => name.startsWith(".git/") || name.startsWith("release/"))) {
+if (Object.keys(sourceZip.files).some((name) => name === ".git" || name.startsWith(".git/") || name.startsWith("release/"))) {
   throw new Error("Sorgente AMO: contiene file Git o artefatti di release.");
 }
 await assertChecksums(sourceZip, expectedReadableVendorChecksums, "Sorgente AMO");

@@ -210,11 +210,11 @@ function manifestFor(baseManifest, browser) {
 async function collectSourceSubmissionFiles(directory = root, relativeDirectory = "") {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.name === ".git") continue;
     const relativePath = path.posix.join(relativeDirectory, entry.name);
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (
-        entry.name === ".git" ||
         entry.name === ".github" ||
         entry.name === "docs" ||
         entry.name === "release" ||
