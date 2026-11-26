@@ -22,7 +22,7 @@ Per dirla con una frase spesso attribuita a Platone: «La vita deve essere vissu
 
 In Preferenze → Interfaccia → Lingua puoi scegliere Italiano o English. La scelta è condivisa dal menu principale e dal menu fluttuante. I nuovi quiz HTML conservano la lingua selezionata anche offline. Domande, risposte e materiali mantengono il testo del corso.
 
-Lo stile Gaming usa Chakra Petch per testi e controlli e mantiene Pixelify Sans per il titolo PlumePilot. Le Novità sono consultabili dal menu principale in Preferenze → Informazioni.
+Le Novità sono consultabili dal menu principale in Preferenze → Informazioni.
 
 Il contesto della candidata 2.36.0 e i controlli ancora da completare sono in [docs/releases/2.36.0.md](docs/releases/2.36.0.md).
 

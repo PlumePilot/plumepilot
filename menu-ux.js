@@ -4,24 +4,22 @@
   const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
 
   const gamingFonts = new WeakMap();
-  function ensureGamingFont(document, url, family = "Pixelify Sans", weight = "400 700") {
-    if (!gamingFonts.has(document)) gamingFonts.set(document, new Map());
-    const fonts = gamingFonts.get(document);
-    if (fonts.has(url)) return fonts.get(url);
+  function ensureGamingFont(document, url) {
+    if (gamingFonts.has(document)) return gamingFonts.get(document);
     // Chromium does not register @font-face declarations inside a shadow root.
     // Register the packaged font explicitly, without adding styles to the LMS.
     const loading = document.defaultView.fetch(url).then(response => {
       if (!response.ok) throw new Error("Gaming font unavailable");
       return response.arrayBuffer();
-    }).then(bytes => new document.defaultView.FontFace(family, bytes,
-      { style: "normal", weight }).load()).then(font => {
+    }).then(bytes => new document.defaultView.FontFace("Pixelify Sans", bytes,
+      { style: "normal", weight: "400 700" }).load()).then(font => {
       document.fonts.add(font);
       return true;
     }).catch(() => {
-      fonts.delete(url);
+      gamingFonts.delete(document);
       return false;
     });
-    fonts.set(url, loading);
+    gamingFonts.set(document, loading);
     return loading;
   }
 

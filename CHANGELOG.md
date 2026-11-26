@@ -8,7 +8,7 @@
 - Uses distinct language entry points for Chrome’s page and extension contexts so both menus follow the saved language.
 - Removes leftover floating menus after Firefox extension reloads.
 - Keeps the offline quiz sidebar toggle accessible during scrolling and translates generic lesson-section labels in exports.
-- Uses Chakra Petch for Gaming controls and text, retaining Pixelify Sans for the PlumePilot title. English tab labels fit all menu sizes.
+- English tab labels fit all Gaming menu sizes while retaining the existing Pixelify Sans font.
 - Falls back to a supported platform tab when Chrome’s audio document fails. The affected failure path also existed in 2.35.3.
 - Includes the audio permission for direct repo testing, matching the existing Chrome/Edge store build permission.
 

@@ -299,7 +299,7 @@ html[data-visual-style="gaming"] .setting-row > label,
 html[data-visual-style="gaming"] .commission-heading,
 html[data-visual-style="gaming"] .confirmed-exams-toggle,
 html[data-visual-style="gaming"] .loaded-outcome-heading {
-  font-family: "Chakra Petch", system-ui, sans-serif;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
 }
 
 .brand-copy {
@@ -2179,27 +2179,3 @@ details[open] > summary > .preference-disclosure-chevron { transform: rotate(225
 html[data-visual-style="gaming"] .preference-macro > summary,
 html[data-visual-style="gaming"] .preference-subsection > summary { text-shadow: 1px 1px 0 var(--sw-pixel-shadow); }
 @media (prefers-reduced-motion: reduce) { .preference-disclosure-chevron { transition: none; } }
-
-@font-face {
-  font-family: "Chakra Petch";
-  src: url("assets/fonts/chakra-petch-regular.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Chakra Petch";
-  src: url("assets/fonts/chakra-petch-medium.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Chakra Petch";
-  src: url("assets/fonts/chakra-petch-bold.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}

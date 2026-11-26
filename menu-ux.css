@@ -58,13 +58,13 @@ html[data-menu-size="large"], :host([data-menu-size="large"]) { --ux-copy-size: 
 :host .menu-tabs[data-count="4"] { grid-template-columns: repeat(4, auto); }
 :host([data-visual-style="gaming"][data-menu-size="small"]) .menu-tab { font-size: 10px; }
 html[data-visual-style="gaming"] .ux-heading, html[data-visual-style="gaming"] .ux-detail-title, html[data-visual-style="gaming"] .ux-completion > summary,
-:host([data-visual-style="gaming"]) .ux-heading, :host([data-visual-style="gaming"]) .ux-detail-title, :host([data-visual-style="gaming"]) .ux-completion > summary { font-family: "Chakra Petch", system-ui, sans-serif; }
+:host([data-visual-style="gaming"]) .ux-heading, :host([data-visual-style="gaming"]) .ux-detail-title, :host([data-visual-style="gaming"]) .ux-completion > summary { font-family: "Pixelify Sans", system-ui, sans-serif; }
 html[data-visual-style="gaming"] .ux-group, :host([data-visual-style="gaming"]) .ux-group { border-radius: 4px; }
 
 /* Use the same type scale for equivalent roles, including legacy controls.
    Root specificity keeps old size-specific rules from overriding the shared scale. */
 html[data-visual-style="gaming"], :host([data-visual-style="gaming"]) {
-  --ux-font: "Chakra Petch", system-ui, sans-serif;
+  --ux-font: "Pixelify Sans", system-ui, sans-serif;
 }
 html[data-menu-size] input:is([type="checkbox"], [type="radio"]),
 :host([data-menu-size]) input:is([type="checkbox"], [type="radio"]) {
@@ -169,15 +169,4 @@ html[data-menu-size] :is(.tab-button, .preference-macro-summary),
 :host([data-visual-style="gaming"][data-menu-size="medium"]) .menu-tab {
   padding-inline: 2px;
   gap: 2px;
-}
-
-
-html[data-visual-style="gaming"] :is(.container, .container *),
-:host([data-visual-style="gaming"]) :is(.panel, .panel *) {
-  font-family: "Chakra Petch", system-ui, sans-serif;
-}
-
-html[data-visual-style="gaming"] .brand-copy h1,
-:host([data-visual-style="gaming"]) .name {
-  font-family: "Pixelify Sans", system-ui, sans-serif;
 }

@@ -267,17 +267,10 @@
 
   function applyVisualStyle() {
     const visualStyle = normalizeVisualStyle(settings.visualStyle);
-    if (visualStyle === "gaming") {
-      const fonts = [
-        ["pixelify-sans-latin.ttf", "Pixelify Sans", "400 700"],
-        ["chakra-petch-regular.ttf", "Chakra Petch", "400"],
-        ["chakra-petch-medium.ttf", "Chakra Petch", "500"],
-        ["chakra-petch-bold.ttf", "Chakra Petch", "700"],
-      ];
-      Promise.all(fonts.map(([file, family, weight]) => menuUx.ensureGamingFont(
-        document, chrome.runtime.getURL(`assets/fonts/${file}`), family, weight,
-      ))).then(() => placePanel());
-    }
+    if (visualStyle === "gaming") menuUx.ensureGamingFont(document,
+      chrome.runtime.getURL("assets/fonts/pixelify-sans-latin.ttf")).then(loaded => {
+        if (loaded) placePanel();
+      });
     if (host) host.dataset.visualStyle = visualStyle;
     if (progressOverlayHost)
       progressOverlayHost.dataset.visualStyle = visualStyle;
@@ -2544,7 +2537,7 @@
         :host([data-visual-style="gaming"]) .last-notification-heading,
         :host([data-visual-style="gaming"]) .action,
         :host([data-visual-style="gaming"]) .bookmark-action {
-          font-family: "Chakra Petch", system-ui, sans-serif;
+          font-family: "Pixelify Sans", system-ui, sans-serif;
         }
         .floating-achievement-feedback {
           position: fixed;

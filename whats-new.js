@@ -4,7 +4,7 @@
   const definition = {
     "version": "2.36.0",
     "title": "PlumePilot ora anche in inglese",
-    "summary": "PlumePilot in italiano e inglese, stile Gaming più leggibile e miglioramenti per quiz e avvisi sonori.",
+    "summary": "PlumePilot in italiano e inglese, con miglioramenti per quiz e avvisi sonori.",
     "items": [
       {
         "title": "PlumePilot in italiano e inglese",
@@ -25,10 +25,6 @@
       {
         "title": "Pausa? segue la lingua di PlumePilot",
         "text": "I comandi, le istruzioni e il riepilogo finale del minigioco usano la lingua scelta nelle Preferenze."
-      },
-      {
-        "title": "Gaming più leggibile",
-        "text": "Il nuovo font Chakra Petch rende più chiari testi e controlli dello stile Gaming. Il titolo PlumePilot mantiene il font pixel."
       },
       {
         "title": "Avvisi sonori più affidabili",

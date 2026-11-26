@@ -52,7 +52,7 @@ The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, an
 
 ## Novità
 
-Chrome, Edge, and Firefox package the same `whats-new.js` definition. The update banner and the Preferences dialog read its version and summary. The Italian and English text describes the language setting, export tools, offline quizzes, Pausa?, the Chakra Petch Gaming interface, navigation fixes, and audio fallback.
+Chrome, Edge, and Firefox package the same `whats-new.js` definition. The update banner and the Preferences dialog read its version and summary. The Italian and English text describes the language setting, export tools, offline quizzes, Pausa?, navigation fixes, and audio fallback.
 
 ## Firefox-only review-safety transformations
 

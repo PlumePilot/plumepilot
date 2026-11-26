@@ -5,7 +5,7 @@
 La scorciatoia temporanea N è stata rimossa. Usare i pacchetti definitivi. Verificare le credenziali prima dell’invio.
 
 1. In Preferenze → Interfaccia → Lingua, passare tra Italiano ed English. Entrambi i menu devono seguire la scelta, anche riaprendo il corso.
-2. Provare Gaming nelle tre dimensioni. I controlli usano Chakra Petch e il titolo PlumePilot mantiene il font pixel.
+2. Provare Gaming nelle tre dimensioni. Verificare che le etichette inglesi delle tab rientrino nel menu.
 3. Generare quiz PDF/HTML e dispense PDF/EPUB. Controllare etichette tradotte, contenuti originali, pulsante dei capitoli durante lo scorrimento e salvataggio degli appunti offline.
 4. In Preferenze → Comportamento, attivare Notifiche sonore, scegliere suono e volume udibile e usare Ascolta anteprima. L’avviso reale richiede il cambiamento di uno stato precedentemente in attesa e può partire anche con il popup aperto.
 5. Verificare Novità in Preferenze → Informazioni nelle due lingue. Dopo un aggiornamento, banner e pannello devono mostrare la stessa versione 2.36.0 e lo stesso riepilogo.
