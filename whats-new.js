@@ -2,25 +2,25 @@
   "use strict";
 
   const definition = {
-    "version": "2.35.5",
-    "title": "Quiz offline e schermo intero continuo",
-    "summary": "Incolla Markdown nei quiz HTML, gestisci meglio gli appunti e passa da un video all’altro a schermo intero.",
+    "version": "2.36.0",
+    "title": "PlumePilot ora anche in inglese",
+    "summary": "Scegli Italiano o English per i menu, i testi delle esportazioni e il minigioco Pausa?.",
     "items": [
       {
-        "title": "Incolla appunti formattati",
-        "text": "Nei nuovi quiz HTML, incolla testo formattato o Markdown in Spiegazione e Osservazioni. Gli elenchi numerati conservano il numero di partenza e il testo nei blocchi di codice resta letterale."
+        "title": "PlumePilot in italiano e inglese",
+        "text": "Apri Preferenze → Interfaccia → Lingua dal menu principale o fluttuante. L’italiano è la lingua iniziale e la scelta si applica a entrambi i menu e ai nuovi avvisi di PlumePilot."
       },
       {
-        "title": "Quiz HTML più comodi da consultare",
-        "text": "Usa l’icona della barra laterale per nascondere o mostrare i capitoli. Su Chrome ed Edge desktop puoi anche salvare gli appunti nello stesso file HTML aperto dal disco. Scarica HTML con appunti permette di salvare una copia, anche su Firefox."
+        "title": "Interfaccia delle esportazioni tradotta",
+        "text": "Le schermate di esportazione e i testi aggiunti da PlumePilot nei quiz HTML e PDF e nelle dispense PDF ed EPUB seguono la lingua selezionata. Domande, risposte e materiali mantengono la lingua del corso."
       },
       {
-        "title": "Schermo intero continuo",
-        "text": "Su Pegaso, Mercatorum e San Raffaele, attiva Schermo intero continuo in Corso → Autoplay e usa l’icona del player. Con l’autoplay, lo schermo intero resta attivo al cambio di video. Premi Esc o usa la stessa icona per uscire."
+        "title": "Quiz HTML nella lingua scelta, anche offline",
+        "text": "Il quiz HTML conserva la lingua scelta al momento dell’esportazione, anche quando lo riapri offline o scarichi una copia con gli appunti."
       },
       {
-        "title": "Menu fluttuante più leggibile",
-        "text": "L’avanzamento della raccolta di test e dispense compare una sola volta. Nel tema Gaming, gli avvisi EXP lasciano accessibili le schede del menu."
+        "title": "Pausa? segue la lingua di PlumePilot",
+        "text": "I comandi, le istruzioni e il riepilogo finale del minigioco usano la lingua scelta nelle Preferenze."
       }
     ]
   };

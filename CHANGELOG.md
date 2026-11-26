@@ -1,5 +1,11 @@
 # PlumePilot — Changelog
 
+## 2.36.0 — Italian and English
+
+- Adds a shared language setting for the main menu, floating menu, export tools, and Pausa?.
+- Localizes PlumePilot labels in HTML, PDF, and EPUB exports. Offline HTML quizzes keep the language selected at export time.
+- Uses the same release version and summary in the update banner and the What’s new dialog.
+
 ## 2.35.4 — Firefox commission monitor compatibility
 
 - Fixes Firefox background startup by loading `commission-state.js` before `background.js`, allowing exam-commission API responses to be processed and saved.

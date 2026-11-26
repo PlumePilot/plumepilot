@@ -25,18 +25,13 @@ async function validateWhatsNew(zip, browser) {
   const entry = zip.file("whats-new.js");
   if (!entry) throw new Error(`${browser}: Novità mancanti.`);
   const actual = releaseDefinition(await entry.async("string"));
-  const expected = releaseDefinition(await readFile(path.join(root,
-    browser === "firefox" ? "scripts/whats-new-firefox.js" : "whats-new.js"), "utf8"));
+  const expected = releaseDefinition(await readFile(path.join(root, "whats-new.js"), "utf8"));
   if (actual.RELEASE.version !== expectedVersion || JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${browser}: Novità/versione non corrispondono alla definizione sorgente.`);
   }
-  const expectedCards = expectedVersion === "2.35.5" ? (browser === "firefox" ? 5 : 4)
-    : expectedVersion === "2.35.4" ? (browser === "firefox" ? 4 : 3)
-    : expectedVersion === "2.35.3" ? 3
-    : expectedVersion === "2.35.2" ? 6
-    : expectedVersion === "2.35.1" ? (browser === "firefox" ? 9 : 6) : null;
-  if (expectedCards !== null && actual.RELEASE.items.length !== expectedCards) {
-    throw new Error(`${browser}: numero di schede Novità inatteso.`);
+  if (!actual.RELEASE.title || !actual.RELEASE.summary ||
+      !actual.RELEASE.items.length || actual.RELEASE.items.some((item) => !item.title || !item.text)) {
+    throw new Error(`${browser}: testo delle Novità incompleto.`);
   }
 }
 const expectedPdfjsChecksums = new Map([
@@ -256,7 +251,7 @@ for (const required of [
   "THIRD_PARTY_NOTICES.md",
   "scripts/build-release.mjs",
   "scripts/validate-release.mjs",
-  "scripts/whats-new-firefox.js",
+  "whats-new.js",
 ]) {
   if (!sourceZip.file(required)) throw new Error(`Sorgente AMO: file mancante ${required}.`);
 }

@@ -276,6 +276,7 @@
     visualStyle,
     initialSync = false,
     autoplaySkipCompletedVideos = false,
+    plumePilotLanguage = "it",
   ) {
     window.postMessage({
       type: "PEGASO_AUTONEXT_STATE",
@@ -292,6 +293,7 @@
       autoplayStopAt70BypassedCourses,
       visualStyle,
       initialSync,
+      plumePilotLanguage,
       extensionVersion,
     }, "*");
   }
@@ -311,6 +313,7 @@
         autoplayStopAt70Enabled: false,
         autoplayStopAt70BypassedCourses: {},
         visualStyle: "standard",
+        plumePilotLanguage: "it",
       },
       (result) => {
         const autoEnabled = result.autoCompleteTests === true;
@@ -333,6 +336,7 @@
           result.visualStyle === "gaming" ? "gaming" : "standard",
           initialSync,
           result.autoplaySkipCompletedVideos === true,
+          result.plumePilotLanguage === "en" ? "en" : "it",
         );
         commissionCheckEnabled = result.commissionCheckEnabled === true;
         if (commissionCheckEnabled) scheduleCommissionCheck(0);
@@ -709,7 +713,8 @@
       changes.courseProgressOverlayEnabled ||
       changes.autoplayStopAt70Enabled ||
       changes.autoplayStopAt70BypassedCourses ||
-      changes.visualStyle
+      changes.visualStyle ||
+      changes.plumePilotLanguage
     ) {
       readAndSendState(false);
     }

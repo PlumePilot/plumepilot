@@ -1,8 +1,11 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
+  const localized = globalThis.PlumePilotLanguage?.text || ((text) => text);
 
   if (window !== window.top) return;
 
+  const language = globalThis.PlumePilotLanguage;
   const HOST_ID = "studywing-floating-menu-host";
   const PROGRESS_OVERLAY_HOST_ID = "studywing-course-progress-overlay-host";
   const FULLSCREEN_PLAYER_ATTRIBUTE = "data-plumepilot-fullscreen-player";
@@ -49,6 +52,7 @@
   const faqUrl = storeLinksApi?.FAQ_URL || "https://plumepilot.github.io/plumepilot/faq/";
   const donateUrl = storeLinksApi?.DONATE_URL || "https://ko-fi.com/flo_";
   const defaults = {
+    plumePilotLanguage: "it",
     enabled: true,
     stopAtTests: false,
     autoCompleteTests: false,
@@ -620,6 +624,7 @@
         <strong>70% raggiunto!</strong>
         <span>Hai raggiunto la percentuale richiesta per prenotare l’esame di questo insegnamento.</span>
       </div>`;
+    language?.localizeMarkup(shadow);
     hydrateShadowPlaceholders(shadow, { __PP_PIXEL_FONT__: pixelFontUrl });
     document.documentElement.appendChild(progressOverlayHost);
     applyCosmetics();
@@ -735,7 +740,7 @@
         type: "STUDYWING_SHOW_NOTIFICATION",
         notification: {
           message:
-            "70% raggiunto!\nHai raggiunto la percentuale richiesta per prenotare l’esame di questo insegnamento.",
+            t`70% raggiunto!\nHai raggiunto la percentuale richiesta per prenotare l’esame di questo insegnamento.`,
           type: "success",
           key: `course-threshold:${currentCourseCode()}`,
           terminal: true,
@@ -931,7 +936,7 @@
     try {
       await exitContinuousFullscreen();
     } catch {
-      setFeedback("Premi Esc per uscire dallo schermo intero.", true);
+      setFeedback(t`Premi Esc per uscire dallo schermo intero.`, true);
     } finally {
       if (!document.documentElement.matches(":fullscreen")) resetContinuousFullscreen();
       fullscreenTransition = false;
@@ -981,7 +986,7 @@
       closePanel();
     } catch {
       resetContinuousFullscreen();
-      setFeedback("Impossibile attivare lo schermo intero continuo.", true);
+      setFeedback(t`Impossibile attivare lo schermo intero continuo.`, true);
     } finally {
       fullscreenTransition = false;
       renderContinuousFullscreen();
@@ -1051,7 +1056,7 @@
           normalizeVisualStyle(settings.visualStyle) === "gaming"
         )
           showFloatingAchievementFeedback(
-            `Traguardo completato: ${result.achievement.title} · +${result.awardedExp} EXP`,
+            t`Traguardo completato: ${localized(result.achievement.title)} · +${result.awardedExp} EXP`,
           );
       },
     );
@@ -1069,7 +1074,7 @@
     if (!ui || !achievements) return;
     const model = achievements.view(settings.studywingAchievements);
     const claimed = new Set(model.state.claimedAchievementIds);
-    ui.achievementLevel.textContent = `Livello ${model.level} · ${model.state.totalExp} EXP`;
+    ui.achievementLevel.textContent = t`Livello ${model.level} · ${model.state.totalExp} EXP`;
     ui.achievementProgressText.textContent = model.capped
       ? "500 / 500 EXP"
       : `${model.expWithinLevel} / 100 EXP`;
@@ -1085,11 +1090,11 @@
       : `url("${chrome.runtime.getURL(`assets/gaming/rewards/reward-bar-${rewardSet.id}.png`)}")`;
     ui.achievementEndMarker.style.backgroundImage = `url("${chrome.runtime.getURL(`assets/gaming/rewards/reward-launcher-${rewardSet.id}.png`)}")`;
     ui.achievementMidMarker.title = midRewardUnlocked
-      ? "Premio barra già sbloccato"
-      : `${rewardSet.name}: stile barra a 50 EXP`;
+      ? t`Premio barra già sbloccato`
+      : t`${rewardSet.name}: stile barra a 50 EXP`;
     ui.achievementEndMarker.title = model.capped
-      ? "Tutti i premi sbloccati"
-      : `${rewardSet.name}: stile launcher a 100 EXP`;
+      ? t`Tutti i premi sbloccati`
+      : t`${rewardSet.name}: stile launcher a 100 EXP`;
     ui.achievementProgress.setAttribute(
       "aria-valuenow",
       String(model.expWithinLevel),
@@ -1101,7 +1106,7 @@
         row.className = "achievement-row";
         row.dataset.complete = String(complete);
         const name = document.createElement("strong");
-        name.textContent = `${complete ? "✓ " : ""}${item.title}`;
+        name.textContent = `${complete ? "✓ " : ""}${localized(item.title)}`;
         const exp = document.createElement("span");
         exp.textContent = `+${item.exp} EXP`;
         row.append(name, exp);
@@ -1113,7 +1118,7 @@
       settings.gamingCosmetics,
       model.state,
     );
-    ui.rewardsSummary.textContent = `${unlocked.size} di ${achievements.REWARD_SETS.length * 2}`;
+    ui.rewardsSummary.textContent = t`${unlocked.size} di ${achievements.REWARD_SETS.length * 2}`;
     const cards = [];
     for (const set of achievements.REWARD_SETS)
       for (const kind of ["bar", "launcher"]) {
@@ -1136,12 +1141,12 @@
         const copy = document.createElement("span");
         copy.className = "reward-copy";
         const name = document.createElement("strong");
-        name.textContent = `${kind === "bar" ? "Barra" : "Launcher"} · ${set.name}`;
+        name.textContent = `${kind === "bar" ? t`Barra` : "Launcher"} · ${localized(set.name)}`;
         const status = document.createElement("small");
         status.textContent = available
           ? active
-            ? "In uso"
-            : "Sbloccato"
+            ? t`In uso`
+            : t`Sbloccato`
           : `${threshold} EXP`;
         copy.append(name, status);
         card.append(preview, copy);
@@ -1149,7 +1154,7 @@
           const button = document.createElement("button");
           button.type = "button";
           button.className = "reward-apply";
-          button.textContent = active ? "In uso" : "Applica";
+          button.textContent = active ? t`In uso` : t`Applica`;
           button.disabled = active;
           button.addEventListener("click", () => {
             settings.gamingCosmetics = {
@@ -1173,20 +1178,20 @@
   function operationLabel(operation) {
     if (!operation) return "";
     if (operation.kind === "turbo")
-      return operation.message || "Test automatici in esecuzione…";
+      return localized(operation.message) || t`Test automatici in esecuzione…`;
     if (operation.kind === "objectives")
       return (
-        operation.message || "Completamento degli Obiettivi in esecuzione…"
+        localized(operation.message) || t`Completamento degli Obiettivi in esecuzione…`
       );
     if (operation.kind === "tests")
-      return operation.message || "Raccolta dei test del corso in esecuzione…";
+      return localized(operation.message) || t`Raccolta dei test del corso in esecuzione…`;
     if (operation.kind === "materials")
       return (
-        operation.message || "Raccolta delle dispense del corso in esecuzione…"
+        localized(operation.message) || t`Raccolta delle dispense del corso in esecuzione…`
       );
     return (
       operation.message ||
-      `Creazione del ${operation.kind.toUpperCase()} in corso…`
+      t`Creazione del ${operation.kind.toUpperCase()} in corso…`
     );
   }
 
@@ -1222,7 +1227,7 @@
   function formatNotificationTime(value) {
     const date = new Date(Number(value));
     return Number.isFinite(date.getTime())
-      ? date.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
+      ? date.toLocaleTimeString(language?.current === "en" ? "en-GB" : "it-IT", { hour: "2-digit", minute: "2-digit" })
       : "";
   }
 
@@ -1231,7 +1236,7 @@
     ui.lastNotification.hidden = !lastNotification;
     if (!lastNotification) return;
     ui.lastNotification.dataset.level = lastNotification.level || "info";
-    ui.lastNotificationText.textContent = lastNotification.message || "";
+    ui.lastNotificationText.textContent = localized(lastNotification.message) || "";
     ui.lastNotificationTime.textContent = formatNotificationTime(
       lastNotification.createdAt,
     );
@@ -1259,9 +1264,9 @@
     ui.autoplaySkipCompletedVideos.disabled = false;
     ui.findFirstIncomplete.disabled =
       autoplayDisabled || Boolean(settings.pegasoActiveOperation);
-    ui.firstIncompleteHint.textContent = autoplayDisabled ? "Attiva autoplay per usare la ricerca."
-      : settings.pegasoActiveOperation ? "Disponibile al termine dell’operazione in corso."
-        : "Cerca Obiettivi, video e test da completare, senza risolvere i test.";
+    ui.firstIncompleteHint.textContent = autoplayDisabled ? t`Attiva autoplay per usare la ricerca.`
+      : settings.pegasoActiveOperation ? t`Disponibile al termine dell’operazione in corso.`
+        : t`Cerca Obiettivi, video e test da completare, senza risolvere i test.`;
     for (const radio of ui.testBehaviorRadios) {
       radio.checked = radio.value === testBehavior;
       radio.disabled =
@@ -1288,15 +1293,15 @@
     ui.chapterLimitValue.disabled = !limitReady;
     ui.chapterLimitSlider.disabled = !limitReady;
     ui.chapterLimitProgress.textContent = !limitReady
-      ? "Limite disponibile dopo il caricamento del corso."
+      ? t`Limite disponibile dopo il caricamento del corso.`
       : limitStatus.reached
-        ? `Limite raggiunto: ${limitStatus.completed} di ${limit}.`
-        : `Sessione: ${limitStatus.completed || 0} di ${limit} · massimo ${maximum}.`;
+        ? t`Limite raggiunto: ${limitStatus.completed} di ${limit}.`
+        : t`Sessione: ${limitStatus.completed || 0} di ${limit} · massimo ${maximum}.`;
     ui.chapterLimitValue.closest(".chapter-limit-controls").hidden = settings.autoplayChapterLimitEnabled !== true;
     ui.chapterLimitSlider.hidden = settings.autoplayChapterLimitEnabled !== true;
     ui.chapterLimitProgress.hidden = limitReady && settings.autoplayChapterLimitEnabled !== true;
     ui.chapterLimitResume.hidden = settings.autoplayChapterLimitEnabled !== true || !limitStatus?.reached;
-    ui.chapterLimitResume.textContent = `Riprendi per altri ${limit} capitoli`;
+    ui.chapterLimitResume.textContent = t`Riprendi per altri ${limit} capitoli`;
     const presentation = menuUx.autoplayPresentation({
       skipCompleted: settings.autoplaySkipCompletedVideos === true, testBehavior,
       limitEnabled: settings.autoplayChapterLimitEnabled === true, limit,
@@ -1332,20 +1337,20 @@
     const positionLabels = {
       top: "sopra",
       bottom: "sotto",
-      left: "a sinistra",
-      right: "a destra",
+      left: t`a sinistra`,
+      right: t`a destra`,
     };
     const progressSummary = [];
     if (settings.courseProgressOverlayEnabled === true) {
-      progressSummary.push(`Barra ${positionLabels[progressPosition]}`);
+      progressSummary.push(t`Barra ${positionLabels[progressPosition]}`);
     }
     if (settings.courseProgressThresholdEnabled === true)
-      progressSummary.push("avviso 70%");
+      progressSummary.push(t`avviso 70%`);
 
     ui.courseProgressOptionsSummary.textContent = progressSummary.length
       ? progressSummary.join(" · ")
-      : "Disattivate";
-    ui.state.textContent = settings.enabled === false ? "Autoplay in pausa" : "Autoplay attivo";
+      : t`Disattivate`;
+    ui.state.textContent = settings.enabled === false ? t`Autoplay in pausa` : t`Autoplay attivo`;
     ui.state.dataset.running = String(settings.enabled !== false);
     renderPreferences();
   }
@@ -1387,13 +1392,13 @@
       );
       ui.courseProgressBar.setAttribute(
         "aria-valuetext",
-        progress.ready ? `${progress.percent}%` : "Progresso non disponibile",
+        progress.ready ? `${progress.percent}%` : t`Progresso non disponibile`,
       );
       ui.courseProgressThreshold.hidden =
         settings.courseProgressThresholdEnabled !== true;
       ui.courseProgressMessage.textContent = progress.ready
-        ? courseProgressStatus.message || `Sincronizzato con ${PLATFORM_NAME}.`
-        : "Progresso disponibile dopo il caricamento del corso.";
+        ? localized(courseProgressStatus.message) || t`Sincronizzato con ${PLATFORM_NAME}.`
+        : t`Progresso disponibile dopo il caricamento del corso.`;
     }
     renderCourseProgressOverlay();
     evaluateCourseThreshold();
@@ -1416,29 +1421,29 @@
     ui.turbo.dataset.running = String(turbo);
     ui.turboLabel.textContent = turbo
       ? stopping
-        ? "Interruzione dei test…"
-        : "Interrompi i test automatici"
-      : "Completa tutti i test";
+        ? t`Interruzione dei test…`
+        : t`Interrompi i test automatici`
+      : t`Completa tutti i test`;
     ui.turbo.disabled = (busy && !turbo) || stopping;
     ui.objectives.dataset.running = String(objectives);
     ui.objectivesLabel.textContent = objectives
       ? stopping
-        ? "Interruzione Obiettivi…"
-        : "Interrompi Obiettivi"
-      : "Completa tutti gli Obiettivi";
+        ? t`Interruzione Obiettivi…`
+        : t`Interrompi Obiettivi`
+      : t`Completa tutti gli Obiettivi`;
     ui.objectives.disabled = (busy && !objectives) || stopping;
     ui.materialsLabel.textContent = collectingMaterials
       ? stopping
-        ? "Interruzione dispense…"
-        : "Interrompi raccolta dispense"
-      : "Esporta dispense";
+        ? t`Interruzione dispense…`
+        : t`Interrompi raccolta dispense`
+      : t`Esporta dispense`;
     ui.materials.disabled =
       (busy && !collectingMaterials) || (collectingMaterials && stopping);
     ui.testCollectionLabel.textContent = collectingTests
       ? stopping
-        ? "Interruzione test…"
-        : "Interrompi raccolta test"
-      : "Crea raccolta test";
+        ? t`Interruzione test…`
+        : t`Interrompi raccolta test`
+      : t`Crea raccolta test`;
     ui.testCollection.disabled =
       (busy && !collectingTests) || (collectingTests && stopping);
     ui.findFirstIncomplete.disabled = settings.enabled === false || busy;
@@ -1463,7 +1468,7 @@
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("it-IT", {
+    return new Intl.DateTimeFormat(language?.current === "en" ? "en-GB" : "it-IT", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -1474,14 +1479,14 @@
     const normalized = String(result || "").toLowerCase();
     const pendingVerbalization = /^daverbalizzare(?:-|$)/.test(normalized);
     if (pendingVerbalization && normalized.includes("promosso"))
-      return "Da verbalizzare · Superato";
+      return t`Da verbalizzare · Superato`;
     if (pendingVerbalization && normalized.includes("bocciato"))
-      return "Da verbalizzare · Non superato";
-    if (normalized.includes("promosso")) return "Superato";
-    if (normalized.includes("bocciato")) return "Non superato";
+      return t`Da verbalizzare · Non superato`;
+    if (normalized.includes("promosso")) return t`Superato`;
+    if (normalized.includes("bocciato")) return t`Non superato`;
     return result
       ? String(result).replaceAll("-", " · ")
-      : "Esito non disponibile";
+      : t`Esito non disponibile`;
   }
 
   function commissionExamKey(exam) {
@@ -1518,7 +1523,7 @@
 
     const heading = document.createElement("div");
     heading.className = "exam-title";
-    heading.textContent = exam.title_exam || exam.course_code || "Esame online";
+    heading.textContent = exam.title_exam || exam.course_code || t`Esame online`;
 
     const meta = document.createElement("div");
     meta.className = "exam-meta";
@@ -1526,7 +1531,7 @@
     const date = formatExamDate(exam.date_exam);
     if (date) parts.push(date);
     if (Number.isFinite(Number(exam.vote)))
-      parts.push(`Voto ${Number(exam.vote)}/30`);
+      parts.push(t`Voto ${Number(exam.vote)}/30`);
     parts.push(resultLabel(exam.result));
     meta.textContent = parts.join(" · ");
 
@@ -1534,7 +1539,7 @@
     verdict.className = "commission-verdict";
     const presentation = commissionStates.statePresentation(exam);
     verdict.dataset.tone = presentation.tone;
-    verdict.textContent = `Commissione: ${presentation.label}`;
+    verdict.textContent = t`Commissione: ${localized(presentation.label)}`;
 
     item.append(heading, meta, verdict);
     const rejectionMotivation = commissionStates.rejectMotivationText(exam);
@@ -1547,7 +1552,7 @@
       motivation.setAttribute("role", "button");
       motivation.setAttribute(
         "aria-label",
-        "Mostra o nascondi la motivazione completa",
+        t`Mostra o nascondi la motivazione completa`,
       );
       const toggleMotivation = () => {
         motivation.dataset.expanded = String(
@@ -1587,7 +1592,7 @@
     ui.commissionEnabled.checked = enabled;
     ui.commissionDisabled.hidden = enabled;
     ui.commissionContent.hidden = !enabled;
-    ui.hide.textContent = "Nascondi il menu dalla pagina";
+    ui.hide.textContent = t`Nascondi il menu dalla pagina`;
 
     if (
       !activeMenuTab ||
@@ -1669,8 +1674,8 @@
 
     ui.commissionEmpty.hidden = openExams.length > 0;
     ui.commissionEmpty.textContent = settings.commissionExamsCapturedAt
-      ? "Nessun esame in attesa o ancora da confermare."
-      : "Nessun esame da mostrare. Il controllo partirà quando la piattaforma renderà disponibile la sessione autenticata.";
+      ? t`Nessun esame in attesa o ancora da confermare.`
+      : t`Nessun esame da mostrare. Il controllo partirà quando la piattaforma renderà disponibile la sessione autenticata.`;
     for (const exam of openExams) {
       const card = createCommissionExamCard(exam, unseenSet);
       if (card) ui.commissionList.append(card);
@@ -1690,7 +1695,7 @@
       unseenSet.has(commissionExamKey(exam)),
     ).length;
     ui.confirmedToggle.hidden = loadedExams.length === 0;
-    ui.confirmedLabel.textContent = `Esiti caricati (${loadedExams.length})${loadedUnseen ? ` · ${loadedUnseen} da leggere` : ""}`;
+    ui.confirmedLabel.textContent = t`Esiti caricati (${loadedExams.length})${loadedUnseen ? t` · ${loadedUnseen} da leggere` : ""}`;
     for (const [group, section, count] of [
       [passedExams, ui.loadedPassedGroup, ui.loadedPassedCount],
       [failedExams, ui.loadedFailedGroup, ui.loadedFailedCount],
@@ -1719,10 +1724,10 @@
     ui.panel.hidden = true;
     hideAchievementFeedback();
     ui.launcher.setAttribute("aria-expanded", "false");
-    ui.launcher.title = "Clicca per aprire PlumePilot · Trascina per spostare";
+    ui.launcher.title = t`Clicca per aprire PlumePilot · Trascina per spostare`;
     ui.launcher.setAttribute(
       "aria-label",
-      "Apri PlumePilot; trascina per spostare l’icona lungo il bordo",
+      t`Apri PlumePilot; trascina per spostare l’icona lungo il bordo`,
     );
   }
 
@@ -1910,13 +1915,13 @@
     ui.panel.hidden = !opening;
     ui.launcher.setAttribute("aria-expanded", String(opening));
     ui.launcher.title = opening
-      ? "Clicca per chiudere PlumePilot · Trascina per spostare"
-      : "Clicca per aprire PlumePilot · Trascina per spostare";
+      ? t`Clicca per chiudere PlumePilot · Trascina per spostare`
+      : t`Clicca per aprire PlumePilot · Trascina per spostare`;
     ui.launcher.setAttribute(
       "aria-label",
       opening
-        ? "Chiudi PlumePilot; trascina per spostare l’icona lungo il bordo"
-        : "Apri PlumePilot; trascina per spostare l’icona lungo il bordo",
+        ? t`Chiudi PlumePilot; trascina per spostare l’icona lungo il bordo`
+        : t`Apri PlumePilot; trascina per spostare l’icona lungo il bordo`,
     );
     if (opening) {
       claimFloatingAchievement("open-floating-menu");
@@ -1934,7 +1939,7 @@
 
     if (stopping) {
       ui.turbo.disabled = true;
-      setFeedback("Interruzione dopo l’operazione corrente…");
+      setFeedback(t`Interruzione dopo l’operazione corrente…`);
       window.postMessage(
         {
           type: "PEGASO_TURBO_TESTS_COMMAND",
@@ -1947,7 +1952,7 @@
     }
 
     ui.turbo.disabled = true;
-    setFeedback("Avvio dei test automatici…");
+    setFeedback(t`Avvio dei test automatici…`);
     const acquired = await runtimeMessage({
       type: "PEGASO_ACQUIRE_OPERATION",
       kind: "turbo",
@@ -1960,7 +1965,7 @@
       } else {
         renderOperation();
         setFeedback(
-          acquired?.reason || "Impossibile avviare i test automatici.",
+          acquired?.reason || t`Impossibile avviare i test automatici.`,
           true,
         );
       }
@@ -1983,7 +1988,7 @@
     const stopping = operation?.kind === "objectives";
     if (stopping) {
       ui.objectives.disabled = true;
-      setFeedback("Interruzione dopo l’operazione corrente…");
+      setFeedback(t`Interruzione dopo l’operazione corrente…`);
       window.postMessage(
         {
           type: "PEGASO_OBJECTIVES_COMMAND",
@@ -1996,7 +2001,7 @@
     }
 
     ui.objectives.disabled = true;
-    setFeedback("Avvio del completamento degli Obiettivi…");
+    setFeedback(t`Avvio del completamento degli Obiettivi…`);
     const acquired = await runtimeMessage({
       type: "PEGASO_ACQUIRE_OPERATION",
       kind: "objectives",
@@ -2009,7 +2014,7 @@
         renderOperation();
         setFeedback(
           acquired?.reason ||
-            "Impossibile avviare il completamento degli Obiettivi.",
+            t`Impossibile avviare il completamento degli Obiettivi.`,
           true,
         );
       }
@@ -2031,14 +2036,14 @@
     const collecting =
       operation?.kind === "tests" && operation.phase === "collecting";
     if (collecting) {
-      setFeedback("Interruzione della raccolta dei test…");
+      setFeedback(t`Interruzione della raccolta dei test…`);
       await runtimeMessage({
         type: "PEGASO_CANCEL_EXPORT",
         operationId: operation.id,
       });
       return;
     }
-    setFeedback("Avvio della raccolta dei test…");
+    setFeedback(t`Avvio della raccolta dei test…`);
     const response = await runtimeMessage({
       type: "PEGASO_START_TEST_EXPORT",
       requestSource: "floating-menu",
@@ -2049,7 +2054,7 @@
         renderOperation();
       } else {
         setFeedback(
-          response?.reason || "Impossibile avviare la raccolta dei test.",
+          response?.reason || t`Impossibile avviare la raccolta dei test.`,
           true,
         );
       }
@@ -2059,7 +2064,7 @@
   }
 
   async function startMaterialsExport() {
-    setFeedback("Avvio della raccolta delle dispense…");
+    setFeedback(t`Avvio della raccolta delle dispense…`);
     ui.materials.disabled = true;
     const response = await runtimeMessage({
       type: "PEGASO_START_EXPORT",
@@ -2073,7 +2078,7 @@
       } else {
         renderOperation();
         setFeedback(
-          response?.reason || "Impossibile avviare l’operazione.",
+          response?.reason || t`Impossibile avviare l’operazione.`,
           true,
         );
       }
@@ -2088,7 +2093,7 @@
       await startMaterialsExport();
       return;
     }
-    setFeedback("Interruzione della raccolta delle dispense…");
+    setFeedback(t`Interruzione della raccolta delle dispense…`);
     const response = await runtimeMessage({
       type: "PEGASO_CANCEL_EXPORT",
       operationId: operation.id,
@@ -2099,7 +2104,7 @@
         renderOperation();
       } else {
         setFeedback(
-          response?.reason || "Impossibile interrompere la raccolta.",
+          response?.reason || t`Impossibile interrompere la raccolta.`,
           true,
         );
       }
@@ -4036,6 +4041,7 @@
             <details class="preferences-section preference-macro" aria-labelledby="studywing-interface-preferences-heading">
               <summary id="studywing-interface-preferences-heading" class="preferences-heading preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
               <div class="preference-macro-content">
+                <label><span>Lingua</span> <select data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p data-role="language-status" role="status"></p>
               <label class="setting"><span>Mostra il menu fluttuante</span><input data-setting="floating-menu-enabled" type="checkbox" checked></label>
               <details class="ux-layout-settings"><summary>Pulsanti dei menu</summary>
                 <p class="ux-copy">Ordine e visibilità sono condivisi dai due menu. Trascina i pulsanti o usa le frecce all’interno di ciascun gruppo. Un’operazione in corso resta sempre visibile.</p>
@@ -4109,6 +4115,11 @@
           <button class="hide-menu" data-action="hide" type="button">Nascondi il menu dalla pagina</button>
         </div>
       </section>`;
+    host.lang = language?.current || "it";
+    language?.localizeMarkup(shadow);
+    language?.bindPicker(shadow.querySelector('[data-role="language-picker"]'), (message) => {
+      shadow.querySelector('[data-role="language-status"]').textContent = message;
+    });
     hydrateShadowPlaceholders(shadow, {
       __PP_MENU_UX_CSS__: chrome.runtime.getURL("menu-ux.css"),
       __PP_PIXEL_FONT__: pixelFontUrl,
@@ -4136,7 +4147,7 @@
       __PP_DONATE_URL__: donateUrl,
       __PP_VERSION__: extensionManifest.version,
     });
-    shadow.querySelector('[data-role="platform-subtitle"]').textContent = `Assistente per ${PLATFORM_NAME}`;
+    shadow.querySelector('[data-role="platform-subtitle"]').textContent = t`Assistente per ${PLATFORM_NAME}`;
 
     document.documentElement.appendChild(host);
     ui = {
@@ -4452,19 +4463,19 @@
       ui.confirmedPanel.hidden = !expanded;
     });
     shadow.querySelector('[data-action="clear-commission-data"]').addEventListener("click", async event => {
-      if (!window.confirm("Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.")) return;
+      if (!window.confirm(t`Vuoi cancellare dal browser i dati degli esami e lo storico delle notifiche della commissione? I dati presenti sulle piattaforme universitarie non verranno modificati.`)) return;
       const button = event.currentTarget;
       const status = shadow.querySelector('[data-role="clear-commission-status"]');
       button.disabled = true;
-      status.textContent = "Cancellazione in corso…";
+      status.textContent = t`Cancellazione in corso…`;
       await runtimeMessage({ type: "PEGASO_CLEAR_COMMISSION_MEMORY_ALL_TABS" });
       chrome.storage.local.remove([
         "commissionExams", "commissionExamsCapturedAt", "commissionExamsCapturedAtByPlatform",
         "commissionExamSnapshots", "commissionExamTrackingInitialized", "commissionExamTrackingInitializedByPlatform",
         "commissionUnseenExamIds", "commissionCheckLease", "commissionCheckLeases",
       ], () => {
-        status.textContent = chrome.runtime.lastError ? "Non è stato possibile cancellare i dati. Riprova."
-          : "Dati e cache temporanea degli esami cancellati.";
+        status.textContent = chrome.runtime.lastError ? t`Non è stato possibile cancellare i dati. Riprova.`
+          : t`Dati e cache temporanea degli esami cancellati.`;
         button.disabled = false;
       });
     });
@@ -4511,11 +4522,11 @@
     ui.notificationVolume.addEventListener("change", () => writeSetting("notificationVolume", soundApi.normalizeVolume(ui.notificationVolume.value)));
     ui.previewNotificationSound.addEventListener("click", async () => {
       const response = await runtimeMessage({ type: "STUDYWING_SOUND_PREVIEW", sound: ui.notificationSound.value, volume: ui.notificationVolume.value });
-      setFeedback(response?.played === true ? "Anteprima riprodotta." : (response?.reason || "Anteprima non disponibile."), response?.played !== true);
+      setFeedback(response?.played === true ? t`Anteprima riprodotta.` : (response?.reason || t`Anteprima non disponibile.`), response?.played !== true);
     });
     ui.openPausa.addEventListener("click", async () => {
       const response = await runtimeMessage({ type: "STUDYWING_OPEN_PAUSA" });
-      if (response?.accepted !== true) setFeedback(response?.reason || "Impossibile aprire Pausa?.", true);
+      if (response?.accepted !== true) setFeedback(response?.reason || t`Impossibile aprire Pausa?.`, true);
     });
     ui.enabled.addEventListener("change", () => {
       writeSetting("enabled", ui.enabled.checked);
@@ -4530,7 +4541,7 @@
       (layout, claim) => {
         chrome.storage.local.set({ floatingMenuLayout: layout }, () => {
           shadow.querySelector('[data-role="menu-layout-status"]').textContent = chrome.runtime.lastError
-            ? "Impossibile salvare la disposizione." : "Disposizione salvata in entrambi i menu.";
+            ? t`Impossibile salvare la disposizione.` : t`Disposizione salvata in entrambi i menu.`;
           if (claim && !floatingLayoutApi.isDefaultLayout(layout)) claimFloatingAchievement("customize-floating-menu");
         });
       });
@@ -4551,7 +4562,7 @@
     ui.findFirstIncomplete.addEventListener("click", () => {
       if (ui.findFirstIncomplete.disabled) return;
       ui.findFirstIncomplete.disabled = true;
-      setFeedback("Ricerca dall’inizio del corso avviata…");
+      setFeedback(t`Ricerca dall’inizio del corso avviata…`);
       window.postMessage(
         {
           type: "PEGASO_FIND_FIRST_INCOMPLETE_REQUEST",
@@ -4831,6 +4842,20 @@
     for (const key of Object.keys(defaults)) {
       if (changes[key]) settings[key] = changes[key].newValue ?? defaults[key];
     }
+    if (changes.plumePilotLanguage && language) {
+      const panelOpen = ui && !ui.panel.hidden;
+      const selectedTab = activeMenuTab;
+      language.set(settings.plumePilotLanguage);
+      removeMenu();
+      applyVisibility();
+      if (panelOpen && ui) {
+        selectMenuTab(selectedTab, { acknowledge: false });
+        togglePanel();
+        if (selectedTab === "preferences") {
+          ui.panel.querySelector('[data-role="language-picker"]')?.focus();
+        }
+      }
+    }
     if (changes.floatingMenuEnabled || changes.commissionCheckEnabled)
       scheduleVisibilityCheck();
     if (changes.visualStyle) {
@@ -4947,6 +4972,7 @@
 
   chrome.storage.local.get(defaults, (result) => {
     settings = { ...defaults, ...result };
+    language?.set(settings.plumePilotLanguage);
     lastNotification = settings.studywingLastNotification || null;
     applyVisibility();
     renderCourseProgress();

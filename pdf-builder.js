@@ -1,5 +1,6 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
 
   const titleElement = document.getElementById("courseTitle");
   const statusElement = document.getElementById("status");
@@ -35,7 +36,7 @@
         ? Math.round((update.completed / update.total) * 100)
         : 0;
       progressBar.style.width = `${percent}%`;
-      detailsElement.textContent = `${update.completed} di ${update.total} dispense elaborate`;
+      detailsElement.textContent = t`${update.completed} di ${update.total} dispense elaborate`;
     }
 
     if (operationId) {
@@ -92,23 +93,24 @@
   }
 
   async function start() {
+    if (globalThis.PlumePilotLanguage) await PlumePilotLanguage.initializePage();
     const jobId = new URLSearchParams(location.search).get("job");
 
     if (!jobId) {
-      throw new Error("Identificativo dell’operazione PDF mancante.");
+      throw new Error(t`Identificativo dell’operazione PDF mancante.`);
     }
 
     const storageKey = `pegasoExportJob:${jobId}`;
     const job = await storageGet(storageKey);
 
     if (!job?.materials?.length) {
-      throw new Error("Impossibile trovare le dispense raccolte.");
+      throw new Error(t`Impossibile trovare le dispense raccolte.`);
     }
 
     operationId = job.operationId;
 
     titleElement.textContent = job.courseTitle;
-    document.title = `${job.courseTitle} – Creazione PDF`;
+    document.title = t`${job.courseTitle} – Creazione PDF`;
 
     const result = await PegasoPdfCore.buildCoursePdf(
       job.courseTitle,
@@ -126,10 +128,10 @@
     };
 
     progressBar.style.width = "100%";
-    statusElement.textContent = "PDF creato con successo.";
+    statusElement.textContent = t`PDF creato con successo.`;
     detailsElement.textContent =
-      `${result.included.length} dispense unite` +
-      (allFailures.length ? `; ${allFailures.length} saltate` : "");
+      t`${result.included.length} dispense unite` +
+      (allFailures.length ? t`; ${allFailures.length} saltate` : "");
     downloadAgainButton.hidden = false;
     downloadPdf(result.bytes, result.filename);
     await storageRemove(storageKey);
@@ -144,7 +146,7 @@
 
   start().catch((error) => {
     console.error("[PlumePilot] PDF builder failed:", error);
-    statusElement.textContent = "Impossibile creare il PDF del corso.";
+    statusElement.textContent = t`Impossibile creare il PDF del corso.`;
     detailsElement.textContent = error?.message || "Errore sconosciuto";
     progressBar.style.background = "#991b1b";
     if (operationId) {

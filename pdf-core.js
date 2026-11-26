@@ -1,13 +1,14 @@
 (() => {
   "use strict";
+  const t = globalThis.PlumePilotLanguage?.translate || ((parts, ...values) => String.raw({ raw: parts }, ...values));
 
   const A4 = [595.28, 841.89];
   const PAGE_MARGIN = 54;
   const ACCENT = { r: 207 / 255, g: 29 / 255, b: 86 / 255 };
   const TEXT = { r: 31 / 255, g: 41 / 255, b: 55 / 255 };
   const MUTED = { r: 107 / 255, g: 114 / 255, b: 128 / 255 };
-  const STUDYWING_SIGNATURE = "Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.";
-  const STUDYWING_GENERATOR = `PlumePilot ${globalThis.chrome?.runtime?.getManifest?.().version || "versione sconosciuta"}`;
+  const studyWingSignature = () => t`Generato con PlumePilot - Assistente per Multiversity, disponibile su Chrome, Edge e Firefox.`;
+  const STUDYWING_GENERATOR = `PlumePilot ${globalThis.chrome?.runtime?.getManifest?.().version || t`versione sconosciuta`}`;
 
   function filenameFor(title) {
     const normalized = title
@@ -81,7 +82,7 @@
 
     const chapter = String(item?.chapter || "").trim();
     const separatorIndex = chapter.indexOf(" — ");
-    return separatorIndex > 0 ? chapter.slice(0, separatorIndex).trim() : "Dispense";
+    return separatorIndex > 0 ? chapter.slice(0, separatorIndex).trim() : t`Dispense`;
   }
 
   function chapterLabelFor(item) {
@@ -211,7 +212,7 @@
       y = A4[1] - PAGE_MARGIN;
 
       if (pageNumber === 1) {
-        const signatureLines = wrapText(STUDYWING_SIGNATURE, regular, 9, maxTextWidth);
+        const signatureLines = wrapText(studyWingSignature(), regular, 9, maxTextWidth);
         for (const line of signatureLines) {
           page.drawText(line, {
             x: PAGE_MARGIN,
@@ -225,7 +226,7 @@
         y -= 10;
       }
 
-      page.drawText("DISPENSE DEL CORSO", {
+      page.drawText(t`DISPENSE DEL CORSO`, {
         x: PAGE_MARGIN,
         y,
         size: 10,
@@ -234,7 +235,7 @@
       });
       y -= 28;
 
-      const titleLines = wrapText(`Corso - ${courseTitle}`, bold, 22, maxTextWidth);
+      const titleLines = wrapText(t`Corso - ${courseTitle}`, bold, 22, maxTextWidth);
       for (const line of titleLines) {
         page.drawText(line, {
           x: PAGE_MARGIN,
@@ -246,7 +247,7 @@
         y -= 27;
       }
 
-      page.drawText("Indice interattivo", {
+      page.drawText(t`Indice interattivo`, {
         x: PAGE_MARGIN,
         y: y - 2,
         size: 12,
@@ -272,7 +273,7 @@
     }
 
     function drawSectionHeading(label, targetPage, continued = false) {
-      const heading = continued ? `${label} (continua)` : label;
+      const heading = continued ? t`${label} (continua)` : label;
       const lines = wrapText(heading, bold, 14, maxTextWidth);
       const top = y + 5;
 
@@ -363,7 +364,7 @@
     for (let index = 0; index < pageNumber; index++) {
       const indexPage = document.getPage(index);
       indexPage.drawText(
-        `Indice ${index + 1} di ${pageNumber} - fai clic su un capitolo per aprirlo`,
+        t`Indice ${index + 1} di ${pageNumber} - fai clic su un capitolo per aprirlo`,
         {
           x: PAGE_MARGIN,
           y: 28,
@@ -389,7 +390,7 @@
     const failures = [];
 
     document.setTitle(courseTitle);
-    document.setSubject("Materiali del corso con indice interattivo");
+    document.setSubject(t`Materiali del corso con indice interattivo`);
     document.setCreator(STUDYWING_GENERATOR);
     document.setProducer(`${STUDYWING_GENERATOR} e pdf-lib`);
 
@@ -398,14 +399,14 @@
       onProgress({
         completed: index,
         total: materials.length,
-        message: `Download: ${material.chapter}`,
+        message: t`Download: ${material.chapter}`,
       });
 
       try {
         const response = await fetchImpl(material.url);
 
         if (!response.ok) {
-          throw new Error(`Download non riuscito (HTTP ${response.status})`);
+          throw new Error(t`Download non riuscito (HTTP ${response.status})`);
         }
 
         const bytes = new Uint8Array(await response.arrayBuffer());
@@ -416,7 +417,7 @@
         const sourceIndices = source.getPageIndices();
 
         if (!sourceIndices.length) {
-          throw new Error("Il PDF non contiene pagine");
+          throw new Error(t`Il PDF non contiene pagine`);
         }
 
         const copiedPages = await document.copyPages(source, sourceIndices);
@@ -437,7 +438,7 @@
       } catch (error) {
         failures.push({
           chapter: material.chapter,
-          reason: error?.message || "Errore PDF sconosciuto",
+          reason: error?.message || t`Errore PDF sconosciuto`,
           cacheKey: material.cacheKey || null,
         });
       }
@@ -445,18 +446,18 @@
       onProgress({
         completed: index + 1,
         total: materials.length,
-        message: `Elaborata: ${material.chapter}`,
+        message: t`Elaborata: ${material.chapter}`,
       });
     }
 
     if (!included.length) {
-      throw new Error("Non è stato possibile scaricare e unire nessuna dispensa.");
+      throw new Error(t`Non è stato possibile scaricare e unire nessuna dispensa.`);
     }
 
     onProgress({
       completed: materials.length,
       total: materials.length,
-      message: "Creazione dell’indice interattivo e dei segnalibri…",
+      message: t`Creazione dell’indice interattivo e dei segnalibri…`,
     });
 
     addInteractiveIndex(document, courseTitle, included, regular, bold);

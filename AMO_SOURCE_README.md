@@ -1,4 +1,4 @@
-# PlumePilot 2.35.5 — AMO source submission
+# PlumePilot 2.36.0 — AMO source submission
 
 This archive is provided privately to Mozilla Add-ons reviewers. PlumePilot's first-party JavaScript is shipped as readable source: it is not transpiled, bundled, minified, or obfuscated. The release process selects runtime files, creates the browser-specific manifest, applies the documented Firefox-only review-safety transformations below, and writes deterministic ZIP archives.
 
@@ -23,7 +23,7 @@ node scripts/build-release.mjs
 The Firefox package is generated at:
 
 ```text
-release/plumepilot-v2.35.5-firefox.zip
+release/plumepilot-v2.36.0-firefox.zip
 ```
 
 The output directory must not already contain ZIP files or `SHA256SUMS.txt`. To use another empty directory:
@@ -50,9 +50,9 @@ The validator checks browser-specific manifests, referenced runtime files, absen
 
 The ZIP writer uses a fixed timestamp, stable file ordering, DEFLATE level 9, and the UNIX platform flag. A compatible Node.js runtime therefore produces the same Firefox archive byte for byte. Compare the generated SHA-256 with the value supplied in the AMO version notes.
 
-## Browser-specific Novità
+## Novità
 
-Chrome and Edge display four Novità cards for the offline quiz, continuous fullscreen, and floating menu updates. Firefox adds a fifth card for the previously prepared commission monitor fix. The Firefox build packages `scripts/whats-new-firefox.js` at the runtime path `whats-new.js`. Both readable definitions are included in the source archive and are checked by the validator. Runtime storage keys remain unchanged.
+Chrome, Edge, and Firefox package the same `whats-new.js` definition. The update banner and the Preferences dialog read its version and summary. The Italian and English text describes the language setting, export tools, offline quizzes, and Pausa?.
 
 ## Firefox-only review-safety transformations
 
@@ -79,7 +79,7 @@ The readable distribution files in the source archive and in the Chrome/Edge pac
 
 Before this submission, every source vendor file was compared byte for byte with the corresponding official release. No dependency or executable code is downloaded at extension runtime.
 
-Before submission, run `web-ext lint` on the generated Firefox 2.35.5 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
+Before submission, run `web-ext lint` on the generated Firefox 2.36.0 package and review its actual errors and warnings. Document any warnings for reviewers when relevant; a zero-warning result is not required for AMO approval. Local lint is separate from AMO's own automated and manual review.
 
 ## EPUB math font
 

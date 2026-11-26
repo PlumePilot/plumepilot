@@ -1,4 +1,11 @@
 function offlineQuizRuntime(DATA) {
+  const localized = (source) => Object.hasOwn(DATA.messages || {}, source) ? DATA.messages[source] : source;
+  const t = (parts, ...values) => {
+    const key = parts.reduce((source, part, index) => source + (index ? `$${index}` : "") + part, "");
+    const translation = localized(key);
+    return translation === key ? String.raw({ raw: parts }, ...values)
+      : translation.replace(/\$(\d+)/g, (match, index) => Number(index) <= values.length ? String(values[index - 1]) : match);
+  };
   let current = 0;
   const results = new Map();
   const byId = (id) => document.getElementById(id);
@@ -16,7 +23,7 @@ function offlineQuizRuntime(DATA) {
     );
   let savedNotesData = byId("notes-data").textContent || "e30=";
   const notes = new Map(Object.entries(decodeNotes(savedNotesData)));
-  const statuses = { verified: "🟢 Verificata", review: "🟡 Da rivedere", verify: "🔴 Da verificare" };
+  const statuses = { verified: t`🟢 Verificata`, review: t`🟡 Da rivedere`, verify: t`🔴 Da verificare` };
   let filter = "all";
   const hasText = (value) => Boolean(value && value.replace(/<[^>]*>/g, "").trim());
   const hasNotes = (note) => Boolean(note && (
@@ -157,11 +164,11 @@ function offlineQuizRuntime(DATA) {
       if (hasText(entry.observationsHtml || entry.observations)) counts.observations++;
     }
     byId("reviewCounts").textContent = DATA.tests.reduce((sum, test) => sum + test.questions.length, 0) +
-      " domande · " + counts.verified + " verificate · " + counts.review +
-      " da rivedere · " + counts.verify + " da verificare · " + counts.plain + " normali";
+      t` domande · ` + counts.verified + t` verificate · ` + counts.review +
+      t` da rivedere · ` + counts.verify + t` da verificare · ` + counts.plain + t` normali`;
     byId("reviewFilter").value = filter;
     byId("reviewFilter").querySelector('[value="observations"]').textContent =
-      "Con osservazioni (" + counts.observations + ")";
+      t`Con osservazioni (` + counts.observations + ")";
   }
   const symbols = [
     "α",
@@ -199,7 +206,7 @@ function offlineQuizRuntime(DATA) {
     if (!select) {
       const label = document.createElement("label");
       label.className = "theme-control";
-      label.append("Tema ");
+      label.append(t`Tema `);
       select = document.createElement("select");
       select.id = "themeSelect";
       for (const [value, text] of [
@@ -209,7 +216,7 @@ function offlineQuizRuntime(DATA) {
       ]) {
         const option = document.createElement("option");
         option.value = value;
-        option.textContent = text;
+        option.textContent = localized(text);
         select.appendChild(option);
       }
       label.appendChild(select);
@@ -229,7 +236,7 @@ function offlineQuizRuntime(DATA) {
     const questions =
       Number(result.questions) || DATA.tests[current].questions.length;
     output.textContent =
-      "Risultato capitolo: " + result.right + " / " + questions;
+      t`Risultato capitolo: ` + result.right + " / " + questions;
     output.hidden = false;
   }
   function score() {
@@ -240,8 +247,8 @@ function offlineQuizRuntime(DATA) {
       total += value.total;
     }
     byId("score").textContent = total
-      ? right + " / " + total + " risposte corrette verificate"
-      : "Nessun capitolo verificato";
+      ? right + " / " + total + t` risposte corrette verificate`
+      : t`Nessun capitolo verificato`;
     chapterScore();
   }
   function nav() {
@@ -268,13 +275,13 @@ function offlineQuizRuntime(DATA) {
         const element = document.createElement("img");
         element.className = className;
         element.src = image.dataUrl;
-        element.alt = image.title || "Immagine del test";
+        element.alt = image.title || t`Immagine del test`;
         parent.appendChild(element);
       } else {
         const missing = document.createElement("div");
         missing.className = "image-missing";
         missing.textContent =
-          "Immagine non disponibile: " + (image.title || "immagine del test");
+          t`Immagine non disponibile: ` + (image.title || localized("immagine del test"));
         parent.appendChild(missing);
       }
     });
@@ -295,9 +302,9 @@ function offlineQuizRuntime(DATA) {
   function reviewControl(question) {
     const label = document.createElement("label");
     label.className = "review-control";
-    label.append("Stato personale ");
+    label.append(t`Stato personale `);
     const select = document.createElement("select");
-    for (const [value, text] of [["", "Normale"], ...Object.entries(statuses)]) {
+    for (const [value, text] of [["", t`Normale`], ...Object.entries(statuses)]) {
       const option = document.createElement("option");
       option.value = value;
       option.textContent = text;
@@ -327,10 +334,10 @@ function offlineQuizRuntime(DATA) {
     details.open = false;
     details.dataset.hasNotes = String(hasNotes(saved));
     const summary = document.createElement("summary");
-    summary.append("Spiegazione e osservazioni");
+    summary.append(t`Spiegazione e osservazioni`);
     const indicator = document.createElement("span");
     indicator.className = "notes-indicator";
-    indicator.textContent = "Appunti presenti";
+    indicator.textContent = t`Appunti presenti`;
     summary.appendChild(indicator);
     details.appendChild(summary);
     let activeField = null;
@@ -562,20 +569,21 @@ function offlineQuizRuntime(DATA) {
         "Evidenzia green": "Verde", "Evidenzia blue": "Azzurro",
         "Evidenzia pink": "Rosa",
       };
-      item.textContent = short[title] || title;
-      item.title = title === "Rimuovi formattazione" ? title + " (Ctrl/⌘ + \\)" : title;
-      item.setAttribute("aria-label", title);
+      const label = localized(title);
+      item.textContent = localized(short[title] || title);
+      item.title = title === "Rimuovi formattazione" ? label + " (Ctrl/⌘ + \\)" : label;
+      item.setAttribute("aria-label", label);
       item.addEventListener("mousedown", (event) => event.preventDefault());
       item.onclick = () => { if (activeField) action(activeField); };
       bar.appendChild(item);
     }
     const activeCaption = document.createElement("p");
     activeCaption.className = "active-note-field";
-    activeCaption.textContent = "Formattazione: Spiegazione";
+    activeCaption.textContent = t`Formattazione: Spiegazione`;
     details.appendChild(activeCaption);
     const tools = document.createElement("div");
     tools.className = "editor-tools";
-    tools.setAttribute("aria-label", "Formattazione degli appunti");
+    tools.setAttribute("aria-label", t`Formattazione degli appunti`);
     for (const [name, command] of [
       ["Grassetto", "bold"], ["Corsivo", "italic"], ["Sottolineato", "underline"],
       ["Barrato", "strikeThrough"], ["Elenco puntato", "insertUnorderedList"],
@@ -605,12 +613,12 @@ function offlineQuizRuntime(DATA) {
     details.appendChild(tools);
     const bar = document.createElement("div");
     bar.className = "symbol-bar";
-    bar.setAttribute("aria-label", "Simboli matematici");
+    bar.setAttribute("aria-label", t`Simboli matematici`);
     for (const symbol of symbols) {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = symbol;
-      button.title = "Inserisci " + symbol;
+      button.title = t`Inserisci ` + symbol;
       button.addEventListener("mousedown", (event) => event.preventDefault());
       button.addEventListener("click", () => {
         const field = activeField;
@@ -623,15 +631,15 @@ function offlineQuizRuntime(DATA) {
     const shortcutHelp = document.createElement("details");
     shortcutHelp.className = "shortcut-help";
     const shortcutSummary = document.createElement("summary");
-    shortcutSummary.textContent = "Scorciatoie da tastiera";
+    shortcutSummary.textContent = t`Scorciatoie da tastiera`;
     shortcutHelp.appendChild(shortcutSummary);
     const shortcutList = document.createElement("p");
-    shortcutList.textContent = "Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Ctrl (⌘ su Mac) + \\ rimuove la formattazione dal testo selezionato. Esc interrompe formati e colore. Scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato, in un paragrafo vuoto. Un altro clic sullo stesso callout lo rimuove; Invio alla fine del callout apre un paragrafo normale. Elenchi e altri strumenti sono disponibili nella barra.";
+    shortcutList.textContent = localized("Nel testo: Ctrl (⌘ su Mac) + B grassetto · I corsivo · U sottolineato · G barrato · E apice · D pedice. Ctrl (⌘ su Mac) + \\ rimuove la formattazione dal testo selezionato. Esc interrompe formati e colore. Scrivi - seguito da spazio per un elenco puntato, oppure 1. seguito da spazio per un elenco numerato, in un paragrafo vuoto. Un altro clic sullo stesso callout lo rimuove; Invio alla fine del callout apre un paragrafo normale. Elenchi e altri strumenti sono disponibili nella barra.");
     shortcutHelp.appendChild(shortcutList);
     details.appendChild(shortcutHelp);
     for (const [field, labelText] of [
-      ["explanation", "Spiegazione"],
-      ["observations", "Osservazioni"],
+      ["explanation", t`Spiegazione`],
+      ["observations", t`Osservazioni`],
     ]) {
       const label = document.createElement("div");
       label.className = "note-field";
@@ -646,13 +654,13 @@ function offlineQuizRuntime(DATA) {
       editor.setAttribute("aria-multiline", "true");
       editor.dataset.placeholder =
         field === "explanation"
-          ? "Scrivi il procedimento o il motivo della risposta…"
-          : "Aggiungi dubbi, collegamenti o promemoria…";
+          ? t`Scrivi il procedimento o il motivo della risposta…`
+          : t`Aggiungi dubbi, collegamenti o promemoria…`;
       if (saved[field + "Html"]) editor.innerHTML = cleanHtml(saved[field + "Html"]);
       else editor.textContent = saved[field] || "";
       editor.addEventListener("focus", () => {
         activeField = editor;
-        activeCaption.textContent = "Formattazione: " + labelText;
+        activeCaption.textContent = t`Formattazione: ` + labelText;
       });
       editor.addEventListener("keyup", rememberSelection);
       editor.addEventListener("mouseup", rememberSelection);
@@ -769,14 +777,14 @@ function offlineQuizRuntime(DATA) {
           const entry = notes.get(question.noteKey) || {};
           return filter === "observations" ? hasText(entry.observationsHtml || entry.observations) : entry.status === filter;
         }).map((question) => ({ question, chapter: part.chapterTitle })));
-    if (filter !== "all") byId("chapterTitle").textContent = "Domande filtrate — " + byId("reviewFilter").selectedOptions[0].textContent;
+    if (filter !== "all") byId("chapterTitle").textContent = t`Domande filtrate — ` + byId("reviewFilter").selectedOptions[0].textContent;
     byId("check").disabled = filter !== "all";
     byId("reset").disabled = filter !== "all";
     const container = byId("questions");
     container.replaceChildren();
     if (!visible.length) {
       const empty = document.createElement("p");
-      empty.textContent = "Nessuna domanda per questo filtro.";
+      empty.textContent = t`Nessuna domanda per questo filtro.`;
       container.appendChild(empty);
     }
     visible.forEach(({ question, chapter }, qIndex) => {
@@ -791,7 +799,7 @@ function offlineQuizRuntime(DATA) {
       }
       const h = document.createElement("h3");
       h.textContent =
-        qIndex + 1 + ". " + (question.question || "Domanda in immagine");
+        qIndex + 1 + ". " + (question.question || t`Domanda in immagine`);
       card.appendChild(h);
       appendImages(card, question.images, "prompt-image");
       const answers = question.answers.map((answer, index) => ({
@@ -812,7 +820,7 @@ function offlineQuizRuntime(DATA) {
           answerText.textContent =
             String.fromCharCode(65 + displayIndex) +
             ". " +
-            (answer.answer || "Risposta in immagine");
+            (answer.answer || t`Risposta in immagine`);
           text.appendChild(answerText);
           appendImages(text, answer.images, "answer-image");
           label.append(radio, text);
@@ -851,12 +859,12 @@ function offlineQuizRuntime(DATA) {
         total++;
         if (selected === correct) {
           right++;
-          feedback.textContent = "Risposta corretta";
-        } else feedback.textContent = "Risposta errata";
+          feedback.textContent = t`Risposta corretta`;
+        } else feedback.textContent = t`Risposta errata`;
       } else
         feedback.textContent = byId("showSolutions").checked
-          ? "Soluzione mostrata"
-          : "Nessuna risposta selezionata";
+          ? t`Soluzione mostrata`
+          : t`Nessuna risposta selezionata`;
     });
     if (record) {
       results.set(current, { right, total, questions });
@@ -892,7 +900,7 @@ function offlineQuizRuntime(DATA) {
     controls.id = "save-in-place-controls";
     const save = document.createElement("button");
     save.type = "button";
-    save.textContent = "Salva appunti nel file";
+    save.textContent = t`Salva appunti nel file`;
     const status = document.createElement("span");
     status.setAttribute("role", "status");
     controls.append(save);
@@ -903,20 +911,20 @@ function offlineQuizRuntime(DATA) {
 
     save.onclick = async () => {
       save.disabled = true;
-      status.textContent = fileHandle ? "Salvataggio in corso…" : "Seleziona il file HTML del quiz aperto.";
+      status.textContent = fileHandle ? t`Salvataggio in corso…` : t`Seleziona il file HTML del quiz aperto.`;
       try {
         const [selected] = fileHandle ? [fileHandle] : await window.showOpenFilePicker({
-          types: [{ description: "Quiz HTML", accept: { "text/html": [".html", ".htm"] } }],
+          types: [{ description: t`Quiz HTML`, accept: { "text/html": [".html", ".htm"] } }],
         });
         const file = await selected.getFile();
         const originalSource = await file.text();
         const source = originalSource.replace(/\r\n?/g, "\n");
         const storedNotes = source.match(/<script id="notes-data" type="application\/octet-stream">([A-Za-z0-9+/=]*)<\/script>/)?.[1];
         if (file.name !== filename || !source.includes("<script>" + quizScript + "</" + "script>")) {
-          throw new Error("Seleziona lo stesso file HTML che hai aperto.");
+          throw new Error(t`Seleziona lo stesso file HTML che hai aperto.`);
         }
         if (storedNotes !== savedNotesData) {
-          throw new Error("Il file contiene appunti diversi. Scarica una copia per conservare le modifiche di questa scheda.");
+          throw new Error(t`Il file contiene appunti diversi. Scarica una copia per conservare le modifiche di questa scheda.`);
         }
 
         const notesData = encodeNotes(Object.fromEntries(notes));
@@ -924,7 +932,7 @@ function offlineQuizRuntime(DATA) {
         const writable = await selected.createWritable({ mode: "exclusive" });
         try {
           if (await (await selected.getFile()).text() !== originalSource) {
-            throw new Error("Il file è cambiato durante il salvataggio. Scarica una copia per conservare gli appunti.");
+            throw new Error(t`Il file è cambiato durante il salvataggio. Scarica una copia per conservare gli appunti.`);
           }
           await writable.write(html);
           await writable.close();
@@ -934,14 +942,14 @@ function offlineQuizRuntime(DATA) {
         }
         fileHandle = selected;
         savedNotesData = notesData;
-        status.textContent = "Appunti salvati nel file.";
+        status.textContent = t`Appunti salvati nel file.`;
       } catch (error) {
         fileHandle = undefined;
         status.textContent = error.name === "AbortError"
-          ? "Salvataggio annullato."
+          ? t`Salvataggio annullato.`
           : error.name === "NotAllowedError"
-            ? "Scrittura non autorizzata. Puoi scaricare una copia con gli appunti."
-            : error.message || "Salvataggio non riuscito.";
+            ? t`Scrittura non autorizzata. Puoi scaricare una copia con gli appunti.`
+            : error.message || t`Salvataggio non riuscito.`;
       } finally {
         save.disabled = false;
       }

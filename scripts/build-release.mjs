@@ -280,10 +280,7 @@ for (const browser of browsers) {
     createFolders: false,
   });
   for (const relativePath of sourceFiles) {
-    const sourceBytes = await readFile(path.join(root,
-      browser === "firefox" && relativePath === "whats-new.js"
-        ? "scripts/whats-new-firefox.js"
-        : relativePath));
+    const sourceBytes = await readFile(path.join(root, relativePath));
     zip.file(relativePath, browser === "firefox"
       ? firefoxReviewSafeSource(relativePath, sourceBytes)
       : sourceBytes, {

@@ -22,6 +22,7 @@ const master = ["Alpha", "Beta", "Gamma", "Delta"].map((title, index) => ({
 }));
 let requested = null;
 const context = vm.createContext({
+  t: (parts, ...values) => String.raw({ raw: parts }, ...values),
   normalizedText: (value) => String(value || "").trim().replace(/\s+/g, " "),
   playbackDiscoveryCancelled: () => false,
   setResumeDiscoveryStatus() {}, removeResumeDiscoveryStatus() {}, log() {},

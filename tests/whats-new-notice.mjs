@@ -2,48 +2,89 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
-const definitionSource = readFileSync(new URL("../whats-new.js", import.meta.url), "utf8");
-const context = vm.createContext({});
-vm.runInContext(definitionSource, context);
+const read = (name) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
+const manifest = JSON.parse(read("manifest.json"));
+const writes = [];
+let onInstalled;
+const context = vm.createContext({
+  chrome: {
+    runtime: {
+      getManifest: () => manifest,
+      onInstalled: { addListener: (callback) => { onInstalled = callback; } },
+      onMessage: { addListener() {} },
+    },
+    tabs: { onRemoved: { addListener() {} }, onActivated: { addListener() {} } },
+    storage: {
+      local: {
+        set: (values) => writes.push({ ...values }),
+        get: (_key, callback) => callback({}),
+      },
+    },
+  },
+});
+for (const script of ["whats-new.js", "language.js", "language-ui.js", "background.js"]) {
+  vm.runInContext(read(script), context);
+}
 const api = context.PlumePilotWhatsNew;
+const release = api.RELEASE;
+assert.equal(manifest.version, release.version);
 
-assert.equal(api.RELEASE.version, "2.35.3");
-assert.equal(api.RELEASE.items.length, 3);
-assert.match(api.RELEASE.summary, /Appunti/);
-const firefoxContext = vm.createContext({});
-vm.runInContext(readFileSync(new URL("../scripts/whats-new-firefox.js", import.meta.url), "utf8"), firefoxContext);
-const firefoxApi = firefoxContext.PlumePilotWhatsNew;
-assert.equal(firefoxApi.RELEASE.version, api.RELEASE.version);
-assert.equal(firefoxApi.RELEASE.items.length, 3);
-assert.match(api.RELEASE.items[2].text, /non aggiunge più/);
-assert.deepEqual(JSON.parse(JSON.stringify(firefoxApi.RELEASE.items)), JSON.parse(JSON.stringify(api.RELEASE.items)));
-assert.equal(firefoxApi.PENDING_KEY, api.PENDING_KEY);
-assert.equal(firefoxApi.LAST_SEEN_KEY, api.LAST_SEEN_KEY);
-assert.match(api.PENDING_KEY, /PendingWhatsNewVersion$/);
-assert.match(api.LAST_SEEN_KEY, /LastSeenWhatsNewVersion$/);
+const language = context.PlumePilotLanguage;
+assert.match(release.title, /inglese/);
+assert.equal(release.items.length, 4);
+assert.ok(release.items.some(({ text }) => /PDF ed EPUB/.test(text)));
+assert.ok(release.items.some(({ text }) => /offline/.test(text)));
+assert.ok(release.items.some(({ title }) => /Pausa\?/.test(title)));
 
-const background = readFileSync(new URL("../background.js", import.meta.url), "utf8");
-const popupHtml = readFileSync(new URL("../popup.html", import.meta.url), "utf8");
-const popupJs = readFileSync(new URL("../popup.js", import.meta.url), "utf8");
-const popupCss = readFileSync(new URL("../popup.css", import.meta.url), "utf8");
-const build = readFileSync(new URL("../scripts/build-release.mjs", import.meta.url), "utf8");
-const manifest = JSON.parse(readFileSync(new URL("../manifest.json", import.meta.url), "utf8"));
-assert.equal(manifest.version, api.RELEASE.version);
+const popup = read("popup.js");
+const renderSource = popup.slice(
+  popup.indexOf("  function renderWhatsNewContent()"),
+  popup.indexOf("  function markWhatsNewSeen()"),
+);
+const element = () => ({ textContent: "", append() {} });
+const fields = {
+  whatsNewBannerTitle: element(), whatsNewBannerSummary: element(),
+  whatsNewDialogTitle: element(), whatsNewDialogVersion: element(), whatsNewDialogSummary: element(),
+  whatsNewItems: { replaceChildren(...items) { this.items = items; } },
+};
+Object.assign(context, fields, {
+  document: { createElement: element },
+  t: language.translate,
+  localized: language.text,
+  whatsNewApi: api,
+});
+vm.runInContext(renderSource, context);
+for (const locale of ["it", "en"]) {
+  language.set(locale);
+  vm.runInContext("renderWhatsNewContent()", context);
+  assert.equal(fields.whatsNewBannerTitle.textContent, locale === "en"
+    ? `What’s new in PlumePilot ${release.version}`
+    : `Novità in PlumePilot ${release.version}`);
+  assert.equal(fields.whatsNewDialogVersion.textContent, `v${release.version}`);
+  assert.equal(fields.whatsNewBannerSummary.textContent, fields.whatsNewDialogSummary.textContent);
+  assert.equal(fields.whatsNewDialogTitle.textContent, language.text(release.title));
+  assert.equal(fields.whatsNewItems.items.length, release.items.length);
+}
+assert.notEqual(language.text(release.summary), release.summary);
+for (const { title, text } of release.items) {
+  assert.notEqual(language.text(title), title);
+  assert.notEqual(language.text(text), text);
+}
 
-assert.match(background, /details\.reason !== "update"/);
-assert.match(background, /currentVersion !== whatsNewApi\.RELEASE\.version/);
-assert.doesNotMatch(background, /reason\s*===\s*["']install["']/);
-assert.match(popupHtml, /id="whatsNewBanner"[^>]+hidden/);
-assert.match(popupHtml, /role="dialog"[^>]+aria-modal="true"/);
-assert.match(popupHtml, /id="openWhatsNewFromAbout"[^>]*>Novità</);
-assert.match(popupJs, /currentVersion === releaseVersion/);
-assert.match(popupJs, /result\[whatsNewApi\.PENDING_KEY\] === releaseVersion/);
-assert.match(popupJs, /result\[whatsNewApi\.LAST_SEEN_KEY\] !== releaseVersion/);
-assert.match(popupJs, /chrome\.storage\.local\.remove\(whatsNewApi\.PENDING_KEY\)/);
-assert.match(popupJs, /event\.key !== "Tab"/);
-assert.match(popupCss, /\.whats-new-banner\[hidden\]/);
+onInstalled({ reason: "install" });
+assert.deepEqual(writes, []);
+onInstalled({ reason: "update", previousVersion: "2.35.5" });
+assert.deepEqual(writes, [{ [api.PENDING_KEY]: release.version }]);
+
+const html = read("popup.html");
+assert.match(html, /id="whatsNewBanner"[^>]+hidden/);
+assert.match(html, /id="whatsNewBannerTitle"><\/strong>/);
+assert.match(html, /id="whatsNewBannerSummary"><\/span>/);
+assert.match(html, /id="openWhatsNewFromAbout"[^>]*>Novità</);
+assert.match(popup, /result\[whatsNewApi\.PENDING_KEY\] === releaseVersion/);
+assert.match(popup, /result\[whatsNewApi\.LAST_SEEN_KEY\] !== releaseVersion/);
+assert.match(popup, /chrome\.storage\.local\.remove\(whatsNewApi\.PENDING_KEY\)/);
+assert.match(read("popup.css"), /\.whats-new-banner\[hidden\]/);
 assert.ok(manifest.background.scripts.includes("whats-new.js"));
-assert.match(build, /"sound-settings\.js", "whats-new\.js", "background\.js"/);
-assert.match(build, /browser === "firefox" && relativePath === "whats-new\.js"/);
 
-console.log("PASS: update-only Novità notice, per-version dismissal and manual access are consistent");
+console.log("PASS: update-only banner and Preferences use the same release and summary in both languages");

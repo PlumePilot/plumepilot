@@ -13,6 +13,8 @@
   <script src="store-links.js"></script>
   <link rel="stylesheet" href="popup.css">
   <link rel="stylesheet" href="menu-ux.css">
+  <script src="language.js"></script>
+  <script src="language-ui.js"></script>
   <script src="menu-ux.js"></script>
 </head>
 <body>
@@ -44,8 +46,8 @@
     <aside id="whatsNewBanner" class="whats-new-banner" aria-labelledby="whatsNewBannerTitle" hidden>
       <button id="dismissWhatsNew" class="whats-new-dismiss" type="button" aria-label="Chiudi le novità">×</button>
       <div class="whats-new-banner-copy">
-        <strong id="whatsNewBannerTitle">Novità in PlumePilot 2.35.3</strong>
-        <span>Menu più chiari, impostazioni autoplay dedicate e pulsanti condivisi.</span>
+        <strong id="whatsNewBannerTitle"></strong>
+        <span id="whatsNewBannerSummary"></span>
       </div>
       <button id="openWhatsNew" class="secondary-button whats-new-open" type="button">Scopri le novità</button>
     </aside>
@@ -324,6 +326,7 @@
       <details class="preferences-section preference-macro" aria-labelledby="interfaceSectionTitle">
         <summary id="interfaceSectionTitle" class="preference-macro-summary"><span>Interfaccia</span><span class="preference-disclosure-chevron" aria-hidden="true"></span></summary>
         <div class="preference-macro-content">
+          <label><span>Lingua</span> <select data-role="language-picker"><option value="it">Italiano</option><option value="en">English</option></select></label><p data-role="language-status" role="status"></p>
         <div class="setting-block floating-menu-setting">
           <div class="setting-row gaming-control-row">
             <label for="floatingMenuEnabled">Mostra il menu fluttuante</label>
