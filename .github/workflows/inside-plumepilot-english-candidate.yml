@@ -1,0 +1,47 @@
+name: Inside PlumePilot English reader candidate
+
+on:
+  push:
+    branches:
+      - docs/inside-plumepilot-english
+    paths:
+      - 'docs/inside-plumepilot/**'
+      - 'scripts/build-inside-plumepilot.mjs'
+      - 'scripts/check-inside-plumepilot.mjs'
+      - 'scripts/smoke-inside-plumepilot.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-reader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pandoc
+        run: sudo apt-get update -qq && sudo apt-get install -y pandoc
+      - name: Validate JavaScript syntax
+        run: |
+          node --check scripts/build-inside-plumepilot.mjs
+          node --check scripts/check-inside-plumepilot.mjs
+          node --check scripts/smoke-inside-plumepilot.mjs
+      - name: Build both language editions
+        run: |
+          node scripts/build-inside-plumepilot.mjs --lang it
+          node scripts/build-inside-plumepilot.mjs --lang en
+      - name: Validate offline readers
+        run: node scripts/check-inside-plumepilot.mjs
+      - name: Install browser smoke-test tooling
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright
+      - name: Run browser smoke test
+        run: node scripts/smoke-inside-plumepilot.mjs
+      - name: Commit generated readers
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/inside-plumepilot/Inside-PlumePilot.html docs/inside-plumepilot/Inside-PlumePilot-en.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'docs(book): regenerate bilingual offline readers'
+            git push origin HEAD:docs/inside-plumepilot-english
+          fi

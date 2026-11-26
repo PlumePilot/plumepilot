@@ -2,13 +2,15 @@
 
 ## Anatomia di una browser extension reale
 
+**🇮🇹 Italiano** · [🇬🇧 English](en/)
+
 **JavaScript, WebExtensions, DOM, API, asincronia e software engineering attraverso un progetto reale.**
 
 > Questo libro usa PlumePilot come caso di studio. L'obiettivo non è soltanto capire *cosa fa il codice*, ma imparare a riconoscere problemi, concetti e decisioni architetturali riutilizzabili in altri progetti.
 
 Il manoscritto è completo: **Introduzione + Capitoli 1–17, glossario e fonti**. Per la lettura senza connessione è disponibile anche un **singolo file HTML self-contained**, con indice laterale, ricerca, tema chiaro/scuro, navigazione fra capitoli e ripristino locale della posizione di lettura.
 
-[Inizia dall'introduzione →](00-introduzione.md) · [Edizione HTML offline](Inside-PlumePilot.html) · [Glossario](glossario.md) · [Fonti](FONTI.md) · [Edizione completa in un solo Markdown](https://github.com/PlumePilot/plumepilot/blob/main/INSIDE_PLUMEPILOT.md) · [Repository PlumePilot](https://github.com/PlumePilot/plumepilot)
+[Inizia dall'introduzione →](00-introduzione.md) · [Edizione HTML offline](Inside-PlumePilot.html) · <a href="Inside-PlumePilot.html" download="Inside-PlumePilot.html">Scarica HTML offline</a> · [Glossario](glossario.md) · [Fonti](FONTI.md) · [Edizione completa in un solo Markdown](https://github.com/PlumePilot/plumepilot/blob/main/INSIDE_PLUMEPILOT.md) · [Repository PlumePilot](https://github.com/PlumePilot/plumepilot)
 
 ---
 
