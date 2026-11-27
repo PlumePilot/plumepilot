@@ -29,6 +29,10 @@
       {
         "title": "Avvisi sonori più affidabili",
         "text": "Se il documento audio di Chrome non riesce ad avviare il suono, PlumePilot prova a riprodurlo in una scheda della piattaforma. Attiva Notifiche sonore nelle Preferenze e scegli un volume maggiore di zero."
+      },
+      {
+              "title": "Potresti esserti perso… dalla 2.35.5",
+              "text": "Nei nuovi quiz HTML puoi incollare appunti formattati o Markdown e nascondere i capitoli con l’icona della barra laterale. Su Chrome ed Edge desktop puoi salvare gli appunti nello stesso file aperto dal disco; Scarica HTML con appunti salva una copia anche su Firefox. In Corso → Autoplay, Schermo intero continuo mantiene il player a schermo intero al cambio di video sulle piattaforme supportate. Il menu fluttuante evita i riepiloghi duplicati e lascia accessibili le tab durante gli avvisi EXP."
       }
     ]
   };

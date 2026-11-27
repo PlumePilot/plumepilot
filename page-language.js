@@ -107,6 +107,8 @@
 })();
 
 globalThis.PlumePilotLanguage.addMessages({
+  "Potresti esserti perso… dalla 2.35.5": "You may have missed… since 2.35.5",
+  "Nei nuovi quiz HTML puoi incollare appunti formattati o Markdown e nascondere i capitoli con l’icona della barra laterale. Su Chrome ed Edge desktop puoi salvare gli appunti nello stesso file aperto dal disco; Scarica HTML con appunti salva una copia anche su Firefox. In Corso → Autoplay, Schermo intero continuo mantiene il player a schermo intero al cambio di video sulle piattaforme supportate. Il menu fluttuante evita i riepiloghi duplicati e lascia accessibili le tab durante gli avvisi EXP.": "New HTML quizzes support pasted formatted notes or Markdown and a sidebar icon to hide chapters. On desktop Chrome and Edge, you can save notes to the same file opened from disk; Download HTML with notes saves a copy on Firefox too. In Course → Autoplay, Continuous fullscreen keeps the player fullscreen between videos on supported platforms. The floating menu avoids duplicate progress summaries and keeps tabs accessible during EXP alerts.",
   "PlumePilot in italiano e inglese, con miglioramenti per quiz e avvisi sonori.": "PlumePilot in Italian and English, with improvements to quizzes and sound alerts.",
   "Avvisi sonori più affidabili": "More reliable sound alerts",
   "Se il documento audio di Chrome non riesce ad avviare il suono, PlumePilot prova a riprodurlo in una scheda della piattaforma. Attiva Notifiche sonore nelle Preferenze e scegli un volume maggiore di zero.": "If Chrome’s audio document cannot start playback, PlumePilot tries a platform tab. Enable Sound notifications in Preferences and choose a volume above zero.",
